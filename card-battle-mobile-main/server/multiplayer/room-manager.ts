@@ -161,7 +161,7 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
     if (!room) return null;
     room.matchSettings = settings;
-    room.totalRounds = settings.rounds; // تحديث totalRounds من الإعدادات
+    room.totalRounds = settings.rounds;
     return room;
   }
 
