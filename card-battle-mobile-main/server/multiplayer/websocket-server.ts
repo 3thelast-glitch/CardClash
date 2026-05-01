@@ -53,26 +53,26 @@ export class MultiplayerWebSocketServer {
     console.log('[Multiplayer] WebSocket server ready on /multiplayer');
   }
 
-  // ─── Message Router ──────────────────────────────────────────────────────────────
+  // ─── Message Router ──────────────────────────────────────────────────────────────────────────────
   private handleMessage(ws: WebSocket, message: GameMessage, setPlayerId: (id: string) => void) {
     const { type, payload } = message;
     switch (type) {
-      case 'CREATE_ROOM':          this.handleCreateRoom(ws, payload, setPlayerId); break;
-      case 'JOIN_ROOM':            this.handleJoinRoom(ws, payload, setPlayerId); break;
-      case 'RECONNECT':            this.handleReconnect(ws, payload, setPlayerId); break;
-      case 'LEAVE_ROOM':           this.handleLeaveRoom(payload.playerId); break;
-      case 'SET_CARDS':            this.handleSetCards(payload); break;
-      case 'PLAYER_READY':         this.handlePlayerReady(payload); break;
-      case 'REVEAL_CARD':          this.handleRevealCard(payload); break;
+      case 'CREATE_ROOM':        this.handleCreateRoom(ws, payload, setPlayerId); break;
+      case 'JOIN_ROOM':          this.handleJoinRoom(ws, payload, setPlayerId); break;
+      case 'RECONNECT':          this.handleReconnect(ws, payload, setPlayerId); break;
+      case 'LEAVE_ROOM':         this.handleLeaveRoom(payload.playerId); break;
+      case 'SET_CARDS':          this.handleSetCards(payload); break;
+      case 'PLAYER_READY':       this.handlePlayerReady(payload); break;
+      case 'REVEAL_CARD':        this.handleRevealCard(payload); break;
       // ── جديد ──
-      case 'MATCH_SETTINGS':       this.handleMatchSettings(payload); break;
-      case 'ARRANGEMENT_READY':    this.handleArrangementReady(payload); break;
-      case 'PING': this.send(ws, { type: 'PONG', payload: { ts: Date.now() } }); break;
+      case 'MATCH_SETTINGS':     this.handleMatchSettings(payload); break;
+      case 'ARRANGEMENT_READY':  this.handleArrangementReady(payload); break;
+      case 'PING':               this.send(ws, { type: 'PONG', payload: { ts: Date.now() } }); break;
       default: console.warn('[Multiplayer] Unknown message type:', type);
     }
   }
 
-  // ─── Create Room ────────────────────────────────────────────────────────────────
+  // ─── Create Room ────────────────────────────────────────────────────────────────────────
   private handleCreateRoom(ws: WebSocket, payload: { playerId: string; playerName: string }, setPlayerId: (id: string) => void) {
     const { playerId, playerName } = payload;
     const player: Player = { id: playerId, name: playerName, socketId: playerId, isReady: false };
@@ -83,7 +83,7 @@ export class MultiplayerWebSocketServer {
     console.log(`[Multiplayer] Room created: ${room.id} by ${playerName}`);
   }
 
-  // ─── Join Room ──────────────────────────────────────────────────────────────────
+  // ─── Join Room ──────────────────────────────────────────────────────────────────────────
   private handleJoinRoom(ws: WebSocket, payload: { roomId: string; playerId: string; playerName: string }, setPlayerId: (id: string) => void) {
     const { roomId, playerId, playerName } = payload;
     const player: Player = { id: playerId, name: playerName, socketId: playerId, isReady: false };
@@ -98,7 +98,7 @@ export class MultiplayerWebSocketServer {
     console.log(`[Multiplayer] ${playerName} joined room: ${roomId}`);
   }
 
-  // ─── Reconnect ──────────────────────────────────────────────────────────────────
+  // ─── Reconnect ──────────────────────────────────────────────────────────────────────────
   private handleReconnect(ws: WebSocket, payload: { playerId: string; roomId: string }, setPlayerId: (id: string) => void) {
     const { playerId, roomId } = payload;
     const room = roomManager.getRoom(roomId);
@@ -110,12 +110,22 @@ export class MultiplayerWebSocketServer {
     const otherPlayer = room.player1?.id === playerId ? room.player2 : room.player1;
     this.send(ws, {
       type: 'RECONNECTED',
-      payload: { room: { id: room.id, p1Score: room.p1Score, p2Score: room.p2Score, currentRoundIndex: room.roundHistory.length, totalRounds: room.totalRounds, status: room.status }, opponent: otherPlayer },
+      payload: {
+        room: {
+          id: room.id,
+          p1Score: room.p1Score,
+          p2Score: room.p2Score,
+          currentRoundIndex: room.roundHistory.length,
+          totalRounds: room.totalRounds,
+          status: room.status,
+        },
+        opponent: otherPlayer,
+      },
     });
     if (otherPlayer) this.sendToPlayer(otherPlayer.id, { type: 'OPPONENT_RECONNECTED', payload: { playerId } });
   }
 
-  // ─── Leave Room ────────────────────────────────────────────────────────────────
+  // ─── Leave Room ────────────────────────────────────────────────────────────────────────
   private handleLeaveRoom(playerId: string) {
     const room = roomManager.leaveRoom(playerId);
     if (room) {
@@ -125,7 +135,7 @@ export class MultiplayerWebSocketServer {
     this.clients.delete(playerId);
   }
 
-  // ─── Set Cards ─────────────────────────────────────────────────────────────────
+  // ─── Set Cards ─────────────────────────────────────────────────────────────────────────
   private handleSetCards(payload: { playerId: string; cards: any[]; rounds: number }) {
     const { playerId, cards, rounds } = payload;
     const room = roomManager.setPlayerCards(playerId, cards, rounds);
@@ -134,7 +144,7 @@ export class MultiplayerWebSocketServer {
     if (other) this.sendToPlayer(other.id, { type: 'OPPONENT_CARDS_SET', payload: { rounds } });
   }
 
-  // ─── Player Ready ─────────────────────────────────────────────────────────────
+  // ─── Player Ready ────────────────────────────────────────────────────────────────────────
   private handlePlayerReady(payload: { playerId: string; isReady: boolean }) {
     const { playerId, isReady } = payload;
     const room = roomManager.setPlayerReady(playerId, isReady);
@@ -157,7 +167,7 @@ export class MultiplayerWebSocketServer {
     console.log(`[Multiplayer] Battle started in room ${room.id}`);
   }
 
-  // ─── جديد: Match Settings ────────────────────────────────────────────────────
+  // ─── جديد: Match Settings ────────────────────────────────────────────────────────────────
   // يرسلها صاحب الجلسة بعد ضبط الإعدادات — يستقبلها الضيف تلقائياً
   private handleMatchSettings(payload: {
     playerId: string;
@@ -183,7 +193,7 @@ export class MultiplayerWebSocketServer {
     console.log(`[Multiplayer] Match settings set in room ${room.id}: ${rounds} rounds`);
   }
 
-  // ─── جديد: Arrangement Ready ───────────────────────────────────────────────
+  // ─── جديد: Arrangement Ready ────────────────────────────────────────────────────────────
   // لاعب ضغط "ابدأ المعركة" بعد ترتيب كروته — إذا ضغط الاثنين تبدأ المعركة
   private handleArrangementReady(payload: { playerId: string; cards: any[] }) {
     const { playerId, cards } = payload;
@@ -221,7 +231,7 @@ export class MultiplayerWebSocketServer {
     }
   }
 
-  // ─── Reveal Card ────────────────────────────────────────────────────────────────
+  // ─── Reveal Card ──────────────────────────────────────────────────────────────────────────
   private handleRevealCard(payload: { playerId: string; roundIndex: number; card: any }) {
     const { playerId, roundIndex, card } = payload;
     const room = roomManager.getPlayerRoom(playerId);
@@ -246,7 +256,7 @@ export class MultiplayerWebSocketServer {
     }
   }
 
-  // ─── Disconnect ────────────────────────────────────────────────────────────────
+  // ─── Disconnect ──────────────────────────────────────────────────────────────────────────
   private handlePlayerDisconnect(playerId: string) {
     const room = roomManager.getPlayerRoom(playerId);
     if (!room) return;
@@ -263,7 +273,7 @@ export class MultiplayerWebSocketServer {
     this.reconnectTimers.set(playerId, timer);
   }
 
-  // ─── Helpers ────────────────────────────────────────────────────────────────────
+  // ─── Helpers ──────────────────────────────────────────────────────────────────────────────
   private send(ws: WebSocket, message: GameMessage) {
     if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
   }
