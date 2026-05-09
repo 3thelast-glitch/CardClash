@@ -18,11 +18,12 @@
  *  - ✅ Step 2: wrap all Haptics calls with settings.vibration guard
  *  - ✅ Step 3: guard spawnDmg with settings.showDamageNumbers
  *  - ✅ Step 4: replace hardcoded delays with BATTLE_TIMINGS
+ *  - ✅ Removed edit mode / 🎨 أدوات التحرير
  */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View, TouchableOpacity, StyleSheet, Platform,
-  Modal, ScrollView, PanResponder, Animated as RNAnimated,
+  Modal, ScrollView,
   useWindowDimensions, Alert,
 } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
@@ -35,7 +36,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
-import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { StatusBar } from 'expo-status-bar';
 import { ElementEffect } from '@/components/game/element-effect';
@@ -283,122 +283,6 @@ const cm = StyleSheet.create({
   cancelText: { color: '#f87171', fontSize: FONT.sm },
 });
 
-// ─── Grid overlay ──────────────────────────────────────────────────────────
-const GridOverlay = () => (
-  <View style={S.gridContainer} pointerEvents="none">
-    <View style={S.vLine} />
-    <View style={S.hLine} />
-    <View style={[S.vLineThin, { left: '25%' }]} />
-    <View style={[S.vLineThin, { left: '75%' }]} />
-    <View style={[S.hLineThin, { top: '25%' }]} />
-    <View style={[S.hLineThin, { top: '75%' }]} />
-    <View style={S.gridCenter} />
-  </View>
-);
-
-// ─── Edit sidebar ──────────────────────────────────────────────────────────
-const EditSidebar = ({ visible, onClose, showGrid, onToggleGrid, snapToGrid, onToggleSnap, onResetLayout }: any) => {
-  const slide = useRef(new RNAnimated.Value(-300)).current;
-  useEffect(() => {
-    RNAnimated.timing(slide, { toValue: visible ? 0 : -300, duration: 260, useNativeDriver: true }).start();
-  }, [visible]);
-  return (
-    <RNAnimated.View style={[S.sidebar, { transform: [{ translateX: slide }] }]}>
-      <View style={S.sidebarHead}>
-        <Text style={S.sidebarTitle}>🎨 أدوات التحرير</Text>
-        <TouchableOpacity onPress={onClose} style={S.sidebarClose}>
-          <Text style={{ color: '#f87171', fontSize: 18 }}>✕</Text>
-        </TouchableOpacity>
-      </View>
-      <ScrollView style={{ flex: 1, padding: SPACE.lg }}>
-        <View style={S.sidebarSection}>
-          <Text style={S.sidebarSectionTitle}>⚙️ إعدادات الشبكة</Text>
-          <TouchableOpacity style={[S.sidebarOpt, showGrid && S.sidebarOptActive]} onPress={onToggleGrid}>
-            <Text style={S.sidebarOptText}>{showGrid ? '✓' : '◦'} إظهار الشبكة</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[S.sidebarOpt, snapToGrid && S.sidebarOptActive]} onPress={onToggleSnap}>
-            <Text style={S.sidebarOptText}>{snapToGrid ? '✓' : '◦'} التقاط تلقائي</Text>
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity style={S.sidebarAction} onPress={onResetLayout}>
-          <Text style={S.sidebarActionText}>🔄 إعادة ضبط الكل</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </RNAnimated.View>
-  );
-};
-
-// ─── Resize handle ─────────────────────────────────────────────────────────
-const ResizeHandle = ({ position, onResizeStart, onResizeMove, onResizeEnd }: any) => {
-  const initScale = useRef(1);
-  const pr = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => { e.stopPropagation(); initScale.current = onResizeStart(); },
-      onPanResponderMove: (e, g) => {
-        e.stopPropagation();
-        let delta = 0;
-        if (position.includes('corner')) { const dist = Math.sqrt(g.dx ** 2 + g.dy ** 2); delta = (dist * (g.dx + g.dy > 0 ? 1 : -1)) / 200; }
-        else if (position === 'top' || position === 'bottom') { delta = g.dy / 200; }
-        else { delta = g.dx / 200; }
-        onResizeMove(position, initScale.current + delta);
-      },
-      onPanResponderRelease: () => onResizeEnd(),
-    })
-  ).current;
-  const key = `rh_${position.replace('-', '')}`;
-  return (<View {...pr.panHandlers} style={[S.resizeHandle, (S as any)[key]]}><View style={S.resizeHandleInner} /></View>);
-};
-
-const TransformHandles = ({ onResizeStart, onResizeMove, onResizeEnd }: any) => {
-  const positions = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top', 'bottom', 'left', 'right'];
-  return (<View style={S.transformHandles} pointerEvents="box-none">{positions.map((p) => <ResizeHandle key={p} position={p} onResizeStart={onResizeStart} onResizeMove={onResizeMove} onResizeEnd={onResizeEnd} />)}</View>);
-};
-
-const DraggableResizable = ({ children, id, initialX = 0, initialY = 0, initialScale = 1, onUpdate, minScale = 0.5, maxScale = 2.5, snapToGrid = false }: any) => {
-  const { width: W, height: H } = useWindowDimensions();
-  const [scale, setScale] = useState(initialScale);
-  const [isResizing, setIsResizing] = useState(false);
-  const position = useRef({ x: W / 2 + initialX, y: H / 2 + initialY });
-  const pan = useRef(new RNAnimated.ValueXY(position.current)).current;
-  useEffect(() => { const p = { x: W / 2 + initialX, y: H / 2 + initialY }; position.current = p; pan.setValue(p); setScale(initialScale); }, [initialX, initialY, initialScale]);
-  const onResizeStart = () => { setIsResizing(true); return scale; };
-  const onResizeMove = (_: string, s: number) => setScale(Math.max(minScale, Math.min(maxScale, s)));
-  const onResizeEnd = () => { setIsResizing(false); onUpdate?.(id, { x: position.current.x - W / 2, y: position.current.y - H / 2, scale }); };
-  const onScaleChange = (d: number) => { const ns = Math.max(minScale, Math.min(maxScale, scale + d)); setScale(ns); onUpdate?.(id, { x: position.current.x - W / 2, y: position.current.y - H / 2, scale: ns }); };
-  const pr = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => !isResizing,
-    onMoveShouldSetPanResponder: () => !isResizing,
-    onPanResponderGrant: () => { pan.setOffset(position.current); pan.setValue({ x: 0, y: 0 }); },
-    onPanResponderMove: RNAnimated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
-    onPanResponderRelease: (_, g) => {
-      pan.flattenOffset();
-      const m = 100;
-      let fx = Math.max(m, Math.min(W - m, position.current.x + g.dx));
-      let fy = Math.max(m, Math.min(H - m, position.current.y + g.dy));
-      if (snapToGrid) { const gr = 50; fx = Math.round(fx / gr) * gr; fy = Math.round(fy / gr) * gr; }
-      position.current = { x: fx, y: fy };
-      RNAnimated.spring(pan, { toValue: { x: fx, y: fy }, useNativeDriver: false, friction: 8, tension: 40 }).start();
-      onUpdate?.(id, { x: fx - W / 2, y: fy - H / 2, scale });
-    },
-  })).current;
-  return (
-    <RNAnimated.View style={{ position: 'absolute', left: 0, top: 0 }} {...pr.panHandlers}>
-      <RNAnimated.View style={{ transform: [{ translateX: pan.x }, { translateY: pan.y }, { translateX: -50 }, { translateY: -50 }, { scale }] }}>
-        <View style={{ position: 'relative' }}>{children}<TransformHandles onResizeStart={onResizeStart} onResizeMove={onResizeMove} onResizeEnd={onResizeEnd} /></View>
-      </RNAnimated.View>
-      <RNAnimated.View style={{ position: 'absolute', left: 0, top: 0, transform: [{ translateX: pan.x }, { translateY: pan.y }] }} pointerEvents="box-none">
-        <View style={S.scaleControls} pointerEvents="auto">
-          <TouchableOpacity style={[S.scaleBtn, scale <= minScale && S.scaleBtnDisabled]} onPress={(e) => { e.stopPropagation(); onScaleChange(-0.1); }} disabled={scale <= minScale}><Text style={S.scaleBtnText}>−</Text></TouchableOpacity>
-          <View style={S.scaleDisplay}><Text style={S.scaleDisplayText}>{Math.round(scale * 100)}%</Text></View>
-          <TouchableOpacity style={[S.scaleBtn, scale >= maxScale && S.scaleBtnDisabled]} onPress={(e) => { e.stopPropagation(); onScaleChange(0.1); }} disabled={scale >= maxScale}><Text style={S.scaleBtnText}>+</Text></TouchableOpacity>
-        </View>
-      </RNAnimated.View>
-    </RNAnimated.View>
-  );
-};
-
 // ────────────────────────── MAIN SCREEN ──────────────────────────
 export default function BattleScreen() {
   const router = useRouter();
@@ -444,7 +328,7 @@ export default function BattleScreen() {
   const [activeDamageNumbers, setActiveDamageNumbers] = useState<{ id: string; side: 'player' | 'bot'; value: number; variant: DamageNumberVariant }[]>([]);
   // 🔥 Rage Mode
   const [rageEvent, setRageEvent] = useState<ReturnType<typeof buildRageTriggerEvent> | null>(null);
-  const [rageScoreBonus, setRageScoreBonus] = useState(0); // نقاط إضافية للاعب بعد الغضب
+  const [rageScoreBonus, setRageScoreBonus] = useState(0);
   const rageState = useRef(buildRageState());
 
   // ── Choice modal state ──
@@ -468,27 +352,6 @@ export default function BattleScreen() {
     };
   }, []);
 
-  // edit mode
-  const [editMode, setEditMode] = useState(false);
-  const [showGrid, setShowGrid] = useState(true);
-  const [snapToGrid, setSnapToGrid] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false);
-
-  const { width: SW, height: SH } = useWindowDimensions();
-  const baseCardScale = Math.min(1, (SW * 0.35) / 200);
-  const uiScale = Math.min(1, SW / 400);
-
-  const DEFAULT_LAYOUT = {
-    playerCard: { x: -SW * 0.25, y: 0, scale: baseCardScale, minScale: 0.3, maxScale: 1.5 },
-    botCard: { x: SW * 0.25, y: 0, scale: baseCardScale, minScale: 0.3, maxScale: 1.5 },
-    vs: { x: 0, y: 0, scale: uiScale, minScale: 0.3, maxScale: 2.0 },
-    score: { x: 0, y: -SH * 0.35, scale: uiScale * 0.9, minScale: 0.4, maxScale: 1.5 },
-    round: { x: 0, y: -SH * 0.42, scale: uiScale * 0.9, minScale: 0.4, maxScale: 1.5 },
-    result: { x: 0, y: SH * 0.35, scale: uiScale, minScale: 0.5, maxScale: 2.0 },
-    abilities: { x: 0, y: SH * 0.25, scale: uiScale * 0.8, minScale: 0.4, maxScale: 1.5 },
-  };
-  const [elements, setElements] = useState(DEFAULT_LAYOUT);
-
   // animations
   const playerAnim = useSharedValue(0);
   const botAnim = useSharedValue(0);
@@ -501,14 +364,6 @@ export default function BattleScreen() {
   const vsStyle = useAnimatedStyle(() => ({ opacity: vsOpacity.value }));
   const resultStyle = useAnimatedStyle(() => ({ opacity: resultOp.value }));
   const flashStyle = useAnimatedStyle(() => ({ opacity: flashAnim.value }));
-
-  // layout persistence
-  useEffect(() => { loadLayout(); }, []);
-  useEffect(() => { if (editMode) saveLayout(); }, [elements, editMode]);
-  const loadLayout = async () => { try { const s = await AsyncStorage.getItem('battleLayout'); if (s) setElements(JSON.parse(s)); } catch { } };
-  const saveLayout = async () => { try { await AsyncStorage.setItem('battleLayout', JSON.stringify(elements)); } catch { } };
-  const updateElement = (id: string, d: any) => setElements(p => ({ ...p, [id]: { ...p[id as keyof typeof p], ...d } }));
-  const resetLayout = async () => { setElements(DEFAULT_LAYOUT); try { await AsyncStorage.removeItem('battleLayout'); } catch { } };
 
   // إعادة تعيين ذاكرة البوت عند بداية كل لعبة جديدة
   useEffect(() => {
@@ -523,7 +378,7 @@ export default function BattleScreen() {
         let bChanged = false;
 
         const newPlayerDeck = state.playerDeck.map(pc => {
-          if (pc.isRagedVersion || (pc as any)._rageActive) return pc; // ✅ الحفاظ على الكرت بوضع الغضب دون الكتابة فوقه بالنسخة الأصلية
+          if (pc.isRagedVersion || (pc as any)._rageActive) return pc;
           const updated = mergedCards.find(mc => mc.id === pc.id);
           if (updated && (updated.attack !== pc.attack || updated.defense !== pc.defense || JSON.stringify(updated.rageMode) !== JSON.stringify(pc.rageMode) || updated.isRagedVersion !== pc.isRagedVersion || updated.videoUrl !== pc.videoUrl)) {
             pChanged = true;
@@ -533,7 +388,7 @@ export default function BattleScreen() {
         });
 
         const newBotDeck = state.botDeck.map(bc => {
-          if (bc.isRagedVersion || (bc as any)._rageActive) return bc; // ✅ عدم إبطال غضب البوت (إن وُجد مستقبلاً)
+          if (bc.isRagedVersion || (bc as any)._rageActive) return bc;
           const updated = mergedCards.find(mc => mc.id === bc.id);
           if (updated && (updated.attack !== bc.attack || updated.defense !== bc.defense || JSON.stringify(updated.rageMode) !== JSON.stringify(bc.rageMode) || updated.isRagedVersion !== bc.isRagedVersion || updated.videoUrl !== bc.videoUrl)) {
             bChanged = true;
@@ -555,7 +410,7 @@ export default function BattleScreen() {
   }, [state.currentRound, state.totalRounds, currentPlayerCard, currentBotCard]);
 
   useEffect(() => {
-    if (currentPlayerCard && currentBotCard && phase === 'selection' && !editMode) {
+    if (currentPlayerCard && currentBotCard && phase === 'selection') {
       playerAnim.value = 0; botAnim.value = 0; vsOpacity.value = 0; resultOp.value = 0;
       setShowResult(false); setShowPlayerEffect(false); setShowBotEffect(false);
       playerAnim.value = withDelay(80, withTiming(1, { duration: 280 }));
@@ -564,7 +419,7 @@ export default function BattleScreen() {
       // ✅ Step 4: استخدام BATTLE_TIMINGS بدل الرقم الثابت 720
       setTimeout(() => setPhase('action'), BATTLE_TIMINGS.cardEntrance);
     }
-  }, [currentPlayerCard, currentBotCard, phase, state.currentRound, editMode]);
+  }, [currentPlayerCard, currentBotCard, phase, state.currentRound]);
 
   // ── Bot AI: يقرر ويستخدم قدرته قبل الهجوم ──────────────────────────────
   const runBotAbility = useCallback(() => {
@@ -589,47 +444,40 @@ export default function BattleScreen() {
     const newDeck = [...state.playerDeck];
     newDeck[state.currentRound] = rageCard;
     setPlayerDeck(newDeck);
-    
     setRageEvent(null);
   }, [state.playerDeck, state.currentRound, setPlayerDeck]);
 
   const handleExecuteAttack = useCallback(() => {
-    // إضافة قفل انتقال (Transition Lock)
     if (isTransitioning.current) return;
     isTransitioning.current = true;
 
     try {
-      // ✅ Step 2: استخدام hapticImpact بدل Haptics المباشر
       hapticImpact(Haptics.ImpactFeedbackStyle.Heavy);
       flashAnim.value = withSequence(withTiming(0.35, { duration: 60 }), withTiming(0, { duration: 300 }));
-      setPhase('combat'); 
-      setShowPlayerEffect(true); 
+      setPhase('combat');
+      setShowPlayerEffect(true);
       setShowBotEffect(true);
 
       runBotAbility();
 
       playRound();
-      setPredictionSelections({}); 
+      setPredictionSelections({});
       setShowPredictionModal(false);
     } catch (error) {
       console.error('Error during attack execution:', error);
       isTransitioning.current = false;
     } finally {
       if (nextRoundTimeout.current) clearTimeout(nextRoundTimeout.current);
-      // ✅ Step 4: Ensure transition always happens, preventing infinite stuck state
-      nextRoundTimeout.current = setTimeout(() => { 
-        setShowPlayerEffect(false); 
-        setShowBotEffect(false); 
-        setPhase('result'); 
+      nextRoundTimeout.current = setTimeout(() => {
+        setShowPlayerEffect(false);
+        setShowBotEffect(false);
+        setPhase('result');
         isTransitioning.current = false;
       }, BATTLE_TIMINGS.combatDuration) as unknown as NodeJS.Timeout;
     }
   }, [playRound, runBotAbility, hapticImpact]);
 
-  useEffect(() => { if (editMode) setShowSidebar(true); else setShowSidebar(false); }, [editMode]);
-
   const handleNextRound = useCallback(() => {
-    // ✅ Step 2: استخدام hapticImpact بدل Haptics المباشر
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
     if (isGameOver) {
       router.push('/screens/battle-results' as any);
@@ -642,7 +490,6 @@ export default function BattleScreen() {
   const handleConfirmPrediction = useCallback(() => {
     useAbility(predictionAbilityType, { predictions: predictionSelections });
     setShowPredictionModal(false); setPredictionSelections({});
-    // ✅ Step 2
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
   }, [predictionAbilityType, predictionSelections, useAbility, hapticImpact]);
 
@@ -650,7 +497,6 @@ export default function BattleScreen() {
     if (selectedPopularityRound === null) return;
     useAbility(popularityAbilityType, { round: selectedPopularityRound });
     setShowPopularityModal(false); setSelectedPopularityRound(null);
-    // ✅ Step 2
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
   }, [popularityAbilityType, selectedPopularityRound, useAbility, hapticImpact]);
 
@@ -732,15 +578,13 @@ export default function BattleScreen() {
     }
 
     setIsAbilitiesModalOpen(false);
-    // ✅ Step 2
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
   }, [choiceModal, useAbility, hapticImpact]);
 
   // ── تحديث ذاكرة البوت بعد كل جولة ──────────────────────────────────────
   useEffect(() => {
-    if (phase !== 'result' || !lastRoundResult || editMode) return;
-    
-    // إضافة قفل انتقال (Transition Lock) لمعالجة مشكلة تخطي الجولات
+    if (phase !== 'result' || !lastRoundResult) return;
+
     if (isTransitioning.current) return;
     isTransitioning.current = true;
 
@@ -763,26 +607,22 @@ export default function BattleScreen() {
     } finally {
       if (isGameOver) {
         setShowResult(true); resultOp.value = withTiming(1, { duration: 300 });
-        // ✅ Step 2: استخدام hapticNotification
         if (lastRoundResult.winner === 'player') hapticNotification(Haptics.NotificationFeedbackType.Success);
         else if (lastRoundResult.winner === 'bot') hapticNotification(Haptics.NotificationFeedbackType.Error);
         else hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
         setPhase('waiting');
         isTransitioning.current = false;
       } else {
-        // ✅ Step 2
         hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-        // تنظيف المؤقتات (Cleanup Timeouts)
         if (nextRoundTimeout.current) clearTimeout(nextRoundTimeout.current);
-        // ✅ Step 4: استخدام BATTLE_TIMINGS.autoNextRound بدل 1200
-        nextRoundTimeout.current = setTimeout(() => { 
-          setPhase('selection'); 
-          nextRound(); 
+        nextRoundTimeout.current = setTimeout(() => {
+          setPhase('selection');
+          nextRound();
           isTransitioning.current = false;
         }, BATTLE_TIMINGS.autoNextRound) as unknown as NodeJS.Timeout;
       }
     }
-  }, [phase, lastRoundResult, editMode, isGameOver, settings.showDamageNumbers]);
+  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers]);
 
   const spawnDmg = useCallback((side: 'player' | 'bot', value: number, variant: DamageNumberVariant) => {
     const id = `${Date.now()}-${Math.random()}`;
@@ -795,24 +635,21 @@ export default function BattleScreen() {
   const remainingRounds = useMemo(() => getRemainingRounds(roundNumber, state.totalRounds), [roundNumber, state.totalRounds]);
   const predictionComplete = useMemo(() => isPredictionComplete(upcomingRounds, predictionSelections), [upcomingRounds, predictionSelections]);
 
-  // Fallback to the last played cards if the current round exhausted the deck to avoid infinite loading
   const fallbackPlayerCard = currentPlayerCard || lastRoundResult?.playerCard;
   const fallbackBotCard = currentBotCard || lastRoundResult?.botCard;
 
   const displayPlayerCard = showResult && lastRoundResult ? lastRoundResult.playerCard : fallbackPlayerCard;
   const displayBotCard = showResult && lastRoundResult ? lastRoundResult.botCard : fallbackBotCard;
 
-  const playerEffective = displayPlayerCard 
-    ? getEffectiveStats(displayPlayerCard.attack, displayPlayerCard.defense, state.activeEffects, 'player') 
+  const playerEffective = displayPlayerCard
+    ? getEffectiveStats(displayPlayerCard.attack, displayPlayerCard.defense, state.activeEffects, 'player')
     : { attack: 0, defense: 0 };
 
-  const botEffective = displayBotCard 
-    ? getEffectiveStats(displayBotCard.attack, displayBotCard.defense, state.activeEffects, 'bot') 
+  const botEffective = displayBotCard
+    ? getEffectiveStats(displayBotCard.attack, displayBotCard.defense, state.activeEffects, 'bot')
     : { attack: 0, defense: 0 };
 
-  // منطق اختيار الكرت الذي سيعمل صوته (الكرت الأقوى هجوماً)
   const isPlayerStronger = playerEffective.attack >= botEffective.attack;
-
   const playerWonThisRound = !!lastRoundResult && lastRoundResult.winner === 'player';
   const maxScore = state.totalRounds;
 
@@ -831,219 +668,191 @@ export default function BattleScreen() {
       <StatusBar hidden />
       <View style={S.bgWrap}><LuxuryBackground /></View>
       <Animated.View style={[S.flashOverlay, flashStyle]} pointerEvents="none" />
-      {editMode && showGrid && <GridOverlay />}
-      <EditSidebar visible={showSidebar} onClose={() => setShowSidebar(false)} showGrid={showGrid} onToggleGrid={() => setShowGrid(!showGrid)} snapToGrid={snapToGrid} onToggleSnap={() => setSnapToGrid(!snapToGrid)} onResetLayout={resetLayout} />
 
-      <View style={[S.battleWrap, { paddingLeft: insets.left, paddingRight: insets.right }]} pointerEvents={editMode ? 'auto' : 'box-none'}>
-        {editMode ? (
-          <>
-            <DraggableResizable id="playerCard" initialX={elements.playerCard.x} initialY={elements.playerCard.y} initialScale={elements.playerCard.scale} minScale={elements.playerCard.minScale} maxScale={elements.playerCard.maxScale} snapToGrid={snapToGrid} onUpdate={updateElement}>
-              <View style={S.editElem}><Text style={S.editLabel}>👤 بطاقة اللاعب</Text><View style={{ transform: [{ scale: 0.8 }] }}><LuxuryCharacterCardAnimated card={displayPlayerCard} /></View></View>
-            </DraggableResizable>
-            <DraggableResizable id="botCard" initialX={elements.botCard.x} initialY={elements.botCard.y} initialScale={elements.botCard.scale} minScale={elements.botCard.minScale} maxScale={elements.botCard.maxScale} snapToGrid={snapToGrid} onUpdate={updateElement}>
-              <View style={S.editElem}><Text style={S.editLabel}>🤖 بطاقة البوت</Text><View style={{ transform: [{ scale: 0.8 }] }}><LuxuryCharacterCardAnimated card={displayBotCard} /></View></View>
-            </DraggableResizable>
-            <DraggableResizable id="vs" initialX={elements.vs.x} initialY={elements.vs.y} initialScale={elements.vs.scale} minScale={elements.vs.minScale} maxScale={elements.vs.maxScale} snapToGrid={snapToGrid} onUpdate={updateElement}>
-              <View style={S.editElem}><Text style={S.editLabel}>⚔️ VS</Text><Text style={{ color: '#e94560', fontSize: 24, padding: 12 }}>⚔️ VS ⚔️</Text></View>
-            </DraggableResizable>
-            <DraggableResizable id="score" initialX={elements.score.x} initialY={elements.score.y} initialScale={elements.score.scale} minScale={elements.score.minScale} maxScale={elements.score.maxScale} snapToGrid={snapToGrid} onUpdate={updateElement}>
-              <View style={S.editElem}><Text style={S.editLabel}>📊 النقاط</Text><Text style={{ color: '#fff', fontSize: 22, padding: 8 }}>{state.playerScore + rageScoreBonus} - {state.botScore}</Text></View>
-            </DraggableResizable>
-            <DraggableResizable id="abilities" initialX={elements.abilities.x} initialY={elements.abilities.y} initialScale={elements.abilities.scale} minScale={elements.abilities.minScale} maxScale={elements.abilities.maxScale} snapToGrid={snapToGrid} onUpdate={updateElement}>
-              <View style={S.editElem}><Text style={S.editLabel}>🎮 القدرات</Text></View>
-            </DraggableResizable>
-          </>
-        ) : (
-          <SafeAreaView style={S.normalRoot}>
-            <BattleResultOverlay
-              visible={showResult && phase === 'waiting'}
-              winner={state.playerScore > state.botScore ? 'player' : state.botScore > state.playerScore ? 'bot' : 'draw'}
-              playerScore={state.playerScore} botScore={state.botScore}
-              onPlayAgain={() => { resetGame(); router.replace('/screens/rounds-config' as any); }}
-              onHome={() => router.replace('/screens/splash' as any)}
-            />
+      <SafeAreaView style={S.normalRoot}>
+        <BattleResultOverlay
+          visible={showResult && phase === 'waiting'}
+          winner={state.playerScore > state.botScore ? 'player' : state.botScore > state.playerScore ? 'bot' : 'draw'}
+          playerScore={state.playerScore} botScore={state.botScore}
+          onPlayAgain={() => { resetGame(); router.replace('/screens/rounds-config' as any); }}
+          onHome={() => router.replace('/screens/splash' as any)}
+        />
 
-            {/* 🔥 Rage Mode Overlay */}
-            <RageModeOverlay
-              event={rageEvent}
-              onDismiss={() => setRageEvent(null)}
-              onConfirm={(rageCard: any) => handleRageActivate(rageCard)}
-            />
+        {/* 🔥 Rage Mode Overlay */}
+        <RageModeOverlay
+          event={rageEvent}
+          onDismiss={() => setRageEvent(null)}
+          onConfirm={(rageCard: any) => handleRageActivate(rageCard)}
+        />
 
-            <View style={[S.screen, { paddingLeft: Math.max(insets.left, 8), paddingRight: Math.max(insets.right, 8) }]}>
+        <View style={[S.screen, { paddingLeft: Math.max(insets.left, 8), paddingRight: Math.max(insets.right, 8) }]}>
 
-              {/* ══ TOP HUD ══ */}
-              <View style={S.topHud}>
-                <View style={S.hudSide}>
-                  <View style={[S.avatar, { borderColor: '#4ade80' }]}><Text style={{ fontSize: 18 }}>👤</Text></View>
-                  <View style={S.hudInfo}>
-                    <Text style={[S.hudName, { color: '#4ade80' }]}>لاعب</Text>
-                    <ScoreBar score={state.playerScore} maxScore={maxScore} color="#4ade80" />
-                  </View>
-                  <Text style={[S.hudScore, { color: '#4ade80' }]}>{state.playerScore}</Text>
-                </View>
-                <View style={S.hudCenter}>
-                  <Text style={S.hudRound}>جولة {state.currentRound + 1} / {state.totalRounds}</Text>
-                  <RoundBar current={state.currentRound} total={state.totalRounds} />
-                  <TouchableOpacity style={S.historyBtn} onPress={() => setIsHistoryModalOpen(true)} activeOpacity={0.75}>
-                    <Text style={S.historyBtnText}>سجل ↗️</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={[S.hudSide, S.hudSideRight]}>
-                  <Text style={[S.hudScore, { color: '#f87171' }]}>{state.botScore}</Text>
-                  <View style={S.hudInfo}>
-                    <Text style={[S.hudName, { color: '#f87171', textAlign: 'right' }]}>بوت</Text>
-                    <ScoreBar score={state.botScore} maxScore={maxScore} color="#f87171" reverse />
-                  </View>
-                  <View style={[S.avatar, { borderColor: '#f87171' }]}><Text style={{ fontSize: 18 }}>🤖</Text></View>
-                </View>
+          {/* ══ TOP HUD ══ */}
+          <View style={S.topHud}>
+            <View style={S.hudSide}>
+              <View style={[S.avatar, { borderColor: '#4ade80' }]}><Text style={{ fontSize: 18 }}>👤</Text></View>
+              <View style={S.hudInfo}>
+                <Text style={[S.hudName, { color: '#4ade80' }]}>لاعب</Text>
+                <ScoreBar score={state.playerScore} maxScore={maxScore} color="#4ade80" />
               </View>
+              <Text style={[S.hudScore, { color: '#4ade80' }]}>{state.playerScore}</Text>
+            </View>
+            <View style={S.hudCenter}>
+              <Text style={S.hudRound}>جولة {state.currentRound + 1} / {state.totalRounds}</Text>
+              <RoundBar current={state.currentRound} total={state.totalRounds} />
+              <TouchableOpacity style={S.historyBtn} onPress={() => setIsHistoryModalOpen(true)} activeOpacity={0.75}>
+                <Text style={S.historyBtnText}>سجل ↗️</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={[S.hudSide, S.hudSideRight]}>
+              <Text style={[S.hudScore, { color: '#f87171' }]}>{state.botScore}</Text>
+              <View style={S.hudInfo}>
+                <Text style={[S.hudName, { color: '#f87171', textAlign: 'right' }]}>بوت</Text>
+                <ScoreBar score={state.botScore} maxScore={maxScore} color="#f87171" reverse />
+              </View>
+              <View style={[S.avatar, { borderColor: '#f87171' }]}><Text style={{ fontSize: 18 }}>🤖</Text></View>
+            </View>
+          </View>
 
-              {/* ══ ACTIVE EFFECTS BAR ══ */}
-              {state.activeEffects.length > 0 && (
-                <View style={S.effectsBar}>
-                  <View style={S.effectsBarSide}>
-                    <Text style={S.effectsBarLabel}>تأثيراتك</Text>
-                    <ActiveEffectsBar effects={state.activeEffects} side="player" />
-                  </View>
-                  <View style={S.effectsBarDivider} />
-                  <View style={[S.effectsBarSide, { alignItems: 'flex-end' }]}>
-                    <Text style={[S.effectsBarLabel, { textAlign: 'right' }]}>تأثيرات البوت</Text>
-                    <ActiveEffectsBar effects={state.activeEffects} side="bot" />
-                  </View>
+          {/* ══ ACTIVE EFFECTS BAR ══ */}
+          {state.activeEffects.length > 0 && (
+            <View style={S.effectsBar}>
+              <View style={S.effectsBarSide}>
+                <Text style={S.effectsBarLabel}>تأثيراتك</Text>
+                <ActiveEffectsBar effects={state.activeEffects} side="player" />
+              </View>
+              <View style={S.effectsBarDivider} />
+              <View style={[S.effectsBarSide, { alignItems: 'flex-end' }]}>
+                <Text style={[S.effectsBarLabel, { textAlign: 'right' }]}>تأثيرات البوت</Text>
+                <ActiveEffectsBar effects={state.activeEffects} side="bot" />
+              </View>
+            </View>
+          )}
+
+          {/* ══ ARENA ══ */}
+          <View style={[S.arena, { flexDirection: isPortrait ? 'column-reverse' : 'row' }]}>
+
+            {/* PLAYER PANEL */}
+            <View style={S.playerPanel}>
+              <Text style={S.panelLabel}>لاعب</Text>
+              <Animated.View style={playerStyle}>
+                <LuxuryCharacterCardAnimated
+                  card={displayPlayerCard}
+                  style={{ width: cardWidth, height: cardHeight }}
+                  effectiveAttack={playerEffective.attack}
+                  effectiveDefense={playerEffective.defense}
+                  isOpenedView={playerWonThisRound}
+                  playAudio={isPlayerStronger}
+                />
+                {showPlayerEffect && <ElementEffect element={displayPlayerCard.element} isActive />}
+              </Animated.View>
+              {activeDamageNumbers.filter(n => n.side === 'player').map(n => (
+                <DamageNumber key={n.id} value={n.value} variant={n.variant} x={40} y={-20} onComplete={() => removeDmg(n.id)} />
+              ))}
+              {showResult && lastRoundResult && (
+                <AdvantageChip advantage={lastRoundResult.playerElementAdvantage} element={lastRoundResult.playerCard.element} />
+              )}
+            </View>
+
+            {/* CENTER COLUMN */}
+            <View style={S.centerCol}>
+              <Animated.View style={[S.vsBadge, vsStyle]}>
+                <Text style={S.vsIcon}>⚔️</Text>
+                <Text style={S.vsText}>VS</Text>
+              </Animated.View>
+
+              {phase === 'action' && expectedRoundResult && (
+                <Animated.View style={[S.previewChip, vsStyle, {
+                  borderColor: expectedRoundResult.winner === 'player' ? '#4ade8055' : expectedRoundResult.winner === 'bot' ? '#f8717155' : '#fbbf2455',
+                  backgroundColor: expectedRoundResult.winner === 'player' ? 'rgba(74,222,128,0.08)' : expectedRoundResult.winner === 'bot' ? 'rgba(248,113,113,0.08)' : 'rgba(251,191,36,0.08)',
+                }]}>
+                  <Text style={[S.previewChipText, { color: expectedRoundResult.winner === 'player' ? '#4ade80' : expectedRoundResult.winner === 'bot' ? '#f87171' : '#fbbf24' }]}>
+                    {expectedRoundResult.winner === 'player' ? '👤 متوقع: فوزك' : expectedRoundResult.winner === 'bot' ? '💀 متوقع: خسارتك' : '🤝 متوقع: تعادل'}
+                  </Text>
+                </Animated.View>
+              )}
+
+              {(phase === 'result' || phase === 'waiting') && lastRoundResult && (
+                <View style={[S.resultBadge, {
+                  borderColor: lastRoundResult.winner === 'player' ? '#4ade80' : lastRoundResult.winner === 'bot' ? '#f87171' : '#fbbf24',
+                  backgroundColor: lastRoundResult.winner === 'player' ? 'rgba(74,222,128,0.12)' : lastRoundResult.winner === 'bot' ? 'rgba(248,113,113,0.12)' : 'rgba(251,191,36,0.12)',
+                }]}>
+                  <Text style={[S.resultBadgeText, { color: lastRoundResult.winner === 'player' ? '#4ade80' : lastRoundResult.winner === 'bot' ? '#f87171' : '#fbbf24' }]}>
+                    {lastRoundResult.winner === 'player' ? '🏆 فزت! 🔥' : lastRoundResult.winner === 'bot' ? '💀 خسرت' : '🤝 تعادل'}
+                  </Text>
                 </View>
               )}
 
-              {/* ══ ARENA ══ */}
-              <View style={[S.arena, { flexDirection: isPortrait ? 'column-reverse' : 'row' }]}>
-
-                {/* PLAYER PANEL */}
-                <View style={S.playerPanel}>
-                  <Text style={S.panelLabel}>لاعب</Text>
-                  <Animated.View style={playerStyle}>
-                    <LuxuryCharacterCardAnimated 
-                      card={displayPlayerCard} 
-                      style={{ width: cardWidth, height: cardHeight }} 
-                      effectiveAttack={playerEffective.attack} 
-                      effectiveDefense={playerEffective.defense} 
-                      isOpenedView={playerWonThisRound}
-                      playAudio={isPlayerStronger}
-                    />
-                    {showPlayerEffect && <ElementEffect element={displayPlayerCard.element} isActive />}
-                  </Animated.View>
-                  {activeDamageNumbers.filter(n => n.side === 'player').map(n => (
-                    <DamageNumber key={n.id} value={n.value} variant={n.variant} x={40} y={-20} onComplete={() => removeDmg(n.id)} />
-                  ))}
-                    {showResult && lastRoundResult && (
-                      <AdvantageChip advantage={lastRoundResult.playerElementAdvantage} element={lastRoundResult.playerCard.element} />
-                    )}
-                </View>
-
-                {/* CENTER COLUMN */}
-                <View style={S.centerCol}>
-                  <Animated.View style={[S.vsBadge, vsStyle]}>
-                    <Text style={S.vsIcon}>⚔️</Text>
-                    <Text style={S.vsText}>VS</Text>
-                  </Animated.View>
-
-                  {phase === 'action' && expectedRoundResult && (
-                    <Animated.View style={[S.previewChip, vsStyle, {
-                      borderColor: expectedRoundResult.winner === 'player' ? '#4ade8055' : expectedRoundResult.winner === 'bot' ? '#f8717155' : '#fbbf2455',
-                      backgroundColor: expectedRoundResult.winner === 'player' ? 'rgba(74,222,128,0.08)' : expectedRoundResult.winner === 'bot' ? 'rgba(248,113,113,0.08)' : 'rgba(251,191,36,0.08)',
-                    }]}>
-                      <Text style={[S.previewChipText, { color: expectedRoundResult.winner === 'player' ? '#4ade80' : expectedRoundResult.winner === 'bot' ? '#f87171' : '#fbbf24' }]}>
-                        {expectedRoundResult.winner === 'player' ? '👤 متوقع: فوزك' : expectedRoundResult.winner === 'bot' ? '💀 متوقع: خسارتك' : '🤝 متوقع: تعادل'}
-                      </Text>
-                    </Animated.View>
-                  )}
-
-                  {(phase === 'result' || phase === 'waiting') && lastRoundResult && (
-                    <View style={[S.resultBadge, {
-                      borderColor: lastRoundResult.winner === 'player' ? '#4ade80' : lastRoundResult.winner === 'bot' ? '#f87171' : '#fbbf24',
-                      backgroundColor: lastRoundResult.winner === 'player' ? 'rgba(74,222,128,0.12)' : lastRoundResult.winner === 'bot' ? 'rgba(248,113,113,0.12)' : 'rgba(251,191,36,0.12)',
-                    }]}>
-                      <Text style={[S.resultBadgeText, { color: lastRoundResult.winner === 'player' ? '#4ade80' : lastRoundResult.winner === 'bot' ? '#f87171' : '#fbbf24' }]}>
-                        {lastRoundResult.winner === 'player' ? '🏆 فزت! 🔥' : lastRoundResult.winner === 'bot' ? '💀 خسرت' : '🤝 تعادل'}
-                      </Text>
-                    </View>
-                  )}
-
-                  <View style={S.ctaStack}>
-                    {phase === 'action' ? (
-                      <TouchableOpacity style={[S.ctaBtn, S.ctaBtnAttack]} onPress={handleExecuteAttack} activeOpacity={0.85}>
-                        <Text style={S.ctaBtnIcon}>⚔️</Text><Text style={S.ctaBtnText}>هجوم!</Text>
-                      </TouchableOpacity>
-                    ) : phase === 'waiting' ? (
-                      <TouchableOpacity style={[S.ctaBtn, S.ctaBtnNext]} onPress={handleNextRound} activeOpacity={0.85}>
-                        <Text style={S.ctaBtnIcon}>{isGameOver ? '🏁' : '▶️'}</Text><Text style={S.ctaBtnText}>{isGameOver ? 'إنهاء' : 'التالي'}</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <View style={[S.ctaBtn, S.ctaBtnDisabled]}>
-                        <Text style={S.ctaBtnText}>{phase === 'combat' ? '⚔️ معركة...' : '⌛ جاري...'}</Text>
-                      </View>
-                    )}
-
-                    <TouchableOpacity
-                      style={[S.ctaBtn, S.ctaBtnAbilities, phase !== 'action' && S.ctaBtnDisabled]}
-                      onPress={() => phase === 'action' && setIsAbilitiesModalOpen(true)}
-                      activeOpacity={0.8}
-                      disabled={phase !== 'action'}
-                    >
-                      <Text style={S.ctaBtnIcon}>⚡</Text><Text style={S.ctaBtnText}>قدرات</Text>
-                    </TouchableOpacity>
-
-                    {/* 🔥 زر الغضب — قرار استراتيجي بناءً على التوقع */}
-                    {canRageNow && phase === 'action' && (
-                      <TouchableOpacity
-                        style={[S.ctaBtn, S.ctaBtnRage]}
-                        onPress={() => {
-                          if (!currentPlayerCard) return;
-                          const rageCard = applyRageToCard(currentPlayerCard, rageState.current);
-                          const event = buildRageTriggerEvent(currentPlayerCard, rageCard);
-                          setRageEvent(event);
-                        }}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={S.ctaBtnIcon}>😡</Text>
-                        <Text style={S.ctaBtnText}>غضب!</Text>
-                      </TouchableOpacity>
-                    )}
+              <View style={S.ctaStack}>
+                {phase === 'action' ? (
+                  <TouchableOpacity style={[S.ctaBtn, S.ctaBtnAttack]} onPress={handleExecuteAttack} activeOpacity={0.85}>
+                    <Text style={S.ctaBtnIcon}>⚔️</Text><Text style={S.ctaBtnText}>هجوم!</Text>
+                  </TouchableOpacity>
+                ) : phase === 'waiting' ? (
+                  <TouchableOpacity style={[S.ctaBtn, S.ctaBtnNext]} onPress={handleNextRound} activeOpacity={0.85}>
+                    <Text style={S.ctaBtnIcon}>{isGameOver ? '🏁' : '▶️'}</Text><Text style={S.ctaBtnText}>{isGameOver ? 'إنهاء' : 'التالي'}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={[S.ctaBtn, S.ctaBtnDisabled]}>
+                    <Text style={S.ctaBtnText}>{phase === 'combat' ? '⚔️ معركة...' : '⌛ جاري...'}</Text>
                   </View>
-                </View>
+                )}
 
-                {/* BOT PANEL */}
-                <View style={S.botPanel}>
-                  <Text style={S.panelLabel}>بوت</Text>
-                  <Animated.View style={[botStyle, { transform: [{ scale: 0.95 }] }]}>
-                    <LuxuryCharacterCardAnimated 
-                      card={displayBotCard} 
-                      style={{ width: cardWidth, height: cardHeight }} 
-                      effectiveAttack={botEffective.attack} 
-                      effectiveDefense={botEffective.defense}
-                      playAudio={!isPlayerStronger}
-                    />
-                    {showBotEffect && <ElementEffect element={displayBotCard.element} isActive />}
-                  </Animated.View>
-                  {activeDamageNumbers.filter(n => n.side === 'bot').map(n => (
-                    <DamageNumber key={n.id} value={n.value} variant={n.variant} x={40} y={-20} onComplete={() => removeDmg(n.id)} />
-                  ))}
-                  {showResult && lastRoundResult && (
-                    <AdvantageChip advantage={lastRoundResult.botElementAdvantage} element={lastRoundResult.botCard.element} />
-                  )}
-                  <View style={S.botStatus}>
-                    <Text style={S.botStatusText}>{phase === 'action' ? '🤖 ينتظر...' : phase === 'combat' ? '⚔️ يقاتل!' : '🤖 جاهز'}</Text>
-                  </View>
-                </View>
+                <TouchableOpacity
+                  style={[S.ctaBtn, S.ctaBtnAbilities, phase !== 'action' && S.ctaBtnDisabled]}
+                  onPress={() => phase === 'action' && setIsAbilitiesModalOpen(true)}
+                  activeOpacity={0.8}
+                  disabled={phase !== 'action'}
+                >
+                  <Text style={S.ctaBtnIcon}>⚡</Text><Text style={S.ctaBtnText}>قدرات</Text>
+                </TouchableOpacity>
 
+                {/* 🔥 زر الغضب — قرار استراتيجي بناءً على التوقع */}
+                {canRageNow && phase === 'action' && (
+                  <TouchableOpacity
+                    style={[S.ctaBtn, S.ctaBtnRage]}
+                    onPress={() => {
+                      if (!currentPlayerCard) return;
+                      const rageCard = applyRageToCard(currentPlayerCard, rageState.current);
+                      const event = buildRageTriggerEvent(currentPlayerCard, rageCard);
+                      setRageEvent(event);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={S.ctaBtnIcon}>😡</Text>
+                    <Text style={S.ctaBtnText}>غضب!</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-
-              <TouchableOpacity style={[S.editFab, editMode && S.editFabActive]} onPress={() => setEditMode(!editMode)} activeOpacity={0.8}>
-                <Text style={S.editFabText}>{editMode ? '✅ تم' : '✏️'}</Text>
-              </TouchableOpacity>
             </View>
-          </SafeAreaView>
-        )}
-      </View>
+
+            {/* BOT PANEL */}
+            <View style={S.botPanel}>
+              <Text style={S.panelLabel}>بوت</Text>
+              <Animated.View style={[botStyle, { transform: [{ scale: 0.95 }] }]}>
+                <LuxuryCharacterCardAnimated
+                  card={displayBotCard}
+                  style={{ width: cardWidth, height: cardHeight }}
+                  effectiveAttack={botEffective.attack}
+                  effectiveDefense={botEffective.defense}
+                  playAudio={!isPlayerStronger}
+                />
+                {showBotEffect && <ElementEffect element={displayBotCard.element} isActive />}
+              </Animated.View>
+              {activeDamageNumbers.filter(n => n.side === 'bot').map(n => (
+                <DamageNumber key={n.id} value={n.value} variant={n.variant} x={40} y={-20} onComplete={() => removeDmg(n.id)} />
+              ))}
+              {showResult && lastRoundResult && (
+                <AdvantageChip advantage={lastRoundResult.botElementAdvantage} element={lastRoundResult.botCard.element} />
+              )}
+              <View style={S.botStatus}>
+                <Text style={S.botStatusText}>{phase === 'action' ? '🤖 ينتظر...' : phase === 'combat' ? '⚔️ يقاتل!' : '🤖 جاهز'}</Text>
+              </View>
+            </View>
+
+          </View>
+        </View>
+      </SafeAreaView>
 
       {/* ── MODALS ── */}
 
@@ -1093,7 +902,6 @@ export default function BattleScreen() {
                           return;
                         }
                         useAbility(ability.type); setIsAbilitiesModalOpen(false);
-                        // ✅ Step 2
                         hapticImpact(Haptics.ImpactFeedbackStyle.Light);
                       }}
                       disabled={!canUse}
@@ -1198,7 +1006,6 @@ export default function BattleScreen() {
 const S = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#080612' },
   bgWrap: { position: 'absolute', inset: 0, zIndex: 0 },
-  battleWrap: { flex: 1, zIndex: 1 },
   flashOverlay: { position: 'absolute', inset: 0, zIndex: 5, backgroundColor: '#fff', pointerEvents: 'none' },
   loadWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadText: { fontSize: FONT.xl, color: COLOR.textMuted },
@@ -1242,45 +1049,6 @@ const S = StyleSheet.create({
   ctaBtnDisabled: { backgroundColor: 'rgba(71,85,105,0.2)', borderColor: '#475569', shadowOpacity: 0 },
   ctaBtnIcon: { fontSize: 16 },
   ctaBtnText: { color: '#f1f5f9', fontSize: FONT.sm, letterSpacing: 0.3 },
-  editFab: { position: 'absolute', bottom: 16, right: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(228,165,42,0.15)', borderWidth: 1, borderColor: COLOR.goldDim, alignItems: 'center', justifyContent: 'center', zIndex: 50 },
-  editFabActive: { backgroundColor: 'rgba(74,222,128,0.2)', borderColor: '#4ade80' },
-  editFabText: { fontSize: 16 },
-  gridContainer: { position: 'absolute', inset: 0, zIndex: 2 },
-  vLine: { position: 'absolute', left: '50%', top: 0, bottom: 0, width: 2, backgroundColor: 'rgba(228,165,42,0.4)' },
-  hLine: { position: 'absolute', top: '50%', left: 0, right: 0, height: 2, backgroundColor: 'rgba(228,165,42,0.4)' },
-  vLineThin: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(228,165,42,0.15)' },
-  hLineThin: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(228,165,42,0.15)' },
-  gridCenter: { position: 'absolute', left: '50%', top: '50%', width: 12, height: 12, borderRadius: 6, backgroundColor: COLOR.gold, marginLeft: -6, marginTop: -6 },
-  sidebar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 280, backgroundColor: 'rgba(20,14,30,0.97)', zIndex: 300, borderRightWidth: 2, borderRightColor: 'rgba(228,165,42,0.3)' },
-  sidebarHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACE.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(228,165,42,0.2)', backgroundColor: 'rgba(228,165,42,0.06)' },
-  sidebarTitle: { color: COLOR.gold, fontSize: FONT.base },
-  sidebarClose: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248,113,113,0.15)', borderRadius: 15 },
-  sidebarSection: { marginBottom: SPACE.lg, padding: SPACE.md, backgroundColor: 'rgba(228,165,42,0.04)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(228,165,42,0.12)' },
-  sidebarSectionTitle: { color: COLOR.gold, fontSize: FONT.sm, marginBottom: SPACE.sm },
-  sidebarOpt: { padding: SPACE.md, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: RADIUS.sm, marginBottom: SPACE.xs, borderWidth: 1, borderColor: 'rgba(228,165,42,0.15)' },
-  sidebarOptActive: { backgroundColor: 'rgba(228,165,42,0.15)', borderColor: COLOR.gold },
-  sidebarOptText: { color: '#f1f5f9', fontSize: FONT.sm },
-  sidebarAction: { padding: SPACE.md, backgroundColor: COLOR.gold, borderRadius: RADIUS.md, alignItems: 'center' },
-  sidebarActionText: { color: '#1A0D1A', fontSize: FONT.sm },
-  resizeHandle: { position: 'absolute', width: 12, height: 12, backgroundColor: '#fff', borderWidth: 2, borderColor: '#2196F3', borderRadius: 2, zIndex: 10 },
-  resizeHandleInner: { width: '100%', height: '100%', backgroundColor: '#2196F3' },
-  rh_topleft: { top: 0, left: 0 },
-  rh_topright: { top: 0, right: 0 },
-  rh_bottomleft: { bottom: 50, left: 0 },
-  rh_bottomright: { bottom: 50, right: 0 },
-  rh_top: { top: 0, left: '50%', marginLeft: -6 },
-  rh_bottom: { bottom: 50, left: '50%', marginLeft: -6 },
-  rh_left: { top: '50%', left: 0, marginTop: -6 },
-  rh_right: { top: '50%', right: 0, marginTop: -6 },
-  transformHandles: { position: 'absolute', top: -30, left: -30, right: -30, bottom: -30 },
-  scaleControls: { position: 'absolute', bottom: -60, left: '50%', transform: [{ translateX: -85 }], flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(28,28,40,0.95)', paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.md, gap: SPACE.sm, borderWidth: 1.5, borderColor: '#2196F3' },
-  scaleBtn: { backgroundColor: '#2196F3', width: 34, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  scaleBtnDisabled: { backgroundColor: '#555', opacity: 0.5 },
-  scaleBtnText: { color: '#fff', fontSize: 22, lineHeight: 22 },
-  scaleDisplay: { backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: SPACE.md, paddingVertical: 4, borderRadius: 6, minWidth: 56, alignItems: 'center' },
-  scaleDisplayText: { color: '#4ade80', fontSize: FONT.sm },
-  editElem: { alignItems: 'center' },
-  editLabel: { color: COLOR.gold, fontSize: FONT.sm, marginBottom: SPACE.sm },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
   abilitiesModal: { width: '92%', maxWidth: 820, backgroundColor: 'rgba(12,18,36,0.97)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(51,65,85,0.7)', padding: SPACE.xl, paddingBottom: SPACE.lg },
   historyModal: { backgroundColor: 'rgba(18,14,28,0.97)', borderRadius: RADIUS.lg, width: '90%', maxHeight: '82%', padding: SPACE.xl, borderWidth: 1, borderColor: '#1e293b' },
