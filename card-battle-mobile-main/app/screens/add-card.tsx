@@ -458,18 +458,6 @@ export default function AddCardScreen() {
   );
 }
 
-const GENDER_EMOJI: Record<Gender, string> = {
-  male:    '👦',
-  female:  '👧',
-  unknown: '❓',
-};
-
-const GENDER_COLORS: Record<Gender, string> = {
-  male:    '#60A5FA',
-  female:  '#F472B6',
-  unknown: '#6B7280',
-};
-
 const S = StyleSheet.create({
   root:          { flex:1, backgroundColor:'#060610' },
   topBar:        { flexDirection:'row', alignItems:'center', justifyContent:'space-between', paddingHorizontal:16, paddingVertical:12, borderBottomWidth:1, borderBottomColor:'rgba(255,255,255,0.06)' },
