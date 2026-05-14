@@ -1,6 +1,6 @@
 /**
  * add-card.tsx — تخطيط عمودين: شكل الكارت يسار + الحقول يمين
- * ✨ قسم الأيقونات: تعديل element / race / cardClass / tags مع إمكانية الإلغاء
+ * ✨ قسم الأيقونات: تعديل element / race / cardClass / tags / gender مع إمكانية الإلغاء
  */
 import React, { useState, useCallback } from 'react';
 import {
@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { saveCustomCard, generateCardCode } from '@/lib/game/custom-cards-store';
 import { saveImage } from '@/lib/game/image-storage';
-import { Card, CardRarity, Race, CardClass, Element, Tag, ELEMENT_EMOJI, ELEMENT_COLORS, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
+import { Card, CardRarity, Race, CardClass, Element, Tag, Gender, ELEMENT_EMOJI, ELEMENT_COLORS, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI, GENDER_COLORS } from '@/lib/game/types';
 import { CARD_EDITS_KEY } from '@/app/screens/cards-gallery';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -31,10 +31,15 @@ const ELEMENT_AR: Record<Element, string> = {
   fire: 'نار', ice: 'جليد', water: 'ماء',
   earth: 'أرض', lightning: 'برق', wind: 'ريح',
 };
-const TAG_AR: Record<Tag, string> = {
+const GENDER_AR: Record<Gender, string> = {
+  male:    'ذكر',
+  female:  'أنثى',
+  unknown: 'غير محدد',
+};
+const TAG_AR: Record<string, string> = {
   sword: 'سيف', shield: 'درع', magic: 'سحر', bow: 'قوس', crown: 'تاج',
 };
-const TAG_ICONS: Record<Tag, string> = {
+const TAG_ICONS: Record<string, string> = {
   sword: '⚔️', shield: '🛡️', magic: '✨', bow: '🏹', crown: '👑',
 };
 
@@ -51,6 +56,7 @@ const RARITY_STARS: Record<CardRarity, number> = {
 const RACES:    Race[]      = ['human','elf','orc','dragon','demon','undead','monster','robot'];
 const CLASSES:  CardClass[] = ['warrior','knight','mage','archer','berserker','paladin'];
 const ELEMENTS: Element[]   = ['fire','ice','water','earth','lightning','wind'];
+const GENDERS:  Gender[]    = ['male', 'female', 'unknown'];
 const EL_COLORS: Record<Element, string> = {
   fire: '#ef4444', ice: '#38bdf8', water: '#3b82f6',
   earth: '#a3e635', lightning: '#facc15', wind: '#a78bfa',
@@ -63,7 +69,7 @@ const CLASS_COLORS: Record<CardClass, string> = {
   warrior:'#F87171', knight:'#60A5FA', mage:'#C084FC',
   archer:'#4ADE80', berserker:'#FB923C', paladin:'#FBBF24',
 };
-const TAGS: Tag[] = ['sword','shield','magic','bow','crown'];
+const TAGS: string[] = ['sword','shield','magic','bow','crown'];
 
 const defaultForm = { nameAr: '', nameEn: '', attack: '18', defense: '16', specialAbility: '' };
 
@@ -144,6 +150,7 @@ function CardPreview({ card, mediaB64, isVideo }: { card: Partial<Card>; mediaB6
     tags:      card.tags     ?? ['sword'],
     rarity:    card.rarity   ?? 'common',
     stars:     card.stars    ?? 1,
+    gender:    card.gender   ?? 'unknown',
     specialAbility: card.specialAbility,
     customImage: mediaB64,
     isVideo,
@@ -163,7 +170,8 @@ export default function AddCardScreen() {
   const [race,     setRace]     = useState<Race>('human');
   const [cls,      setCls]      = useState<CardClass>('warrior');
   const [element,  setElement]  = useState<Element>('fire');
-  const [tags,     setTags]     = useState<Tag[]>(['sword']);
+  const [gender,   setGender]   = useState<Gender>('unknown');
+  const [tags,     setTags]     = useState<string[]>(['sword']);
   const [mediaB64, setMediaB64] = useState<string | undefined>();
   const [isVideo,  setIsVideo]  = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -174,7 +182,7 @@ export default function AddCardScreen() {
 
   const rarityColor = RARITIES.find(r => r.value === rarity)?.color ?? '#FFD700';
   const stars       = RARITY_STARS[rarity];
-  const toggleTag   = (t: Tag) =>
+  const toggleTag   = (t: string) =>
     setTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
 
   const handlePickMedia = async (accept: string) => {
@@ -195,7 +203,7 @@ export default function AddCardScreen() {
         attack:  Math.max(1,Math.min(99,parseInt(form.attack)||18)),
         defense: Math.max(1,Math.min(99,parseInt(form.defense)||16)),
         hp:      Math.max(1,Math.min(99,parseInt(form.defense)||16)),
-        race, cardClass: cls, element,
+        race, cardClass: cls, element, gender,
         tags: tags.length ? tags : ['sword'],
         rarity, stars,
         specialAbility: form.specialAbility.trim() || undefined,
@@ -210,12 +218,12 @@ export default function AddCardScreen() {
         hasAbility: !!card.specialAbility, specialAbility: card.specialAbility ?? '',
         hasCustomImage: !!mediaB64, isVideo, imageOffsetY: 0, fitInsideBorder: false,
         _isCustom: true, name: card.name,
-        race, cardClass: cls, element, tags: card.tags, hp: card.hp,
+        race, cardClass: cls, element, gender, tags: card.tags, hp: card.hp,
       };
       await AsyncStorage.setItem(CARD_EDITS_KEY, JSON.stringify(editsMap));
       setGeneratedCode(generateCardCode(card));
     } finally { setSaving(false); }
-  }, [form, rarity, race, cls, element, tags, mediaB64, isVideo]);
+  }, [form, rarity, race, cls, element, gender, tags, mediaB64, isVideo]);
 
   const copyCode = () => {
     if (!generatedCode) return;
@@ -252,7 +260,7 @@ export default function AddCardScreen() {
     name:    form.nameEn  || 'New Card',
     attack:  parseInt(form.attack)  || 18,
     defense: parseInt(form.defense) || 16,
-    race, cardClass: cls, element, tags, rarity, stars,
+    race, cardClass: cls, element, gender, tags, rarity, stars,
     specialAbility: form.specialAbility || undefined,
   };
 
@@ -261,6 +269,7 @@ export default function AddCardScreen() {
     ELEMENT_EMOJI[element],
     RACE_EMOJI[race],
     CLASS_EMOJI[cls],
+    GENDER_EMOJI[gender],
     tags[0] ? TAG_ICONS[tags[0]] : null,
   ].filter(Boolean).join('  ');
 
@@ -350,7 +359,7 @@ export default function AddCardScreen() {
               <View style={S.iconsBody}>
 
                 {/* العنصر */}
-                <Text style={S.secLabel}>العنصر</Text>
+                <Text style={S.secLabel}>العنصر 🔥</Text>
                 <View style={S.iconRow}>
                   {ELEMENTS.map(e=>(
                     <IconChip
@@ -364,8 +373,8 @@ export default function AddCardScreen() {
                   ))}
                 </View>
 
-                {/* الجنس / الجنس */}
-                <Text style={S.secLabel}>الجنس (race)</Text>
+                {/* الجنس / الفصيلة */}
+                <Text style={S.secLabel}>الجنس / الفصيلة 👤</Text>
                 <View style={S.iconRow}>
                   {RACES.map(r=>(
                     <IconChip
@@ -379,8 +388,23 @@ export default function AddCardScreen() {
                   ))}
                 </View>
 
+                {/* الجنس البيولوجي — ذكر / أنثى */}
+                <Text style={S.secLabel}>الجنس البيولوجي ⚧</Text>
+                <View style={S.iconRow}>
+                  {GENDERS.map(g=>(
+                    <IconChip
+                      key={g}
+                      icon={GENDER_EMOJI[g]}
+                      label={GENDER_AR[g]}
+                      selected={gender===g}
+                      color={GENDER_COLORS[g]}
+                      onPress={()=>setGender(g)}
+                    />
+                  ))}
+                </View>
+
                 {/* الفئة */}
-                <Text style={S.secLabel}>الفئة</Text>
+                <Text style={S.secLabel}>الفئة ⚔️</Text>
                 <View style={S.iconRow}>
                   {CLASSES.map(c=>(
                     <IconChip
@@ -395,13 +419,13 @@ export default function AddCardScreen() {
                 </View>
 
                 {/* التاغات */}
-                <Text style={S.secLabel}>التاغ</Text>
+                <Text style={S.secLabel}>التاغ 🏷️</Text>
                 <View style={S.iconRow}>
                   {TAGS.map(t=>(
                     <IconChip
                       key={t}
                       icon={TAG_ICONS[t]}
-                      label={TAG_AR[t]}
+                      label={TAG_AR[t] ?? t}
                       selected={tags.includes(t)}
                       color='#CBD5E1'
                       onPress={()=>toggleTag(t)}
@@ -433,6 +457,18 @@ export default function AddCardScreen() {
     </SafeAreaView>
   );
 }
+
+const GENDER_EMOJI: Record<Gender, string> = {
+  male:    '👦',
+  female:  '👧',
+  unknown: '❓',
+};
+
+const GENDER_COLORS: Record<Gender, string> = {
+  male:    '#60A5FA',
+  female:  '#F472B6',
+  unknown: '#6B7280',
+};
 
 const S = StyleSheet.create({
   root:          { flex:1, backgroundColor:'#060610' },

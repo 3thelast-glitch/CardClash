@@ -35,6 +35,9 @@ export interface LocalizedString {
 /** Per-card animation preset key */
 export type CardAnimationPreset = 'default' | 'fire' | 'lightning' | 'shadow' | 'holy';
 
+/** جنس الكارت */
+export type Gender = 'male' | 'female' | 'unknown';
+
 /**
  * بيانات وضع الغضب للبطاقة — اختياري، يُضبَط من شاشة إدارة الكروت
  * عند خسارة الكرت: تتحول البطاقة إلى نسخة أقوى مع صورة/فيديو جديد
@@ -92,6 +95,8 @@ export interface Card {
   originalDefense?: number;
   /** علامة داخلية لمتابعة حالة الغضب */
   _rageActive?: boolean;
+  /** جنس الكارت: ذكر أو أنثى أو غير محدد */
+  gender?: Gender;
 }
 
 export type AbilityType =
@@ -266,6 +271,18 @@ export const ELEMENT_COLORS: Record<Element, string> = {
   earth:     '#a3e635',
   lightning: '#facc15',
   wind:      '#a78bfa',
+};
+
+export const GENDER_EMOJI: Record<Gender, string> = {
+  male:    '\u{1F466}',  // 👦
+  female:  '\u{1F467}',  // 👧
+  unknown: '\u2753',     // ❓
+};
+
+export const GENDER_COLORS: Record<Gender, string> = {
+  male:    '#60A5FA',
+  female:  '#F472B6',
+  unknown: '#6B7280',
 };
 
 export type ElementAdvantage = 'strong' | 'weak' | 'neutral';
