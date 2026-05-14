@@ -11,7 +11,7 @@ import { LuxuryBackground } from '@/components/game/luxury-background';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { RotateHintScreen } from '@/components/game/RotateHintScreen';
 import { ALL_CARDS } from '@/lib/game/cards-data-exports';
-import { Card, CardRarity, CardClass, Element, Race, Tag, RageModeData, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
+import { Card, CardRarity, CardClass, Element, Race, Tag, Gender, RageModeData, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI, GENDER_COLORS } from '@/lib/game/types';
 import { getRarityConfig } from '@/lib/game/card-rarity';
 import { useLandscapeLayout, useCardSize, LAYOUT_PADDING } from '@/utils/layout';
 import { ArrowLeft, Minus, Plus, Image as ImageIcon, Film, X, ChevronUp, ChevronDown, Zap, Trash2 } from 'lucide-react-native';
@@ -61,6 +61,7 @@ type CardEdits = {
   element: Element | null;
   race: Race | null;
   cardClass: CardClass | null;
+  gender: Gender | null;
   tags: Tag[];
 };
 
@@ -92,6 +93,7 @@ function toEdits(card: Card & { customImage?: string; imageOffsetY?: number; fit
     element: card.element ?? null,
     race: card.race ?? null,
     cardClass: card.cardClass ?? null,
+    gender: (card as any).gender ?? null,
     tags: card.tags ?? [],
   };
 }
@@ -138,7 +140,12 @@ const CLASS_OPTIONS: { value: CardClass | null; label: string; icon: string; nam
   { value: 'paladin',   label: `${CLASS_EMOJI.paladin} بالادين`,  icon: CLASS_EMOJI.paladin,   name: 'بالادين' },
 ];
 
-// Removed TAG_OPTIONS
+const GENDER_OPTIONS: { value: Gender | null; label: string; icon: string; name: string }[] = [
+  { value: null,      label: '✕ بدون',  icon: '✕',                   name: 'بدون' },
+  { value: 'male',    label: 'ذكر',    icon: GENDER_EMOJI.male,    name: 'ذكر' },
+  { value: 'female',  label: 'أنثى',   icon: GENDER_EMOJI.female,  name: 'أنثى' },
+  { value: 'unknown', label: 'غير محدد', icon: GENDER_EMOJI.unknown, name: 'غير محدد' },
+];
 
 // ─────────────────────────────────────────────────────────
 // GridTile — Dark Mode card tile
@@ -169,7 +176,6 @@ function GridTile({
             },
       ]}
     >
-      {/* icon badge circle */}
       <View
         style={[
           gt.iconBadge,
@@ -180,8 +186,6 @@ function GridTile({
       >
         <RNText style={gt.icon}>{icon || '□'}</RNText>
       </View>
-
-      {/* label */}
       <RNText
         style={[
           gt.name,
@@ -191,8 +195,6 @@ function GridTile({
       >
         {name}
       </RNText>
-
-      {/* active indicator dot */}
       {active && <View style={[gt.dot, { backgroundColor: color }]} />}
     </TouchableOpacity>
   );
@@ -270,8 +272,6 @@ function IconPicker<T extends string | null>({
     </View>
   );
 }
-
-// Removed TagsPicker
 
 const ip = StyleSheet.create({
   wrap: { marginBottom: 6 },
@@ -611,7 +611,6 @@ export default function CardsGalleryScreen() {
       const UNIQUE = buildUniqueCards(ALL_CARDS, customCards);
       const customIds = new Set(customCards.map(c => c.id));
 
-      // Load deleted base card IDs
       const deletedIds = await loadDeletedCardIds();
       setDeletedBaseIds(deletedIds);
 
@@ -619,7 +618,6 @@ export default function CardsGalleryScreen() {
       const rageOverrides = await getRageOverrides();
       setRageMap(rageOverrides);
 
-      // Filter out deleted cards
       const VISIBLE = UNIQUE.filter(c => !deletedIds.has(c.id));
 
       if (!rawEdits) {
@@ -669,6 +667,7 @@ export default function CardsGalleryScreen() {
       element: edits.element ?? undefined,
       race: edits.race ?? undefined,
       cardClass: edits.cardClass ?? undefined,
+      gender: edits.gender ?? undefined,
       tags: edits.tags,
     });
   }, [edits, selectedCard]);
@@ -705,6 +704,7 @@ export default function CardsGalleryScreen() {
       element: edits.element ?? null,
       race: edits.race ?? null,
       cardClass: edits.cardClass ?? null,
+      gender: edits.gender ?? null,
       tags: edits.tags,
     };
 
@@ -728,46 +728,36 @@ export default function CardsGalleryScreen() {
     handleClose();
   };
 
-  /** Open the delete confirmation modal */
   const handleDelete = (card?: typeof selectedCard) => {
     const target = card || selectedCard;
     if (!target) return;
     setCardToDelete(target);
   };
 
-  /** Execute the actual deletion after user confirms */
   const executeDelete = async () => {
     if (!cardToDelete) return;
     const id = cardToDelete.id;
     const isCustom = cardToDelete._isCustom === true;
 
-    // 1. Delete custom card data if applicable
     if (isCustom) {
       await deleteCustomCard(id);
     } else {
-      // For base cards, persist deletion via hidden IDs
       const newDeleted = new Set(deletedBaseIds);
       newDeleted.add(id);
       setDeletedBaseIds(newDeleted);
       await saveDeletedCardIds(newDeleted);
     }
 
-    // 2. Remove custom image
     await deleteImage(`card_img_${id}`);
 
-    // 3. Clean up saved edits
     const newMap = { ...savedMap };
     delete newMap[id];
     setSavedMap(newMap);
     await AsyncStorage.setItem(CARD_EDITS_KEY, JSON.stringify(newMap));
 
-    // 4. Remove from visible list
     setCards(prev => prev.filter(c => c.id !== id));
 
-    // 5. Close edit modal if this card was open there
     if (selectedCard?.id === id) handleClose();
-
-    // 6. Close confirmation modal
     setCardToDelete(null);
   };
 
@@ -811,7 +801,6 @@ export default function CardsGalleryScreen() {
     ? getRarityConfig(edits.rarity).badgeColor
     : selectedCard ? getRarityConfig(selectedCard.rarity).badgeColor : '#d4af37';
 
-  // Delete is now available for ALL cards, not just custom ones
   const isCustomCard = selectedCard?._isCustom === true;
 
   return (
@@ -867,10 +856,9 @@ export default function CardsGalleryScreen() {
                   />
                   {card._isCustom && (
                     <View style={styles.customBadge}>
-                      <RNText style={styles.customBadgeTxt}>✦</RNText>
+                      <RNText style={styles.customBadgeTxt}>❆</RNText>
                     </View>
                   )}
-                  {/* Delete icon overlay — top-right corner */}
                   <TouchableOpacity
                     style={styles.gridDeleteBtn}
                     onPress={(e) => { e.stopPropagation?.(); handleDelete(card); }}
@@ -904,7 +892,6 @@ export default function CardsGalleryScreen() {
               <View style={[ep.panel, { borderColor: rarityColor + '77' }]}>
                 <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-                  {/* Delete button — available for ALL cards */}
                   <TouchableOpacity style={ep.deleteBtn} onPress={() => handleDelete()} activeOpacity={0.8}>
                     <Trash2 size={13} color="#f87171" />
                     <RNText style={ep.deleteBtnTxt}>حذف الكارت</RNText>
@@ -961,7 +948,14 @@ export default function CardsGalleryScreen() {
                     onChange={v => patch({ cardClass: v as CardClass | null })}
                   />
                   <View style={ep.divider} />
-
+                  <IconPicker
+                    label="⚧ الجنس البيولوجي"
+                    options={GENDER_OPTIONS as any}
+                    value={edits.gender}
+                    color={rarityColor}
+                    onChange={v => patch({ gender: v as Gender | null })}
+                  />
+                  <View style={ep.divider} />
 
                   <View style={ep.switchRow}>
                     <RNText style={ep.label}>❆ يملك قدرة خاصة</RNText>
@@ -1041,36 +1035,23 @@ export default function CardsGalleryScreen() {
       <Modal visible={!!cardToDelete} animationType="fade" transparent onRequestClose={() => setCardToDelete(null)}>
         <View style={delModal.backdrop}>
           <View style={delModal.container}>
-            {/* Glowing red top accent */}
             <View style={delModal.topAccent} />
-
-            {/* Icon */}
             <View style={delModal.iconWrap}>
               <Trash2 size={28} color="#f87171" />
             </View>
-
-            {/* Title */}
             <RNText style={delModal.title}>حذف البطاقة</RNText>
-
-            {/* Card name */}
             {cardToDelete && (
               <RNText style={delModal.cardName}>
                 {cardToDelete.nameAr || cardToDelete.name}
               </RNText>
             )}
-
-            {/* Warning message */}
             <RNText style={delModal.message}>
               هل أنت متأكد أنك تريد حذف هذا الكرت نهائياً من مجموعتك؟
             </RNText>
             <RNText style={delModal.warning}>
               ⚠️ هذا الإجراء لا يمكن التراجع عنه
             </RNText>
-
-            {/* Divider */}
             <View style={delModal.divider} />
-
-            {/* Action buttons */}
             <View style={delModal.btnRow}>
               <TouchableOpacity
                 style={delModal.cancelBtn}
@@ -1079,7 +1060,6 @@ export default function CardsGalleryScreen() {
               >
                 <RNText style={delModal.cancelTxt}>إلغاء</RNText>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={delModal.deleteBtn}
                 onPress={executeDelete}
@@ -1096,138 +1076,21 @@ export default function CardsGalleryScreen() {
   );
 }
 
-// ─── Delete Confirmation Modal Styles ───
 const delModal = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.88)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    width: 320,
-    backgroundColor: '#1A1A24',
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#2A2A35',
-    padding: 24,
-    alignItems: 'center',
-    // Subtle red outer glow
-    shadowColor: '#f87171',
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 12,
-    overflow: 'hidden',
-  },
-  topAccent: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: '#ef4444',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(248,113,113,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.30)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-    marginTop: 4,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#f87171',
-    textAlign: 'center',
-    marginBottom: 6,
-    letterSpacing: 0.5,
-  },
-  cardName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#e2e8f0',
-    textAlign: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    overflow: 'hidden',
-  },
-  message: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#94a3b8',
-    textAlign: 'center',
-    lineHeight: 20,
-    writingDirection: 'rtl',
-    marginBottom: 6,
-  },
-  warning: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#f87171',
-    textAlign: 'center',
-    opacity: 0.8,
-    marginBottom: 4,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    width: '100%',
-    marginVertical: 16,
-  },
-  btnRow: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#333340',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelTxt: {
-    color: '#94a3b8',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  deleteBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#ef4444',
-    backgroundColor: 'rgba(239,68,68,0.20)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    // Red glow on button
-    shadowColor: '#ef4444',
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  deleteTxt: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 14,
-  },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', alignItems: 'center' },
+  container: { width: 320, backgroundColor: '#1A1A24', borderRadius: 20, borderWidth: 1.5, borderColor: '#2A2A35', padding: 24, alignItems: 'center', shadowColor: '#f87171', shadowOpacity: 0.15, shadowRadius: 24, elevation: 12, overflow: 'hidden' },
+  topAccent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#ef4444', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  iconWrap: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(248,113,113,0.12)', borderWidth: 1, borderColor: 'rgba(248,113,113,0.30)', alignItems: 'center', justifyContent: 'center', marginBottom: 14, marginTop: 4 },
+  title: { fontSize: 18, fontWeight: '800', color: '#f87171', textAlign: 'center', marginBottom: 6, letterSpacing: 0.5 },
+  cardName: { fontSize: 15, fontWeight: '700', color: '#e2e8f0', textAlign: 'center', marginBottom: 12, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
+  message: { fontSize: 13, fontWeight: '600', color: '#94a3b8', textAlign: 'center', lineHeight: 20, writingDirection: 'rtl', marginBottom: 6 },
+  warning: { fontSize: 11, fontWeight: '600', color: '#f87171', textAlign: 'center', opacity: 0.8, marginBottom: 4 },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', width: '100%', marginVertical: 16 },
+  btnRow: { flexDirection: 'row', gap: 12, width: '100%' },
+  cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 14, borderWidth: 1.5, borderColor: '#333340', backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
+  cancelTxt: { color: '#94a3b8', fontWeight: '700', fontSize: 14 },
+  deleteBtn: { flex: 1, paddingVertical: 12, borderRadius: 14, borderWidth: 1.5, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.20)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, shadowColor: '#ef4444', shadowOpacity: 0.35, shadowRadius: 8, elevation: 6 },
+  deleteTxt: { color: '#fff', fontWeight: '800', fontSize: 14 },
 });
 
 const rp = StyleSheet.create({
@@ -1319,23 +1182,12 @@ const styles = StyleSheet.create({
     borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2,
   },
   customBadgeTxt: { color: '#fff', fontSize: 9, fontWeight: '900' },
-  // ─ Grid delete button overlay (glassmorphism style)
   gridDeleteBtn: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    position: 'absolute', top: 4, right: 4,
+    width: 24, height: 24, borderRadius: 12,
     backgroundColor: 'rgba(15,5,5,0.65)',
-    borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    // subtle shadow for depth
-    shadowColor: '#f87171',
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    borderWidth: 1, borderColor: 'rgba(248,113,113,0.45)',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#f87171', shadowOpacity: 0.25, shadowRadius: 4, elevation: 4,
   },
 });
