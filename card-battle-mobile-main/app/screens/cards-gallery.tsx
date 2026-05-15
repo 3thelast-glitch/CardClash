@@ -51,14 +51,14 @@ type CardEdits = {
   attack: number; defense: number; customImage?: string; imageOffsetY: number;
   fitInsideBorder: boolean; rarity: CardRarity; isVideo: boolean;
   element: Element | null; race: Race | null; cardClass: CardClass | null;
-  gender: Gender | null; tags: Tag[];
+  gender: 'male' | 'female'; tags: Tag[];
 };
 
 type GalleryFilters = {
   rarity: CardRarity | 'All';
   cardClass: CardClass | null;
   race: Race | null;
-  gender: Gender | null;
+  gender: 'male' | 'female' | null;
   element: Element | null;
 };
 const DEFAULT_GALLERY_FILTERS: GalleryFilters = {
@@ -74,6 +74,7 @@ function toStoreSafe(obj: Record<string,any>): Record<string,any> {
   const { customImage, finalImage, ...rest } = obj; return rest;
 }
 function toEdits(card: Card & { customImage?: string; imageOffsetY?: number; fitInsideBorder?: boolean; isVideo?: boolean }): CardEdits {
+  const g = (card as any).gender;
   return {
     nameAr: card.nameAr ?? '', stars: card.stars ?? 0,
     hasAbility: !!card.specialAbility, specialAbility: card.specialAbility ?? '',
@@ -82,13 +83,15 @@ function toEdits(card: Card & { customImage?: string; imageOffsetY?: number; fit
     fitInsideBorder: card.fitInsideBorder ?? false, rarity: card.rarity ?? 'common',
     isVideo: card.isVideo ?? (card.customImage ? isVideoUri(card.customImage) : false),
     element: card.element ?? null, race: card.race ?? null,
-    cardClass: card.cardClass ?? null, gender: (card as any).gender ?? null,
+    cardClass: card.cardClass ?? null,
+    // ✔ الكروت بدون gender تعامل كذكر
+    gender: (g === 'female') ? 'female' : 'male',
     tags: card.tags ?? [],
   };
 }
 const clamp = (v: number, mn: number, mx: number) => Math.min(mx, Math.max(mn, v));
 
-// ─── Data Options ────────────────────────────────────────
+// ─── Data Options ──────────────────────────────────────────────
 const RARITY_OPTIONS: { value: CardRarity; labelAr: string; color: string; stars: number }[] = [
   { value:'common',    labelAr:'عادي',    color:'#6366f1', stars:1 },
   { value:'rare',      labelAr:'نادر',    color:'#f59e0b', stars:3 },
@@ -115,27 +118,26 @@ const RACE_OPTIONS: { value: Race|null; label: string; icon: string; name: strin
   { value:'monster', label:`${RACE_EMOJI.monster} وحش`,    icon:RACE_EMOJI.monster, name:'وحش' },
   { value:'robot',   label:`${RACE_EMOJI.robot} روبوت`,  icon:RACE_EMOJI.robot,   name:'روبوت' },
 ];
+
+// ✔ 6 فئات فقط (warrior, knight, berserker, paladin محذوفون)
 const CLASS_OPTIONS: { value: CardClass|null; label: string; icon: string; name: string }[] = [
   { value:null,         label:'✕ بدون',       icon:'✕',                    name:'بدون' },
-  { value:'warrior',    label:`${CLASS_EMOJI.warrior} محارب`,  icon:CLASS_EMOJI.warrior,    name:'محارب' },
-  { value:'knight',     label:`${CLASS_EMOJI.knight} فارس`,    icon:CLASS_EMOJI.knight,     name:'فارس' },
   { value:'mage',       label:`${CLASS_EMOJI.mage} ساحر`,     icon:CLASS_EMOJI.mage,       name:'ساحر' },
   { value:'archer',     label:`${CLASS_EMOJI.archer} رامي`,    icon:CLASS_EMOJI.archer,     name:'رامي' },
-  { value:'berserker',  label:`${CLASS_EMOJI.berserker} ضاري`, icon:CLASS_EMOJI.berserker,  name:'ضاري' },
-  { value:'paladin',    label:`${CLASS_EMOJI.paladin} بالادين`, icon:CLASS_EMOJI.paladin,    name:'بالادين' },
   { value:'swordsman',  label:`${CLASS_EMOJI.swordsman} سياف`,  icon:CLASS_EMOJI.swordsman,  name:'سياف' },
   { value:'fighter',    label:`${CLASS_EMOJI.fighter} مقاتل`, icon:CLASS_EMOJI.fighter,    name:'مقاتل' },
   { value:'guardian',   label:`${CLASS_EMOJI.guardian} والي`,   icon:CLASS_EMOJI.guardian,   name:'والي' },
   { value:'healer',     label:`${CLASS_EMOJI.healer} طبيب`,   icon:CLASS_EMOJI.healer,     name:'طبيب' },
 ];
-const GENDER_OPTIONS: { value: Gender|null; label: string; icon: string; name: string }[] = [
-  { value:null,      label:'✕ بدون',    icon:'✕',                  name:'بدون' },
-  { value:'male',    label:'ذكر',      icon:GENDER_EMOJI.male,    name:'ذكر' },
-  { value:'female',  label:'أنثى',     icon:GENDER_EMOJI.female,  name:'أنثى' },
-  { value:'unknown', label:'غير محدد', icon:GENDER_EMOJI.unknown, name:'غير محدد' },
+
+// ✔ جنسين فقط (unknown محذوف)
+const GENDER_OPTIONS: { value: 'male'|'female'|null; label: string; icon: string; name: string }[] = [
+  { value:null,     label:'✕ بدون',  icon:'✕',                  name:'بدون' },
+  { value:'male',   label:'ذكر',      icon:GENDER_EMOJI.male,    name:'ذكر' },
+  { value:'female', label:'أنثى',     icon:GENDER_EMOJI.female,  name:'أنثى' },
 ];
 
-// ─── FilterChip ───────────────────────────────────────────
+// ─── FilterChip ───────────────────────────────────────────────────
 function FilterChip({ icon, name, active, color, onPress }: {
   icon: string; name: string; active: boolean; color: string; onPress: () => void;
 }) {
@@ -157,7 +159,7 @@ const fc = StyleSheet.create({
   dot:  { width:5, height:5, borderRadius:3, marginLeft:2 },
 });
 
-// ─── GridTile ─────────────────────────────────────────────
+// ─── GridTile ───────────────────────────────────────────────────────
 function GridTile({ icon, name, active, color, onPress }: {
   icon: string; name: string; active: boolean; color: string; onPress: () => void;
 }) {
@@ -185,7 +187,7 @@ const gt = StyleSheet.create({
   dot:       { position:'absolute', bottom:5, width:4, height:4, borderRadius:2 },
 });
 
-// ─── IconPicker ───────────────────────────────────────────
+// ─── IconPicker ───────────────────────────────────────────────────
 function IconPicker<T extends string | null>({
   label, options, value, color, onChange,
 }: {
@@ -213,7 +215,7 @@ function IconPicker<T extends string | null>({
 }
 const ip = StyleSheet.create({ wrap:{ marginBottom:6 }, grid:{ flexDirection:'row', flexWrap:'wrap', gap:7 } });
 
-// ─── RarityPicker ─────────────────────────────────────────
+// ─── RarityPicker ───────────────────────────────────────────────────
 function RarityPicker({ value, onChange }: { value: CardRarity; onChange: (r: CardRarity) => void }) {
   return (
     <View style={rp.row}>
@@ -235,7 +237,7 @@ const rp = StyleSheet.create({
   txt: { fontSize:11, fontWeight:'800' },
 });
 
-// ─── StarPicker ───────────────────────────────────────────
+// ─── StarPicker ─────────────────────────────────────────────────────
 function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
     <View style={ep.starRow}>
@@ -252,7 +254,7 @@ function StarPicker({ value, onChange }: { value: number; onChange: (n: number) 
   );
 }
 
-// ─── StatStepper ──────────────────────────────────────────
+// ─── StatStepper ───────────────────────────────────────────────────
 function StatStepper({ icon, label, value, color, onChange }: {
   icon: string; label: string; value: number; color: string; onChange: (v: number) => void;
 }) {
@@ -277,7 +279,7 @@ function StatStepper({ icon, label, value, color, onChange }: {
   );
 }
 
-// ─── MediaPickerSection ───────────────────────────────────
+// ─── MediaPickerSection ───────────────────────────────────────────────
 function MediaPickerSection({ value, isVideo, rarityColor, onChange }: {
   value?: string; isVideo: boolean; rarityColor: string;
   onChange: (uri: string|undefined, isVid: boolean) => void;
@@ -321,7 +323,7 @@ function MediaPickerSection({ value, isVideo, rarityColor, onChange }: {
   );
 }
 
-// ─── ImageOffsetAdjuster ──────────────────────────────────
+// ─── ImageOffsetAdjuster ───────────────────────────────────────────────
 function ImageOffsetAdjuster({ value, rarityColor, onChange }: {
   value: number; rarityColor: string; onChange: (v: number) => void;
 }) {
@@ -347,7 +349,7 @@ function ImageOffsetAdjuster({ value, rarityColor, onChange }: {
   );
 }
 
-// ─── RageModeSection ──────────────────────────────────────
+// ─── RageModeSection ──────────────────────────────────────────────────
 const DEFAULT_RAGE: RageModeData = { enabled:false, rageAttackBoost:0, rageDefenseBoost:0, oncePer:'match' };
 
 function RageModeSection({ cardId, data, onChange }: {
@@ -445,7 +447,7 @@ function RageModeSection({ cardId, data, onChange }: {
   );
 }
 
-// ─── GalleryFilterModal ───────────────────────────────────
+// ─── GalleryFilterModal ───────────────────────────────────────────────
 function GalleryFilterModal({ visible, filters, onApply, onClose }: {
   visible: boolean; filters: GalleryFilters;
   onApply: (f: GalleryFilters) => void; onClose: () => void;
@@ -515,7 +517,7 @@ function GalleryFilterModal({ visible, filters, onApply, onClose }: {
               {GENDER_OPTIONS.map(opt => (
                 <FilterChip key={String(opt.value)} icon={opt.icon} name={opt.name}
                   active={local.gender===opt.value} color={opt.value===null?'#f87171':'#34d399'}
-                  onPress={() => patch({gender:opt.value as Gender|null})} />
+                  onPress={() => patch({gender:opt.value as 'male'|'female'|null})} />
               ))}
             </View>
           </ScrollView>
@@ -550,7 +552,7 @@ const fm = StyleSheet.create({
   applyTxt:     { color:'#d4af37', fontWeight:'800', fontSize:13 },
 });
 
-// ─── Main Screen ──────────────────────────────────────────
+// ─── Main Screen ──────────────────────────────────────────────────────
 export default function CardsGalleryScreen() {
   const router = useRouter();
   const [savedMap, setSavedMap] = useState<Record<string,Record<string,any>>>({});
@@ -617,7 +619,7 @@ export default function CardsGalleryScreen() {
       customImage: edits.customImage, imageOffsetY: edits.imageOffsetY,
       fitInsideBorder: edits.fitInsideBorder, isVideo: edits.isVideo,
       element: edits.element??undefined, race: edits.race??undefined,
-      cardClass: edits.cardClass??undefined, gender: edits.gender??undefined,
+      cardClass: edits.cardClass??undefined, gender: edits.gender,
       tags: edits.tags,
     });
   }, [edits, selectedCard]);
@@ -638,7 +640,7 @@ export default function CardsGalleryScreen() {
       hasCustomImage: !!edits.customImage, isVideo: edits.isVideo,
       imageOffsetY: edits.imageOffsetY, fitInsideBorder: edits.fitInsideBorder,
       element: edits.element??null, race: edits.race??null,
-      cardClass: edits.cardClass??null, gender: edits.gender??null, tags: edits.tags,
+      cardClass: edits.cardClass??null, gender: edits.gender, tags: edits.tags,
     };
     const memRecord: Record<string,any> = {...storeSafe, customImage:edits.customImage};
     const newStoredMap: Record<string,Record<string,any>> = {};
@@ -677,13 +679,17 @@ export default function CardsGalleryScreen() {
 
   if (!isLandscape) return <RotateHintScreen />;
 
-  // AND-filter
+  // ✔ AND-filter — الكروت بدون gender تعامل كذكر
   const filteredCards = cards.filter(card => {
     if (galleryFilters.rarity !== 'All' && (card.rarity??'common').toLowerCase() !== galleryFilters.rarity) return false;
     if (galleryFilters.element !== null && (card.element??null) !== galleryFilters.element) return false;
     if (galleryFilters.race    !== null && (card.race??null)    !== galleryFilters.race)    return false;
     if (galleryFilters.cardClass !== null && ((card as any).cardClass??null) !== galleryFilters.cardClass) return false;
-    if (galleryFilters.gender !== null && ((card as any).gender??null) !== galleryFilters.gender) return false;
+    if (galleryFilters.gender !== null) {
+      const cardGender = (card as any).gender;
+      const effectiveGender = (cardGender === 'female') ? 'female' : 'male';
+      if (effectiveGender !== galleryFilters.gender) return false;
+    }
     return true;
   });
   const sortedCards = [...filteredCards].sort((a,b) => {
@@ -817,7 +823,7 @@ export default function CardsGalleryScreen() {
                     onChange={v => patch({cardClass:v as CardClass|null})} />
                   <View style={ep.divider} />
                   <IconPicker label="⚧ الجنس البيولوجي" options={GENDER_OPTIONS as any} value={edits.gender} color={rarityColor}
-                    onChange={v => patch({gender:v as Gender|null})} />
+                    onChange={v => patch({gender:(v ?? 'male') as 'male'|'female'})} />
                   <View style={ep.divider} />
 
                   <View style={ep.switchRow}>
@@ -905,7 +911,7 @@ export default function CardsGalleryScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────
+// ─── Styles ─────────────────────────────────────────────────────────
 const delModal = StyleSheet.create({
   backdrop:   { flex:1, backgroundColor:'rgba(0,0,0,0.88)', justifyContent:'center', alignItems:'center' },
   container:  { width:320, backgroundColor:'#1A1A24', borderRadius:20, borderWidth:1.5, borderColor:'#2A2A35', padding:24, alignItems:'center', shadowColor:'#f87171', shadowOpacity:0.15, shadowRadius:24, elevation:12, overflow:'hidden' },
@@ -952,7 +958,7 @@ const ep = StyleSheet.create({
   statCol:     { alignItems:'center', gap:4, flex:1 },
   statIcon:    { fontSize:18 },
   statRow:     { flexDirection:'row', alignItems:'center', gap:5 },
-  stepBtn:     { width:26, height:26, borderRadius:7, borderWidth:1, alignItems:'center', justifyContent:'center', backgroundColor:'rgba(255,255,255,0.05)' },
+  stepBtn:     { width:26, height:26, borderRadius:7, borderWidth:1, alignItems:'center', justifyContent:'center', backgroundColor:'rgba(255,255,255,0.04)' },
   statInput:   { width:46, height:32, borderRadius:8, borderWidth:1, textAlign:'center', fontSize:15, fontWeight:'800', backgroundColor:'rgba(255,255,255,0.04)' },
   statLabel:   { fontSize:10, fontWeight:'600' },
   actionRow:   { flexDirection:'row', gap:10, justifyContent:'center', marginBottom:2 },
@@ -1009,7 +1015,4 @@ const styles = StyleSheet.create({
   filterBtnActive:  { borderColor:'#d4af3788', backgroundColor:'rgba(212,175,55,0.10)' },
   filterBtnTxt:     { fontSize:13, fontWeight:'700', color:'#888' },
   filterBadge:      { width:18, height:18, borderRadius:9, backgroundColor:'#d4af37', alignItems:'center', justifyContent:'center' },
-  filterBadgeTxt:   { fontSize:10, fontWeight:'900', color:'#000' },
-  clearFiltersBtn:  { flexDirection:'row', alignItems:'center', gap:4, paddingHorizontal:10, paddingVertical:6, borderRadius:16, borderWidth:1, borderColor:'#f8717155', backgroundColor:'rgba(248,113,113,0.08)' },
-  clearFiltersTxt:  { fontSize:11, fontWeight:'700', color:'#f87171' },
-});
+ 
