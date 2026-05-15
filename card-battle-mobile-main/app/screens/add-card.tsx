@@ -1,6 +1,5 @@
 /**
  * add-card.tsx — تخطيط عمودين: شكل الكارت يسار + الحقول يمين
- * ✨ قسم الأيقونات: تعديل element / race / cardClass / tags / gender مع إمكانية الإلغاء
  */
 import React, { useState, useCallback } from 'react';
 import {
@@ -24,29 +23,25 @@ const RACE_AR: Record<Race, string> = {
   monster: 'وحش', robot: 'روبوت',
 };
 
-// ✔ Updated: all 10 classes
-const CLASS_AR: Record<CardClass, string> = {
-  warrior:   'محارب',
-  knight:    'فارس',
+// ✔ 6 فئات فقط: ساحر ، رامي ، سياف ، مقاتل ، والي ، طبيب
+const CLASS_AR: Partial<Record<CardClass, string>> = {
   mage:      'ساحر',
   archer:    'رامي',
-  berserker: 'ضاري',
-  paladin:   'بالادين',
   swordsman: 'سياف',
   fighter:   'مقاتل',
   guardian:  'والي',
   healer:    'طبيب',
 };
 
-// ✔ No ice — matches 5-element system
 const ELEMENT_AR: Record<Element, string> = {
   fire: 'نار', water: 'ماء',
   earth: 'أرض', lightning: 'برق', wind: 'ريح',
 };
-const GENDER_AR: Record<Gender, string> = {
-  male:    'ذكر',
-  female:  'أنثى',
-  unknown: 'غير محدد',
+
+// ✔ جنسين فقط: ذكر و أنثى (no unknown)
+const GENDER_AR: Record<'male' | 'female', string> = {
+  male:   'ذكر',
+  female: 'أنثى',
 };
 const TAG_AR: Record<string, string> = {
   sword: 'سيف', shield: 'درع', magic: 'سحر', bow: 'قوس', crown: 'تاج',
@@ -65,19 +60,16 @@ const RARITIES: { value: CardRarity; label: string; color: string }[] = [
 const RARITY_STARS: Record<CardRarity, number> = {
   common: 1, rare: 3, epic: 4, legendary: 5, special: 5,
 };
-const RACES:    Race[]      = ['human','elf','orc','dragon','demon','undead','monster','robot'];
+const RACES: Race[] = ['human','elf','orc','dragon','demon','undead','monster','robot'];
 
-// ✔ All 10 classes
-const CLASSES:  CardClass[] = [
-  'warrior','knight','mage','archer','berserker','paladin',
-  'swordsman','fighter','guardian','healer',
-];
+// ✔ ست فئات فقط (حذف warrior, knight, berserker, paladin)
+const CLASSES: CardClass[] = ['mage','archer','swordsman','fighter','guardian','healer'];
 
-// ✔ No ice
-const ELEMENTS: Element[]   = ['fire','water','earth','lightning','wind'];
-const GENDERS:  Gender[]    = ['male', 'female', 'unknown'];
+const ELEMENTS: Element[] = ['fire','water','earth','lightning','wind'];
 
-// ✔ No ice
+// ✔ جنسين فقط (حذف unknown)
+const GENDERS: ('male' | 'female')[] = ['male', 'female'];
+
 const EL_COLORS: Record<Element, string> = {
   fire: '#ef4444', water: '#3b82f6',
   earth: '#a3e635', lightning: '#facc15', wind: '#a78bfa',
@@ -86,19 +78,13 @@ const RACE_COLORS: Record<Race, string> = {
   human:'#FCD34D', elf:'#34D399', orc:'#FB923C', dragon:'#F87171',
   demon:'#EF4444', undead:'#94A3B8', monster:'#A78BFA', robot:'#67E8F9',
 };
-
-// ✔ All 10 classes with colors
-const CLASS_COLORS: Record<CardClass, string> = {
-  warrior:   '#F87171',
-  knight:    '#60A5FA',
+const CLASS_COLORS: Partial<Record<CardClass, string>> = {
   mage:      '#C084FC',
   archer:    '#4ADE80',
-  berserker: '#FB923C',
-  paladin:   '#FBBF24',
-  swordsman: '#E2E8F0',  // فضي
-  fighter:   '#F97316',  // برتقالي
-  guardian:  '#38BDF8',  // سماوي
-  healer:    '#86EFAC',  // أخضر فاتح
+  swordsman: '#E2E8F0',
+  fighter:   '#F97316',
+  guardian:  '#38BDF8',
+  healer:    '#86EFAC',
 };
 const TAGS: string[] = ['sword','shield','magic','bow','crown'];
 
@@ -124,7 +110,6 @@ function pickFileAsBase64(accept: string): Promise<{ base64: string; isVideo: bo
   });
 }
 
-// ─ Chip ──────────────────────────────────────────────────────
 const Chip = ({ label, selected, color, onPress }: {
   label: string; selected: boolean; color?: string; onPress: () => void;
 }) => (
@@ -134,7 +119,6 @@ const Chip = ({ label, selected, color, onPress }: {
   </TouchableOpacity>
 );
 
-// ─ IconChip — أيقونة كبيرة قابلة للتحديد والإلغاء ─────────────
 const IconChip = ({ icon, label, selected, color, onPress, onClear }: {
   icon: string; label: string; selected: boolean; color: string;
   onPress: () => void; onClear?: () => void;
@@ -142,10 +126,7 @@ const IconChip = ({ icon, label, selected, color, onPress, onClear }: {
   <View style={IC.wrapper}>
     <TouchableOpacity
       onPress={onPress}
-      style={[
-        IC.btn,
-        selected && { borderColor: color, backgroundColor: color + '20' },
-      ]}
+      style={[IC.btn, selected && { borderColor: color, backgroundColor: color + '20' }]}
     >
       <Text style={IC.icon}>{icon}</Text>
       <Text style={[IC.lbl, selected && { color }]}>{label}</Text>
@@ -166,7 +147,6 @@ const IC = StyleSheet.create({
   clearTxt: { color: '#fff', fontSize: 9, fontWeight: '900', lineHeight: 16 },
 });
 
-// ─ معاينة الكارت ─────────────────────────────────────────────
 function CardPreview({ card, mediaB64, isVideo }: { card: Partial<Card>; mediaB64?: string; isVideo: boolean }) {
   const previewCard: Card = {
     id: 'preview',
@@ -176,12 +156,12 @@ function CardPreview({ card, mediaB64, isVideo }: { card: Partial<Card>; mediaB6
     defense:   card.defense  ?? 16,
     hp:        card.defense  ?? 16,
     race:      card.race     ?? 'human',
-    cardClass: card.cardClass ?? 'warrior',
+    cardClass: card.cardClass ?? 'mage',
     element:   card.element  ?? 'fire',
     tags:      card.tags     ?? ['sword'],
     rarity:    card.rarity   ?? 'common',
     stars:     card.stars    ?? 1,
-    gender:    card.gender   ?? 'unknown',
+    gender:    card.gender   ?? 'male',
     specialAbility: card.specialAbility,
     customImage: mediaB64,
     isVideo,
@@ -193,21 +173,20 @@ function CardPreview({ card, mediaB64, isVideo }: { card: Partial<Card>; mediaB6
   );
 }
 
-// ─ Main ──────────────────────────────────────────────────────
 export default function AddCardScreen() {
   const router = useRouter();
   const [form,     setForm]     = useState(defaultForm);
   const [rarity,   setRarity]   = useState<CardRarity>('common');
   const [race,     setRace]     = useState<Race>('human');
-  const [cls,      setCls]      = useState<CardClass>('warrior');
+  const [cls,      setCls]      = useState<CardClass>('mage');
   const [element,  setElement]  = useState<Element>('fire');
-  const [gender,   setGender]   = useState<Gender>('unknown');
+  // ✔ الافتراضي male وليس unknown
+  const [gender,   setGender]   = useState<'male' | 'female'>('male');
   const [tags,     setTags]     = useState<string[]>(['sword']);
   const [mediaB64, setMediaB64] = useState<string | undefined>();
   const [isVideo,  setIsVideo]  = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
   const [iconsOpen, setIconsOpen] = useState(false);
 
   const rarityColor = RARITIES.find(r => r.value === rarity)?.color ?? '#FFD700';
@@ -412,7 +391,7 @@ export default function AddCardScreen() {
                   ))}
                 </View>
 
-                {/* الجنس البيولوجي */}
+                {/* الجنس البيولوجي — ذكر أو أنثى فقط ، لا يوجد بدون */}
                 <Text style={S.secLabel}>الجنس البيولوجي ⚧</Text>
                 <View style={S.iconRow}>
                   {GENDERS.map(g=>(
@@ -427,16 +406,16 @@ export default function AddCardScreen() {
                   ))}
                 </View>
 
-                {/* الفئة */}
+                {/* الفئة — 6 فئات */}
                 <Text style={S.secLabel}>الفئة ⚔️</Text>
                 <View style={S.iconRow}>
                   {CLASSES.map(c=>(
                     <IconChip
                       key={c}
                       icon={CLASS_EMOJI[c]}
-                      label={CLASS_AR[c]}
+                      label={CLASS_AR[c] ?? c}
                       selected={cls===c}
-                      color={CLASS_COLORS[c]}
+                      color={CLASS_COLORS[c] ?? '#fff'}
                       onPress={()=>setCls(c)}
                     />
                   ))}
