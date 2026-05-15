@@ -7,7 +7,7 @@ import type { Card } from '@/lib/game/types';
 export const ANIME_CARDS: Card[] = [
 
   // ════════════════════════════════════════════════════
-  // One Piece (25 cards)
+  // One Piece
   // ════════════════════════════════════════════════════
   {
     id: 'yosaku',
@@ -724,7 +724,7 @@ export const ANIME_CARDS: Card[] = [
     nameAr: 'دوما',
     attack: 16, defense: 16,
     gender: 'male',
-    race: 'demon', cardClass: 'mage', element: 'ice',
+    race: 'demon', cardClass: 'swordsman', element: 'ice',
     tags: ['sword'], emoji: '😈',
     rarity: 'legendary', stars: 5,
     animationPreset: 'ice',
@@ -842,7 +842,7 @@ export const ANIME_CARDS: Card[] = [
     nameAr: 'ميغومي فوشيغورو',
     attack: 14, defense: 14,
     gender: 'male',
-    race: 'human', cardClass: 'mage', element: 'ice',
+    race: 'human', cardClass: 'swordsman', element: 'ice',
     tags: ['sword', 'shield'], emoji: '⚔️',
     rarity: 'epic', stars: 4,
     animationPreset: 'ice',
@@ -864,7 +864,7 @@ export const ANIME_CARDS: Card[] = [
     nameAr: 'سوغورو غيتو',
     attack: 15, defense: 14,
     gender: 'male',
-    race: 'human', cardClass: 'mage', element: 'ice',
+    race: 'human', cardClass: 'fighter', element: 'ice',
     tags: ['sword', 'shield'], emoji: '⚔️',
     rarity: 'epic', stars: 4,
     animationPreset: 'ice',
@@ -886,7 +886,7 @@ export const ANIME_CARDS: Card[] = [
     nameAr: 'ريومن سوكونا',
     attack: 19, defense: 16,
     gender: 'male',
-    race: 'demon', cardClass: 'mage', element: 'fire',
+    race: 'demon', cardClass: 'fighter', element: 'fire',
     tags: ['sword'], emoji: '😈',
     rarity: 'legendary', stars: 5,
     animationPreset: 'fire',
@@ -897,7 +897,7 @@ export const ANIME_CARDS: Card[] = [
     nameAr: 'ساتورو غوجو',
     attack: 17, defense: 18,
     gender: 'male',
-    race: 'human', cardClass: 'mage', element: 'ice',
+    race: 'human', cardClass: 'fighter', element: 'ice',
     tags: ['magic'], emoji: '⚔️',
     rarity: 'legendary', stars: 5,
     animationPreset: 'ice',
@@ -923,7 +923,7 @@ export const ANIME_CARDS: Card[] = [
     nameAr: 'سوسوكي آيزن',
     attack: 16, defense: 17,
     gender: 'male',
-    race: 'human', cardClass: 'mage', element: 'ice',
+    race: 'human', cardClass: 'swordsman', element: 'ice',
     tags: ['magic'], emoji: '⚔️',
     rarity: 'legendary', stars: 5,
     animationPreset: 'ice',
@@ -967,7 +967,7 @@ export const ANIME_CARDS: Card[] = [
     nameAr: 'كينباتشي زاراكي',
     attack: 18, defense: 14,
     gender: 'male',
-    race: 'human', cardClass: 'fighter', element: 'fire',
+    race: 'human', cardClass: 'swordsman', element: 'fire',
     tags: ['sword'], emoji: '⚔️',
     rarity: 'legendary', stars: 5,
     animationPreset: 'fire',
