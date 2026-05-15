@@ -247,7 +247,7 @@ export const CLASS_EMOJI: Record<CardClass, string> = {
   paladin:    '\u{1F4AA}',          // 💪  بالادين
   swordsman:  '\u{1F93A}',          // 🤺  سياف
   fighter:    '\u{1F94A}',          // 🥊  مقاتل
-  guardian:   '\u{1F482}',          // 💂  والي
+  guardian:   '\u{1F916}',          // 🤖  والي (robot)
   healer:     '\u2695\ufe0f',       // ⚕️  طبيب
 };
 
