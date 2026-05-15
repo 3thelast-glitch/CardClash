@@ -14,7 +14,7 @@ import { ALL_CARDS } from '@/lib/game/cards-data-exports';
 import { Card, CardRarity, CardClass, Element, Race, Tag, Gender, RageModeData, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI, GENDER_COLORS } from '@/lib/game/types';
 import { getRarityConfig } from '@/lib/game/card-rarity';
 import { useLandscapeLayout, useCardSize, LAYOUT_PADDING } from '@/utils/layout';
-import { ArrowLeft, Minus, Plus, Image as ImageIcon, Film, X, ChevronUp, ChevronDown, Zap, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Minus, Plus, Image as ImageIcon, Film, X, ChevronUp, ChevronDown, Zap, Trash2, Filter } from 'lucide-react-native';
 import { saveImage, loadImage, deleteImage } from '@/lib/game/image-storage';
 import { getRageOverrides, saveRageOverride, RageOverridesMap } from '@/lib/game/rage-store';
 import { loadCustomCards, deleteCustomCard } from '@/lib/game/custom-cards-store';
@@ -22,7 +22,6 @@ import { loadCustomCards, deleteCustomCard } from '@/lib/game/custom-cards-store
 export const CARD_EDITS_KEY = 'card_edits_v1';
 export const DELETED_CARDS_KEY = 'deleted_cards_v1';
 
-/** Load IDs of base cards that the player has deleted */
 async function loadDeletedCardIds(): Promise<Set<string>> {
   try {
     const raw = await AsyncStorage.getItem(DELETED_CARDS_KEY);
@@ -30,7 +29,6 @@ async function loadDeletedCardIds(): Promise<Set<string>> {
   } catch { return new Set(); }
 }
 
-/** Persist IDs of deleted base cards */
 async function saveDeletedCardIds(ids: Set<string>): Promise<void> {
   await AsyncStorage.setItem(DELETED_CARDS_KEY, JSON.stringify([...ids]));
 }
@@ -63,6 +61,23 @@ type CardEdits = {
   cardClass: CardClass | null;
   gender: Gender | null;
   tags: Tag[];
+};
+
+// ── Active gallery filters ──────────────────────────────
+type GalleryFilters = {
+  rarity: CardRarity | 'All';
+  cardClass: CardClass | null;
+  race: Race | null;
+  gender: Gender | null;
+  element: Element | null;
+};
+
+const DEFAULT_GALLERY_FILTERS: GalleryFilters = {
+  rarity: 'All',
+  cardClass: null,
+  race: null,
+  gender: null,
+  element: null,
 };
 
 function isVideoUri(uri: string): boolean {
@@ -146,6 +161,45 @@ const GENDER_OPTIONS: { value: Gender | null; label: string; icon: string; name:
   { value: 'female',  label: 'أنثى',   icon: GENDER_EMOJI.female,  name: 'أنثى' },
   { value: 'unknown', label: 'غير محدد', icon: GENDER_EMOJI.unknown, name: 'غير محدد' },
 ];
+
+// ─────────────────────────────────────────────────────────
+// FilterChip — small pill chip used inside the filter modal
+// ─────────────────────────────────────────────────────────
+function FilterChip({
+  icon, name, active, color, onPress,
+}: {
+  icon: string; name: string; active: boolean; color: string; onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      style={[
+        fc.chip,
+        active
+          ? { borderColor: color, backgroundColor: color + '18', shadowColor: color, shadowOpacity: 0.4, shadowRadius: 6, elevation: 5 }
+          : { borderColor: '#1e1e2a', backgroundColor: '#0d0d14' },
+      ]}
+    >
+      <RNText style={fc.icon}>{icon || '□'}</RNText>
+      <RNText style={[fc.name, { color: active ? color : '#4a4a5a' }]} numberOfLines={1}>
+        {name}
+      </RNText>
+      {active && <View style={[fc.dot, { backgroundColor: color }]} />}
+    </TouchableOpacity>
+  );
+}
+
+const fc = StyleSheet.create({
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1.5, marginRight: 6, marginBottom: 6,
+  },
+  icon:  { fontSize: 14 },
+  name:  { fontSize: 11, fontWeight: '700' },
+  dot:   { width: 5, height: 5, borderRadius: 3, marginLeft: 2 },
+});
 
 // ─────────────────────────────────────────────────────────
 // GridTile — Dark Mode card tile
@@ -585,6 +639,175 @@ const DEFAULT_RAGE: RageModeData = {
   oncePer: 'match',
 };
 
+// ─────────────────────────────────────────────────────────
+// GalleryFilterModal — AND-filter panel
+// ─────────────────────────────────────────────────────────
+function GalleryFilterModal({
+  visible,
+  filters,
+  onApply,
+  onClose,
+}: {
+  visible: boolean;
+  filters: GalleryFilters;
+  onApply: (f: GalleryFilters) => void;
+  onClose: () => void;
+}) {
+  const [local, setLocal] = useState<GalleryFilters>(filters);
+  useEffect(() => { if (visible) setLocal(filters); }, [visible]);
+
+  const patch = (p: Partial<GalleryFilters>) => setLocal(prev => ({ ...prev, ...p }));
+
+  const RARITY_FILTER_OPTS: { value: CardRarity | 'All'; labelAr: string; color: string }[] = [
+    { value: 'All',       labelAr: 'الكل',    color: '#d4af37' },
+    { value: 'common',    labelAr: 'عادي',    color: '#6366f1' },
+    { value: 'rare',      labelAr: 'نادر',    color: '#f59e0b' },
+    { value: 'epic',      labelAr: 'ملحمي',   color: '#8b5cf6' },
+    { value: 'legendary', labelAr: 'أسطوري',  color: '#ef4444' },
+    { value: 'special',   labelAr: 'خاص',     color: '#ec4899' },
+  ];
+
+  const hasActiveFilters =
+    local.rarity !== 'All' ||
+    local.cardClass !== null ||
+    local.race !== null ||
+    local.gender !== null ||
+    local.element !== null;
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+      <View style={fm.backdrop}>
+        <View style={fm.sheet}>
+          <View style={fm.header}>
+            <RNText style={fm.title}>🎯 فلترة الكروت</RNText>
+            <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={fm.closeBtn}>
+              <X size={16} color="#888" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
+            {/* Rarity */}
+            <RNText style={fm.sectionLabel}>❆ الندرة</RNText>
+            <View style={fm.row}>
+              {RARITY_FILTER_OPTS.map(opt => {
+                const active = local.rarity === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => patch({ rarity: opt.value })}
+                    activeOpacity={0.75}
+                    style={[fm.pill, { borderColor: active ? opt.color : opt.color + '33', backgroundColor: active ? opt.color + '22' : 'rgba(255,255,255,0.03)' }]}
+                  >
+                    <RNText style={[fm.pillTxt, { color: active ? opt.color : opt.color + '88' }]}>{opt.labelAr}</RNText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Element */}
+            <RNText style={fm.sectionLabel}>🔥 العنصر</RNText>
+            <View style={fm.chipsRow}>
+              {ELEMENT_OPTIONS.map(opt => (
+                <FilterChip
+                  key={String(opt.value)}
+                  icon={opt.icon}
+                  name={opt.name}
+                  active={local.element === opt.value}
+                  color={opt.value === null ? '#f87171' : '#f59e0b'}
+                  onPress={() => patch({ element: opt.value as Element | null })}
+                />
+              ))}
+            </View>
+
+            {/* Race */}
+            <RNText style={fm.sectionLabel}>👤 الجنس / الفصيلة</RNText>
+            <View style={fm.chipsRow}>
+              {RACE_OPTIONS.map(opt => (
+                <FilterChip
+                  key={String(opt.value)}
+                  icon={opt.icon}
+                  name={opt.name}
+                  active={local.race === opt.value}
+                  color={opt.value === null ? '#f87171' : '#60a5fa'}
+                  onPress={() => patch({ race: opt.value as Race | null })}
+                />
+              ))}
+            </View>
+
+            {/* Class */}
+            <RNText style={fm.sectionLabel}>⚔️ الفئة</RNText>
+            <View style={fm.chipsRow}>
+              {CLASS_OPTIONS.map(opt => (
+                <FilterChip
+                  key={String(opt.value)}
+                  icon={opt.icon}
+                  name={opt.name}
+                  active={local.cardClass === opt.value}
+                  color={opt.value === null ? '#f87171' : '#a78bfa'}
+                  onPress={() => patch({ cardClass: opt.value as CardClass | null })}
+                />
+              ))}
+            </View>
+
+            {/* Gender */}
+            <RNText style={fm.sectionLabel}>⚧ الجنس البيولوجي</RNText>
+            <View style={fm.chipsRow}>
+              {GENDER_OPTIONS.map(opt => (
+                <FilterChip
+                  key={String(opt.value)}
+                  icon={opt.icon}
+                  name={opt.name}
+                  active={local.gender === opt.value}
+                  color={opt.value === null ? '#f87171' : '#34d399'}
+                  onPress={() => patch({ gender: opt.value as Gender | null })}
+                />
+              ))}
+            </View>
+          </ScrollView>
+
+          <View style={fm.footer}>
+            <TouchableOpacity
+              style={fm.resetBtn}
+              onPress={() => patch(DEFAULT_GALLERY_FILTERS)}
+              activeOpacity={0.8}
+            >
+              <RNText style={fm.resetTxt}>إعادة تعيين</RNText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={fm.applyBtn}
+              onPress={() => { onApply(local); onClose(); }}
+              activeOpacity={0.8}
+            >
+              <RNText style={fm.applyTxt}>✔ تطبيق</RNText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const fm = StyleSheet.create({
+  backdrop:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', alignItems: 'center' },
+  sheet:        { width: 360, maxHeight: '85%', backgroundColor: '#12121c', borderRadius: 20, borderWidth: 1.5, borderColor: '#2a2a38', padding: 20, shadowColor: '#d4af37', shadowOpacity: 0.15, shadowRadius: 20, elevation: 12 },
+  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  title:        { fontSize: 16, fontWeight: '800', color: '#d4af37' },
+  closeBtn:     { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: '#333', alignItems: 'center', justifyContent: 'center' },
+  sectionLabel: { fontSize: 11, color: '#888', fontWeight: '700', textAlign: 'right', marginBottom: 8, marginTop: 10 },
+  row:          { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
+  chipsRow:     { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 },
+  pill:         { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1.5 },
+  pillTxt:      { fontSize: 11, fontWeight: '800' },
+  footer:       { flexDirection: 'row', gap: 10, marginTop: 14 },
+  resetBtn:     { flex: 1, paddingVertical: 11, borderRadius: 14, borderWidth: 1, borderColor: '#333', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)' },
+  resetTxt:     { color: '#888', fontWeight: '700', fontSize: 13 },
+  applyBtn:     { flex: 2, paddingVertical: 11, borderRadius: 14, borderWidth: 1.5, borderColor: '#d4af3788', backgroundColor: 'rgba(212,175,55,0.15)', alignItems: 'center' },
+  applyTxt:     { color: '#d4af37', fontWeight: '800', fontSize: 13 },
+});
+
+// ─────────────────────────────────────────────────────────
+// Main Screen
+// ─────────────────────────────────────────────────────────
 export default function CardsGalleryScreen() {
   const router = useRouter();
   const [savedMap, setSavedMap] = useState<Record<string, Record<string, any>>>({});
@@ -595,7 +818,10 @@ export default function CardsGalleryScreen() {
   const [edits, setEdits] = useState<CardEdits | null>(null);
   const [previewCard, setPreviewCard] = useState<any | null>(null);
   const { isLandscape, size } = useLandscapeLayout();
-  const [activeFilter, setActiveFilter] = useState('All');
+
+  // ── Filter state ──────────────────────────────────────
+  const [galleryFilters, setGalleryFilters] = useState<GalleryFilters>(DEFAULT_GALLERY_FILTERS);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   const [rageMap, setRageMap] = useState<RageOverridesMap>({});
   const [rageEdits, setRageEdits] = useState<RageModeData>(DEFAULT_RAGE);
@@ -771,14 +997,30 @@ export default function CardsGalleryScreen() {
 
   if (!isLandscape) return <RotateHintScreen />;
 
+  // ── AND-filter logic ──────────────────────────────────
   const filteredCards = cards.filter(card => {
-    if (activeFilter === 'All') return true;
-    const rarity = (card.rarity ?? 'common').toLowerCase();
-    const filterMap: Record<string, string> = {
-      'Common': 'common', 'Rare': 'rare',
-      'ملحمية': 'epic', 'أسطورية': 'legendary', 'خاص': 'special',
-    };
-    return rarity === (filterMap[activeFilter] ?? activeFilter.toLowerCase());
+    // Rarity
+    if (galleryFilters.rarity !== 'All') {
+      const rarity = (card.rarity ?? 'common').toLowerCase();
+      if (rarity !== galleryFilters.rarity) return false;
+    }
+    // Element (null = بدون, so skip filter if not chosen)
+    if (galleryFilters.element !== null) {
+      if ((card.element ?? null) !== galleryFilters.element) return false;
+    }
+    // Race
+    if (galleryFilters.race !== null) {
+      if ((card.race ?? null) !== galleryFilters.race) return false;
+    }
+    // Class
+    if (galleryFilters.cardClass !== null) {
+      if (((card as any).cardClass ?? null) !== galleryFilters.cardClass) return false;
+    }
+    // Gender
+    if (galleryFilters.gender !== null) {
+      if (((card as any).gender ?? null) !== galleryFilters.gender) return false;
+    }
+    return true;
   });
 
   const sortedCards = [...filteredCards].sort((a, b) => {
@@ -788,20 +1030,20 @@ export default function CardsGalleryScreen() {
     return (a.nameAr || a.name).localeCompare(b.nameAr || b.name, 'ar');
   });
 
-  const FILTER_TABS = [
-    { label: 'All',      cls: 'border-orange-500 text-orange-500 bg-orange-500/10' },
-    { label: 'Common',   cls: 'border-emerald-500 text-emerald-500 bg-emerald-500/10' },
-    { label: 'Rare',     cls: 'border-blue-500 text-blue-500 bg-blue-500/10' },
-    { label: 'ملحمية',  cls: 'border-purple-500 text-purple-500 bg-purple-500/10' },
-    { label: 'أسطورية', cls: 'border-amber-500 text-amber-500 bg-amber-500/10' },
-    { label: 'خاص',     cls: 'border-pink-500 text-pink-500 bg-pink-500/10' },
-  ];
-
   const rarityColor = edits
     ? getRarityConfig(edits.rarity).badgeColor
     : selectedCard ? getRarityConfig(selectedCard.rarity).badgeColor : '#d4af37';
 
   const isCustomCard = selectedCard?._isCustom === true;
+
+  // ── Count active filters for badge ───────────────────
+  const activeFilterCount = [
+    galleryFilters.rarity !== 'All',
+    galleryFilters.element !== null,
+    galleryFilters.race !== null,
+    galleryFilters.cardClass !== null,
+    galleryFilters.gender !== null,
+  ].filter(Boolean).length;
 
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
@@ -830,17 +1072,35 @@ export default function CardsGalleryScreen() {
           <Text style={styles.subtitle}>{sortedCards.length} cards</Text>
         </View>
 
-        <View className="flex-row flex-wrap justify-center gap-2 mb-4 px-4 mt-2">
-          {FILTER_TABS.map(tab => {
-            const active = activeFilter === tab.label;
-            return (
-              <TouchableOpacity key={tab.label} onPress={() => setActiveFilter(tab.label)}
-                className={`px-4 py-1.5 rounded-full border border-white/10 bg-[#0f172a]/80 ${active ? tab.cls.split(' ').slice(0, 3).join(' ') : ''}`}
-                activeOpacity={0.7}>
-                <Text className={`text-sm font-bold ${active ? tab.cls.split(' ')[1] : 'text-gray-400'}`}>{tab.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
+        {/* ── Filter Button Row ── */}
+        <View style={styles.filterRow}>
+          <TouchableOpacity
+            onPress={() => setFilterModalVisible(true)}
+            style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+            activeOpacity={0.8}
+          >
+            <Filter size={14} color={activeFilterCount > 0 ? '#d4af37' : '#888'} />
+            <RNText style={[styles.filterBtnTxt, activeFilterCount > 0 && { color: '#d4af37' }]}>
+              فلترة
+            </RNText>
+            {activeFilterCount > 0 && (
+              <View style={styles.filterBadge}>
+                <RNText style={styles.filterBadgeTxt}>{activeFilterCount}</RNText>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Active filter chips summary */}
+          {activeFilterCount > 0 && (
+            <TouchableOpacity
+              onPress={() => setGalleryFilters(DEFAULT_GALLERY_FILTERS)}
+              style={styles.clearFiltersBtn}
+              activeOpacity={0.8}
+            >
+              <X size={11} color="#f87171" />
+              <RNText style={styles.clearFiltersTxt}>مسح الفلاتر</RNText>
+            </TouchableOpacity>
+          )}
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -873,6 +1133,14 @@ export default function CardsGalleryScreen() {
           </View>
         </ScrollView>
       </View>
+
+      {/* ── Gallery Filter Modal ── */}
+      <GalleryFilterModal
+        visible={filterModalVisible}
+        filters={galleryFilters}
+        onApply={setGalleryFilters}
+        onClose={() => setFilterModalVisible(false)}
+      />
 
       <Modal visible={!!selectedCard} animationType="fade" transparent onRequestClose={handleClose}>
         <View style={styles.overlay}>
@@ -1190,4 +1458,32 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#f87171', shadowOpacity: 0.25, shadowRadius: 4, elevation: 4,
   },
+  // ── Filter bar ──
+  filterRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginBottom: 10, paddingHorizontal: 16,
+  },
+  filterBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 20, borderWidth: 1.5, borderColor: '#2a2a38',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  filterBtnActive: {
+    borderColor: '#d4af3788',
+    backgroundColor: 'rgba(212,175,55,0.10)',
+  },
+  filterBtnTxt: { fontSize: 13, fontWeight: '700', color: '#888' },
+  filterBadge: {
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: '#d4af37', alignItems: 'center', justifyContent: 'center',
+  },
+  filterBadgeTxt: { fontSize: 10, fontWeight: '900', color: '#000' },
+  clearFiltersBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: 16, borderWidth: 1, borderColor: '#f8717155',
+    backgroundColor: 'rgba(248,113,113,0.08)',
+  },
+  clearFiltersTxt: { fontSize: 11, fontWeight: '700', color: '#f87171' },
 });
