@@ -9,15 +9,24 @@ export type Race =
   | 'dragon'
   | 'demon'
   | 'undead'
-  | 'monster'   // anime-cards-data
-  | 'robot';    // anime-cards-data
+  | 'monster'
+  | 'robot';
 
-export type CardClass = 'warrior' | 'knight' | 'mage' | 'archer' | 'berserker' | 'paladin';
+export type CardClass =
+  | 'warrior'
+  | 'knight'
+  | 'mage'
+  | 'archer'
+  | 'berserker'
+  | 'paladin'
+  | 'swordsman'   // سياف
+  | 'fighter'     // مقاتل
+  | 'guardian'    // والي
+  | 'healer';     // طبيب
 
-// ✦ نظام خماسي — تم حذف عنصر الجليد (ice)
+// ✦ نظام خماسي
 export type Element = 'fire' | 'water' | 'earth' | 'lightning' | 'wind';
 
-// Removed predefined tags to rely entirely on Element, Race, and Class.
 export type Tag = string;
 
 /** Rarity tier for a card */
@@ -39,23 +48,15 @@ export type CardAnimationPreset = 'default' | 'fire' | 'lightning' | 'shadow' | 
 export type Gender = 'male' | 'female' | 'unknown';
 
 /**
- * بيانات وضع الغضب للبطاقة — اختياري، يُضبَط من شاشة إدارة الكروت
- * عند خسارة الكرت: تتحول البطاقة إلى نسخة أقوى مع صورة/فيديو جديد
+ * بيانات وضع الغضب للبطاقة
  */
 export interface RageModeData {
-  /** هل الميزة مفعّلة لهذه البطاقة؟ */
   enabled: boolean;
-  /** رابط صورة الغضب (URL أو base64) — تحل محل صورة الكرت عند التفعيل */
   rageImageUrl?: string;
-  /** رابط فيديو التحول — يُشغَّل لحظة تفعيل وضع الغضب */
   rageVideoUrl?: string;
-  /** زيادة قيمة الهجوم عند الغضب */
   rageAttackBoost: number;
-  /** زيادة قيمة الدفاع عند الغضب */
   rageDefenseBoost: number;
-  /** اسم وضع الغضب بالعربية (مثل: سوبر سايان) */
   rageNameAr?: string;
-  /** تفعيل مرة واحدة فقط في المباراة، أو عند كل خسارة */
   oncePer: 'match' | 'unlimited';
 }
 
@@ -64,13 +65,10 @@ export interface Card {
   name: string;
   nameAr: string;
   nameEn?: string;
-  /** Local image source — optional when imageUrl is provided instead */
   finalImage?: ImageSourcePropType;
-  /** URL string fallback used by anime-cards-data (remote images) */
   imageUrl?: string;
   attack: number;
   defense: number;
-  /** Legacy hp field used by older screens/tests */
   hp?: number;
   race: Race;
   cardClass: CardClass;
@@ -83,19 +81,12 @@ export interface Card {
   specialAbility?: string;
   cardEffects?: CardEffect[];
   animationPreset?: CardAnimationPreset;
-  /** Optional ability slot — can be undefined after Recall/Merge/etc. */
   ability?: AbilityType;
-  /** إعدادات وضع الغضب — اختياري، يُفعّل من شاشة إدارة الكروت */
   rageMode?: RageModeData;
-  /** هل البطاقة في وضع الغضب حالياً؟ */
   isRagedVersion?: boolean;
-  /** الهجوم الأصلي قبل تفعيل وضع الغضب */
   originalAttack?: number;
-  /** الدفاع الأصلي قبل تفعيل وضع الغضب */
   originalDefense?: number;
-  /** علامة داخلية لمتابعة حالة الغضب */
   _rageActive?: boolean;
-  /** جنس الكارت: ذكر أو أنثى أو غير محدد */
   gender?: Gender;
 }
 
@@ -237,23 +228,27 @@ export interface RoundResult {
 }
 
 export const RACE_EMOJI: Record<Race, string> = {
-  human: '\u{1F464}',
-  elf: '\u{1F9DD}',
-  orc: '\u{1F479}',
-  dragon: '\u{1F409}',
-  demon: '\u{1F608}',
-  undead: '\u{1F480}',
+  human:   '\u{1F464}',
+  elf:     '\u{1F9DD}',
+  orc:     '\u{1F479}',
+  dragon:  '\u{1F409}',
+  demon:   '\u{1F608}',
+  undead:  '\u{1F480}',
   monster: '\u{1F47E}',
-  robot: '\u{1F916}',
+  robot:   '\u{1F916}',
 };
 
 export const CLASS_EMOJI: Record<CardClass, string> = {
-  warrior: '\u2694\ufe0f',
-  knight: '\u{1F6E1}\ufe0f',
-  mage: '\u{1F52E}',
-  archer: '\u{1F3F9}',
-  berserker: '\u{1F5E1}\ufe0f',
-  paladin: '\u{1F4AA}',
+  warrior:    '\u2694\ufe0f',       // ⚔️  محارب
+  knight:     '\u{1F6E1}\ufe0f',   // 🛡️  فارس
+  mage:       '\u{1F52E}',          // 🔮  ساحر
+  archer:     '\u{1F3F9}',          // 🏹  رامي
+  berserker:  '\u{1F5E1}\ufe0f',   // 🗡️  ضاري
+  paladin:    '\u{1F4AA}',          // 💪  بالادين
+  swordsman:  '\u{1F93A}',          // 🤺  سياف
+  fighter:    '\u{1F94A}',          // 🥊  مقاتل
+  guardian:   '\u{1F482}',          // 💂  والي
+  healer:     '\u2695\ufe0f',       // ⚕️  طبيب
 };
 
 // ✦ بدون ice
@@ -311,11 +306,10 @@ export const ELEMENT_WEAKNESSES: Record<Element, Element[]> = {
 };
 
 // ─── خريطة المضاعفات العنصرية (ELEMENTAL_MAP) ────────────────────────────────
-// القيم: 2.0 = تفوق قوي | 0.5 = ضعف واضح
 export const ELEMENTAL_MAP: Record<string, Record<string, number>> = {
-  'نار':  { 'أرض': 2.0, 'ماء': 0.5 },
-  'ماء':  { 'نار': 2.0, 'أرض': 0.5, 'برق': 0.5 },
-  'أرض':  { 'برق': 2.0, 'ماء': 2.0, 'ريح': 0.5 },
-  'برق':  { 'ماء': 2.0, 'ريح': 2.0, 'أرض': 0.5 },
-  'ريح':  { 'أرض': 2.0, 'برق': 0.5, 'نار': 0.5 },
+  '\u0646\u0627\u0631':  { '\u0623\u0631\u0636': 2.0, '\u0645\u0627\u0621': 0.5 },
+  '\u0645\u0627\u0621':  { '\u0646\u0627\u0631': 2.0, '\u0623\u0631\u0636': 0.5, '\u0628\u0631\u0642': 0.5 },
+  '\u0623\u0631\u0636':  { '\u0628\u0631\u0642': 2.0, '\u0645\u0627\u0621': 2.0, '\u0631\u064a\u062d': 0.5 },
+  '\u0628\u0631\u0642':  { '\u0645\u0627\u0621': 2.0, '\u0631\u064a\u062d': 2.0, '\u0623\u0631\u0636': 0.5 },
+  '\u0631\u064a\u062d':  { '\u0623\u0631\u0636': 2.0, '\u0628\u0631\u0642': 0.5, '\u0646\u0627\u0631': 0.5 },
 };
