@@ -1,3 +1,1 @@
-import { Card, Element, ElementAdvantage, Effect, ELEMENT_ADVANTAGES, ELEMENT_WEAKNESSES, ELEMENT_MULTIPLIER } from './types';
-
-// Batch 3/6
+PLACEHOLDER_3
