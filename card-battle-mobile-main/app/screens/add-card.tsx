@@ -23,12 +23,24 @@ const RACE_AR: Record<Race, string> = {
   dragon: 'تنين', demon: 'شيطان', undead: 'حي ميت',
   monster: 'وحش', robot: 'روبوت',
 };
+
+// ✔ Updated: all 10 classes
 const CLASS_AR: Record<CardClass, string> = {
-  warrior: 'محارب', knight: 'فارس', mage: 'ساحر',
-  archer: 'رامي', berserker: 'برسيركر', paladin: 'بالادين',
+  warrior:   'محارب',
+  knight:    'فارس',
+  mage:      'ساحر',
+  archer:    'رامي',
+  berserker: 'ضاري',
+  paladin:   'بالادين',
+  swordsman: 'سياف',
+  fighter:   'مقاتل',
+  guardian:  'والي',
+  healer:    'طبيب',
 };
+
+// ✔ No ice — matches 5-element system
 const ELEMENT_AR: Record<Element, string> = {
-  fire: 'نار', ice: 'جليد', water: 'ماء',
+  fire: 'نار', water: 'ماء',
   earth: 'أرض', lightning: 'برق', wind: 'ريح',
 };
 const GENDER_AR: Record<Gender, string> = {
@@ -54,20 +66,39 @@ const RARITY_STARS: Record<CardRarity, number> = {
   common: 1, rare: 3, epic: 4, legendary: 5, special: 5,
 };
 const RACES:    Race[]      = ['human','elf','orc','dragon','demon','undead','monster','robot'];
-const CLASSES:  CardClass[] = ['warrior','knight','mage','archer','berserker','paladin'];
-const ELEMENTS: Element[]   = ['fire','ice','water','earth','lightning','wind'];
+
+// ✔ All 10 classes
+const CLASSES:  CardClass[] = [
+  'warrior','knight','mage','archer','berserker','paladin',
+  'swordsman','fighter','guardian','healer',
+];
+
+// ✔ No ice
+const ELEMENTS: Element[]   = ['fire','water','earth','lightning','wind'];
 const GENDERS:  Gender[]    = ['male', 'female', 'unknown'];
+
+// ✔ No ice
 const EL_COLORS: Record<Element, string> = {
-  fire: '#ef4444', ice: '#38bdf8', water: '#3b82f6',
+  fire: '#ef4444', water: '#3b82f6',
   earth: '#a3e635', lightning: '#facc15', wind: '#a78bfa',
 };
 const RACE_COLORS: Record<Race, string> = {
   human:'#FCD34D', elf:'#34D399', orc:'#FB923C', dragon:'#F87171',
   demon:'#EF4444', undead:'#94A3B8', monster:'#A78BFA', robot:'#67E8F9',
 };
+
+// ✔ All 10 classes with colors
 const CLASS_COLORS: Record<CardClass, string> = {
-  warrior:'#F87171', knight:'#60A5FA', mage:'#C084FC',
-  archer:'#4ADE80', berserker:'#FB923C', paladin:'#FBBF24',
+  warrior:   '#F87171',
+  knight:    '#60A5FA',
+  mage:      '#C084FC',
+  archer:    '#4ADE80',
+  berserker: '#FB923C',
+  paladin:   '#FBBF24',
+  swordsman: '#E2E8F0',  // فضي
+  fighter:   '#F97316',  // برتقالي
+  guardian:  '#38BDF8',  // سماوي
+  healer:    '#86EFAC',  // أخضر فاتح
 };
 const TAGS: string[] = ['sword','shield','magic','bow','crown'];
 
@@ -177,7 +208,6 @@ export default function AddCardScreen() {
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // قسم الأيقونات — هل هو مفتوح؟
   const [iconsOpen, setIconsOpen] = useState(false);
 
   const rarityColor = RARITIES.find(r => r.value === rarity)?.color ?? '#FFD700';
@@ -231,7 +261,6 @@ export default function AddCardScreen() {
     Alert.alert('✅ تم النسخ');
   };
 
-  // ── شاشة الكود ────────────────────────────────────────────────
   if (generatedCode) {
     return (
       <SafeAreaView style={S.root}>
@@ -254,7 +283,6 @@ export default function AddCardScreen() {
     );
   }
 
-  // ── شاشة الإدخال ──────────────────────────────────────────────
   const previewCardData: Partial<Card> = {
     nameAr:  form.nameAr  || 'كارت جديد',
     name:    form.nameEn  || 'New Card',
@@ -264,7 +292,6 @@ export default function AddCardScreen() {
     specialAbility: form.specialAbility || undefined,
   };
 
-  // ملخص الأيقونات الحالية للعرض في رأس القسم
   const iconsPreview = [
     ELEMENT_EMOJI[element],
     RACE_EMOJI[race],
@@ -288,7 +315,6 @@ export default function AddCardScreen() {
       <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
         <View style={S.columns}>
 
-          {/* ── عمود الكارت */}
           <View style={S.leftCol}>
             <CardPreview card={previewCardData} mediaB64={mediaB64} isVideo={isVideo??false} />
             <View style={S.mediaButtons}>
@@ -312,7 +338,6 @@ export default function AddCardScreen() {
             </View>
           </View>
 
-          {/* ── عمود الحقول */}
           <ScrollView style={S.rightCol} contentContainerStyle={{paddingBottom:100}} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
             <Text style={S.secLabel}>الاسم بالعربي *</Text>
@@ -344,7 +369,6 @@ export default function AddCardScreen() {
               ))}
             </View>
 
-            {/* ✨ قسم الأيقونات — قابل للطي */}
             <TouchableOpacity
               style={S.iconsSectionHeader}
               onPress={()=>setIconsOpen(v=>!v)}
@@ -388,7 +412,7 @@ export default function AddCardScreen() {
                   ))}
                 </View>
 
-                {/* الجنس البيولوجي — ذكر / أنثى */}
+                {/* الجنس البيولوجي */}
                 <Text style={S.secLabel}>الجنس البيولوجي ⚧</Text>
                 <View style={S.iconRow}>
                   {GENDERS.map(g=>(
@@ -491,7 +515,6 @@ const S = StyleSheet.create({
   chip:          { paddingHorizontal:11, paddingVertical:5, borderRadius:20, borderWidth:1.5, borderColor:'#2D3748', backgroundColor:'rgba(255,255,255,0.03)' },
   chipTxt:       { color:'#6B7280', fontSize:12, fontWeight:'700' },
 
-  // ✨ Icons section
   iconsSectionHeader: { flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginTop:14, paddingVertical:10, paddingHorizontal:12, borderRadius:12, borderWidth:1, borderColor:'rgba(255,255,255,0.1)', backgroundColor:'rgba(255,255,255,0.04)' },
   iconsSectionTitle:  { color:'#E2E8F0', fontSize:13, fontWeight:'800' },
   iconsPreviewTxt:    { flex:1, textAlign:'center', fontSize:16, letterSpacing:4 },
