@@ -84,14 +84,13 @@ function toEdits(card: Card & { customImage?: string; imageOffsetY?: number; fit
     isVideo: card.isVideo ?? (card.customImage ? isVideoUri(card.customImage) : false),
     element: card.element ?? null, race: card.race ?? null,
     cardClass: card.cardClass ?? null,
-    // ✔ الكروت بدون gender تعامل كذكر
     gender: (g === 'female') ? 'female' : 'male',
     tags: card.tags ?? [],
   };
 }
 const clamp = (v: number, mn: number, mx: number) => Math.min(mx, Math.max(mn, v));
 
-// ─── Data Options ──────────────────────────────────────────────
+// ─── Data Options ────────────────────────────────────────────────────
 const RARITY_OPTIONS: { value: CardRarity; labelAr: string; color: string; stars: number }[] = [
   { value:'common',    labelAr:'عادي',    color:'#6366f1', stars:1 },
   { value:'rare',      labelAr:'نادر',    color:'#f59e0b', stars:3 },
@@ -102,42 +101,40 @@ const RARITY_OPTIONS: { value: CardRarity; labelAr: string; color: string; stars
 const ELEMENT_OPTIONS: { value: Element|null; label: string; icon: string; name: string }[] = [
   { value:null,        label:'✕ بدون',  icon:'✕',                   name:'بدون' },
   { value:'fire',      label:`${ELEMENT_EMOJI.fire} نار`,    icon:ELEMENT_EMOJI.fire,      name:'نار' },
-  { value:'water',     label:`${ELEMENT_EMOJI.water} ماء`,    icon:ELEMENT_EMOJI.water,     name:'ماء' },
-  { value:'earth',     label:`${ELEMENT_EMOJI.earth} أرض`,    icon:ELEMENT_EMOJI.earth,     name:'أرض' },
-  { value:'lightning', label:`${ELEMENT_EMOJI.lightning} برق`,   icon:ELEMENT_EMOJI.lightning, name:'برق' },
+  { value:'water',     label:`${ELEMENT_EMOJI.water} ماء`,   icon:ELEMENT_EMOJI.water,     name:'ماء' },
+  { value:'earth',     label:`${ELEMENT_EMOJI.earth} أرض`,   icon:ELEMENT_EMOJI.earth,     name:'أرض' },
+  { value:'lightning', label:`${ELEMENT_EMOJI.lightning} برق`, icon:ELEMENT_EMOJI.lightning, name:'برق' },
   { value:'wind',      label:`${ELEMENT_EMOJI.wind} ريح`,    icon:ELEMENT_EMOJI.wind,      name:'ريح' },
 ];
 const RACE_OPTIONS: { value: Race|null; label: string; icon: string; name: string }[] = [
   { value:null,      label:'✕ بدون',   icon:'✕',              name:'بدون' },
   { value:'human',   label:`${RACE_EMOJI.human} بشر`,    icon:RACE_EMOJI.human,   name:'بشر' },
-  { value:'elf',     label:`${RACE_EMOJI.elf} إلف`,     icon:RACE_EMOJI.elf,     name:'إلف' },
-  { value:'orc',     label:`${RACE_EMOJI.orc} أورك`,    icon:RACE_EMOJI.orc,     name:'أورك' },
+  { value:'elf',     label:`${RACE_EMOJI.elf} إلف`,      icon:RACE_EMOJI.elf,     name:'إلف' },
+  { value:'orc',     label:`${RACE_EMOJI.orc} أورك`,     icon:RACE_EMOJI.orc,     name:'أورك' },
   { value:'dragon',  label:`${RACE_EMOJI.dragon} تنين`,   icon:RACE_EMOJI.dragon,  name:'تنين' },
   { value:'demon',   label:`${RACE_EMOJI.demon} شيطان`,  icon:RACE_EMOJI.demon,   name:'شيطان' },
-  { value:'undead',  label:`${RACE_EMOJI.undead} ميت`,     icon:RACE_EMOJI.undead,  name:'ميت' },
-  { value:'monster', label:`${RACE_EMOJI.monster} وحش`,    icon:RACE_EMOJI.monster, name:'وحش' },
+  { value:'undead',  label:`${RACE_EMOJI.undead} ميت`,    icon:RACE_EMOJI.undead,  name:'ميت' },
+  { value:'monster', label:`${RACE_EMOJI.monster} وحش`,   icon:RACE_EMOJI.monster, name:'وحش' },
   { value:'robot',   label:`${RACE_EMOJI.robot} روبوت`,  icon:RACE_EMOJI.robot,   name:'روبوت' },
 ];
-
-// ✔ 6 فئات فقط (warrior, knight, berserker, paladin محذوفون)
+// ✔ 6 فئات فقط — warrior/knight/berserker/paladin محذوفون
 const CLASS_OPTIONS: { value: CardClass|null; label: string; icon: string; name: string }[] = [
-  { value:null,         label:'✕ بدون',       icon:'✕',                    name:'بدون' },
-  { value:'mage',       label:`${CLASS_EMOJI.mage} ساحر`,     icon:CLASS_EMOJI.mage,       name:'ساحر' },
-  { value:'archer',     label:`${CLASS_EMOJI.archer} رامي`,    icon:CLASS_EMOJI.archer,     name:'رامي' },
-  { value:'swordsman',  label:`${CLASS_EMOJI.swordsman} سياف`,  icon:CLASS_EMOJI.swordsman,  name:'سياف' },
-  { value:'fighter',    label:`${CLASS_EMOJI.fighter} مقاتل`, icon:CLASS_EMOJI.fighter,    name:'مقاتل' },
-  { value:'guardian',   label:`${CLASS_EMOJI.guardian} والي`,   icon:CLASS_EMOJI.guardian,   name:'والي' },
-  { value:'healer',     label:`${CLASS_EMOJI.healer} طبيب`,   icon:CLASS_EMOJI.healer,     name:'طبيب' },
+  { value:null,        label:'✕ بدون',      icon:'✕',                   name:'بدون' },
+  { value:'mage',      label:`${CLASS_EMOJI.mage} ساحر`,    icon:CLASS_EMOJI.mage,      name:'ساحر' },
+  { value:'archer',    label:`${CLASS_EMOJI.archer} رامي`,   icon:CLASS_EMOJI.archer,    name:'رامي' },
+  { value:'swordsman', label:`${CLASS_EMOJI.swordsman} سياف`, icon:CLASS_EMOJI.swordsman, name:'سياف' },
+  { value:'fighter',   label:`${CLASS_EMOJI.fighter} مقاتل`, icon:CLASS_EMOJI.fighter,   name:'مقاتل' },
+  { value:'guardian',  label:`${CLASS_EMOJI.guardian} والي`,  icon:CLASS_EMOJI.guardian,  name:'والي' },
+  { value:'healer',    label:`${CLASS_EMOJI.healer} طبيب`,   icon:CLASS_EMOJI.healer,    name:'طبيب' },
 ];
-
-// ✔ جنسين فقط (unknown محذوف)
+// ✔ جنسين فقط — unknown محذوف
 const GENDER_OPTIONS: { value: 'male'|'female'|null; label: string; icon: string; name: string }[] = [
-  { value:null,     label:'✕ بدون',  icon:'✕',                  name:'بدون' },
-  { value:'male',   label:'ذكر',      icon:GENDER_EMOJI.male,    name:'ذكر' },
-  { value:'female', label:'أنثى',     icon:GENDER_EMOJI.female,  name:'أنثى' },
+  { value:null,     label:'✕ بدون', icon:'✕',                 name:'بدون' },
+  { value:'male',   label:'ذكر',    icon:GENDER_EMOJI.male,   name:'ذكر' },
+  { value:'female', label:'أنثى',   icon:GENDER_EMOJI.female, name:'أنثى' },
 ];
 
-// ─── FilterChip ───────────────────────────────────────────────────
+// ─── FilterChip ──────────────────────────────────────────────────────
 function FilterChip({ icon, name, active, color, onPress }: {
   icon: string; name: string; active: boolean; color: string; onPress: () => void;
 }) {
@@ -159,7 +156,7 @@ const fc = StyleSheet.create({
   dot:  { width:5, height:5, borderRadius:3, marginLeft:2 },
 });
 
-// ─── GridTile ───────────────────────────────────────────────────────
+// ─── GridTile ────────────────────────────────────────────────────────
 function GridTile({ icon, name, active, color, onPress }: {
   icon: string; name: string; active: boolean; color: string; onPress: () => void;
 }) {
@@ -187,7 +184,7 @@ const gt = StyleSheet.create({
   dot:       { position:'absolute', bottom:5, width:4, height:4, borderRadius:2 },
 });
 
-// ─── IconPicker ───────────────────────────────────────────────────
+// ─── IconPicker ──────────────────────────────────────────────────────
 function IconPicker<T extends string | null>({
   label, options, value, color, onChange,
 }: {
@@ -215,7 +212,7 @@ function IconPicker<T extends string | null>({
 }
 const ip = StyleSheet.create({ wrap:{ marginBottom:6 }, grid:{ flexDirection:'row', flexWrap:'wrap', gap:7 } });
 
-// ─── RarityPicker ───────────────────────────────────────────────────
+// ─── RarityPicker ────────────────────────────────────────────────────
 function RarityPicker({ value, onChange }: { value: CardRarity; onChange: (r: CardRarity) => void }) {
   return (
     <View style={rp.row}>
@@ -237,7 +234,7 @@ const rp = StyleSheet.create({
   txt: { fontSize:11, fontWeight:'800' },
 });
 
-// ─── StarPicker ─────────────────────────────────────────────────────
+// ─── StarPicker ──────────────────────────────────────────────────────
 function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
     <View style={ep.starRow}>
@@ -254,7 +251,7 @@ function StarPicker({ value, onChange }: { value: number; onChange: (n: number) 
   );
 }
 
-// ─── StatStepper ───────────────────────────────────────────────────
+// ─── StatStepper ─────────────────────────────────────────────────────
 function StatStepper({ icon, label, value, color, onChange }: {
   icon: string; label: string; value: number; color: string; onChange: (v: number) => void;
 }) {
@@ -279,7 +276,7 @@ function StatStepper({ icon, label, value, color, onChange }: {
   );
 }
 
-// ─── MediaPickerSection ───────────────────────────────────────────────
+// ─── MediaPickerSection ──────────────────────────────────────────────
 function MediaPickerSection({ value, isVideo, rarityColor, onChange }: {
   value?: string; isVideo: boolean; rarityColor: string;
   onChange: (uri: string|undefined, isVid: boolean) => void;
@@ -323,7 +320,7 @@ function MediaPickerSection({ value, isVideo, rarityColor, onChange }: {
   );
 }
 
-// ─── ImageOffsetAdjuster ───────────────────────────────────────────────
+// ─── ImageOffsetAdjuster ─────────────────────────────────────────────
 function ImageOffsetAdjuster({ value, rarityColor, onChange }: {
   value: number; rarityColor: string; onChange: (v: number) => void;
 }) {
@@ -349,7 +346,7 @@ function ImageOffsetAdjuster({ value, rarityColor, onChange }: {
   );
 }
 
-// ─── RageModeSection ──────────────────────────────────────────────────
+// ─── RageModeSection ─────────────────────────────────────────────────
 const DEFAULT_RAGE: RageModeData = { enabled:false, rageAttackBoost:0, rageDefenseBoost:0, oncePer:'match' };
 
 function RageModeSection({ cardId, data, onChange }: {
@@ -447,7 +444,7 @@ function RageModeSection({ cardId, data, onChange }: {
   );
 }
 
-// ─── GalleryFilterModal ───────────────────────────────────────────────
+// ─── GalleryFilterModal ──────────────────────────────────────────────
 function GalleryFilterModal({ visible, filters, onApply, onClose }: {
   visible: boolean; filters: GalleryFilters;
   onApply: (f: GalleryFilters) => void; onClose: () => void;
@@ -552,7 +549,7 @@ const fm = StyleSheet.create({
   applyTxt:     { color:'#d4af37', fontWeight:'800', fontSize:13 },
 });
 
-// ─── Main Screen ──────────────────────────────────────────────────────
+// ─── Main Screen ─────────────────────────────────────────────────────
 export default function CardsGalleryScreen() {
   const router = useRouter();
   const [savedMap, setSavedMap] = useState<Record<string,Record<string,any>>>({});
@@ -911,7 +908,7 @@ export default function CardsGalleryScreen() {
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────────
+// ─── Styles ──────────────────────────────────────────────────────────
 const delModal = StyleSheet.create({
   backdrop:   { flex:1, backgroundColor:'rgba(0,0,0,0.88)', justifyContent:'center', alignItems:'center' },
   container:  { width:320, backgroundColor:'#1A1A24', borderRadius:20, borderWidth:1.5, borderColor:'#2A2A35', padding:24, alignItems:'center', shadowColor:'#f87171', shadowOpacity:0.15, shadowRadius:24, elevation:12, overflow:'hidden' },
@@ -937,63 +934,63 @@ const rgs = StyleSheet.create({
   onceBtnTxt:   { fontSize:11, fontWeight:'800' },
 });
 const ep = StyleSheet.create({
-  panel:       { backgroundColor:'rgba(10,10,16,0.97)', padding:18, borderRadius:20, borderWidth:1.5, width:290, maxHeight:520 },
-  title:       { fontSize:19, fontWeight:'800', textAlign:'center', marginBottom:2 },
-  sub:         { fontSize:11, color:'#555', textAlign:'center', marginBottom:2 },
-  divider:     { height:1, backgroundColor:'rgba(255,255,255,0.06)', marginVertical:10 },
-  label:       { fontSize:11, color:'#999', fontWeight:'700', marginBottom:7, textAlign:'right' },
-  hint:        { fontSize:10, color:'#f87171', textAlign:'center', marginTop:3, opacity:0.8 },
+  panel:         { backgroundColor:'rgba(10,10,16,0.97)', padding:18, borderRadius:20, borderWidth:1.5, width:290, maxHeight:520 },
+  title:         { fontSize:19, fontWeight:'800', textAlign:'center', marginBottom:2 },
+  sub:           { fontSize:11, color:'#555', textAlign:'center', marginBottom:2 },
+  divider:       { height:1, backgroundColor:'rgba(255,255,255,0.06)', marginVertical:10 },
+  label:         { fontSize:11, color:'#999', fontWeight:'700', marginBottom:7, textAlign:'right' },
+  hint:          { fontSize:10, color:'#f87171', textAlign:'center', marginTop:3, opacity:0.8 },
   sectionHeader: { fontSize:12, color:'#ccc', fontWeight:'800', textAlign:'center', marginBottom:10, letterSpacing:0.5 },
-  nameArInput: { backgroundColor:'rgba(255,255,255,0.04)', borderWidth:1, borderRadius:10, paddingHorizontal:12, paddingVertical:8, fontSize:15, fontWeight:'700', textAlign:'right', writingDirection:'rtl', marginBottom:2 },
-  starRow:     { flexDirection:'row', justifyContent:'center', alignItems:'center', gap:3, marginBottom:2 },
-  starBtn:     { padding:3 },
-  starIcon:    { fontSize:26 },
-  clearBtn:    { width:28, height:28, borderRadius:14, borderWidth:1, borderColor:'#333', alignItems:'center', justifyContent:'center', backgroundColor:'rgba(255,255,255,0.04)' },
-  clearBtnActive: { borderColor:'#f87171', backgroundColor:'rgba(248,113,113,0.1)' },
-  clearBtnTxt: { fontSize:13, color:'#555', fontWeight:'800' },
-  switchRow:   { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:2 },
-  abilityBox:  { marginTop:6 },
-  abilityInput:{ backgroundColor:'rgba(255,255,255,0.04)', borderWidth:1, borderRadius:10, padding:10, color:'#e2e8f0', fontSize:12, minHeight:58, maxHeight:110, writingDirection:'rtl' },
-  steppers:    { flexDirection:'row', justifyContent:'space-around', gap:10 },
-  statCol:     { alignItems:'center', gap:4, flex:1 },
-  statIcon:    { fontSize:18 },
-  statRow:     { flexDirection:'row', alignItems:'center', gap:5 },
-  stepBtn:     { width:26, height:26, borderRadius:7, borderWidth:1, alignItems:'center', justifyContent:'center', backgroundColor:'rgba(255,255,255,0.04)' },
-  statInput:   { width:46, height:32, borderRadius:8, borderWidth:1, textAlign:'center', fontSize:15, fontWeight:'800', backgroundColor:'rgba(255,255,255,0.04)' },
-  statLabel:   { fontSize:10, fontWeight:'600' },
-  actionRow:   { flexDirection:'row', gap:10, justifyContent:'center', marginBottom:2 },
-  actionBtn:   { flex:1, paddingVertical:10, borderRadius:14, borderWidth:1, alignItems:'center', justifyContent:'center', backgroundColor:'rgba(255,255,255,0.03)' },
-  imgSection:      { gap:8 },
-  imgPreviewWrap:  { position:'relative', alignSelf:'center', width:110, height:140, borderRadius:10, borderWidth:1, borderColor:'rgba(255,255,255,0.15)', backgroundColor:'rgba(255,255,255,0.04)', overflow:'hidden' },
-  imgPreview:      { width:'100%', height:'100%' },
-  imgRemoveBtn:    { position:'absolute', top:-6, right:-6, width:20, height:20, borderRadius:10, backgroundColor:'#f87171', alignItems:'center', justifyContent:'center' },
-  videoThumb:      { flex:1, alignItems:'center', justifyContent:'center', gap:6 },
-  videoThumbIcon:  { fontSize:32 },
-  videoThumbTxt:   { fontSize:10, color:'#a78bfa', fontWeight:'700' },
-  mediaPickRow:    { flexDirection:'row', gap:8 },
-  mediaPickBtn:    { flexDirection:'row', alignItems:'center', justifyContent:'center', gap:5, paddingVertical:8, borderRadius:12, borderWidth:1, backgroundColor:'rgba(255,255,255,0.04)' },
-  imgPickTxt:      { fontSize:12, fontWeight:'700' },
-  offsetRow:       { flexDirection:'row', alignItems:'center', justifyContent:'center', gap:8 },
-  offsetBtn:       { flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, paddingHorizontal:10, paddingVertical:6, borderRadius:10, borderWidth:1, backgroundColor:'rgba(255,255,255,0.04)', minWidth:52 },
-  offsetBtnTxt:    { fontSize:9, fontWeight:'700' },
-  offsetValueBox:  { alignItems:'center', minWidth:44 },
-  offsetValue:     { fontSize:16, fontWeight:'800' },
-  offsetHint:      { fontSize:9, color:'#555' },
-  offsetResetBtn:  { paddingHorizontal:8, paddingVertical:6, borderRadius:8, borderWidth:1, backgroundColor:'rgba(255,255,255,0.04)' },
-  offsetResetTxt:  { fontSize:10, color:'#666', fontWeight:'600' },
-  deleteBtn:       { flexDirection:'row', alignItems:'center', justifyContent:'center', gap:6, paddingVertical:8, borderRadius:12, borderWidth:1, borderColor:'#f8717155', backgroundColor:'rgba(248,113,113,0.08)', marginBottom:10 },
-  deleteBtnTxt:    { color:'#f87171', fontWeight:'800', fontSize:12 },
+  nameArInput:   { backgroundColor:'rgba(255,255,255,0.04)', borderWidth:1, borderRadius:10, paddingHorizontal:12, paddingVertical:8, fontSize:15, fontWeight:'700', textAlign:'right', writingDirection:'rtl', marginBottom:2 },
+  starRow:       { flexDirection:'row', justifyContent:'center', alignItems:'center', gap:3, marginBottom:2 },
+  starBtn:       { padding:3 },
+  starIcon:      { fontSize:26 },
+  clearBtn:      { width:28, height:28, borderRadius:14, borderWidth:1, borderColor:'#333', alignItems:'center', justifyContent:'center', backgroundColor:'rgba(255,255,255,0.04)' },
+  clearBtnActive:{ borderColor:'#f87171', backgroundColor:'rgba(248,113,113,0.1)' },
+  clearBtnTxt:   { fontSize:13, color:'#555', fontWeight:'800' },
+  switchRow:     { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:2 },
+  abilityBox:    { marginTop:6 },
+  abilityInput:  { backgroundColor:'rgba(255,255,255,0.04)', borderWidth:1, borderRadius:10, padding:10, color:'#e2e8f0', fontSize:12, minHeight:58, maxHeight:110, writingDirection:'rtl' },
+  steppers:      { flexDirection:'row', justifyContent:'space-around', gap:10 },
+  statCol:       { alignItems:'center', gap:4, flex:1 },
+  statIcon:      { fontSize:18 },
+  statRow:       { flexDirection:'row', alignItems:'center', gap:5 },
+  stepBtn:       { width:26, height:26, borderRadius:7, borderWidth:1, alignItems:'center', justifyContent:'center', backgroundColor:'rgba(255,255,255,0.04)' },
+  statInput:     { width:46, height:32, borderRadius:8, borderWidth:1, textAlign:'center', fontSize:15, fontWeight:'800', backgroundColor:'rgba(255,255,255,0.04)' },
+  statLabel:     { fontSize:10, fontWeight:'600' },
+  actionRow:     { flexDirection:'row', gap:10, justifyContent:'center', marginBottom:2 },
+  actionBtn:     { flex:1, paddingVertical:10, borderRadius:14, borderWidth:1, alignItems:'center', justifyContent:'center', backgroundColor:'rgba(255,255,255,0.03)' },
+  imgSection:        { gap:8 },
+  imgPreviewWrap:    { position:'relative', alignSelf:'center', width:110, height:140, borderRadius:10, borderWidth:1, borderColor:'rgba(255,255,255,0.15)', backgroundColor:'rgba(255,255,255,0.04)', overflow:'hidden' },
+  imgPreview:        { width:'100%', height:'100%' },
+  imgRemoveBtn:      { position:'absolute', top:-6, right:-6, width:20, height:20, borderRadius:10, backgroundColor:'#f87171', alignItems:'center', justifyContent:'center' },
+  videoThumb:        { flex:1, alignItems:'center', justifyContent:'center', gap:6 },
+  videoThumbIcon:    { fontSize:32 },
+  videoThumbTxt:     { fontSize:10, color:'#a78bfa', fontWeight:'700' },
+  mediaPickRow:      { flexDirection:'row', gap:8 },
+  mediaPickBtn:      { flexDirection:'row', alignItems:'center', justifyContent:'center', gap:5, paddingVertical:8, borderRadius:12, borderWidth:1, backgroundColor:'rgba(255,255,255,0.04)' },
+  imgPickTxt:        { fontSize:12, fontWeight:'700' },
+  offsetRow:         { flexDirection:'row', alignItems:'center', justifyContent:'center', gap:8 },
+  offsetBtn:         { flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, paddingHorizontal:10, paddingVertical:6, borderRadius:10, borderWidth:1, backgroundColor:'rgba(255,255,255,0.04)', minWidth:52 },
+  offsetBtnTxt:      { fontSize:9, fontWeight:'700' },
+  offsetValueBox:    { alignItems:'center', minWidth:44 },
+  offsetValue:       { fontSize:16, fontWeight:'800' },
+  offsetHint:        { fontSize:9, color:'#555' },
+  offsetResetBtn:    { paddingHorizontal:8, paddingVertical:6, borderRadius:8, borderWidth:1, backgroundColor:'rgba(255,255,255,0.04)' },
+  offsetResetTxt:    { fontSize:10, color:'#666', fontWeight:'600' },
+  deleteBtn:         { flexDirection:'row', alignItems:'center', justifyContent:'center', gap:6, paddingVertical:8, borderRadius:12, borderWidth:1, borderColor:'#f8717155', backgroundColor:'rgba(248,113,113,0.08)', marginBottom:10 },
+  deleteBtnTxt:      { color:'#f87171', fontWeight:'800', fontSize:12 },
 });
 const styles = StyleSheet.create({
-  bg:            { position:'absolute', top:0, left:0, right:0, bottom:0, zIndex:0 },
-  container:     { flex:1, zIndex:1, alignItems:'center', width:'100%' },
-  title:         { fontSize:32, fontWeight:'bold', color:'#d4af37', textAlign:'center' },
-  subtitle:      { fontSize:13, color:'#a0a0a0', marginTop:4, textAlign:'center' },
-  scroll:        { flex:1, width:'100%' },
-  scrollContent: { alignItems:'center', paddingBottom:20 },
-  grid:          { flexDirection:'row', flexWrap:'wrap', justifyContent:'center', maxWidth:1100 },
-  overlay:       { flex:1, backgroundColor:'rgba(0,0,0,0.92)', justifyContent:'center', alignItems:'center' },
-  modalRow:      { flexDirection:'row', alignItems:'center', gap:26 },
+  bg:             { position:'absolute', top:0, left:0, right:0, bottom:0, zIndex:0 },
+  container:      { flex:1, zIndex:1, alignItems:'center', width:'100%' },
+  title:          { fontSize:32, fontWeight:'bold', color:'#d4af37', textAlign:'center' },
+  subtitle:       { fontSize:13, color:'#a0a0a0', marginTop:4, textAlign:'center' },
+  scroll:         { flex:1, width:'100%' },
+  scrollContent:  { alignItems:'center', paddingBottom:20 },
+  grid:           { flexDirection:'row', flexWrap:'wrap', justifyContent:'center', maxWidth:1100 },
+  overlay:        { flex:1, backgroundColor:'rgba(0,0,0,0.92)', justifyContent:'center', alignItems:'center' },
+  modalRow:       { flexDirection:'row', alignItems:'center', gap:26 },
   fab: {
     position:'absolute', top:20, right:20, zIndex:50,
     flexDirection:'row', alignItems:'center', gap:6,
@@ -1002,17 +999,20 @@ const styles = StyleSheet.create({
     borderRadius:16, borderWidth:1.5, borderColor:'#f59e0b',
     shadowColor:'#f59e0b', shadowOpacity:0.5, shadowRadius:10, elevation:8,
   },
-  fabTxt:        { color:'#fff', fontWeight:'800', fontSize:13 },
-  customBadge:   { position:'absolute', top:4, left:4, backgroundColor:'rgba(217,119,6,0.85)', borderRadius:6, paddingHorizontal:5, paddingVertical:2 },
-  customBadgeTxt:{ color:'#fff', fontSize:9, fontWeight:'900' },
+  fabTxt:          { color:'#fff', fontWeight:'800', fontSize:13 },
+  customBadge:     { position:'absolute', top:4, left:4, backgroundColor:'rgba(217,119,6,0.85)', borderRadius:6, paddingHorizontal:5, paddingVertical:2 },
+  customBadgeTxt:  { color:'#fff', fontSize:9, fontWeight:'900' },
   gridDeleteBtn: {
     position:'absolute', top:4, right:4, width:24, height:24, borderRadius:12,
     backgroundColor:'rgba(15,5,5,0.65)', borderWidth:1, borderColor:'rgba(248,113,113,0.45)',
     alignItems:'center', justifyContent:'center',
   },
-  filterRow:        { flexDirection:'row', alignItems:'center', gap:10, marginBottom:10, paddingHorizontal:16 },
-  filterBtn:        { flexDirection:'row', alignItems:'center', gap:6, paddingHorizontal:14, paddingVertical:8, borderRadius:20, borderWidth:1.5, borderColor:'#2a2a38', backgroundColor:'rgba(255,255,255,0.04)' },
-  filterBtnActive:  { borderColor:'#d4af3788', backgroundColor:'rgba(212,175,55,0.10)' },
-  filterBtnTxt:     { fontSize:13, fontWeight:'700', color:'#888' },
-  filterBadge:      { width:18, height:18, borderRadius:9, backgroundColor:'#d4af37', alignItems:'center', justifyContent:'center' },
- 
+  filterRow:       { flexDirection:'row', alignItems:'center', gap:10, marginBottom:10, paddingHorizontal:16 },
+  filterBtn:       { flexDirection:'row', alignItems:'center', gap:6, paddingHorizontal:14, paddingVertical:8, borderRadius:20, borderWidth:1.5, borderColor:'#2a2a38', backgroundColor:'rgba(255,255,255,0.04)' },
+  filterBtnActive: { borderColor:'#d4af3788', backgroundColor:'rgba(212,175,55,0.10)' },
+  filterBtnTxt:    { fontSize:13, fontWeight:'700', color:'#888' },
+  filterBadge:     { width:18, height:18, borderRadius:9, backgroundColor:'#d4af37', alignItems:'center', justifyContent:'center' },
+  filterBadgeTxt:  { fontSize:10, fontWeight:'900', color:'#000' },
+  clearFiltersBtn: { flexDirection:'row', alignItems:'center', gap:4, paddingHorizontal:10, paddingVertical:6, borderRadius:16, borderWidth:1, borderColor:'#f8717155', backgroundColor:'rgba(248,113,113,0.08)' },
+  clearFiltersTxt: { fontSize:11, fontWeight:'700', color:'#f87171' },
+});
