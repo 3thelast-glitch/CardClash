@@ -19,11 +19,12 @@ import { getRarityConfig } from '@/lib/game/card-rarity';
 import { useLandscapeLayout, useCardSize, LAYOUT_PADDING } from '@/utils/layout';
 import {
   ArrowLeft, Minus, Plus, Image as ImageIcon, Film, X,
-  ChevronUp, ChevronDown, Zap, Trash2, Filter,
+  ChevronUp, ChevronDown, Zap, Trash2, Filter, Download, Upload,
 } from 'lucide-react-native';
 import { saveImage, loadImage, deleteImage } from '@/lib/game/image-storage';
 import { getRageOverrides, saveRageOverride, RageOverridesMap } from '@/lib/game/rage-store';
 import { loadCustomCards, deleteCustomCard } from '@/lib/game/custom-cards-store';
+import { exportBackup, importBackup } from '@/lib/game/backup-restore';
 
 export const CARD_EDITS_KEY = 'card_edits_v1';
 export const DELETED_CARDS_KEY = 'deleted_cards_v1';
@@ -117,7 +118,6 @@ const RACE_OPTIONS: { value: Race|null; label: string; icon: string; name: strin
   { value:'monster', label:`${RACE_EMOJI.monster} وحش`,   icon:RACE_EMOJI.monster, name:'وحش' },
   { value:'robot',   label:`${RACE_EMOJI.robot} روبوت`,  icon:RACE_EMOJI.robot,   name:'روبوت' },
 ];
-// ✔ 6 فئات فقط — warrior/knight/berserker/paladin محذوفون
 const CLASS_OPTIONS: { value: CardClass|null; label: string; icon: string; name: string }[] = [
   { value:null,        label:'✕ بدون',      icon:'✕',                   name:'بدون' },
   { value:'mage',      label:`${CLASS_EMOJI.mage} ساحر`,    icon:CLASS_EMOJI.mage,      name:'ساحر' },
@@ -127,12 +127,29 @@ const CLASS_OPTIONS: { value: CardClass|null; label: string; icon: string; name:
   { value:'guardian',  label:`${CLASS_EMOJI.guardian} والي`,  icon:CLASS_EMOJI.guardian,  name:'والي' },
   { value:'healer',    label:`${CLASS_EMOJI.healer} طبيب`,   icon:CLASS_EMOJI.healer,    name:'طبيب' },
 ];
-// ✔ جنسين فقط — unknown محذوف
 const GENDER_OPTIONS: { value: 'male'|'female'|null; label: string; icon: string; name: string }[] = [
   { value:null,     label:'✕ بدون', icon:'✕',                 name:'بدون' },
   { value:'male',   label:'ذكر',    icon:GENDER_EMOJI.male,   name:'ذكر' },
   { value:'female', label:'أنثى',   icon:GENDER_EMOJI.female, name:'أنثى' },
 ];
+
+// ─── Toast ───────────────────────────────────────────────────────────
+function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
+  const bg = type === 'success' ? 'rgba(52,211,153,0.15)' : 'rgba(248,113,113,0.15)';
+  const border = type === 'success' ? '#34d399' : '#f87171';
+  const icon = type === 'success' ? '✅' : '❌';
+  return (
+    <View style={[toastSt.wrap, { backgroundColor: bg, borderColor: border }]}>
+      <RNText style={toastSt.icon}>{icon}</RNText>
+      <RNText style={[toastSt.msg, { color: border }]}>{message}</RNText>
+    </View>
+  );
+}
+const toastSt = StyleSheet.create({
+  wrap: { position:'absolute', bottom:30, left:'10%', right:'10%', flexDirection:'row', alignItems:'center', gap:10, paddingHorizontal:18, paddingVertical:12, borderRadius:16, borderWidth:1.5, zIndex:999, shadowColor:'#000', shadowOpacity:0.5, shadowRadius:12, elevation:20 },
+  icon: { fontSize:18 },
+  msg:  { fontSize:13, fontWeight:'700', flex:1, textAlign:'right', writingDirection:'rtl' },
+});
 
 // ─── FilterChip ──────────────────────────────────────────────────────
 function FilterChip({ icon, name, active, color, onPress }: {
@@ -566,44 +583,74 @@ export default function CardsGalleryScreen() {
   const [rageMap, setRageMap] = useState<RageOverridesMap>({});
   const [rageEdits, setRageEdits] = useState<RageModeData>(DEFAULT_RAGE);
 
+  // ── Backup state
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success'|'error' } | null>(null);
+
   const { cardW: galleryCardW, cardH: galleryCardH } = useCardSize('gallery');
   const { cardW: modalCardW,   cardH: modalCardH   } = useCardSize('modal');
   const padding  = LAYOUT_PADDING[size];
   const gridGap  = size==='sm'?10:size==='md'?14:size==='lg'?18:22;
 
-  useEffect(() => {
-    async function load() {
-      const customCards = await loadCustomCards();
-      const UNIQUE = buildUniqueCards(ALL_CARDS, customCards);
-      const customIds = new Set(customCards.map(c => c.id));
-      const deletedIds = await loadDeletedCardIds();
-      setDeletedBaseIds(deletedIds);
-      const rawEdits = await AsyncStorage.getItem(CARD_EDITS_KEY);
-      const rageOverrides = await getRageOverrides();
-      setRageMap(rageOverrides);
-      const VISIBLE = UNIQUE.filter(c => !deletedIds.has(c.id));
-      if (!rawEdits) { setCards(VISIBLE.map(c => ({...c,_isCustom:customIds.has(c.id)}))); return; }
-      try {
-        const map: Record<string,any> = JSON.parse(rawEdits);
-        const entries = await Promise.all(
-          Object.entries(map).map(async ([id,data]) => {
-            const safeCopy = toStoreSafe({...data});
-            if (data.hasCustomImage) {
-              const img = await loadImage(`card_img_${id}`);
-              if (img) return [id,{...safeCopy,customImage:img,isVideo:data.isVideo??isVideoUri(img)}] as [string,any];
-            }
-            return [id,safeCopy] as [string,any];
-          })
-        );
-        const fullMap = Object.fromEntries(entries);
-        setSavedMap(Object.fromEntries(entries.map(([id,d]) => [id,toStoreSafe(d)])));
-        setCards(VISIBLE.map((c:Card) => ({...c,...(fullMap[c.id]??{}),_isCustom:customIds.has(c.id)})));
-      } catch {
-        setCards(VISIBLE.map(c => ({...c,_isCustom:customIds.has(c.id)})));
-      }
+  const showToast = (message: string, type: 'success'|'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleExport = async () => {
+    setBackupLoading(true);
+    try {
+      await exportBackup();
+      showToast('✅ تم تصدير النسخة الاحتياطية بنجاح', 'success');
+    } catch (e) {
+      showToast('فشل التصدير: ' + String(e), 'error');
+    } finally {
+      setBackupLoading(false);
     }
-    load();
-  }, []);
+  };
+
+  const handleImport = () => {
+    importBackup(
+      () => {
+        showToast('✅ تم الاستيراد! أعد تحميل الصفحة لتفعيل التغييرات', 'success');
+        setTimeout(() => { if (Platform.OS === 'web') window.location.reload(); }, 2000);
+      },
+      (msg) => showToast(msg, 'error')
+    );
+  };
+
+  const load = async () => {
+    const customCards = await loadCustomCards();
+    const UNIQUE = buildUniqueCards(ALL_CARDS, customCards);
+    const customIds = new Set(customCards.map(c => c.id));
+    const deletedIds = await loadDeletedCardIds();
+    setDeletedBaseIds(deletedIds);
+    const rawEdits = await AsyncStorage.getItem(CARD_EDITS_KEY);
+    const rageOverrides = await getRageOverrides();
+    setRageMap(rageOverrides);
+    const VISIBLE = UNIQUE.filter(c => !deletedIds.has(c.id));
+    if (!rawEdits) { setCards(VISIBLE.map(c => ({...c,_isCustom:customIds.has(c.id)}))); return; }
+    try {
+      const map: Record<string,any> = JSON.parse(rawEdits);
+      const entries = await Promise.all(
+        Object.entries(map).map(async ([id,data]) => {
+          const safeCopy = toStoreSafe({...data});
+          if (data.hasCustomImage) {
+            const img = await loadImage(`card_img_${id}`);
+            if (img) return [id,{...safeCopy,customImage:img,isVideo:data.isVideo??isVideoUri(img)}] as [string,any];
+          }
+          return [id,safeCopy] as [string,any];
+        })
+      );
+      const fullMap = Object.fromEntries(entries);
+      setSavedMap(Object.fromEntries(entries.map(([id,d]) => [id,toStoreSafe(d)])));
+      setCards(VISIBLE.map((c:Card) => ({...c,...(fullMap[c.id]??{}),_isCustom:customIds.has(c.id)})));
+    } catch {
+      setCards(VISIBLE.map(c => ({...c,_isCustom:customIds.has(c.id)})));
+    }
+  };
+
+  useEffect(() => { load(); }, []);
 
   useEffect(() => {
     if (!selectedCard || !edits) { setPreviewCard(null); return; }
@@ -676,7 +723,6 @@ export default function CardsGalleryScreen() {
 
   if (!isLandscape) return <RotateHintScreen />;
 
-  // ✔ AND-filter — الكروت بدون gender تعامل كذكر
   const filteredCards = cards.filter(card => {
     if (galleryFilters.rarity !== 'All' && (card.rarity??'common').toLowerCase() !== galleryFilters.rarity) return false;
     if (galleryFilters.element !== null && (card.element??null) !== galleryFilters.element) return false;
@@ -712,6 +758,7 @@ export default function CardsGalleryScreen() {
     <ScreenContainer edges={['top','bottom','left','right']}>
       <View style={styles.bg}><LuxuryBackground /></View>
 
+      {/* رجوع */}
       <TouchableOpacity onPress={() => router.back()}
         className="absolute top-6 left-6 z-50 flex-row items-center gap-2 px-4 py-2 bg-slate-800/80 backdrop-blur-md rounded-xl border border-white/10"
         activeOpacity={0.7}>
@@ -719,6 +766,23 @@ export default function CardsGalleryScreen() {
         <Text className="text-white text-sm font-bold">رجوع</Text>
       </TouchableOpacity>
 
+      {/* ─── أزرار Backup ─── */}
+      <View style={styles.backupRow}>
+        <TouchableOpacity onPress={handleExport} disabled={backupLoading}
+          style={[styles.backupBtn, { borderColor:'#34d39988', backgroundColor:'rgba(52,211,153,0.10)' }]}
+          activeOpacity={0.8}>
+          <Download size={13} color="#34d399" />
+          <RNText style={[styles.backupBtnTxt,{color:'#34d399'}]}>تصدير</RNText>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleImport} disabled={backupLoading}
+          style={[styles.backupBtn, { borderColor:'#60a5fa88', backgroundColor:'rgba(96,165,250,0.10)' }]}
+          activeOpacity={0.8}>
+          <Upload size={13} color="#60a5fa" />
+          <RNText style={[styles.backupBtnTxt,{color:'#60a5fa'}]}>استيراد</RNText>
+        </TouchableOpacity>
+      </View>
+
+      {/* ＋ كارت */}
       <TouchableOpacity onPress={() => router.push('/screens/add-card')} style={styles.fab} activeOpacity={0.8}>
         <RNText style={styles.fabTxt}>＋ كارت</RNText>
       </TouchableOpacity>
@@ -769,6 +833,9 @@ export default function CardsGalleryScreen() {
           </View>
         </ScrollView>
       </View>
+
+      {/* Toast */}
+      {toast && <Toast message={toast.message} type={toast.type} />}
 
       <GalleryFilterModal visible={filterModalVisible} filters={galleryFilters}
         onApply={setGalleryFilters} onClose={() => setFilterModalVisible(false)} />
@@ -1000,6 +1067,11 @@ const styles = StyleSheet.create({
     shadowColor:'#f59e0b', shadowOpacity:0.5, shadowRadius:10, elevation:8,
   },
   fabTxt:          { color:'#fff', fontWeight:'800', fontSize:13 },
+  // ── Backup buttons
+  backupRow:       { position:'absolute', top:20, right:110, zIndex:50, flexDirection:'row', gap:8 },
+  backupBtn:       { flexDirection:'row', alignItems:'center', gap:5, paddingHorizontal:12, paddingVertical:8, borderRadius:14, borderWidth:1.5, shadowColor:'#000', shadowOpacity:0.3, shadowRadius:6, elevation:6 },
+  backupBtnTxt:    { fontSize:12, fontWeight:'800' },
+  // ── Other
   customBadge:     { position:'absolute', top:4, left:4, backgroundColor:'rgba(217,119,6,0.85)', borderRadius:6, paddingHorizontal:5, paddingVertical:2 },
   customBadgeTxt:  { color:'#fff', fontSize:9, fontWeight:'900' },
   gridDeleteBtn: {
