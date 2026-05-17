@@ -1,6 +1,6 @@
 /**
  * sync_images.js
- * ينقل صور الشخصيات تلقائياً بناءً على ندرتها في ملف الكروت
+ * ينقل صور الشخصيات تلقائياً بناءً على ندرتها في ملفات الكروت
  *
  * الاستخدام:
  *   node scripts/sync_images.js
@@ -14,28 +14,42 @@ const path = require('path');
 // ============================================================
 // الإعدادات
 // ============================================================
-const BASE_DIR   = path.join('assets', 'characters');
-const CARDS_FILE = path.join('lib', 'game', 'cards.ts');
-const TIERS      = ['legendary', 'epic', 'rare', 'common'];
-const EXTS       = ['.png', '.gif', '.mp4'];
+const BASE_DIR    = path.join('assets', 'characters');
+const TIERS       = ['legendary', 'epic', 'rare', 'common'];
+const EXTS        = ['.png', '.gif', '.mp4'];
+
+// كل ملفات الكروت الموجودة في lib/game
+const CARDS_FILES = [
+  path.join('lib', 'game', 'anime-cards-data.ts'),
+  path.join('lib', 'game', 'anime-cards-data-2.ts'),
+  path.join('lib', 'game', 'anime-cards-data-3.ts'),
+  path.join('lib', 'game', 'cards-batch-1-fixed.ts'),
+  path.join('lib', 'game', 'cards-batch-2-fixed.ts'),
+  path.join('lib', 'game', 'cards-batch-3-fixed.ts'),
+  path.join('lib', 'game', 'cards-batch-4-fixed.ts'),
+  path.join('lib', 'game', 'cards-batch-5-fixed.ts'),
+  path.join('lib', 'game', 'cards-batch-6-fixed.ts'),
+  path.join('lib', 'game', 'cards-data-exports.ts'),
+];
 
 // ============================================================
-// قراءة ملف الكروت واستخراج (id, rarity)
+// قراءة جميع ملفات الكروت واستخراج (id, rarity)
 // ============================================================
-function loadCards(filePath) {
-  if (!fs.existsSync(filePath)) {
-    console.error(`❌ ملف الكروت غير موجود: ${filePath}`);
-    console.error('   تأكد أنك تشغّل السكريبت من داخل مجلد card-battle-mobile-main');
-    process.exit(1);
-  }
-
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const pattern = /id\s*:\s*["'](\w+)["'][\s\S]*?rarity\s*:\s*["'](\w+)["']/g;
+function loadAllCards() {
   const cards   = {};
-  let match;
+  const pattern = /id\s*:\s*["'](\w+)["'][\s\S]*?rarity\s*:\s*["'](\w+)["']/g;
 
-  while ((match = pattern.exec(content)) !== null) {
-    cards[match[1]] = match[2].toLowerCase();
+  for (const filePath of CARDS_FILES) {
+    if (!fs.existsSync(filePath)) {
+      console.warn(`⚠️  ملف غير موجود (تجاهل): ${filePath}`);
+      continue;
+    }
+    const content = fs.readFileSync(filePath, 'utf-8');
+    let match;
+    pattern.lastIndex = 0;
+    while ((match = pattern.exec(content)) !== null) {
+      cards[match[1]] = match[2].toLowerCase();
+    }
   }
   return cards;
 }
@@ -52,10 +66,9 @@ function removeFromIndex(indexPath, cardId) {
 
 function addToIndex(indexPath, cardId, filename) {
   if (!fs.existsSync(indexPath)) return;
-  let content    = fs.readFileSync(indexPath, 'utf-8');
-  const newLine  = `    ${cardId}: require('./${filename}'),`;
-  // أضف السطر قبل قوس الإغلاق الأول }
-  content        = content.replace(/(\n};)/, `\n${newLine}\n};`);
+  let content   = fs.readFileSync(indexPath, 'utf-8');
+  const newLine = `    ${cardId}: require('./${filename}'),`;
+  content       = content.replace(/(\n};)/, `\n${newLine}\n};`);
   fs.writeFileSync(indexPath, content, 'utf-8');
 }
 
@@ -63,9 +76,15 @@ function addToIndex(indexPath, cardId, filename) {
 // الدالة الرئيسية
 // ============================================================
 function sync() {
-  const cards = loadCards(CARDS_FILE);
+  const cards = loadAllCards();
   const total = Object.keys(cards).length;
-  console.log(`📋 تم تحميل ${total} كرت من ملف الكروت\n`);
+
+  if (total === 0) {
+    console.error('❌ لم يتم العثور على أي كروت — تأكد أنك داخل مجلد card-battle-mobile-main');
+    process.exit(1);
+  }
+
+  console.log(`📋 تم تحميل ${total} كرت من ملفات الكروت\n`);
 
   let moved  = 0;
   let errors = 0;
@@ -87,7 +106,6 @@ function sync() {
             fs.mkdirSync(correctFolder, { recursive: true });
             fs.renameSync(wrongPath, rightPath);
 
-            // تحديث index.ts في المجلدين
             const wrongIndex = path.join(BASE_DIR, tier, 'index.ts');
             const rightIndex = path.join(BASE_DIR, correctTier, 'index.ts');
             removeFromIndex(wrongIndex, cardId);
