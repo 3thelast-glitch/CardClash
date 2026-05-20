@@ -35,7 +35,6 @@ export const LEGENDARY_IMAGES: Record<string, any> = {
     muzan_kibutsuji: require('./Muzan_Kibutsuji.png'),
     paarthurnax: require('./paarthurnax.png'),
     piccolo: require('./piccolo.png'),
-    sabo: require('./sabo.png'),
     saitama: require('./Saitama.png'),
     sanji: require('./sanji.gif'),
     sasuke_uchiha: require('./sasuke_uchiha.gif'),
