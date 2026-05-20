@@ -26,15 +26,24 @@ export const LEGENDARY_IMAGES: Record<string, any> = {
     kishou_arima: require('./kishou_arima.png'),
     kyojuro_rengoku: require('./Kyojuro_Rengoku.png'),
     lady_maria: require('./Lady_Maria.png'),
+    levi_ackerman: require('./levi_ackerman.png'),
+    lilith: require('./lilith.png'),
     makima: require('./Makima.png'),
+    meruem: require('./meruem.png'),
     muichiro_tokito: require('./Muichiro_Tokito.png'),
     muzan_kibutsuji: require('./Muzan_Kibutsuji.png'),
+    paarthurnax: require('./paarthurnax.png'),
+    piccolo: require('./piccolo.png'),
     reiner_braun: require('./reiner_braun.png'),
     saitama: require('./Saitama.png'),
     satella: require('./Satella.png'),
     son_goku: require('./Son_Goku.png'),
     tengen_uzui: require('./tengen_uzui.png'),
+    the_hunter: require('./the_hunter.png'),
+    trunks: require('./trunks.png'),
     ulquiorra_cifer: require('./Ulquiorra_Cifer.png'),
+    vegeta: require('./vegeta.png'),
+    zeke_yeager: require('./zeke_yeager.png'),
 };
 
 /** فيديوهات الكروت الأسطورية — mp4 */
@@ -47,15 +56,17 @@ export const LEGENDARY_VIDEOS: Record<string, any> = {
     doma: require('./doma.mp4'),
     dracule_mihawk: require('./Dracule_Mihawk.mp4'),
     eren_yeager: require('./eren_yeager.mp4'),
-    gehrman: require('./gehrman.mp4'),
-    guts: require('./Guts.mp4'),
     feanor: require('./Feanor.mp4'),
+    gehrman: require('./gehrman.mp4'),
     gol_d_roger: require('./Gol_D_Roger.mp4'),
+    guts: require('./Guts.mp4'),
     ichigo_kurosaki: require('./ichigo_kurosaki.mp4'),
     itachi_uchiha: require('./itachi_uchiha.mp4'),
     kaido: require('./kaido.mp4'),
     kenpachi_zaraki: require('./Kenpachi_Zaraki.mp4'),
+    kenpachi_zaraki_rage: require('./kenpachi_zaraki_rage.mp4'),
     kokushibo: require('./Kokushibo.mp4'),
+    laurence: require('./laurence.mp4'),
     ludwig: require('./Ludwig.mp4'),
     madara_uchiha: require('./madara_uchiha.mp4'),
     minato_namikaze: require('./minato_namikaze.mp4'),
@@ -67,10 +78,11 @@ export const LEGENDARY_VIDEOS: Record<string, any> = {
     ryomen_sukuna: require('./ryomen_sukuna.mp4'),
     satoru_gojo: require('./satoru_gojo.mp4'),
     sosuke_aizen: require('./sosuke_aizen.mp4'),
-    yuta_okkotsu: require('./yuta_okkotsu.mp4'),
 };
 
 /** ملفات GIF */
 export const LEGENDARY_GIFS: Record<string, any> = {
     isaac_netero: require('./Isaac_Netero.gif'),
+    sanji: require('./sanji.gif'),
+    sasuke_uchiha: require('./sasuke_uchiha.gif'),
 };
