@@ -1,4 +1,5 @@
 export const EPIC_IMAGES: Record<string, any> = {
+    nobara_kugisaki: require('./Nobara_Kugisaki.png'),
     alger_wilson: require('./alger_wilson.png'),
     alice_zuberg: require('./alice_zuberg.png'),
     alphonse_elric: require('./alphonse_elric.png'),
@@ -52,8 +53,8 @@ export const EPIC_IMAGES: Record<string, any> = {
     mitsuri_kanroji: require('./mitsuri_kanroji.png'),
     nanami_kento: require('./nanami_kento.png'),
     neferpitou: require('./neferpitou.png'),
+    neji_hyuga: require('./neji_hyuga.png'),
     nezuko_kamado: require('./nezuko_kamado.png'),
-    nobara_kugisaki: require('./Nobara_Kugisaki.png'),
     nyanta: require('./nyanta.png'),
     olivier_armstrong: require('./olivier_armstrong.png'),
     ornstein: require('./ornstein.png'),
@@ -68,7 +69,7 @@ export const EPIC_IMAGES: Record<string, any> = {
     roswaal: require('./roswaal.png'),
     roy_mustang: require('./roy_mustang.png'),
     rukia_kuchiki: require('./rukia_kuchiki.png'),
-    sakura_haruno: require('./sakura_haruno.png'),
+    sabo: require('./sabo.png'),
     shalltear: require('./shalltear.png'),
     shinobu_kocho: require('./shinobu_kocho.png'),
     shoto_todoroki: require('./shoto_todoroki.png'),
@@ -87,13 +88,19 @@ export const EPIC_IMAGES: Record<string, any> = {
     zenitsu_agatsuma: require('./zenitsu_agatsuma.png'),
     zero: require('./zero.png'),
     zodd: require('./zodd.png'),
-    kakashi_hatake: require('./kakashi_hatake.mp4'),
-    jiraiya: require('./jiraiya.mp4'),
-    endeavor_video: require('./endeavor.mp4'),
-    yuta_okkotsu_video: require('./yuta_okkotsu.mp4'),
 };
 
-/** فيديوهات الكروت الملحمية — mp4 */
+/** فيديوهات الكروت الإبيك — mp4 */
 export const EPIC_VIDEOS: Record<string, any> = {
     donquixote_doflamingo: require('./donquixote_doflamingo.mp4'),
+    endeavor: require('./endeavor.mp4'),
+    jiraiya: require('./jiraiya.mp4'),
+    kakashi_hatake: require('./kakashi_hatake.mp4'),
+    white_snake: require('./white_snake.mp4'),
+    yuta_okkotsu: require('./yuta_okkotsu.mp4'),
+};
+
+/** ملفات GIF */
+export const EPIC_GIFS: Record<string, any> = {
+    might_guy: require('./might_guy.gif'),
 };

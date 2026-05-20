@@ -20,7 +20,6 @@ export const LEGENDARY_IMAGES: Record<string, any> = {
     gwyn: require('./Gwyn.png'),
     hisoka_morow: require('./Hisoka_Morow.png'),
     igneel: require('./Igneel.png'),
-    isaac_netero: require('./Isaac_Netero.gif'),
     kaguya_otsutsuki: require('./kaguya_otsutsuki.png'),
     ken_kaneki: require('./Ken_Kaneki.png'),
     klein_moretti: require('./Klein_Moretti.png'),
@@ -30,9 +29,11 @@ export const LEGENDARY_IMAGES: Record<string, any> = {
     makima: require('./Makima.png'),
     muichiro_tokito: require('./Muichiro_Tokito.png'),
     muzan_kibutsuji: require('./Muzan_Kibutsuji.png'),
+    reiner_braun: require('./reiner_braun.png'),
     saitama: require('./Saitama.png'),
     satella: require('./Satella.png'),
     son_goku: require('./Son_Goku.png'),
+    tengen_uzui: require('./tengen_uzui.png'),
     ulquiorra_cifer: require('./Ulquiorra_Cifer.png'),
 };
 
@@ -56,5 +57,20 @@ export const LEGENDARY_VIDEOS: Record<string, any> = {
     kenpachi_zaraki: require('./Kenpachi_Zaraki.mp4'),
     kokushibo: require('./Kokushibo.mp4'),
     ludwig: require('./Ludwig.mp4'),
+    madara_uchiha: require('./madara_uchiha.mp4'),
+    minato_namikaze: require('./minato_namikaze.mp4'),
+    monkey_d_luffy: require('./monkey_d_luffy.mp4'),
+    naruto_uzumaki: require('./naruto_uzumaki.mp4'),
+    obito_uchiha: require('./obito_uchiha.mp4'),
+    pain_nagato: require('./pain_nagato.mp4'),
     roronoa_zoro: require('./Roronoa_Zoro.mp4'),
+    ryomen_sukuna: require('./ryomen_sukuna.mp4'),
+    satoru_gojo: require('./satoru_gojo.mp4'),
+    sosuke_aizen: require('./sosuke_aizen.mp4'),
+    yuta_okkotsu: require('./yuta_okkotsu.mp4'),
+};
+
+/** ملفات GIF */
+export const LEGENDARY_GIFS: Record<string, any> = {
+    isaac_netero: require('./Isaac_Netero.gif'),
 };
