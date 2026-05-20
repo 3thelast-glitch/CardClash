@@ -34,6 +34,7 @@ export const EPIC_IMAGES: Record<string, any> = {
     inosuke_hashibira: require('./inosuke_hashibira.png'),
     isaac: require('./isaac.png'),
     izuku_midoriya: require('./izuku_midoriya.png'),
+    jinbe: require('./jinbe.png'),
     kamina: require('./kamina.png'),
     katsuki_bakugo: require('./katsuki_bakugo.png'),
     kaworu_nagisa: require('./kaworu_nagisa.png'),
@@ -68,6 +69,7 @@ export const EPIC_IMAGES: Record<string, any> = {
     roswaal: require('./roswaal.png'),
     roy_mustang: require('./roy_mustang.png'),
     rukia_kuchiki: require('./rukia_kuchiki.png'),
+    sabo: require('./sabo.png'),
     sakura_haruno: require('./sakura_haruno.png'),
     shalltear: require('./shalltear.png'),
     shinobu_kocho: require('./shinobu_kocho.png'),
@@ -87,14 +89,10 @@ export const EPIC_IMAGES: Record<string, any> = {
     zenitsu_agatsuma: require('./zenitsu_agatsuma.png'),
     zero: require('./zero.png'),
     zodd: require('./zodd.png'),
-    white_snake: require('./white_snake.mp4'),
-    sabo: require('./sabo.png'),
     kakashi_hatake: require('./kakashi_hatake.mp4'),
     jiraiya: require('./jiraiya.mp4'),
-    might_guy: require('./might_guy.gif'),
-    yuta_okkotsu: require('./yuta_okkotsu.mp4'),
-    tomura_shigaraki: require('./tomura_shigaraki.png'),
-    endeavor: require('./endeavor.mp4'),
+    endeavor_video: require('./endeavor.mp4'),
+    yuta_okkotsu_video: require('./yuta_okkotsu.mp4'),
 };
 
 /** فيديوهات الكروت الملحمية — mp4 */
