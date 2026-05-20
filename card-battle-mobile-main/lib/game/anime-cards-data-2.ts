@@ -17,7 +17,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'swordsman', element: 'lightning',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'lightning',
   },
   {
@@ -50,7 +50,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'fighter', element: 'earth',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'default',
   },
 
@@ -65,7 +65,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'monster', cardClass: 'fighter', element: 'ice',
     tags: ['magic'], emoji: '👹',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'ice',
   },
   {
@@ -128,7 +128,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'swordsman', element: 'wind',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'default',
   },
   {
@@ -139,7 +139,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'swordsman', element: 'wind',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'default',
   },
   {
@@ -150,7 +150,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'swordsman', element: 'wind',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'default',
   },
 
@@ -165,7 +165,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'swordsman', element: 'fire',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'fire',
   },
   {
@@ -176,7 +176,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'fighter', element: 'fire',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'fire',
   },
 
@@ -191,7 +191,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'fighter', element: 'wind',
     tags: ['magic'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'default',
   },
 
@@ -239,7 +239,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'robot', cardClass: 'swordsman', element: 'lightning',
     tags: ['sword', 'shield'], emoji: '🤖',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'lightning',
   },
   {
@@ -250,7 +250,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'robot', cardClass: 'swordsman', element: 'lightning',
     tags: ['sword'], emoji: '🤖',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'lightning',
   },
 
@@ -265,7 +265,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'monster', cardClass: 'swordsman', element: 'fire',
     tags: ['sword'], emoji: '👹',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'fire',
   },
   {
@@ -358,7 +358,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'demon', cardClass: 'swordsman', element: 'fire',
     tags: ['sword'], emoji: '😈',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'fire',
   },
   {
@@ -425,7 +425,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'swordsman', element: 'lightning',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'lightning',
   },
   {
@@ -514,7 +514,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'fighter', element: 'earth',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 4,
     animationPreset: 'default',
   },
 
