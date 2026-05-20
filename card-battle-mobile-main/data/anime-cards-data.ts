@@ -190,7 +190,7 @@ export const animeCards: AnimeCard[] = [
     race: 'أورك',
     style: '👊 مقاتل',
     element: 'water',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 5,
   },
   {
@@ -203,7 +203,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'water',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 5,
   },
   {
@@ -414,7 +414,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'wind',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 5,
   },
   {
@@ -427,7 +427,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'wind',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 5,
   },
   {
@@ -440,7 +440,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'wind',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 5,
   },
   {
@@ -830,7 +830,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '⚔️ سياف',
     element: 'earth',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -948,7 +948,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '⚔️ سياف',
     element: 'fire',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -974,7 +974,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '⚔️ سياف',
     element: 'fire',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -1312,7 +1312,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '⚔️ سياف',
     element: 'fire',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -1468,7 +1468,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '⚔️ سياف',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -1546,7 +1546,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -1585,7 +1585,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -1849,7 +1849,7 @@ export const animeCards: AnimeCard[] = [
     race: 'شيطان',
     style: '⚔️ سياف',
     element: 'fire',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -1979,7 +1979,7 @@ export const animeCards: AnimeCard[] = [
     race: 'ميت حي',
     style: '⚔️ سياف',
     element: 'ice',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -1992,7 +1992,7 @@ export const animeCards: AnimeCard[] = [
     race: 'إلف',
     style: '⚔️ سياف',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2109,7 +2109,7 @@ export const animeCards: AnimeCard[] = [
     race: 'ميت حي',
     style: '👊 مقاتل',
     element: 'ice',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2174,7 +2174,7 @@ export const animeCards: AnimeCard[] = [
     race: 'ميت حي',
     style: '⚔️ سياف',
     element: 'ice',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2187,7 +2187,7 @@ export const animeCards: AnimeCard[] = [
     race: 'ميت حي',
     style: '⚔️ سياف',
     element: 'ice',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2226,7 +2226,7 @@ export const animeCards: AnimeCard[] = [
     race: 'ميت حي',
     style: '👊 مقاتل',
     element: 'ice',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2304,7 +2304,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '⚔️ سياف',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2317,7 +2317,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '⚔️ سياف',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2330,7 +2330,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '⚔️ سياف',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2343,7 +2343,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '⚔️ سياف',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2356,7 +2356,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2395,7 +2395,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2447,7 +2447,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '⚔️ سياف',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2460,7 +2460,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '⚔️ سياف',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2473,7 +2473,7 @@ export const animeCards: AnimeCard[] = [
     race: 'أورك',
     style: '⚔️ سياف',
     element: 'earth',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
@@ -2512,7 +2512,7 @@ export const animeCards: AnimeCard[] = [
     race: 'أورك',
     style: '⚔️ سياف',
     element: 'lightning',
-    rarity: 'Epic',
+    rarity: 'Legendary',
     stars: 4,
   },
   {
