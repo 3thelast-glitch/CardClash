@@ -15,8 +15,4 @@ export const RARE_IMAGES: Record<string, any> = {
     tony_tony_chopper: require('./tony_tony_chopper.png'),
     usopp: require('./usopp.png'),
     yamcha: require('./yamcha.png'),
-    sakura_haruno: require('./sakura_haruno.png'),
-    neji_hyuga: require('./neji_hyuga.png'),
-    rock_lee: require('./rock_lee.png'),
-    neji_hyuga: require('./neji_hyuga.png'),
 };
