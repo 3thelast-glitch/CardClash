@@ -631,7 +631,7 @@ export function RarityCard({
                             <View style={styles.statsRow}>
                                 <StatBadge icon="⚔️" value={card.attack} fs={dim.stat} />
                                 <StatBadge icon="🛡️" value={card.defense} fs={dim.stat} />
-                                <StatBadge icon="❤️" value={card.hp} fs={dim.stat} />
+                                <StatBadge icon="❤️" value={card.hp ?? card.defense} fs={dim.stat} />
                             </View>
                             <Text style={[styles.cardName, { fontSize: dim.name }]} numberOfLines={1}>
                                 {card.nameAr}

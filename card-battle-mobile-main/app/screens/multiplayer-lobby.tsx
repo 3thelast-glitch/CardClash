@@ -218,7 +218,7 @@ const S = StyleSheet.create({
   dividerText: { color: '#475569', fontSize: FONT.sm },
   joinRow: { flexDirection: 'row', gap: SPACE.sm, alignItems: 'center' },
   joinInput: { flex: 1, textAlign: 'center', letterSpacing: 4 },
-  waitingBox: { alignItems: 'center', gap: SPACE.md, backgroundColor: 'rgba(228,165,42,0.06)', borderRadius: RADIUS.xl, borderWidth: 1, borderColor: 'rgba(228,165,42,0.25)', padding: SPACE.xxl, width: '100%', maxWidth: 400 },
+  waitingBox: { alignItems: 'center', gap: SPACE.md, backgroundColor: 'rgba(228,165,42,0.06)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(228,165,42,0.25)', padding: SPACE.xxl, width: '100%', maxWidth: 400 },
   waitingLabel: { color: '#94a3b8', fontSize: FONT.sm },
   roomCode: { fontSize: 40, color: COLOR.gold, letterSpacing: 8, fontVariant: ['tabular-nums'] } as any,
   waitingHint: { color: '#64748b', fontSize: FONT.sm },

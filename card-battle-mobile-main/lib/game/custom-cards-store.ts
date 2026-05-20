@@ -33,7 +33,7 @@ export async function deleteCustomCard(id: string): Promise<void> {
 
 /** توليد كود TypeScript للكارت — للنسخ إلى cards-batch */
 export function generateCardCode(card: Card): string {
-  const tagsStr    = card.tags.map(t => `'${t}'`).join(', ');
+  const tagsStr    = (card.tags || []).map(t => `'${t}'`).join(', ');
   const effectsStr = card.cardEffects?.length
     ? `\n  cardEffects: [${card.cardEffects.map(e => `'${e}'`).join(', ')}],`
     : '';

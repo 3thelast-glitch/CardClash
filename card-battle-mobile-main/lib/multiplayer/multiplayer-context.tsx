@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { MultiplayerWebSocketClient, GameMessage } from './websocket-client';
+import { mpClient, MPMessage } from './websocket-client';
 import { Card } from '../game/types';
 
 // ── URL ───────────────────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ function multiplayerReducer(state: MultiplayerState, action: MultiplayerAction):
 
 interface MultiplayerContextType {
   state: MultiplayerState;
-  wsClient: MultiplayerWebSocketClient | null;
+  wsClient: typeof mpClient | null;
   connect: () => Promise<void>;
   disconnect: () => void;
   createRoom: (playerName: string) => void;
@@ -166,15 +166,15 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
     ...initialState,
     playerId: generatePlayerId(),
   });
-  const wsClientRef = useRef<MultiplayerWebSocketClient | null>(null);
+  const wsClientRef = useRef<typeof mpClient | null>(null);
   const graceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [pendingBattleStart, setPendingBattleStart] = React.useState<any>(null);
 
   const connect = useCallback(async () => {
     if (wsClientRef.current?.isConnected()) return;
-    // ✅ يستخدم SERVER_URL من .env — نفس websocket-client.ts
-    wsClientRef.current = new MultiplayerWebSocketClient(SERVER_URL);
-    wsClientRef.current.onMessage(handleMessageWithBattle);
+    
+    wsClientRef.current = mpClient;
+    wsClientRef.current.onAny(handleMessageWithBattle);
     try {
       await wsClientRef.current.connect();
       dispatch({ type: 'SET_CONNECTED', payload: true });
@@ -190,13 +190,13 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
     dispatch({ type: 'SET_CONNECTED', payload: false });
   }, []);
 
-  const send = useCallback((msg: GameMessage) => {
-    wsClientRef.current?.send(msg);
+  const send = useCallback((msg: MPMessage) => {
+    wsClientRef.current?.send(msg.type, msg.payload);
   }, []);
 
   // ─── Message Handler ───────────────────────────────────────────────────────
 
-  const handleMessage = useCallback((message: GameMessage) => {
+  const handleMessage = useCallback((message: MPMessage) => {
     const { type, payload } = message;
     switch (type) {
       case 'ROOM_CREATED':
@@ -251,7 +251,7 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  const handleMessageWithBattle = useCallback((message: GameMessage) => {
+  const handleMessageWithBattle = useCallback((message: MPMessage) => {
     if (message.type === 'BATTLE_START') { setPendingBattleStart(message.payload); return; }
     handleMessage(message);
   }, [handleMessage]);
@@ -274,7 +274,7 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
   }, [pendingBattleStart]);
 
   useEffect(() => {
-    if (wsClientRef.current) wsClientRef.current.onMessage(handleMessageWithBattle);
+    if (wsClientRef.current) wsClientRef.current.onAny(handleMessageWithBattle);
   }, [handleMessageWithBattle]);
 
   useEffect(() => {

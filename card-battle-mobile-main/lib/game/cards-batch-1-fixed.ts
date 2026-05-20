@@ -6,6 +6,7 @@ import { Card, Element, ElementAdvantage, Effect, ELEMENT_ADVANTAGES, ELEMENT_WE
 export const CARDS_BATCH_1: Card[] = [
   {
     id: 'yosaku',
+    name: 'Yosaku',
     nameAr: 'يوساكو',
     universe: 'One Piece',
     attack: 2, defense: 1,
@@ -16,6 +17,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'johnny',
+    name: 'Johnny',
     nameAr: 'جوني',
     universe: 'One Piece',
     attack: 3, defense: 0,
@@ -26,6 +28,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'nami',
+    name: 'Nami',
     nameAr: 'نامي',
     universe: 'One Piece',
     attack: 3, defense: 2,
@@ -36,6 +39,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'coby',
+    name: 'Coby',
     nameAr: 'كوبي',
     universe: 'One Piece',
     attack: 6, defense: 6,
@@ -46,6 +50,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'usopp',
+    name: 'Usopp',
     nameAr: 'أوسوب',
     universe: 'One Piece',
     attack: 8, defense: 6,
@@ -56,6 +61,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'tony_tony_chopper',
+    name: 'Tony Tony Chopper',
     nameAr: 'توني توني تشوبر',
     universe: 'One Piece',
     attack: 9, defense: 6,
@@ -66,6 +72,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'franky',
+    name: 'Franky',
     nameAr: 'فرانكي',
     universe: 'One Piece',
     attack: 13, defense: 11,
@@ -76,6 +83,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'eustass_kid',
+    name: 'Eustass Kid',
     nameAr: 'يوستاس كيد',
     universe: 'One Piece',
     attack: 13, defense: 11,
@@ -86,6 +94,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'crocodile',
+    name: 'Crocodile',
     nameAr: 'كروكودايل',
     universe: 'One Piece',
     attack: 14, defense: 11,
@@ -96,6 +105,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'donquixote_doflamingo',
+    name: 'Donquixote Doflamingo',
     nameAr: 'دوفلامينغو',
     universe: 'One Piece',
     attack: 13, defense: 14,
@@ -106,6 +116,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'black_maria',
+    name: 'Black Maria',
     nameAr: 'بلاك ماريا',
     universe: 'One Piece',
     attack: 13, defense: 12,
@@ -116,6 +127,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'trafalgar_law',
+    name: 'Trafalgar Law',
     nameAr: 'ترافلغار لاو',
     universe: 'One Piece',
     attack: 14, defense: 15,
@@ -126,6 +138,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'jinbe',
+    name: 'Jinbe',
     nameAr: 'جينبي',
     universe: 'One Piece',
     attack: 16, defense: 16,
@@ -136,6 +149,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'sabo',
+    name: 'Sabo',
     nameAr: 'سابو',
     universe: 'One Piece',
     attack: 16, defense: 16,
@@ -146,6 +160,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'sanji',
+    name: 'Sanji',
     nameAr: 'سانجي',
     universe: 'One Piece',
     attack: 16, defense: 16,
@@ -157,6 +172,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'roronoa_zoro',
+    name: 'Roronoa Zoro',
     nameAr: 'رورونوا زورو',
     universe: 'One Piece',
     attack: 17, defense: 16,
@@ -167,6 +183,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'dracule_mihawk',
+    name: 'Dracule Mihawk',
     nameAr: 'دراكيول ميهوك',
     universe: 'One Piece',
     attack: 17, defense: 16,
@@ -178,6 +195,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'monkey_d_luffy',
+    name: 'Monkey D Luffy',
     nameAr: 'مونكي دي لوفي',
     universe: 'One Piece',
     attack: 18, defense: 16,
@@ -188,6 +206,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'gol_d_roger',
+    name: 'Gol D Roger',
     nameAr: 'غول دي روجر',
     universe: 'One Piece',
     attack: 17, defense: 18,
@@ -198,6 +217,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'kaido',
+    name: 'Kaido',
     nameAr: 'كايدو',
     universe: 'One Piece',
     attack: 19, defense: 16,
@@ -208,6 +228,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'ebisu',
+    name: 'Ebisu',
     nameAr: 'إيبيسو',
     universe: 'Naruto',
     attack: 3, defense: 0,
@@ -218,6 +239,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'konohamaru',
+    name: 'Konohamaru',
     nameAr: 'كونوهامارو',
     universe: 'Naruto',
     attack: 5, defense: 0,
@@ -228,6 +250,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'sakura_haruno',
+    name: 'Sakura Haruno',
     nameAr: 'ساكورا هارونو',
     universe: 'Naruto',
     attack: 12, defense: 11,
@@ -239,6 +262,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'neji_hyuga',
+    name: 'Neji Hyuga',
     nameAr: 'نيجي هيوغا',
     universe: 'Naruto',
     attack: 14, defense: 11,
@@ -249,6 +273,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'rock_lee',
+    name: 'Rock Lee',
     nameAr: 'روك لي',
     universe: 'Naruto',
     attack: 13, defense: 11,
@@ -259,6 +284,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'killer_bee',
+    name: 'Killer Bee',
     nameAr: 'كيلر بي',
     universe: 'Naruto',
     attack: 13, defense: 12,
@@ -269,6 +295,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'gaara',
+    name: 'Gaara',
     nameAr: 'غارا',
     universe: 'Naruto',
     attack: 14, defense: 11,
@@ -279,6 +306,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'tsunade',
+    name: 'Tsunade',
     nameAr: 'تسونادي',
     universe: 'Naruto',
     attack: 13, defense: 13,
@@ -289,6 +317,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'orochimaru',
+    name: 'Orochimaru',
     nameAr: 'أوروتشيمارو',
     universe: 'Naruto',
     attack: 15, defense: 13,
@@ -299,6 +328,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'kakashi_hatake',
+    name: 'Kakashi Hatake',
     nameAr: 'كاكاشي هاتاكي',
     universe: 'Naruto',
     attack: 17, defense: 16,
@@ -309,6 +339,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'jiraiya',
+    name: 'Jiraiya',
     nameAr: 'جيرايا',
     universe: 'Naruto',
     attack: 18, defense: 16,
@@ -319,6 +350,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'might_guy',
+    name: 'Might Guy',
     nameAr: 'مايت غاي',
     universe: 'Naruto',
     attack: 16, defense: 16,
@@ -329,6 +361,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'obito_uchiha',
+    name: 'Obito Uchiha',
     nameAr: 'أوبيتو أوتشيها',
     universe: 'Naruto',
     attack: 16, defense: 16,
@@ -339,6 +372,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'itachi_uchiha',
+    name: 'Itachi Uchiha',
     nameAr: 'إيتاتشي أوتشيها',
     universe: 'Naruto',
     attack: 18, defense: 16,
@@ -349,6 +383,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'pain_nagato',
+    name: 'Pain Nagato',
     nameAr: 'باين (ناغاتو)',
     universe: 'Naruto',
     attack: 16, defense: 17,
@@ -359,6 +394,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'minato_namikaze',
+    name: 'Minato Namikaze',
     nameAr: 'ميناتو ناميكازي',
     universe: 'Naruto',
     attack: 17, defense: 16,
@@ -369,6 +405,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'sasuke_uchiha',
+    name: 'Sasuke Uchiha',
     nameAr: 'ساسكي أوتشيها',
     universe: 'Naruto',
     attack: 18, defense: 16,
@@ -379,6 +416,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'naruto_uzumaki',
+    name: 'Naruto Uzumaki',
     nameAr: 'ناروتو أوزوماكي',
     universe: 'Naruto',
     attack: 19, defense: 16,
@@ -389,6 +427,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'madara_uchiha',
+    name: 'Madara Uchiha',
     nameAr: 'مادارا أوتشيها',
     universe: 'Naruto',
     attack: 17, defense: 17,
@@ -399,6 +438,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'bulma',
+    name: 'Bulma',
     nameAr: 'بولما',
     universe: 'Dragon Ball',
     attack: 1, defense: 0,
@@ -409,6 +449,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'dende',
+    name: 'Dende',
     nameAr: 'ديندي',
     universe: 'Dragon Ball',
     attack: 6, defense: 6,
@@ -419,6 +460,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'piccolo',
+    name: 'Piccolo',
     nameAr: 'بيكولو',
     universe: 'Dragon Ball',
     attack: 18, defense: 16,
@@ -429,6 +471,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'trunks',
+    name: 'Trunks',
     nameAr: 'ترانكس',
     universe: 'Dragon Ball',
     attack: 17, defense: 16,
@@ -439,6 +482,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'cell',
+    name: 'Cell',
     nameAr: 'سيل',
     universe: 'Dragon Ball',
     attack: 17, defense: 16,
@@ -449,6 +493,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'frieza',
+    name: 'Frieza',
     nameAr: 'فريزا',
     universe: 'Dragon Ball',
     attack: 17, defense: 16,
@@ -459,6 +504,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'gohan',
+    name: 'Gohan',
     nameAr: 'غوهان',
     universe: 'Dragon Ball',
     attack: 16, defense: 16,
@@ -469,6 +515,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'vegeta',
+    name: 'Vegeta',
     nameAr: 'فيغيتا',
     universe: 'Dragon Ball',
     attack: 17, defense: 16,
@@ -479,6 +526,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'broly',
+    name: 'Broly',
     nameAr: 'برولي',
     universe: 'Dragon Ball',
     attack: 18, defense: 16,
@@ -489,6 +537,7 @@ export const CARDS_BATCH_1: Card[] = [
   },
   {
     id: 'son_goku',
+    name: 'Son Goku',
     nameAr: 'سون غوكو',
     universe: 'Dragon Ball',
     attack: 18, defense: 17,

@@ -3,7 +3,7 @@
  * يتصل بـ server/multiplayer/websocket-server.ts
  */
 
-import { GameCard } from '@/lib/game/types';
+import { Card } from '@/lib/game/types';
 
 export type MPMessageType =
   | 'ROOM_CREATED' | 'ROOM_JOINED' | 'PLAYER_JOINED'
@@ -12,7 +12,10 @@ export type MPMessageType =
   | 'OPPONENT_CARD_REVEALED'
   | 'OPPONENT_DISCONNECTED' | 'OPPONENT_RECONNECTED' | 'OPPONENT_LEFT_PERMANENTLY'
   | 'RECONNECTED' | 'PLAYER_LEFT'
-  | 'ERROR' | 'PONG';
+  | 'ERROR' | 'PONG'
+  | 'CREATE_ROOM' | 'JOIN_ROOM' | 'SET_CARDS' | 'PLAYER_READY' 
+  | 'REVEAL_CARD' | 'MATCH_SETTINGS' | 'ARRANGEMENT_READY' | 'LEAVE_ROOM'
+  | 'MATCH_SETTINGS_RECEIVED' | 'OPPONENT_ARRANGEMENT_READY';
 
 export interface MPMessage {
   type: MPMessageType;
@@ -77,7 +80,7 @@ class MultiplayerClient {
   }
 
   // ─── Send ────────────────────────────────────────────────────────────────────
-  private send(type: string, payload: any) {
+  send(type: string, payload: any) {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ type, payload }));
     }
@@ -92,7 +95,7 @@ class MultiplayerClient {
     this.send('JOIN_ROOM', { roomId, playerId, playerName });
   }
 
-  setCards(playerId: string, cards: GameCard[], rounds: number) {
+  setCards(playerId: string, cards: Card[], rounds: number) {
     this.send('SET_CARDS', { playerId, cards, rounds });
   }
 
@@ -100,7 +103,7 @@ class MultiplayerClient {
     this.send('PLAYER_READY', { playerId, isReady });
   }
 
-  revealCard(playerId: string, roundIndex: number, card: GameCard) {
+  revealCard(playerId: string, roundIndex: number, card: Card) {
     this.send('REVEAL_CARD', { playerId, roundIndex, card });
   }
 

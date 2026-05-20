@@ -88,6 +88,7 @@ export interface Card {
   originalDefense?: number;
   _rageActive?: boolean;
   gender?: Gender;
+  universe?: string;
 }
 
 export type AbilityType =

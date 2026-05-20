@@ -309,7 +309,7 @@ const DarkSmokeEffect = () => {
         s3.value = withDelay(1400, withRepeat(withTiming(1, { duration: 2400, easing: Easing.out(Easing.ease) }), -1, false));
         return () => { cancelAnimation(s1); cancelAnimation(s2); cancelAnimation(s3); };
     }, []);
-    const mk = (sv: Animated.SharedValue<number>, fx: number, fy: number, tx: number, sc: number) => useAnimatedStyle(() => ({
+    const mk = (sv: any, fx: number, fy: number, tx: number, sc: number) => useAnimatedStyle(() => ({
         opacity: interpolate(sv.value, [0, 0.2, 0.7, 1], [0, 0.55, 0.3, 0]),
         transform: [{ translateX: fx + (tx - fx) * sv.value }, { translateY: fy + (-60 * sv.value) }, { scale: interpolate(sv.value, [0, 1], [sc * 0.6, sc * 1.8]) }],
     }));

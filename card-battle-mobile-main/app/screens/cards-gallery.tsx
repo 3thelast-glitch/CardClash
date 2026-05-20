@@ -148,7 +148,7 @@ function Toast({ message, type }: { message: string; type: 'success' | 'error' }
 const toastSt = StyleSheet.create({
   wrap: { position:'absolute', bottom:30, left:'10%', right:'10%', flexDirection:'row', alignItems:'center', gap:10, paddingHorizontal:18, paddingVertical:12, borderRadius:16, borderWidth:1.5, zIndex:999, shadowColor:'#000', shadowOpacity:0.5, shadowRadius:12, elevation:20 },
   icon: { fontSize:18 },
-  msg:  { fontSize:13, fontWeight:'700', flex:1, textAlign:'right', writingDirection:'rtl' },
+  msg:  { fontSize:13, fontWeight:'700', flex:1, textAlign:'right',  },
 });
 
 // ─── FilterChip ──────────────────────────────────────────────────────
@@ -983,7 +983,7 @@ const delModal = StyleSheet.create({
   iconWrap:   { width:56, height:56, borderRadius:28, backgroundColor:'rgba(248,113,113,0.12)', borderWidth:1, borderColor:'rgba(248,113,113,0.30)', alignItems:'center', justifyContent:'center', marginBottom:14, marginTop:4 },
   title:      { fontSize:18, fontWeight:'800', color:'#f87171', textAlign:'center', marginBottom:6 },
   cardName:   { fontSize:15, fontWeight:'700', color:'#e2e8f0', textAlign:'center', marginBottom:12, paddingHorizontal:12, paddingVertical:6, backgroundColor:'rgba(255,255,255,0.05)', borderRadius:10, borderWidth:1, borderColor:'rgba(255,255,255,0.08)', overflow:'hidden' },
-  message:    { fontSize:13, fontWeight:'600', color:'#94a3b8', textAlign:'center', lineHeight:20, writingDirection:'rtl', marginBottom:6 },
+  message:    { fontSize:13, fontWeight:'600', color:'#94a3b8', textAlign:'center', lineHeight:20,  marginBottom:6 },
   warning:    { fontSize:11, fontWeight:'600', color:'#f87171', textAlign:'center', opacity:0.8, marginBottom:4 },
   divider:    { height:1, backgroundColor:'rgba(255,255,255,0.06)', width:'100%', marginVertical:16 },
   btnRow:     { flexDirection:'row', gap:12, width:'100%' },
@@ -1008,7 +1008,7 @@ const ep = StyleSheet.create({
   label:         { fontSize:11, color:'#999', fontWeight:'700', marginBottom:7, textAlign:'right' },
   hint:          { fontSize:10, color:'#f87171', textAlign:'center', marginTop:3, opacity:0.8 },
   sectionHeader: { fontSize:12, color:'#ccc', fontWeight:'800', textAlign:'center', marginBottom:10, letterSpacing:0.5 },
-  nameArInput:   { backgroundColor:'rgba(255,255,255,0.04)', borderWidth:1, borderRadius:10, paddingHorizontal:12, paddingVertical:8, fontSize:15, fontWeight:'700', textAlign:'right', writingDirection:'rtl', marginBottom:2 },
+  nameArInput:   { backgroundColor:'rgba(255,255,255,0.04)', borderWidth:1, borderRadius:10, paddingHorizontal:12, paddingVertical:8, fontSize:15, fontWeight:'700', textAlign:'right',  marginBottom:2 },
   starRow:       { flexDirection:'row', justifyContent:'center', alignItems:'center', gap:3, marginBottom:2 },
   starBtn:       { padding:3 },
   starIcon:      { fontSize:26 },
@@ -1017,7 +1017,7 @@ const ep = StyleSheet.create({
   clearBtnTxt:   { fontSize:13, color:'#555', fontWeight:'800' },
   switchRow:     { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:2 },
   abilityBox:    { marginTop:6 },
-  abilityInput:  { backgroundColor:'rgba(255,255,255,0.04)', borderWidth:1, borderRadius:10, padding:10, color:'#e2e8f0', fontSize:12, minHeight:58, maxHeight:110, writingDirection:'rtl' },
+  abilityInput:  { backgroundColor:'rgba(255,255,255,0.04)', borderWidth:1, borderRadius:10, padding:10, color:'#e2e8f0', fontSize:12, minHeight:58, maxHeight:110,  },
   steppers:      { flexDirection:'row', justifyContent:'space-around', gap:10 },
   statCol:       { alignItems:'center', gap:4, flex:1 },
   statIcon:      { fontSize:18 },

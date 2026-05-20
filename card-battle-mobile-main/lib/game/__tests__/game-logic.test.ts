@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ALL_CARDS, getRandomCards, calculateBaseDamage, calculateDamage, getElementAdvantage, determineRoundWinner } from '../cards-data';
+import { getRandomCards, calculateBaseDamage, calculateDamage, getElementAdvantage, determineRoundWinner } from '../game-logic';
+import { ALL_CARDS } from '../cards-collection';
 import { Card, ELEMENT_ADVANTAGES, ELEMENT_WEAKNESSES, ELEMENT_MULTIPLIER } from '../types';
 
 const FINAL_IMAGE_PLACEHOLDER = require('../../../assets/images/icon.png');
@@ -10,7 +11,7 @@ describe('Cards Data', () => {
   });
 
   it('each card should have required properties', () => {
-    ALL_CARDS.forEach((card) => {
+    ALL_CARDS.forEach((card: any) => {
       expect(card.id).toBeDefined();
       expect(card.name).toBeDefined();
       expect(card.nameAr).toBeDefined();
@@ -26,7 +27,7 @@ describe('Cards Data', () => {
   });
 
   it('each card should have unique id', () => {
-    const ids = ALL_CARDS.map((card) => card.id);
+    const ids = ALL_CARDS.map((card: any) => card.id);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
   });
@@ -43,8 +44,8 @@ describe('getRandomCards', () => {
 
   it('should return valid cards from the database', () => {
     const cards = getRandomCards(3);
-    cards.forEach((card) => {
-      const found = ALL_CARDS.find((c) => c.id === card.id);
+    cards.forEach((card: any) => {
+      const found = ALL_CARDS.find((c: any) => c.id === card.id);
       expect(found).toBeDefined();
     });
   });
@@ -54,7 +55,7 @@ describe('getRandomCards', () => {
     const results: string[][] = [];
     for (let i = 0; i < 10; i++) {
       const cards = getRandomCards(3);
-      results.push(cards.map((c) => c.id).sort());
+      results.push(cards.map((c: any) => c.id).sort());
     }
     // At least some results should be different
     const uniqueResults = new Set(results.map((r) => r.join(',')));
@@ -72,7 +73,7 @@ describe('calculateBaseDamage', () => {
       hp: 100,
       attack: 30,
       defense: 10,
-      speed: 10,
+      
       race: 'human',
       cardClass: 'warrior',
       element: 'fire',
@@ -88,7 +89,7 @@ describe('calculateBaseDamage', () => {
       hp: 100,
       attack: 20,
       defense: 15,
-      speed: 10,
+      
       race: 'human',
       cardClass: 'knight',
       element: 'earth',
@@ -110,10 +111,10 @@ describe('calculateBaseDamage', () => {
       hp: 100,
       attack: 10,
       defense: 10,
-      speed: 10,
+      
       race: 'human',
       cardClass: 'mage',
-      element: 'ice',
+      element: 'water',
       tags: [],
       emoji: '🔮',
     };
@@ -126,10 +127,10 @@ describe('calculateBaseDamage', () => {
       hp: 100,
       attack: 20,
       defense: 25,
-      speed: 10,
+      
       race: 'undead',
       cardClass: 'knight',
-      element: 'ice',
+      element: 'water',
       tags: [],
       emoji: '💀',
     };
@@ -195,7 +196,7 @@ describe('Element System', () => {
         hp: 100,
         attack: 20,
         defense: 10,
-        speed: 10,
+        
         race: 'human',
         cardClass: 'warrior',
         element: 'fire',
@@ -211,10 +212,10 @@ describe('Element System', () => {
         hp: 100,
         attack: 20,
         defense: 10,
-        speed: 10,
+        
         race: 'undead',
         cardClass: 'knight',
-        element: 'ice',
+        element: 'water',
         tags: [],
         emoji: '❄️',
       };
@@ -237,7 +238,7 @@ describe('Element System', () => {
         hp: 100,
         attack: 20,
         defense: 10,
-        speed: 10,
+        
         race: 'human',
         cardClass: 'warrior',
         element: 'fire',
@@ -253,7 +254,7 @@ describe('Element System', () => {
         hp: 100,
         attack: 20,
         defense: 10,
-        speed: 10,
+        
         race: 'orc',
         cardClass: 'knight',
         element: 'earth',
@@ -279,7 +280,7 @@ describe('Element System', () => {
         hp: 100,
         attack: 20,
         defense: 10,
-        speed: 10,
+        
         race: 'human',
         cardClass: 'warrior',
         element: 'fire',
@@ -295,7 +296,7 @@ describe('Element System', () => {
         hp: 100,
         attack: 20,
         defense: 10,
-        speed: 10,
+        
         race: 'elf',
         cardClass: 'mage',
         element: 'water',
@@ -324,7 +325,7 @@ describe('determineRoundWinner with elements', () => {
       hp: 100,
       attack: 25,
       defense: 15,
-      speed: 10,
+      
       race: 'human',
       cardClass: 'warrior',
       element: 'fire',
@@ -340,10 +341,10 @@ describe('determineRoundWinner with elements', () => {
       hp: 100,
       attack: 25,
       defense: 15,
-      speed: 10,
+      
       race: 'undead',
       cardClass: 'knight',
-      element: 'ice',
+      element: 'water',
       tags: [],
       emoji: '❄️',
     };
@@ -369,7 +370,7 @@ describe('determineRoundWinner with elements', () => {
       hp: 100,
       attack: 25,
       defense: 15,
-      speed: 10,
+      
       race: 'orc',
       cardClass: 'warrior',
       element: 'earth',
@@ -385,7 +386,7 @@ describe('determineRoundWinner with elements', () => {
       hp: 100,
       attack: 25,
       defense: 15,
-      speed: 10,
+      
       race: 'human',
       cardClass: 'warrior',
       element: 'fire',

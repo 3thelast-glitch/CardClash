@@ -80,6 +80,7 @@ const RARITY_THEMES = {
         titleGlowRadius: 10,
         placeholderColors: ['#1a1400', '#2d2400', '#1a1400'] as const,
     },
+  special: { label: 'SPECIAL', color: '#06b6d4', borderColor: '#22d3ee', badgeBg: '#164e63', badgeBorder: '#06b6d4', badgeText: '#67e8f9', shadowColor: '#06b6d4', shadowOpacity: 1, shadowRadius: 20, elevation: 15, hasShine: true, titleGlowRadius: 10, placeholderColors: ['#083344', '#164e63', '#083344'] as const },
 };
 
 export function LuxuryCharacterCard({ card, style }: LuxuryCharacterCardProps) {

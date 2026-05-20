@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getBotCards } from '../bot-ai';
-import { ALL_CARDS } from '../cards-data';
+import { ALL_CARDS } from '../cards-collection';
 
 describe('Bot AI System', () => {
   describe('getBotCards', () => {

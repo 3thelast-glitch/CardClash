@@ -100,10 +100,10 @@ export const ANIME_CARDS_3: Card[] = [
     nameAr: 'روكيا كوتشيكي',
     attack: 14, defense: 14,
     gender: 'female',
-    race: 'human', cardClass: 'swordsman', element: 'ice',
+    race: 'human', cardClass: 'swordsman', element: 'water',
     tags: ['sword', 'shield'], emoji: '⚔️',
     rarity: 'epic', stars: 4,
-    animationPreset: 'ice',
+    animationPreset: 'default',
   },
 
   // ════════════════════════════════════════════════════
@@ -137,10 +137,10 @@ export const ANIME_CARDS_3: Card[] = [
     nameAr: 'أوليفييه أرمسترونغ',
     attack: 16, defense: 15,
     gender: 'female',
-    race: 'human', cardClass: 'swordsman', element: 'ice',
+    race: 'human', cardClass: 'swordsman', element: 'water',
     tags: ['sword', 'shield'], emoji: '⚔️',
     rarity: 'legendary', stars: 5,
-    animationPreset: 'ice',
+    animationPreset: 'default',
   },
   {
     id: 'barry_the_chopper',

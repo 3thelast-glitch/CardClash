@@ -81,6 +81,7 @@ export const RARITY_ORDER: Record<CardRarity, number> = {
     rare: 1,
     epic: 2,
     legendary: 3,
+    special: 4,
 } as const;
 
 // ─── Health Bar Colors ────────────────────────────────────────────────────────
