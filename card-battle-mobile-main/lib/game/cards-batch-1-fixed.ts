@@ -428,16 +428,6 @@ export const CARDS_BATCH_1: Card[] = [
     animationPreset: 'fire',
   },
   {
-    id: 'android_18',
-    nameAr: 'أندرويد 18',
-    universe: 'Dragon Ball',
-    attack: 13, defense: 11,
-    race: 'human', cardClass: 'warrior', element: 'fire',
-    tags: ["sword", "crown"],
-    rarity: 'epic', stars: 4,
-    animationPreset: 'fire',
-  },
-  {
     id: 'trunks',
     nameAr: 'ترانكس',
     universe: 'Dragon Ball',
