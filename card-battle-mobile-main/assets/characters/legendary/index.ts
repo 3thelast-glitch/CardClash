@@ -31,7 +31,6 @@ export const LEGENDARY_IMAGES: Record<string, any> = {
     lilith: require('./lilith.png'),
     makima: require('./Makima.png'),
     meruem: require('./meruem.png'),
-    might_guy: require('./might_guy.gif'),
     muichiro_tokito: require('./Muichiro_Tokito.png'),
     muzan_kibutsuji: require('./Muzan_Kibutsuji.png'),
     paarthurnax: require('./paarthurnax.png'),
