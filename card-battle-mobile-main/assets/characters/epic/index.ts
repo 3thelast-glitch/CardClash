@@ -51,7 +51,6 @@ export const EPIC_IMAGES: Record<string, any> = {
     mitsuri_kanroji: require('./mitsuri_kanroji.png'),
     nanami_kento: require('./nanami_kento.png'),
     neferpitou: require('./neferpitou.png'),
-    neji_hyuga: require('./neji_hyuga.png'),
     nezuko_kamado: require('./nezuko_kamado.png'),
     nobara_kugisaki: require('./Nobara_Kugisaki.png'),
     nyanta: require('./nyanta.png'),
