@@ -88,6 +88,14 @@ export const EPIC_IMAGES: Record<string, any> = {
     zenitsu_agatsuma: require('./zenitsu_agatsuma.png'),
     zero: require('./zero.png'),
     zodd: require('./zodd.png'),
+    white_snake: require('./white_snake.mp4'),
+    sabo: require('./sabo.png'),
+    kakashi_hatake: require('./kakashi_hatake.mp4'),
+    jiraiya: require('./jiraiya.mp4'),
+    might_guy: require('./might_guy.gif'),
+    yuta_okkotsu: require('./yuta_okkotsu.mp4'),
+    tomura_shigaraki: require('./tomura_shigaraki.png'),
+    endeavor: require('./endeavor.mp4'),
 };
 
 /** فيديوهات الكروت الملحمية — mp4 */

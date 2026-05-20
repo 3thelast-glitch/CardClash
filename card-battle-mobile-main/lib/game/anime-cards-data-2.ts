@@ -39,7 +39,7 @@ export const ANIME_CARDS_2: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'swordsman', element: 'wind',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'Epic', stars: 5,
     animationPreset: 'default',
   },
   {

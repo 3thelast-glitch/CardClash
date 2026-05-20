@@ -498,16 +498,6 @@ export const CARDS_BATCH_1: Card[] = [
     animationPreset: 'fire',
   },
   {
-    id: 'beerus',
-    nameAr: 'بيروس',
-    universe: 'Dragon Ball',
-    attack: 18, defense: 18,
-    race: 'orc', cardClass: 'warrior', element: 'fire',
-    tags: ["sword", "crown"],
-    rarity: 'legendary', stars: 5,
-    animationPreset: 'fire',
-  },
-  {
     id: 'son_goku',
     nameAr: 'سون غوكو',
     universe: 'Dragon Ball',

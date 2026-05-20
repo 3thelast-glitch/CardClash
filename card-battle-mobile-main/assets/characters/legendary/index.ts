@@ -48,6 +48,8 @@ export const LEGENDARY_IMAGES: Record<string, any> = {
     ulquiorra_cifer: require('./Ulquiorra_Cifer.png'),
     vegeta: require('./vegeta.png'),
     zeke_yeager: require('./zeke_yeager.png'),
+    reiner_braun: require('./reiner_braun.png'),
+    tengen_uzui: require('./tengen_uzui.png'),
 };
 
 /** فيديوهات الكروت الأسطورية — mp4 */
