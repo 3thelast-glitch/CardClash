@@ -18,4 +18,5 @@ export const RARE_IMAGES: Record<string, any> = {
     sakura_haruno: require('./sakura_haruno.png'),
     neji_hyuga: require('./neji_hyuga.png'),
     rock_lee: require('./rock_lee.png'),
+    neji_hyuga: require('./neji_hyuga.png'),
 };
