@@ -85,6 +85,7 @@ export const EPIC_IMAGES: Record<string, any> = {
     zenitsu_agatsuma: require('./zenitsu_agatsuma.png'),
     zero: require('./zero.png'),
     zodd: require('./zodd.png'),
+    neji_hyuga: require('./neji_hyuga.png'),
 };
 
 /** فيديوهات الكروت الإبيك — mp4 */

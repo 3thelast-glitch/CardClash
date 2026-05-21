@@ -18,4 +18,5 @@ export const RARE_IMAGES: Record<string, any> = {
     tony_tony_chopper: require('./tony_tony_chopper.png'),
     usopp: require('./usopp.png'),
     yamcha: require('./yamcha.png'),
+    floki: require('./floki.png'),
 };
