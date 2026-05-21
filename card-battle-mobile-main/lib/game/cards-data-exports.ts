@@ -14,9 +14,6 @@ import { CARDS_BATCH_3 } from './cards-batch-3-fixed';
 import { CARDS_BATCH_4 } from './cards-batch-4-fixed';
 import { CARDS_BATCH_5 } from './cards-batch-5-fixed';
 import { CARDS_BATCH_6 } from './cards-batch-6-fixed';
-import { ANIME_CARDS } from './anime-cards-data';
-import { ANIME_CARDS_2 } from './anime-cards-data-2';
-import { ANIME_CARDS_3 } from './anime-cards-data-3';
 import {
   Card,
   Element,
@@ -35,9 +32,6 @@ export const ALL_CARDS: Card[] = [
   ...CARDS_BATCH_4,
   ...CARDS_BATCH_5,
   ...CARDS_BATCH_6,
-  ...ANIME_CARDS,
-  ...ANIME_CARDS_2,
-  ...ANIME_CARDS_3,
 ];
 
 // ─── getElementAdvantage ─────────────────────────────────────────────────────
