@@ -78,6 +78,7 @@ export const LEGENDARY_VIDEOS: Record<string, any> = {
     ryomen_sukuna: require('./ryomen_sukuna.mp4'),
     satoru_gojo: require('./satoru_gojo.mp4'),
     sosuke_aizen: require('./sosuke_aizen.mp4'),
+    white_snake: require('./white_snake.mp4'),
 };
 
 /** ملفات GIF */
