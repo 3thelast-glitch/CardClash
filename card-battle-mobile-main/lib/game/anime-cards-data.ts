@@ -127,7 +127,7 @@ export const ANIME_CARDS: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'swordsman', element: 'earth',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'epic', stars: 4,
+    rarity: 'legendary', stars: 4,
     animationPreset: 'default',
   },
   {
@@ -1039,7 +1039,7 @@ export const ANIME_CARDS: Card[] = [
     gender: 'male',
     race: 'human', cardClass: 'fighter', element: 'fire',
     tags: ['sword', 'shield'], emoji: '⚔️',
-    rarity: 'legendary', stars: 5,
+    rarity: 'epic', stars: 5,
     animationPreset: 'fire',
   },
 
