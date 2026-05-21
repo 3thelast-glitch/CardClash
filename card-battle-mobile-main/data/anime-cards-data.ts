@@ -3,24 +3,24 @@
 // 192 cards | Updated: 2026-05-15
 // ============================================================
 
-export type Rarity   = 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Special';
-export type Gender   = 'male' | 'female' | 'unknown';
-export type Element  = 'water' | 'fire' | 'wind' | 'earth' | 'ice' | 'lightning';
+export type Rarity = 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Special';
+export type Gender = 'male' | 'female' | 'unknown';
+export type Element = 'water' | 'fire' | 'wind' | 'earth' | 'ice' | 'lightning';
 
 export interface AnimeCard {
-  id:              string;
-  nameAr:          string;
-  universe:        string;
-  gender:          Gender;
-  attack:          number;
-  defense:         number;
-  race:            string;
-  style:           string;
-  element:         Element;
-  rarity:          Rarity;
-  stars:           number;
+  id: string;
+  nameAr: string;
+  universe: string;
+  gender: Gender;
+  attack: number;
+  defense: number;
+  race: string;
+  style: string;
+  element: Element;
+  rarity: Rarity;
+  stars: number;
   specialAbility?: string;
-  rageMode?:       string;
+  rageMode?: string;
 }
 
 export const animeCards: AnimeCard[] = [
@@ -112,7 +112,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'water',
-    rarity: 'Epic',
+    rarity: 'rare',
     stars: 4,
   },
   {
@@ -336,7 +336,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'wind',
-    rarity: 'Rare',
+    rarity: 'epic',
     stars: 4,
   },
   {
@@ -609,7 +609,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'fire',
-    rarity: 'Epic',
+    rarity: 'rare',
     stars: 4,
   },
   {

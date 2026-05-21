@@ -78,7 +78,7 @@ export const CARDS_BATCH_1: Card[] = [
     attack: 13, defense: 11,
     race: 'human', cardClass: 'warrior', element: 'water',
     tags: ["sword", "crown"],
-    rarity: 'epic', stars: 4,
+    rarity: 'rare', stars: 4,
     animationPreset: 'default',
   },
   {
@@ -268,7 +268,7 @@ export const CARDS_BATCH_1: Card[] = [
     attack: 14, defense: 11,
     race: 'human', cardClass: 'warrior', element: 'wind',
     tags: ["sword", "crown"],
-    rarity: 'rare', stars: 3,
+    rarity: 'epic', stars: 3,
     animationPreset: 'default',
   },
   {
@@ -279,7 +279,7 @@ export const CARDS_BATCH_1: Card[] = [
     attack: 13, defense: 11,
     race: 'human', cardClass: 'warrior', element: 'wind',
     tags: ["sword", "crown"],
-    rarity: 'rare', stars: 3,
+    rarity: 'epic', stars: 3,
     animationPreset: 'default',
   },
   {
