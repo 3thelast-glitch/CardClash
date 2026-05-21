@@ -3,7 +3,7 @@ import type { Card, CardRarity } from '@/lib/game/types';
 import { COMMON_IMAGES, COMMON_VIDEOS } from '@/assets/characters/common';
 import { RARE_IMAGES } from '@/assets/characters/rare';
 import { EPIC_IMAGES, EPIC_VIDEOS, EPIC_GIFS } from '@/assets/characters/epic';
-import { LEGENDARY_IMAGES, LEGENDARY_VIDEOS } from '@/assets/characters/legendary';
+import { LEGENDARY_IMAGES, LEGENDARY_VIDEOS, LEGENDARY_GIFS } from '@/assets/characters/legendary';
 import { SPECIAL_IMAGES, SPECIAL_VIDEOS } from '@/assets/characters/special';
 import { RAGE_IMAGES, RAGE_VIDEOS } from '@/assets/characters/rage';
 
@@ -27,6 +27,7 @@ const VIDEO_MAPS: Record<string, Record<string, any>> = {
 // ─── خرائط GIF لكل ندرة ──────────────────────────────────────────────────────
 const GIF_MAPS: Record<string, Record<string, any>> = {
     epic: EPIC_GIFS,
+    legendary: LEGENDARY_GIFS,
 };
 
 /**
@@ -70,11 +71,8 @@ export function getCardImage(
     if ((card as any).customImage) return { uri: (card as any).customImage };
     if (card.finalImage) return card.finalImage;
 
-    // ─── تحديد الندرة تلقائياً من الأصول إذا لم تكن محددة ───────────────────
-    const rarity: CardRarity = resolveRarityFromAssets(card.id);
-    if (!card.rarity || card.rarity !== rarity) {
-        (card as any).rarity = rarity;
-    }
+    // ─── تحديد الندرة من الأصول فقط إذا لم تكن محددة مسبقاً ────────────────
+    const rarity: CardRarity = card.rarity ?? resolveRarityFromAssets(card.id);
 
     // ─── فيديو محلي ──────────────────────────────────────────────────────────
     const localVideo = VIDEO_MAPS[rarity]?.[card.id];
