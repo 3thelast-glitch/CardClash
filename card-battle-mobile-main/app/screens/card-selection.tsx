@@ -38,25 +38,35 @@ function sampleCardsByRarity(cards: Card[], count: number, weights: RarityWeight
   if (cards.length === 0) return [];
   count = Math.min(count, cards.length);
   const total = Object.values(weights).reduce((a, b) => a + b, 0);
-  const safeWeights = total > 0 ? weights : { common: 55, rare: 25, epic: 15, legendary: 5 };
+  const safeWeights = total > 0 ? weights : { common: 52, rare: 25, epic: 14, legendary: 7, special: 2 };
+
+  // ✅ fix: أضفنا special للـ buckets و usedIndices و rarityOrder
   const buckets: Record<RarityKey, Card[]> = {
     common:    cards.filter(c => (c.rarity ?? 'common') === 'common'),
     rare:      cards.filter(c => c.rarity === 'rare'),
     epic:      cards.filter(c => c.rarity === 'epic'),
     legendary: cards.filter(c => c.rarity === 'legendary'),
+    special:   cards.filter(c => c.rarity === 'special'),
   };
   (Object.keys(buckets) as RarityKey[]).forEach(k => { buckets[k] = [...buckets[k]].sort(() => Math.random() - 0.5); });
-  const usedIndices: Record<RarityKey, number> = { common: 0, rare: 0, epic: 0, legendary: 0 };
+
+  const usedIndices: Record<RarityKey, number> = { common: 0, rare: 0, epic: 0, legendary: 0, special: 0 };
   const result: Card[] = [];
-  const rarityOrder: RarityKey[] = ['common', 'rare', 'epic', 'legendary'];
+
+  // special أول في الترتيب حتى يُعطى أولوية عند الـ roll
+  const rarityOrder: RarityKey[] = ['special', 'legendary', 'epic', 'rare', 'common'];
+
   for (let i = 0; i < count; i++) {
     const roll = Math.random() * (total > 0 ? total : 100);
     let cumulative = 0;
     let chosen: RarityKey = 'common';
-    for (const key of rarityOrder) {
-      cumulative += safeWeights[key];
+
+    // نحسب cumulative بنفس ترتيب الـ keys في safeWeights
+    for (const key of (['common', 'rare', 'epic', 'legendary', 'special'] as RarityKey[])) {
+      cumulative += safeWeights[key] ?? 0;
       if (roll < cumulative) { chosen = key; break; }
     }
+
     let picked: Card | undefined;
     for (const key of [chosen, ...rarityOrder.filter(k => k !== chosen)]) {
       if (usedIndices[key] < buckets[key].length) { picked = buckets[key][usedIndices[key]++]; break; }
