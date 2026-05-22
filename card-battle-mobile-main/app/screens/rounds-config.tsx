@@ -40,7 +40,9 @@ const RARITY_CONFIG: { key: RarityKey; labelAr: string; color: string; emoji: st
   { key: 'special',   labelAr: 'خاص',    color: '#ff4da6', emoji: '💎' },
 ];
 
-const DEFAULT_WEIGHTS: RarityWeights = { common: 50, rare: 25, epic: 14, legendary: 9, special: 2 };
+// نسب ظهور محدَّثة: مجموعها = 100%
+// عادي 45 | نادر 28 | ملحمي 17 | أسطوري 8 | خاص 2
+const DEFAULT_WEIGHTS: RarityWeights = { common: 45, rare: 28, epic: 17, legendary: 8, special: 2 };
 
 // ── Rarity Slider ─────────────────────────────────────────────────────────────
 function RaritySliderRow({ cfg, value, onChange }: { cfg: typeof RARITY_CONFIG[0]; value: number; onChange: (v: number) => void }) {
@@ -122,37 +124,26 @@ export default function RoundsConfigScreen() {
 
   const [rounds, setRounds] = React.useState(5);
   const [withAbility, setWithAbility] = React.useState(false);
-  const [settingsSent, setSettingsSent] = React.useState(false); // صاحب الجلسة أرسل وينتظر
+  const [settingsSent, setSettingsSent] = React.useState(false);
 
-  // ── الضيف: لما يستقبل الإعدادات → طبّقها وانتقل ──────────────────────────
   useEffect(() => {
     if (!isMultiplayer || isHost || !pendingMatchSettings) return;
-    // طبّق الإعدادات على game context
     setTotalRounds(pendingMatchSettings.rounds);
     setAbilitiesEnabled(pendingMatchSettings.withAbilities);
     setRarityWeights(pendingMatchSettings.rarityWeights as RarityWeights);
-    // انتقل للصفحة التالية تلقائياً
     router.push('/screens/leaderboard' as any);
   }, [pendingMatchSettings, isMultiplayer, isHost]);
 
   const handleContinue = () => {
     setTotalRounds(rounds);
     setAbilitiesEnabled(withAbility);
-
     if (isMultiplayer && isHost && mp?.sendMatchSettings) {
-      // أرسل الإعدادات للضيف عبر WebSocket
-      mp.sendMatchSettings({
-        rounds,
-        withAbilities: withAbility,
-        rarityWeights,
-      });
+      mp.sendMatchSettings({ rounds, withAbilities: withAbility, rarityWeights });
       setSettingsSent(true);
     }
-    // سواء multiplayer أو فردي → انتقل
     router.push('/screens/leaderboard' as any);
   };
 
-  // ── واجهة الضيف: انتظار ──────────────────────────────────────────────────
   if (isMultiplayer && !isHost) {
     return (
       <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
@@ -170,7 +161,6 @@ export default function RoundsConfigScreen() {
     );
   }
 
-  // ── لوحة الجولات ─────────────────────────────────────────────────────────
   const roundsPanel = (
     <View style={styles.panel}>
       <View style={styles.panelHeader}>
@@ -192,7 +182,6 @@ export default function RoundsConfigScreen() {
     </View>
   );
 
-  // ── لوحة القدرات ─────────────────────────────────────────────────────────
   const abilitiesPanel = (
     <View style={styles.panel}>
       <Text style={styles.panelTitle}>⚡ القدرات الخاصة</Text>
@@ -210,7 +199,6 @@ export default function RoundsConfigScreen() {
     </View>
   );
 
-  // ── زر التالي ────────────────────────────────────────────────────────────
   const ctaBtn = (
     <TouchableOpacity style={styles.continueBtn} onPress={handleContinue} activeOpacity={0.85}>
       <Text style={styles.continueBtnText}>
@@ -293,7 +281,6 @@ const styles = StyleSheet.create({
   toggleBtnTextInactive: { color: '#f87171' },
   continueBtn: { backgroundColor: COLOR.gold, paddingVertical: SPACE.lg, borderRadius: RADIUS.pill, alignItems: 'center', ...SHADOW.gold },
   continueBtnText: { fontSize: FONT.xl, color: '#1A0D1A' },
-  // waiting screen
   waitingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: SPACE.lg, padding: SPACE.xl },
   waitingTitle: { fontSize: FONT.xl, color: COLOR.gold, fontWeight: '800', textAlign: 'center' },
   waitingDesc: { fontSize: FONT.base, color: COLOR.textMuted, textAlign: 'center' },

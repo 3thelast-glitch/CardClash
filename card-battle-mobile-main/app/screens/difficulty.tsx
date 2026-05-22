@@ -1,5 +1,5 @@
 /**
- * DifficultyScreen — Redesigned: Professional, responsive, clean.
+ * DifficultyScreen — 4 levels only.
  */
 import React, { useState } from 'react';
 import { View, TouchableOpacity, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
@@ -10,7 +10,7 @@ import { LuxuryBackground } from '@/components/game/luxury-background';
 import { useGame } from '@/lib/game/game-context';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
 
-export type DifficultyLevel = 1 | 2 | 3 | 4 | 5;
+export type DifficultyLevel = 1 | 2 | 3 | 4;
 
 const LEVELS: {
   level: DifficultyLevel;
@@ -19,12 +19,11 @@ const LEVELS: {
   desc: string;
   color: string;
 }[] = [
-    { level: 1, label: 'سهل', emoji: '🌱', desc: 'للمبتدئين', color: '#4ade80' },
-    { level: 2, label: 'متوسط', emoji: '⚡', desc: 'تحدٍّ معقول', color: '#60a5fa' },
-    { level: 3, label: 'صعب', emoji: '🔥', desc: 'يتطلب استراتيجية', color: '#fb923c' },
-    { level: 4, label: 'خيالي', emoji: '💎', desc: 'للمحترفين فقط', color: '#c084fc' },
-    { level: 5, label: 'أسطوري', emoji: '👑', desc: 'أعلى مستوى ممكن', color: COLOR.gold },
-  ];
+  { level: 1, label: 'سهل',    emoji: '🌱', desc: 'للمبتدئين',           color: '#4ade80' },
+  { level: 2, label: 'متوسط',  emoji: '⚡', desc: 'تحدٍّ معقول',         color: '#60a5fa' },
+  { level: 3, label: 'صعب',    emoji: '🔥', desc: 'يتطلب استراتيجية',    color: '#fb923c' },
+  { level: 4, label: 'أسطوري', emoji: '👑', desc: 'أعلى مستوى ممكن',     color: COLOR.gold },
+];
 
 export default function DifficultyScreen() {
   const router = useRouter();
@@ -54,16 +53,15 @@ export default function DifficultyScreen() {
             onPress={() => setSelected(lvl.level)}
             activeOpacity={0.75}
           >
-            {/* Active indicator */}
             {active && <View style={[styles.activeBar, { backgroundColor: lvl.color }]} />}
 
             <Text style={styles.levelEmoji}>{lvl.emoji}</Text>
             <Text style={[styles.levelLabel, active && { color: lvl.color }]}>{lvl.label}</Text>
             <Text style={styles.levelDesc}>{lvl.desc}</Text>
 
-            {/* Stars */}
+            {/* Stars — max 4 */}
             <View style={styles.starsRow}>
-              {[1, 2, 3, 4, 5].map((i) => (
+              {[1, 2, 3, 4].map((i) => (
                 <Text key={i} style={{ fontSize: 12, color: i <= lvl.level ? lvl.color : 'rgba(255,255,255,0.12)' }}>
                   ★
                 </Text>
@@ -93,10 +91,8 @@ export default function DifficultyScreen() {
             <Text style={styles.subtitle}>كلما زاد المستوى كلما صعبت المواجهة</Text>
           </View>
 
-          {/* Levels */}
           {levelsContent}
 
-          {/* Selected hint */}
           {selected && (
             <View style={styles.selectedHint}>
               <Text style={styles.selectedHintText}>
@@ -106,7 +102,6 @@ export default function DifficultyScreen() {
             </View>
           )}
 
-          {/* CTA */}
           <TouchableOpacity
             style={[styles.continueBtn, !selected && styles.continueBtnDisabled]}
             onPress={handleContinue}
@@ -130,7 +125,6 @@ const styles = StyleSheet.create({
     paddingBottom: SPACE.xxl + SPACE.xl,
     gap: SPACE.lg,
   },
-
   backBtn: {
     alignSelf: 'flex-start',
     paddingVertical: SPACE.sm,
@@ -141,20 +135,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(228,165,42,0.3)',
   },
   backBtnText: { color: COLOR.gold, fontSize: FONT.md },
-
   header: { alignItems: 'center', gap: SPACE.xs },
   title: { fontSize: FONT.hero, color: COLOR.gold, letterSpacing: 1, textAlign: 'center' },
   subtitle: { color: COLOR.textMuted, fontSize: FONT.sm, textAlign: 'center' },
-
-  // Levels grid — portrait: 1 column, landscape: 5 in a row
-  levelsGrid: {
-    gap: SPACE.md,
-  },
-  levelsGridLandscape: {
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
-  },
-
+  levelsGrid: { gap: SPACE.md },
+  levelsGridLandscape: { flexDirection: 'row', flexWrap: 'nowrap' },
   levelCard: {
     flex: 1,
     ...GLASS_PANEL,
@@ -172,7 +157,6 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.xl,
     minWidth: 0,
   },
-
   activeBar: {
     position: 'absolute',
     left: 0, top: 0, bottom: 0,
@@ -180,12 +164,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: RADIUS.md,
     borderBottomLeftRadius: RADIUS.md,
   },
-
   levelEmoji: { fontSize: 28, marginRight: SPACE.md },
   levelLabel: { fontSize: FONT.lg, color: COLOR.textPrimary, flex: 1 },
   levelDesc: { fontSize: FONT.xs, color: COLOR.textMuted, flex: 1 },
   starsRow: { flexDirection: 'row', gap: 2 },
-
   selectedHint: {
     alignItems: 'center',
     paddingVertical: SPACE.sm,
@@ -195,7 +177,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(228,165,42,0.25)',
   },
   selectedHintText: { color: COLOR.gold, fontSize: FONT.md },
-
   continueBtn: {
     backgroundColor: COLOR.gold,
     paddingVertical: SPACE.lg,
@@ -203,12 +184,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...SHADOW.gold,
   },
-  continueBtnDisabled: {
-    backgroundColor: 'rgba(228,165,42,0.2)',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
+  continueBtnDisabled: { backgroundColor: 'rgba(228,165,42,0.2)', shadowOpacity: 0, elevation: 0 },
   continueBtnText: { fontSize: FONT.xl, color: '#1A0D1A' },
   continueBtnTextDisabled: { color: 'rgba(255,255,255,0.25)' },
-
 });
