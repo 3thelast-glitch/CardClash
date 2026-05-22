@@ -40,7 +40,6 @@ function sampleCardsByRarity(cards: Card[], count: number, weights: RarityWeight
   const total = Object.values(weights).reduce((a, b) => a + b, 0);
   const safeWeights = total > 0 ? weights : { common: 52, rare: 25, epic: 14, legendary: 7, special: 2 };
 
-  // ✅ fix: أضفنا special للـ buckets و usedIndices و rarityOrder
   const buckets: Record<RarityKey, Card[]> = {
     common:    cards.filter(c => (c.rarity ?? 'common') === 'common'),
     rare:      cards.filter(c => c.rarity === 'rare'),
@@ -52,27 +51,32 @@ function sampleCardsByRarity(cards: Card[], count: number, weights: RarityWeight
 
   const usedIndices: Record<RarityKey, number> = { common: 0, rare: 0, epic: 0, legendary: 0, special: 0 };
   const result: Card[] = [];
-
-  // special أول في الترتيب حتى يُعطى أولوية عند الـ roll
   const rarityOrder: RarityKey[] = ['special', 'legendary', 'epic', 'rare', 'common'];
 
   for (let i = 0; i < count; i++) {
     const roll = Math.random() * (total > 0 ? total : 100);
     let cumulative = 0;
     let chosen: RarityKey = 'common';
-
-    // نحسب cumulative بنفس ترتيب الـ keys في safeWeights
     for (const key of (['common', 'rare', 'epic', 'legendary', 'special'] as RarityKey[])) {
       cumulative += safeWeights[key] ?? 0;
       if (roll < cumulative) { chosen = key; break; }
     }
-
     let picked: Card | undefined;
     for (const key of [chosen, ...rarityOrder.filter(k => k !== chosen)]) {
       if (usedIndices[key] < buckets[key].length) { picked = buckets[key][usedIndices[key]++]; break; }
     }
     if (picked) result.push(picked);
   }
+  return result;
+}
+
+// ✅ Turin يجب أن يكون دائماً أول القائمة
+function enforceTurinFirst(cards: Card[]): Card[] {
+  const turinIdx = cards.findIndex(c => c.name === 'Turin');
+  if (turinIdx <= 0) return cards; // ليس موجود أو موجود مسبقاً
+  const result = [...cards];
+  const [turin] = result.splice(turinIdx, 1);
+  result.unshift(turin);
   return result;
 }
 
@@ -122,12 +126,10 @@ export default function CardSelectionScreen() {
   const { cardW: gridCardW, cardH: gridCardH } = useCardSize('selection');
   const { cardW: modalCardW, cardH: modalCardH } = useCardSize('modal');
 
-  // Multiplayer
   const mp = useSafeMultiplayer();
   const isMultiplayer = !!mp?.state?.roomId;
   const opponentArrangementReady = mp?.state?.opponentArrangementReady ?? false;
 
-  // ── توليد الكروت ──────────────────────────────────────────────────────
   useEffect(() => {
     getDisabledAbilityIds().then(disabledIds => {
       const disabledTypes = idsToAbilityTypes(disabledIds);
@@ -140,7 +142,6 @@ export default function CardSelectionScreen() {
     });
   }, [totalRounds, allCards, rarityWeights]);
 
-  // ── Multiplayer: لما يصدر BATTLE_START من السيرفر — انتقل للمعركة ──
   useEffect(() => {
     if (!isMultiplayer) return;
     if (mp?.state?.status === 'playing') {
@@ -164,17 +165,19 @@ export default function CardSelectionScreen() {
     const allAssigned = cardRounds.every(cr => cr.round !== null);
     if (!allAssigned) return;
 
-    const sorted = [...cardRounds]
+    // رتّب حسب اختيار اللاعب
+    const sortedByRound = [...cardRounds]
       .sort((a, b) => (a.round || 0) - (b.round || 0))
       .map(cr => cr.card);
 
+    // ✅ إجبار Turin على أول القائمة بغض النظر عن اختيار اللاعب
+    const sorted = enforceTurinFirst(sortedByRound);
+
     if (isMultiplayer && mp?.sendArrangementReady) {
-      // ── Multiplayer: أرسل كروتك وانتظر الخصم ──
       setPlayerDeck(sorted);
       mp.sendArrangementReady(sorted);
       setWaitingForOpponent(true);
     } else {
-      // ── فردي: ابدأ مباشرةً ──
       setPlayerDeck(sorted);
       startBattle(sorted, assignedAbilities);
       router.push('/screens/battle' as any);
@@ -194,7 +197,6 @@ export default function CardSelectionScreen() {
 
   if (!isLandscape) return <RotateHintScreen />;
 
-  // ── نص زر ابدأ ──────────────────────────────────────────────────────────
   const startBtnLabel = () => {
     if (!allAssigned) return `${cardRounds.filter(c => c.round).length} / ${totalRounds} مُعيّنة`;
     if (!isMultiplayer) return 'ابدأ المعركة ⚔️';
@@ -202,7 +204,6 @@ export default function CardSelectionScreen() {
     return '✅ جاهز — اضغط للبدء';
   };
 
-  // ── FlatList: شبكة الكروت ────────────────────────────────────────────────────
   const renderCardItem = ({ item, index }: { item: CardRound; index: number }) => (
     <TouchableOpacity
       style={[styles.cardCell, { width: (width - padding * 2 - SPACE.md * (numColumns - 1)) / numColumns }]}
@@ -234,7 +235,6 @@ export default function CardSelectionScreen() {
       <View style={styles.bgWrapper}><LuxuryBackground /></View>
 
       <View style={styles.container}>
-        {/* TopBar */}
         <View style={styles.topBar}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.push('/screens/leaderboard' as any)} activeOpacity={0.7}>
             <Text style={styles.backBtnText}>← رجوع</Text>
@@ -244,7 +244,6 @@ export default function CardSelectionScreen() {
             <Text style={styles.subtitle}>{cardRounds.filter(c => c.round).length} / {totalRounds} مُعيّنة</Text>
           </View>
           <View style={styles.rightActionGroup}>
-            {/* مؤشر Multiplayer */}
             {isMultiplayer && (
               <View style={[styles.mpBadge, opponentArrangementReady && styles.mpBadgeReady]}>
                 {opponentArrangementReady
@@ -280,9 +279,7 @@ export default function CardSelectionScreen() {
           showsVerticalScrollIndicator={false}
         />
 
-        {/* BottomBar */}
         <View style={styles.bottomBar}>
-          {/* مؤشر انتظار Multiplayer */}
           {isMultiplayer && waitingForOpponent && !opponentArrangementReady && (
             <View style={styles.waitingBanner}>
               <ActivityIndicator size="small" color="#d4af37" />
@@ -374,18 +371,15 @@ const styles = StyleSheet.create({
   title: { color: '#d4af37', fontSize: 18, fontWeight: '800' },
   subtitle: { color: '#94a3b8', fontSize: 11, marginTop: 2 },
   rightActionGroup: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-  // ─ Multiplayer badge
   mpBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: SPACE.sm, paddingVertical: SPACE.xs, backgroundColor: 'rgba(148,163,184,0.1)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(148,163,184,0.25)' },
   mpBadgeReady: { backgroundColor: 'rgba(74,222,128,0.1)', borderColor: 'rgba(74,222,128,0.4)' },
   mpBadgeText: { color: '#94a3b8', fontSize: 11, fontWeight: '700' },
-  // ─ abilities
   abilitiesBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, backgroundColor: 'rgba(168,85,247,0.15)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(168,85,247,0.4)' },
   abilitiesBtnText: { color: '#c084fc', fontSize: 13, fontWeight: '700' },
   abilitiesBadge: { backgroundColor: '#7c3aed', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
   abilitiesBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   shuffleBtn: { width: 36, height: 36, borderRadius: RADIUS.md, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   shuffleBtnText: { fontSize: 18 },
-  // ─ grid
   grid: { flex: 1 },
   gridContent: { paddingVertical: SPACE.md },
   columnWrapper: { gap: SPACE.md, marginBottom: SPACE.md },
@@ -396,11 +390,9 @@ const styles = StyleSheet.create({
   roundBadgeText: { color: '#1a1a1a', fontSize: 11, fontWeight: '800' },
   unassignedOverlay: { position: 'absolute', bottom: 48, left: 0, right: 0, alignItems: 'center' },
   unassignedText: { color: '#fff', fontSize: 12, fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
-  // ─ bottom
   bottomBar: { padding: SPACE.md, backgroundColor: 'rgba(5,5,10,0.9)', borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.2)', alignItems: 'center', gap: SPACE.sm },
   waitingBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   waitingBannerText: { color: '#d4af37', fontSize: 12, fontWeight: '700' },
-  // ─ focus modal
   focusModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
   focusModalContentRow: { flexDirection: 'row', alignItems: 'center', gap: 24, backgroundColor: 'rgba(10,10,20,0.97)', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
   focusModalLeftCol: { gap: 10 },
@@ -412,7 +404,6 @@ const styles = StyleSheet.create({
   focusRoundText: { color: '#e2e8f0', fontSize: 14, fontWeight: '700' },
   focusRoundTextUsed: { color: '#f87171' },
   focusModalRightCol: { alignItems: 'center' },
-  // ─ abilities modal
   abilitiesModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
   abilitiesModalContent: { width: '90%', maxWidth: 700, backgroundColor: 'rgba(10,15,30,0.97)', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: 'rgba(51,65,85,0.8)' },
   abilitiesModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
