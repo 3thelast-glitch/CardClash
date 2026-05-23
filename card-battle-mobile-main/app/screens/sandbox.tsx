@@ -1,8 +1,17 @@
 /**
- * SandboxScreen — نفس تصميم battle.tsx 100%
- * الفرق الوحيد: اللاعب يختار الكرت والقدرة يدويًا بدل التسلسل
+ * SandboxScreen — أداة اختبار حرة
+ *
+ * مطابق بصرياً لـ battle.tsx 100% (HUD + Arena + styles)
+ * الفرق: جولة واحدة أو متعددة يختارها المستخدم
+ *
+ * ميزات:
+ *  - SessionConfigBar: اختيار عدد الجولات (1–10)
+ *  - اللاعب يختار كرته وقدرته يدوياً + البوت أيضاً
+ *  - SessionResultCard بعد انتهاء كل الجولات
+ *  - HistoryModal يعرض كل جولة بكرتيها ونتيجتها
+ *  - إعادة الجولة / جولة جديدة / إعادة الجلسة
  */
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View, TouchableOpacity, StyleSheet,
   Modal, ScrollView, FlatList, TextInput,
@@ -15,7 +24,7 @@ import Animated, {
   withTiming, withDelay, withSpring, withSequence,
 } from 'react-native-reanimated';
 import { StatusBar } from 'expo-status-bar';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { AbilityCard } from '@/components/game/ability-card';
@@ -28,10 +37,9 @@ import {
 import { getCardImage } from '@/lib/game/get-card-image';
 import { getAbilityNameAr, getAbilityDescription } from '@/lib/game/ability-names';
 
-// ─── الكروت المتاحة من قاعدة البيانات ─────────────────────────────────────
+// ─── الكروت والقدرات ────────────────────────────────────────────────────────
 const CARDS = ALL_CARDS;
 
-// ─── كل القدرات ───────────────────────────────────────────────────────────
 const ALL_ABILITIES: AbilityType[] = [
   'LogicalEncounter','Recall','Protection','Arise','Reinforcement','Wipe','Purge',
   'HalvePoints','Seal','DoubleOrNothing','StarSuperiority','Reduction','Sacrifice',
@@ -55,13 +63,22 @@ const EMPTY: Card = {
 // ─── Round progress bar (نسخة من battle.tsx) ──────────────────────────────
 function RoundBar({ current, total }: { current: number; total: number }) {
   const filled = useSharedValue(0);
-  useEffect(() => { filled.value = withTiming((current / total) * 100, { duration: 400 }); }, [current]);
+  useEffect(() => {
+    filled.value = withTiming((current / total) * 100, { duration: 400 });
+  }, [current]);
   const barStyle = useAnimatedStyle(() => ({ width: `${filled.value}%` as any }));
   return (
     <View style={rb.track}>
       <Animated.View style={[rb.fill, barStyle]} />
       {Array.from({ length: total }).map((_, i) => (
-        <View key={i} style={[rb.tick, { left: `${((i + 1) / total) * 100}%` as any }, i < current && rb.tickDone]} />
+        <View
+          key={i}
+          style={[
+            rb.tick,
+            { left: `${((i + 1) / total) * 100}%` as any },
+            i < current && rb.tickDone,
+          ]}
+        />
       ))}
     </View>
   );
@@ -76,7 +93,9 @@ const rb = StyleSheet.create({
 // ─── Score bar (نسخة من battle.tsx) ───────────────────────────────────────
 function ScoreBar({ score, maxScore, color, reverse = false }: { score: number; maxScore: number; color: string; reverse?: boolean }) {
   const filled = useSharedValue(0);
-  useEffect(() => { filled.value = withSpring(maxScore > 0 ? (score / maxScore) * 100 : 0, { damping: 14 }); }, [score]);
+  useEffect(() => {
+    filled.value = withSpring(maxScore > 0 ? (score / maxScore) * 100 : 0, { damping: 14 });
+  }, [score]);
   const barStyle = useAnimatedStyle(() => ({ width: `${filled.value}%` as any }));
   return (
     <View style={[sb.track, reverse && { flexDirection: 'row-reverse' }]}>
@@ -148,7 +167,7 @@ function CardPickerModal({ visible, onClose, onSelect }: {
   );
 }
 
-// ─── AbilitiesModal (مطابق لـ battle.tsx) ─────────────────────────────────
+// ─── AbilitiesModal ───────────────────────────────────────────────────────
 function AbilitiesModal({ visible, current, onClose, onSelect }: {
   visible: boolean;
   current: AbilityType | undefined;
@@ -174,13 +193,8 @@ function AbilitiesModal({ visible, current, onClose, onSelect }: {
             >
               <AbilityCard
                 ability={{
-                  id: -1,
-                  nameEn: 'None',
-                  nameAr: '❌ بدون قدرة',
-                  description: 'لا تستخدم أي قدرة',
-                  icon: null,
-                  rarity: 'Common',
-                  isActive: true,
+                  id: -1, nameEn: 'None', nameAr: '❌ بدون قدرة',
+                  description: 'لا تستخدم أي قدرة', icon: null, rarity: 'Common', isActive: true,
                 }}
                 showActionButtons={false}
               />
@@ -194,13 +208,10 @@ function AbilitiesModal({ visible, current, onClose, onSelect }: {
               >
                 <AbilityCard
                   ability={{
-                    id: i,
-                    nameEn: ab,
+                    id: i, nameEn: ab,
                     nameAr: getAbilityNameAr(ab).split('(')[0].trim(),
                     description: getAbilityDescription(ab),
-                    icon: null,
-                    rarity: 'Rare',
-                    isActive: true,
+                    icon: null, rarity: 'Rare', isActive: true,
                   }}
                   showActionButtons={false}
                 />
@@ -213,31 +224,56 @@ function AbilitiesModal({ visible, current, onClose, onSelect }: {
   );
 }
 
-// ─── SandboxScreen ─────────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────
+type SandboxPhase = 'idle' | 'combat' | 'result' | 'sessionOver';
+
+interface RoundRecord {
+  round: number;
+  playerCard: Card;
+  botCard: Card;
+  winner: string;
+  playerDmg: number;
+  botDmg: number;
+  log: string[];
+}
+
+// ────────────────────────── MAIN SCREEN ──────────────────────────
 export default function SandboxScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  // كروت
+  // ── الكروت والقدرات ──
   const [playerCard, setPlayerCard] = useState<Card>(EMPTY);
-  const [botCard,    setBotCard]    = useState<Card>(EMPTY);
-  // قدرات
+  const [botCard, setBotCard] = useState<Card>(EMPTY);
   const [playerAbility, setPlayerAbility] = useState<AbilityType | undefined>(undefined);
-  const [botAbility,    setBotAbility]    = useState<AbilityType | undefined>(undefined);
-  // modals
-  const [pickingPlayer,  setPickingPlayer]  = useState(false);
-  const [pickingBot,     setPickingBot]     = useState(false);
-  const [abPlayer,       setAbPlayer]       = useState(false);
-  const [abBot,          setAbBot]          = useState(false);
-  // نتيجة
-  const [result, setResult] = useState<null | { winner: string; playerDmg: number; botDmg: number; log: string[] }>(null);
-  const [phase,  setPhase]  = useState<'idle' | 'combat' | 'result'>('idle');
+  const [botAbility, setBotAbility] = useState<AbilityType | undefined>(undefined);
 
-  // Animations — نفس battle.tsx
+  // ── إعداد الجلسة ──
+  const [totalRounds, setTotalRounds] = useState(1);
+  const [sessionStarted, setSessionStarted] = useState(false);
+
+  // ── تقدم الجلسة ──
+  const [currentRound, setCurrentRound] = useState(0);
+  const [playerScore, setPlayerScore] = useState(0);
+  const [botScore, setBotScore] = useState(0);
+  const [roundHistory, setRoundHistory] = useState<RoundRecord[]>([]);
+
+  // ── مرحلة الجولة ──
+  const [phase, setPhase] = useState<SandboxPhase>('idle');
+  const [lastResult, setLastResult] = useState<{ winner: string; playerDmg: number; botDmg: number; log: string[] } | null>(null);
+
+  // ── modals ──
+  const [pickingPlayer, setPickingPlayer] = useState(false);
+  const [pickingBot, setPickingBot] = useState(false);
+  const [abPlayer, setAbPlayer] = useState(false);
+  const [abBot, setAbBot] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // ── animations (نفس battle.tsx) ──
   const playerAnim = useSharedValue(0);
-  const botAnim    = useSharedValue(0);
-  const vsOpacity  = useSharedValue(0);
-  const flashAnim  = useSharedValue(0);
+  const botAnim = useSharedValue(0);
+  const vsOpacity = useSharedValue(0);
+  const flashAnim = useSharedValue(0);
 
   const playerAnimStyle = useAnimatedStyle(() => ({
     opacity: playerAnim.value,
@@ -248,13 +284,14 @@ export default function SandboxScreen() {
     transform: [{ translateX: (1 - botAnim.value) * 40 }],
   }));
   const vsAnimStyle = useAnimatedStyle(() => ({ opacity: vsOpacity.value }));
-  const flashStyle  = useAnimatedStyle(() => ({ opacity: flashAnim.value }));
+  const flashStyle = useAnimatedStyle(() => ({ opacity: flashAnim.value }));
 
+  // ── Helper: تشغيل الأنيميشن ──
   const triggerEntrance = useCallback(() => {
     playerAnim.value = 0; botAnim.value = 0; vsOpacity.value = 0;
-    playerAnim.value = withDelay(80,  withTiming(1, { duration: 280 }));
-    botAnim.value    = withDelay(240, withTiming(1, { duration: 280 }));
-    vsOpacity.value  = withDelay(440, withTiming(1, { duration: 200 }));
+    playerAnim.value = withDelay(80, withTiming(1, { duration: 280 }));
+    botAnim.value = withDelay(240, withTiming(1, { duration: 280 }));
+    vsOpacity.value = withDelay(440, withTiming(1, { duration: 200 }));
   }, []);
 
   // عند تغيير الكرت شغّل الأنيميشن
@@ -262,11 +299,34 @@ export default function SandboxScreen() {
     if (playerCard.id || botCard.id) triggerEntrance();
   }, [playerCard.id, botCard.id]);
 
-  const canSim = playerCard.id !== '' && botCard.id !== '';
+  // ── Helper: تصفير الكروت والقدرات ──
+  const resetCardChoices = useCallback(() => {
+    setPlayerCard(EMPTY);
+    setBotCard(EMPTY);
+    setPlayerAbility(undefined);
+    setBotAbility(undefined);
+    triggerEntrance();
+  }, [triggerEntrance]);
 
+  // ── Logic: بدء الجلسة ──
+  const startSession = useCallback(() => {
+    setSessionStarted(true);
+    setCurrentRound(0);
+    setPlayerScore(0);
+    setBotScore(0);
+    setRoundHistory([]);
+    setPhase('idle');
+    setLastResult(null);
+    resetCardChoices();
+  }, [resetCardChoices]);
+
+  // ── Logic: تشغيل المحاكاة ──
   const runSim = useCallback(() => {
-    if (!canSim) return;
-    flashAnim.value = withSequence(withTiming(0.35, { duration: 60 }), withTiming(0, { duration: 300 }));
+    if (!playerCard.id || !botCard.id) return;
+    flashAnim.value = withSequence(
+      withTiming(0.35, { duration: 60 }),
+      withTiming(0, { duration: 300 }),
+    );
     setPhase('combat');
     setTimeout(() => {
       const res = determineRoundWinner(playerCard, botCard, [], []);
@@ -281,136 +341,291 @@ export default function SandboxScreen() {
       log.push(`🤖 ضرر البوت:  ${res.botBaseDamage} → صافي: ${res.botDamage}`);
 
       if (playerAbility) log.push(`⚡ قدرة اللاعب: ${getAbilityNameAr(playerAbility).split('(')[0].trim()}`);
-      if (botAbility)    log.push(`⚡ قدرة البوت:  ${getAbilityNameAr(botAbility).split('(')[0].trim()}`);
+      if (botAbility) log.push(`⚡ قدرة البوت:  ${getAbilityNameAr(botAbility).split('(')[0].trim()}`);
 
-      setResult({
+      const resultData = {
         winner: res.winner,
         playerDmg: res.playerDamage,
         botDmg: res.botDamage,
         log,
-      });
+      };
+
+      setLastResult(resultData);
+
+      if (res.winner === 'player') setPlayerScore(prev => prev + 1);
+      else if (res.winner === 'bot') setBotScore(prev => prev + 1);
+
+      setRoundHistory(prev => [...prev, {
+        round: currentRound + 1,
+        playerCard,
+        botCard,
+        ...resultData,
+      }]);
+
       setPhase('result');
     }, 700);
-  }, [canSim, playerCard, botCard, playerAbility, botAbility]);
+  }, [playerCard, botCard, playerAbility, botAbility, currentRound]);
 
-  const resetSim = () => { setResult(null); setPhase('idle'); triggerEntrance(); };
+  // ── Logic: جولة جديدة ──
+  const nextRound = useCallback(() => {
+    const nextIdx = currentRound + 1;
+    if (nextIdx >= totalRounds) {
+      setPhase('sessionOver');
+    } else {
+      setCurrentRound(nextIdx);
+      setPhase('idle');
+      setLastResult(null);
+      resetCardChoices();
+    }
+  }, [currentRound, totalRounds, resetCardChoices]);
 
-  // ─── HUD colors ──────────────────────────────────────────────────────────
-  const playerScore = result ? (result.winner === 'player' ? 1 : 0) : 0;
-  const botScore    = result ? (result.winner === 'bot'    ? 1 : 0) : 0;
-  const playerHp = 5 - botScore;
-  const botHp    = 5 - playerScore;
-  const TOTAL = 5;
+  // ── Logic: إعادة الجولة (نفس الكروت) ──
+  const repeatRound = useCallback(() => {
+    setPhase('idle');
+    setLastResult(null);
+    // نعيد المحاكاة بعد إطار واحد حتى تتحدث الحالة
+    setTimeout(() => {
+      if (playerCard.id && botCard.id) {
+        flashAnim.value = withSequence(
+          withTiming(0.35, { duration: 60 }),
+          withTiming(0, { duration: 300 }),
+        );
+        setPhase('combat');
+        setTimeout(() => {
+          const res = determineRoundWinner(playerCard, botCard, [], []);
+          const log: string[] = [];
 
-  // ─── نتيجة المعركة ────────────────────────────────────────────────────────
-  const resultColor  = result?.winner === 'player' ? '#4ade80' : result?.winner === 'bot' ? '#f87171' : '#fbbf24';
-  const resultLabel  = result?.winner === 'player' ? '🏆 فاز اللاعب' : result?.winner === 'bot' ? '🤖 فاز البوت' : '🤝 تعادل';
+          if (res.playerElementAdvantage !== 'neutral')
+            log.push(`${ELEMENT_EMOJI[playerCard.element]} تفوق عنصري للاعب: ${res.playerElementAdvantage === 'strong' ? 'قوي ⬆️' : 'ضعيف ⬇️'}`);
+          if (res.botElementAdvantage !== 'neutral')
+            log.push(`${ELEMENT_EMOJI[botCard.element]} تفوق عنصري للبوت: ${res.botElementAdvantage === 'strong' ? 'قوي ⬆️' : 'ضعيف ⬇️'}`);
+
+          log.push(`⚔️ ضرر اللاعب: ${res.playerBaseDamage} → صافي: ${res.playerDamage}`);
+          log.push(`🤖 ضرر البوت:  ${res.botBaseDamage} → صافي: ${res.botDamage}`);
+
+          if (playerAbility) log.push(`⚡ قدرة اللاعب: ${getAbilityNameAr(playerAbility).split('(')[0].trim()}`);
+          if (botAbility) log.push(`⚡ قدرة البوت:  ${getAbilityNameAr(botAbility).split('(')[0].trim()}`);
+
+          const resultData = { winner: res.winner, playerDmg: res.playerDamage, botDmg: res.botDamage, log };
+          setLastResult(resultData);
+
+          if (res.winner === 'player') setPlayerScore(prev => prev + 1);
+          else if (res.winner === 'bot') setBotScore(prev => prev + 1);
+
+          setRoundHistory(prev => [...prev, {
+            round: currentRound + 1,
+            playerCard,
+            botCard,
+            ...resultData,
+          }]);
+
+          setPhase('result');
+        }, 700);
+      }
+    }, 50);
+  }, [playerCard, botCard, playerAbility, botAbility, currentRound]);
+
+  // ── Logic: إعادة الجلسة ──
+  const resetSession = useCallback(() => {
+    setSessionStarted(false);
+    setCurrentRound(0);
+    setPlayerScore(0);
+    setBotScore(0);
+    setRoundHistory([]);
+    setPhase('idle');
+    setLastResult(null);
+    resetCardChoices();
+  }, [resetCardChoices]);
+
+  // ── Derived ──
+  const canSim = playerCard.id !== '' && botCard.id !== '' && sessionStarted;
+  const maxScore = totalRounds;
 
   const playerAbilityName = playerAbility ? getAbilityNameAr(playerAbility).split('(')[0].trim() : null;
-  const botAbilityName    = botAbility    ? getAbilityNameAr(botAbility).split('(')[0].trim()    : null;
+  const botAbilityName = botAbility ? getAbilityNameAr(botAbility).split('(')[0].trim() : null;
+
+  // ── Session result ──
+  const sessionWinner = playerScore > botScore ? 'player' : botScore > playerScore ? 'bot' : 'draw';
+  const sessionResultColor = sessionWinner === 'player' ? '#4ade80' : sessionWinner === 'bot' ? '#f87171' : '#fbbf24';
+  const sessionResultEmoji = sessionWinner === 'player' ? '🏆' : sessionWinner === 'bot' ? '💀' : '🤝';
+  const sessionResultText = sessionWinner === 'player' ? 'فوز!' : sessionWinner === 'bot' ? 'خسارة' : 'تعادل';
+
+  // ── Round result colors ──
+  const roundResultColor = lastResult?.winner === 'player' ? '#4ade80' : lastResult?.winner === 'bot' ? '#f87171' : '#fbbf24';
+  const roundResultLabel = lastResult?.winner === 'player' ? '🏆 فاز اللاعب' : lastResult?.winner === 'bot' ? '🤖 فاز البوت' : '🤝 تعادل';
 
   return (
     <View style={S.root}>
-      <StatusBar style="light" />
-
-      {/* خلفية */}
-      <View style={S.bgWrap}>
-        <LuxuryBackground />
-      </View>
-
-      {/* Flash overlay */}
+      <StatusBar hidden />
+      <View style={S.bgWrap}><LuxuryBackground /></View>
       <Animated.View style={[S.flashOverlay, flashStyle]} pointerEvents="none" />
 
-      <View style={[S.screen, { paddingTop: insets.top, paddingBottom: insets.bottom + 8 }]}>
+      <SafeAreaView style={S.normalRoot}>
+        <View style={[S.screen, { paddingLeft: Math.max(insets.left, 8), paddingRight: Math.max(insets.right, 8) }]}>
 
-        {/* ══ TOP HUD (مطابق battle.tsx) ══════════════════════════════════ */}
-        <View style={S.topHud}>
-          {/* اللاعب */}
-          <View style={S.hudSide}>
-            <View style={[S.avatar, { borderColor: '#4ade80' }]}>
-              <Text style={{ fontSize: 18 }}>👤</Text>
-            </View>
-            <View style={S.hudInfo}>
-              <Text style={[S.hudName, { color: COLOR.textMuted }]}>لاعب</Text>
-              <ScoreBar score={playerHp} maxScore={TOTAL} color="#4ade80" />
-            </View>
-            <Text style={[S.hudScore, { color: '#4ade80' }]}>{playerHp}</Text>
-          </View>
-
-          {/* المركز */}
-          <View style={S.hudCenter}>
-            <Text style={S.hudRound}>جولة 1 / {TOTAL}</Text>
-            <RoundBar current={result ? 1 : 0} total={TOTAL} />
-            <TouchableOpacity style={S.historyBtn}>
-              <Text style={S.historyBtnText}>سجل</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* البوت */}
-          <View style={[S.hudSide, S.hudSideRight]}>
-            <Text style={[S.hudScore, { color: '#f87171' }]}>{botHp}</Text>
-            <View style={S.hudInfo}>
-              <Text style={[S.hudName, { color: COLOR.textMuted, textAlign: 'right' }]}>بوت</Text>
-              <ScoreBar score={botHp} maxScore={TOTAL} color="#f87171" reverse />
-            </View>
-            <View style={[S.avatar, { borderColor: '#f87171' }]}>
-              <Text style={{ fontSize: 18 }}>🤖</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* ══ ARENA ════════════════════════════════════════════════════════ */}
-        <View style={S.arena}>
-
-          {/* كرت اللاعب */}
-          <View style={S.playerPanel}>
-            <Text style={S.panelLabel}>لاعب</Text>
-            <TouchableOpacity onPress={() => setPickingPlayer(true)} activeOpacity={0.9}>
-              <Animated.View style={playerAnimStyle}>
-                <LuxuryCharacterCardAnimated
-                  card={playerCard.id ? playerCard : { ...EMPTY, nameAr: 'اختر كرت', name: 'Pick Card' }}
-                  style={S.cardSize}
-                />
-              </Animated.View>
-            </TouchableOpacity>
-            {playerCard.id
-              ? <Text style={[S.specialAbility, { color: RARITY_COLORS[playerCard.rarity ?? 'common'] }]}>
-                  {playerCard.nameAr || playerCard.name}
-                </Text>
-              : <Text style={S.pickHint}>اضغط لاختيار الكرت</Text>
-            }
-          </View>
-
-          {/* العمود الأوسط */}
-          <View style={S.centerCol}>
-            <Animated.View style={[S.vsBadge, vsAnimStyle]}>
-              <Text style={S.vsIcon}>⚔️</Text>
-              <Text style={S.vsText}>VS</Text>
-            </Animated.View>
-
-            {/* نتيجة الجولة */}
-            {result && (
-              <View style={[S.resultBadge, { borderColor: resultColor + '88', backgroundColor: resultColor + '18' }]}>
-                <Text style={[S.resultBadgeText, { color: resultColor }]}>{resultLabel}</Text>
+          {/* ══ TOP HUD ══ */}
+          <View style={S.topHud}>
+            {/* LEFT: اللاعب */}
+            <View style={S.hudSide}>
+              <View style={[S.avatar, { borderColor: '#4ade80' }]}><Text style={{ fontSize: 18 }}>👤</Text></View>
+              <View style={S.hudInfo}>
+                <Text style={[S.hudName, { color: '#4ade80' }]}>لاعب</Text>
+                <ScoreBar score={playerScore} maxScore={maxScore} color="#4ade80" />
               </View>
-            )}
+              <Text style={[S.hudScore, { color: '#4ade80' }]}>{playerScore}</Text>
+            </View>
+            {/* CENTER */}
+            <View style={S.hudCenter}>
+              <Text style={S.hudRound}>جولة {currentRound + 1} / {totalRounds}</Text>
+              <RoundBar current={currentRound} total={totalRounds} />
+              <TouchableOpacity style={S.historyBtn} onPress={() => setIsHistoryOpen(true)} activeOpacity={0.75}>
+                <Text style={S.historyBtnText}>سجل ↗️</Text>
+              </TouchableOpacity>
+            </View>
+            {/* RIGHT: البوت */}
+            <View style={[S.hudSide, S.hudSideRight]}>
+              <Text style={[S.hudScore, { color: '#f87171' }]}>{botScore}</Text>
+              <View style={S.hudInfo}>
+                <Text style={[S.hudName, { color: '#f87171', textAlign: 'right' }]}>بوت</Text>
+                <ScoreBar score={botScore} maxScore={maxScore} color="#f87171" reverse />
+              </View>
+              <View style={[S.avatar, { borderColor: '#f87171' }]}><Text style={{ fontSize: 18 }}>🤖</Text></View>
+            </View>
+          </View>
 
-            {/* ─── CTA Buttons (مطابق battle.tsx) ─── */}
-            <View style={S.ctaStack}>
-              {phase !== 'result' ? (
-                <>
-                  {/* هجوم */}
+          {/* ══ SESSION CONFIG BAR (يختفي بعد بدء الجلسة) ══ */}
+          {!sessionStarted ? (
+            <View style={S.configBar}>
+              <Text style={{ color: COLOR.textMuted, fontSize: FONT.xs }}>عدد الجولات:</Text>
+              <TouchableOpacity
+                style={S.configCounterBtn}
+                onPress={() => setTotalRounds(prev => Math.max(1, prev - 1))}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: COLOR.gold, fontSize: FONT.base, lineHeight: 20 }}>−</Text>
+              </TouchableOpacity>
+              <Text style={S.configCount}>{totalRounds}</Text>
+              <TouchableOpacity
+                style={S.configCounterBtn}
+                onPress={() => setTotalRounds(prev => Math.min(10, prev + 1))}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: COLOR.gold, fontSize: FONT.base, lineHeight: 20 }}>+</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[S.ctaBtn, S.ctaBtnAttack, { height: 34, paddingHorizontal: SPACE.md, width: 'auto' }]}
+                onPress={startSession}
+                activeOpacity={0.85}
+              >
+                <Text style={S.ctaBtnIcon}>▶️</Text>
+                <Text style={[S.ctaBtnText, { color: '#4ade80' }]}>ابدأ الجلسة</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={S.effectsBar}>
+              <View style={S.effectsBarSide}>
+                <Text style={S.effectsBarLabel}>الجلسة نشطة</Text>
+              </View>
+              <View style={S.effectsBarDivider} />
+              <View style={[S.effectsBarSide, { alignItems: 'flex-end' }]}>
+                <Text style={[S.effectsBarLabel, { textAlign: 'right' }]}>
+                  {currentRound + 1} / {totalRounds} جولات
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* ══ ARENA ══ */}
+          <View style={S.arena}>
+
+            {/* PLAYER PANEL */}
+            <View style={S.playerPanel}>
+              <Text style={S.panelLabel}>لاعب</Text>
+              <TouchableOpacity onPress={() => setPickingPlayer(true)} activeOpacity={0.9}>
+                <Animated.View style={playerAnimStyle}>
+                  <LuxuryCharacterCardAnimated
+                    card={playerCard.id ? playerCard : { ...EMPTY, nameAr: 'اختر كرت', name: 'Pick Card' }}
+                    style={{ width: 150, height: 210 }}
+                  />
+                </Animated.View>
+              </TouchableOpacity>
+              {playerCard.id
+                ? <Text style={[S.specialAbility, { color: RARITY_COLORS[playerCard.rarity ?? 'common'] }]}>
+                    {playerCard.nameAr || playerCard.name}
+                  </Text>
+                : <Text style={S.pickHint}>اضغط لاختيار الكرت</Text>
+              }
+            </View>
+
+            {/* CENTER COLUMN */}
+            <View style={S.centerCol}>
+              {/* VS Badge */}
+              <Animated.View style={[S.vsBadge, vsAnimStyle]}>
+                <Text style={S.vsIcon}>⚔️</Text>
+                <Text style={S.vsText}>VS</Text>
+              </Animated.View>
+
+              {/* نتيجة الجولة الأخيرة */}
+              {lastResult && phase !== 'sessionOver' && (
+                <View style={[S.resultBadge, {
+                  borderColor: roundResultColor + '88',
+                  backgroundColor: roundResultColor + '18',
+                }]}>
+                  <Text style={[S.resultBadgeText, { color: roundResultColor }]}>{roundResultLabel}</Text>
+                </View>
+              )}
+
+              {/* SessionResultCard — يظهر عند انتهاء كل الجولات */}
+              {phase === 'sessionOver' && (
+                <View style={[S.sessionResultCard, {
+                  borderColor: sessionResultColor + '88',
+                }]}>
+                  <Text style={S.sessionResultEmoji}>{sessionResultEmoji}</Text>
+                  <Text style={[S.sessionResultText, { color: sessionResultColor }]}>{sessionResultText}</Text>
+                  <Text style={S.sessionResultSub}>اللاعب {playerScore} — البوت {botScore}</Text>
+                  <TouchableOpacity
+                    style={[S.sessionSmallBtn, { borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.12)' }]}
+                    onPress={resetSession}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ fontSize: 12 }}>🔄</Text>
+                    <Text style={[S.ctaBtnText, { fontSize: FONT.xs }]}>إعادة الجلسة</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[S.sessionSmallBtn, { borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.12)' }]}
+                    onPress={() => { resetSession(); }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ fontSize: 12 }}>⚙️</Text>
+                    <Text style={[S.ctaBtnText, { fontSize: FONT.xs }]}>تغيير الجولات</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* CTA Stack */}
+              <View style={S.ctaStack}>
+                {/* هجوم */}
+                {phase === 'idle' && (
                   <TouchableOpacity
                     style={[S.ctaBtn, canSim ? S.ctaBtnAttack : S.ctaBtnDisabled]}
                     onPress={runSim}
-                    disabled={!canSim || phase === 'combat'}
+                    disabled={!canSim}
                     activeOpacity={0.85}
                   >
                     <Text style={S.ctaBtnIcon}>⚔️</Text>
                     <Text style={[S.ctaBtnText, canSim && { color: '#4ade80' }]}>هجوم!</Text>
                   </TouchableOpacity>
+                )}
 
-                  {/* قدرات اللاعب */}
+                {/* معركة */}
+                {phase === 'combat' && (
+                  <View style={[S.ctaBtn, S.ctaBtnDisabled]}>
+                    <Text style={S.ctaBtnText}>⚔️ معركة...</Text>
+                  </View>
+                )}
+
+                {/* قدرات اللاعب */}
+                {phase === 'idle' && (
                   <TouchableOpacity
                     style={[S.ctaBtn, S.ctaBtnAbilities]}
                     onPress={() => setAbPlayer(true)}
@@ -418,93 +633,97 @@ export default function SandboxScreen() {
                   >
                     <Text style={S.ctaBtnIcon}>⚡</Text>
                     <Text style={[S.ctaBtnText, { color: '#a855f7' }]}>
-                      {playerAbilityName ?? 'قدرات'}
+                      {playerAbilityName ?? 'قدرة اللاعب'}
                     </Text>
                   </TouchableOpacity>
-                </>
-              ) : (
-                /* التالي / إعادة */
-                <TouchableOpacity
-                  style={[S.ctaBtn, S.ctaBtnNext]}
-                  onPress={resetSim}
-                  activeOpacity={0.85}
-                >
-                  <Text style={S.ctaBtnIcon}>🔄</Text>
-                  <Text style={[S.ctaBtnText, { color: '#60a5fa' }]}>إعادة</Text>
-                </TouchableOpacity>
+                )}
+
+                {/* بعد النتيجة: إعادة / جولة جديدة */}
+                {phase === 'result' && (
+                  <>
+                    <TouchableOpacity
+                      style={[S.ctaBtn, S.ctaBtnNext]}
+                      onPress={repeatRound}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={S.ctaBtnIcon}>🔄</Text>
+                      <Text style={[S.ctaBtnText, { color: '#60a5fa' }]}>إعادة الجولة</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[S.ctaBtn, S.ctaBtnAttack]}
+                      onPress={nextRound}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={S.ctaBtnIcon}>▶️</Text>
+                      <Text style={[S.ctaBtnText, { color: '#4ade80' }]}>جولة جديدة</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+
+              {/* سجل نتيجة الجولة الحالية */}
+              {lastResult && phase !== 'sessionOver' && (
+                <ScrollView style={S.logScroll} contentContainerStyle={{ gap: 4 }}>
+                  {lastResult.log.map((l, i) => (
+                    <Text key={i} style={S.logLine}>{l}</Text>
+                  ))}
+                </ScrollView>
               )}
             </View>
 
-            {/* سجل نتيجة */}
-            {result && (
-              <ScrollView style={S.logScroll} contentContainerStyle={{ gap: 4 }}>
-                {result.log.map((l, i) => (
-                  <Text key={i} style={S.logLine}>{l}</Text>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-
-          {/* كرت البوت */}
-          <View style={S.botPanel}>
-            <Text style={S.panelLabel}>بوت</Text>
-            <TouchableOpacity onPress={() => setPickingBot(true)} activeOpacity={0.9}>
-              <Animated.View style={botAnimStyle}>
-                <LuxuryCharacterCardAnimated
-                  card={botCard.id ? botCard : { ...EMPTY, nameAr: 'اختر كرت', name: 'Pick Card' }}
-                  style={S.cardSize}
-                />
-              </Animated.View>
-            </TouchableOpacity>
-            {botCard.id
-              ? <>
-                  <Text style={[S.specialAbility, { color: RARITY_COLORS[botCard.rarity ?? 'common'] }]}>
+            {/* BOT PANEL */}
+            <View style={S.botPanel}>
+              <Text style={S.panelLabel}>بوت</Text>
+              <TouchableOpacity onPress={() => setPickingBot(true)} activeOpacity={0.9}>
+                <Animated.View style={botAnimStyle}>
+                  <LuxuryCharacterCardAnimated
+                    card={botCard.id ? botCard : { ...EMPTY, nameAr: 'اختر كرت', name: 'Pick Card' }}
+                    style={{ width: 150, height: 210 }}
+                  />
+                </Animated.View>
+              </TouchableOpacity>
+              {botCard.id
+                ? <Text style={[S.specialAbility, { color: RARITY_COLORS[botCard.rarity ?? 'common'] }]}>
                     {botCard.nameAr || botCard.name}
                   </Text>
-                  <View style={S.botStatus}>
-                    <Text style={S.botStatusText}>
-                      {phase === 'combat' ? '⚡ يهاجم...' : phase === 'result' ? '⏸ ينتظر' : '⏳ ينتظر...'}
-                    </Text>
-                  </View>
-                </>
-              : <>
-                  <Text style={S.pickHint}>اضغط لاختيار الكرت</Text>
-                  {/* قدرة البوت */}
-                  <TouchableOpacity style={[S.ctaBtn, S.ctaBtnAbilities, { marginTop: SPACE.xs, width: 'auto', height: 36 }]} onPress={() => setAbBot(true)} activeOpacity={0.85}>
-                    <Text style={S.ctaBtnIcon}>⚡</Text>
-                    <Text style={[S.ctaBtnText, { color: '#a855f7', fontSize: FONT.xs }]}>
-                      {botAbilityName ?? 'قدرة البوت'}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-            }
-            {botCard.id && (
-              <TouchableOpacity style={[S.ctaBtn, S.ctaBtnAbilities, { marginTop: SPACE.xs, width: 'auto', height: 36 }]} onPress={() => setAbBot(true)} activeOpacity={0.85}>
+                : <Text style={S.pickHint}>اضغط لاختيار الكرت</Text>
+              }
+              {/* قدرة البوت */}
+              <TouchableOpacity
+                style={[S.ctaBtn, S.ctaBtnAbilities, { marginTop: SPACE.xs, width: 'auto', height: 36 }]}
+                onPress={() => setAbBot(true)}
+                activeOpacity={0.85}
+              >
                 <Text style={S.ctaBtnIcon}>⚡</Text>
                 <Text style={[S.ctaBtnText, { color: '#a855f7', fontSize: FONT.xs }]}>
                   {botAbilityName ?? 'قدرة البوت'}
                 </Text>
               </TouchableOpacity>
-            )}
+              <View style={S.botStatus}>
+                <Text style={S.botStatusText}>
+                  {phase === 'combat' ? '⚡ يهاجم...' : phase === 'result' ? '⏸ ينتظر' : '⏳ ينتظر...'}
+                </Text>
+              </View>
+            </View>
           </View>
+
+          {/* زر رجوع */}
+          <TouchableOpacity style={S.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
+            <Text style={S.backTxt}>← رجوع</Text>
+          </TouchableOpacity>
         </View>
+      </SafeAreaView>
 
-        {/* زر رجوع */}
-        <TouchableOpacity style={S.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-          <Text style={S.backTxt}>← رجوع</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ══ Modals ══════════════════════════════════════════════════════════ */}
+      {/* ══ Modals ══ */}
       <CardPickerModal
         visible={pickingPlayer}
         onClose={() => setPickingPlayer(false)}
-        onSelect={c => { setPlayerCard(c); resetSim(); }}
+        onSelect={c => { setPlayerCard(c); }}
       />
       <CardPickerModal
         visible={pickingBot}
         onClose={() => setPickingBot(false)}
-        onSelect={c => { setBotCard(c); resetSim(); }}
+        onSelect={c => { setBotCard(c); }}
       />
       <AbilitiesModal
         visible={abPlayer}
@@ -518,78 +737,143 @@ export default function SandboxScreen() {
         onClose={() => setAbBot(false)}
         onSelect={setBotAbility}
       />
+
+      {/* ── History Modal ── */}
+      <Modal visible={isHistoryOpen} transparent animationType="slide" onRequestClose={() => setIsHistoryOpen(false)}>
+        <View style={S.modalOverlay}>
+          <View style={S.historyModal}>
+            <View style={S.modalHeader}>
+              <Text style={S.modalTitle}>📜 سجل الجلسة</Text>
+              <TouchableOpacity onPress={() => setIsHistoryOpen(false)} style={S.modalClose}>
+                <Text style={S.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ flexShrink: 1 }}>
+              {roundHistory.length === 0 ? (
+                <Text style={S.emptyText}>لا يوجد سجل بعد</Text>
+              ) : (
+                roundHistory.map((item, idx) => {
+                  const c = item.winner === 'player' ? '#4ade80' : item.winner === 'bot' ? '#f87171' : '#fbbf24';
+                  const l = item.winner === 'player' ? '🏆 فاز اللاعب' : item.winner === 'bot' ? '🤖 فاز البوت' : '🤝 تعادل';
+                  return (
+                    <View key={idx} style={[S.historyRow, { borderLeftColor: c }]}>
+                      <View style={S.historyCardWrap}>
+                        {item.winner === 'player' && <Text style={S.crown}>👑</Text>}
+                        <LuxuryCharacterCardAnimated card={item.playerCard} style={{ width: 72, height: 100 }} />
+                      </View>
+                      <View style={S.historyCenter}>
+                        <Text style={S.historyRound}>جولة {item.round}</Text>
+                        <Text style={[S.historyResult, { color: c }]}>{l}</Text>
+                      </View>
+                      <View style={S.historyCardWrap}>
+                        {item.winner === 'bot' && <Text style={S.crown}>👑</Text>}
+                        <LuxuryCharacterCardAnimated card={item.botCard} style={{ width: 72, height: 100 }} />
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-// ──────────────────── STYLES (نسخة مطابقة من battle.tsx) ──────────────────
+// ──────────────────────────── STYLES ───────────────────────────
 const S = StyleSheet.create({
-  root:           { flex: 1, backgroundColor: '#080612' },
-  bgWrap:         { position: 'absolute', inset: 0, zIndex: 0 },
-  flashOverlay:   { position: 'absolute', inset: 0, zIndex: 5, backgroundColor: '#fff', pointerEvents: 'none' },
-  screen:         { flex: 1, flexDirection: 'column', justifyContent: 'space-between' },
+  // ── من battle.tsx (كما هي بدون تعديل) ──
+  root: { flex: 1, backgroundColor: '#080612' },
+  bgWrap: { position: 'absolute', inset: 0, zIndex: 0 },
+  flashOverlay: { position: 'absolute', inset: 0, zIndex: 5, backgroundColor: '#fff', pointerEvents: 'none' },
+  normalRoot: { flex: 1 },
+  screen: { flex: 1, flexDirection: 'column', paddingBottom: 8, justifyContent: 'space-between' },
 
   // HUD
-  topHud:         { height: 68, flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACE.lg, backgroundColor: 'rgba(8,6,18,0.82)', borderBottomWidth: 1, borderBottomColor: 'rgba(228,165,42,0.18)', gap: SPACE.sm },
-  hudSide:        { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-  hudSideRight:   { justifyContent: 'flex-end' },
-  avatar:         { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  hudInfo:        { flex: 1, gap: 4 },
-  hudName:        { fontSize: FONT.xs, letterSpacing: 0.5 },
-  hudScore:       { fontSize: FONT.xxl, fontVariant: ['tabular-nums'] } as any,
-  hudCenter:      { width: 160, alignItems: 'center', gap: SPACE.xs },
-  hudRound:       { color: '#e2e8f0', fontSize: FONT.sm, letterSpacing: 0.4 },
-  historyBtn:     { paddingHorizontal: SPACE.sm, paddingVertical: 2, borderRadius: RADIUS.full, backgroundColor: 'rgba(228,165,42,0.1)', borderWidth: 1, borderColor: 'rgba(228,165,42,0.25)' },
+  topHud: { height: 68, flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACE.lg, backgroundColor: 'rgba(8,6,18,0.82)', borderBottomWidth: 1, borderBottomColor: 'rgba(228,165,42,0.18)', gap: SPACE.sm },
+  hudSide: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  hudSideRight: { justifyContent: 'flex-end' },
+  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  hudInfo: { flex: 1, gap: 4 },
+  hudName: { fontSize: FONT.xs, letterSpacing: 0.5 },
+  hudScore: { fontSize: FONT.xxl, fontVariant: ['tabular-nums'] } as any,
+  hudCenter: { width: 160, alignItems: 'center', gap: SPACE.xs },
+  hudRound: { color: '#e2e8f0', fontSize: FONT.sm, letterSpacing: 0.4 },
+  historyBtn: { paddingHorizontal: SPACE.sm, paddingVertical: 2, borderRadius: RADIUS.full, backgroundColor: 'rgba(228,165,42,0.1)', borderWidth: 1, borderColor: 'rgba(228,165,42,0.25)' },
   historyBtnText: { color: COLOR.gold, fontSize: FONT.xs - 2 },
 
+  // Effects bar
+  effectsBar: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: SPACE.lg, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.28)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', gap: SPACE.sm, minHeight: 32 },
+  effectsBarSide: { flex: 1, alignItems: 'flex-start' },
+  effectsBarDivider: { width: 1, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.08)' },
+  effectsBarLabel: { color: 'rgba(255,255,255,0.3)', fontSize: 9, letterSpacing: 0.5, marginBottom: 2 },
+
   // Arena
-  arena:          { flex: 1, flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', paddingHorizontal: SPACE.lg, gap: SPACE.xl, position: 'relative' },
-  playerPanel:    { alignItems: 'center', justifyContent: 'center', zIndex: 2, paddingVertical: SPACE.md },
-  botPanel:       { alignItems: 'center', justifyContent: 'center', zIndex: 1, paddingVertical: SPACE.md },
-  panelLabel:     { color: COLOR.textMuted, fontSize: FONT.xs - 2, letterSpacing: 1, textTransform: 'uppercase', marginBottom: SPACE.xs },
-  cardSize:       { width: 150, height: 210 },
-  specialAbility: { fontSize: FONT.xs, textAlign: 'center', marginTop: SPACE.xs, maxWidth: 150 },
-  pickHint:       { color: '#475569', fontSize: FONT.xs, textAlign: 'center', marginTop: SPACE.xs },
-  botStatus:      { marginTop: SPACE.xs, paddingHorizontal: SPACE.md, paddingVertical: 3, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  botStatusText:  { color: '#94a3b8', fontSize: FONT.xs - 2 },
+  arena: { flex: 1, flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', paddingHorizontal: SPACE.lg, gap: SPACE.xl, position: 'relative' },
+  playerPanel: { alignItems: 'center', justifyContent: 'center', zIndex: 2, paddingVertical: SPACE.md },
+  botPanel: { alignItems: 'center', justifyContent: 'center', zIndex: 1, paddingVertical: SPACE.md },
+  panelLabel: { color: COLOR.textMuted, fontSize: FONT.xs - 2, letterSpacing: 1, textTransform: 'uppercase' },
+  botStatus: { marginTop: SPACE.xs, paddingHorizontal: SPACE.md, paddingVertical: 3, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  botStatusText: { color: '#94a3b8', fontSize: FONT.xs - 2 },
 
   // Center column
-  centerCol:      { width: 152, alignItems: 'center', justifyContent: 'center', gap: SPACE.sm, zIndex: 20 },
-  vsBadge:        { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(8,6,18,0.9)', borderWidth: 2, borderColor: 'rgba(228,165,42,0.7)', alignItems: 'center', justifyContent: 'center', ...SHADOW.gold },
-  vsIcon:         { fontSize: 18 },
-  vsText:         { fontSize: FONT.sm, color: COLOR.gold, letterSpacing: 1 },
-  resultBadge:    { paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderRadius: RADIUS.full, borderWidth: 1.5, alignItems: 'center' },
-  resultBadgeText:{ fontSize: FONT.base, letterSpacing: 0.5 },
-  ctaStack:       { gap: SPACE.sm, width: '100%', alignItems: 'center' },
-  ctaBtn:         { width: 140, height: 48, borderRadius: RADIUS.full, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, borderWidth: 1.5, backgroundColor: 'rgba(0,0,0,0.4)' },
-  ctaBtnAttack:   { backgroundColor: 'rgba(74,222,128,0.12)', borderColor: '#4ade80', shadowColor: '#4ade80', shadowOpacity: 0.5, shadowOffset: { width: 0, height: 0 }, shadowRadius: 10, elevation: 6 },
-  ctaBtnNext:     { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: '#60a5fa', shadowColor: '#60a5fa', shadowOpacity: 0.5, shadowOffset: { width: 0, height: 0 }, shadowRadius: 8, elevation: 4 },
-  ctaBtnAbilities:{ backgroundColor: 'rgba(168,85,247,0.12)', borderColor: '#a855f7', shadowColor: '#a855f7', shadowOpacity: 0.45, shadowOffset: { width: 0, height: 0 }, shadowRadius: 8, elevation: 4 },
+  centerCol: { width: 152, alignItems: 'center', justifyContent: 'center', gap: SPACE.sm, zIndex: 20 },
+  vsBadge: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(8,6,18,0.9)', borderWidth: 2, borderColor: 'rgba(228,165,42,0.7)', alignItems: 'center', justifyContent: 'center', ...SHADOW.gold },
+  vsIcon: { fontSize: 18 },
+  vsText: { fontSize: FONT.sm, color: COLOR.gold, letterSpacing: 1 },
+  resultBadge: { paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderRadius: RADIUS.pill, borderWidth: 1.5, alignItems: 'center' },
+  resultBadgeText: { fontSize: FONT.base, letterSpacing: 0.5 },
+
+  // CTA
+  ctaStack: { gap: SPACE.sm, width: '100%', alignItems: 'center' },
+  ctaBtn: { width: 140, height: 48, borderRadius: RADIUS.pill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, borderWidth: 1.5, backgroundColor: 'rgba(0,0,0,0.4)' },
+  ctaBtnAttack: { backgroundColor: 'rgba(74,222,128,0.12)', borderColor: '#4ade80', shadowColor: '#4ade80', shadowOpacity: 0.5, shadowOffset: { width: 0, height: 0 }, shadowRadius: 10, elevation: 6 },
+  ctaBtnNext: { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: '#60a5fa', shadowColor: '#60a5fa', shadowOpacity: 0.5, shadowOffset: { width: 0, height: 0 }, shadowRadius: 8, elevation: 4 },
+  ctaBtnAbilities: { backgroundColor: 'rgba(168,85,247,0.12)', borderColor: '#a855f7', shadowColor: '#a855f7', shadowOpacity: 0.45, shadowOffset: { width: 0, height: 0 }, shadowRadius: 8, elevation: 4 },
   ctaBtnDisabled: { backgroundColor: 'rgba(71,85,105,0.2)', borderColor: '#475569', shadowOpacity: 0 },
-  ctaBtnIcon:     { fontSize: 16 },
-  ctaBtnText:     { color: '#f1f5f9', fontSize: FONT.sm, letterSpacing: 0.3 },
-
-  // Log
-  logScroll:      { maxHeight: 120, width: '100%' },
-  logLine:        { fontSize: 10, color: '#94a3b8', textAlign: 'center' },
-
-  // Back
-  backBtn:        { alignSelf: 'center', paddingHorizontal: SPACE.lg, paddingVertical: SPACE.xs, borderRadius: RADIUS.full, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: SPACE.xs },
-  backTxt:        { color: COLOR.textMuted, fontSize: FONT.xs },
+  ctaBtnIcon: { fontSize: 16 },
+  ctaBtnText: { color: '#f1f5f9', fontSize: FONT.sm, letterSpacing: 0.3 },
 
   // Modals
-  modalOverlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  cardPickerSheet:  { backgroundColor: '#080612', borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl, maxHeight: '88%', borderWidth: 1, borderColor: 'rgba(228,165,42,0.2)' },
-  abilitiesModal:   { width: '92%', maxWidth: 820, maxHeight: '80%', backgroundColor: 'rgba(12,18,36,0.97)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(51,65,85,0.7)', padding: SPACE.xl, paddingBottom: SPACE.lg, alignSelf: 'center' },
-  modalHeader:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: SPACE.md, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
-  modalTitle:       { fontSize: FONT.lg, color: COLOR.gold, fontWeight: '800' },
-  modalClose:       { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  modalCloseText:   { color: '#fff', fontSize: 20, fontWeight: '300', lineHeight: 22 },
-  searchInput:      { margin: SPACE.md, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: FONT.sm, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm },
-  thumbCard:        { flex: 1, borderRadius: RADIUS.md, borderWidth: 1.5, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.03)', minHeight: 120 },
-  thumbImg:         { width: '100%', height: 85 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
+  abilitiesModal: { width: '92%', maxWidth: 820, backgroundColor: 'rgba(12,18,36,0.97)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(51,65,85,0.7)', padding: SPACE.xl, paddingBottom: SPACE.lg },
+  historyModal: { backgroundColor: 'rgba(18,14,28,0.97)', borderRadius: RADIUS.lg, width: '90%', maxHeight: '82%', padding: SPACE.xl, borderWidth: 1, borderColor: '#1e293b' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACE.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)', paddingBottom: SPACE.md },
+  modalTitle: { color: '#f8fafc', fontSize: FONT.xl },
+  modalClose: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248,113,113,0.12)', borderRadius: 16 },
+  modalCloseText: { color: '#f87171', fontSize: 18 },
+  emptyText: { color: '#64748b', textAlign: 'center', marginVertical: SPACE.xxl, fontSize: FONT.base },
+  historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderLeftWidth: 3, paddingLeft: SPACE.lg, paddingVertical: SPACE.md, marginBottom: SPACE.lg, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: RADIUS.md, gap: SPACE.lg },
+  historyCardWrap: { alignItems: 'center', position: 'relative' },
+  crown: { fontSize: 20, position: 'absolute', top: -20, alignSelf: 'center', zIndex: 10 },
+  historyCenter: { flex: 1, alignItems: 'center', gap: SPACE.xs },
+  historyRound: { color: COLOR.gold, fontSize: FONT.sm },
+  historyResult: { fontSize: FONT.base },
+
+  // ── جديدة لـ sandbox فقط ──
+  configBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.lg, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.28)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', gap: SPACE.lg, minHeight: 32 },
+  configCounterBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(228,165,42,0.15)', borderWidth: 1, borderColor: COLOR.gold, alignItems: 'center', justifyContent: 'center' },
+  configCount: { color: COLOR.gold, fontSize: FONT.xl, minWidth: 28, textAlign: 'center', fontVariant: ['tabular-nums'] } as any,
+
+  sessionResultCard: { width: 160, borderRadius: RADIUS.lg, borderWidth: 2, padding: SPACE.md, alignItems: 'center', gap: SPACE.sm, backgroundColor: 'rgba(8,6,18,0.96)' },
+  sessionResultEmoji: { fontSize: 32 },
+  sessionResultText: { fontSize: FONT.lg, letterSpacing: 0.4 },
+  sessionResultSub: { fontSize: FONT.sm, color: COLOR.textMuted },
+  sessionSmallBtn: { height: 34, paddingHorizontal: SPACE.md, borderRadius: RADIUS.full, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, borderWidth: 1.5 },
+
+  cardPickerSheet: { backgroundColor: '#080612', borderTopLeftRadius: RADIUS.lg, borderTopRightRadius: RADIUS.lg, maxHeight: '88%', borderWidth: 1, borderColor: 'rgba(228,165,42,0.2)' },
+  searchInput: { margin: SPACE.md, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: FONT.sm, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm },
+  thumbCard: { flex: 1, borderRadius: RADIUS.md, borderWidth: 1.5, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.03)', minHeight: 120 },
+  thumbImg: { width: '100%', height: 85 },
   thumbPlaceholder: { width: '100%', height: 85, alignItems: 'center', justifyContent: 'center' },
-  thumbName:        { fontSize: 9, fontWeight: '700', textAlign: 'center', padding: 4, lineHeight: 13 },
-  abilityItemWrap:  { marginBottom: SPACE.xs, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'transparent', overflow: 'hidden' },
-  abilityItemActive:{ borderColor: 'rgba(228,165,42,0.5)', backgroundColor: 'rgba(228,165,42,0.06)' },
+  thumbName: { fontSize: 9, fontWeight: '700', textAlign: 'center', padding: 4, lineHeight: 13 },
+  abilityItemWrap: { marginBottom: SPACE.xs, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'transparent', overflow: 'hidden' },
+  abilityItemActive: { borderColor: 'rgba(228,165,42,0.5)', backgroundColor: 'rgba(228,165,42,0.06)' },
+  logScroll: { maxHeight: 80, width: '100%' },
+  logLine: { fontSize: 9, color: '#94a3b8', textAlign: 'center' },
+  pickHint: { color: '#475569', fontSize: FONT.xs, textAlign: 'center', marginTop: SPACE.xs },
+  specialAbility: { fontSize: FONT.xs, textAlign: 'center', marginTop: SPACE.xs, maxWidth: 150 },
+  backBtn: { alignSelf: 'center', paddingHorizontal: SPACE.lg, paddingVertical: SPACE.xs, borderRadius: RADIUS.full, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: SPACE.xs },
+  backTxt: { color: COLOR.textMuted, fontSize: FONT.xs },
 });
