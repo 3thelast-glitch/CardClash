@@ -1,10 +1,6 @@
 /**
  * rage-engine.ts
  * منطق تفعيل وضع الغضب + القدرات الخاصة بالبطاقات أثناء المعركة
- *
- * الاستخدام:
- *   import { shouldTriggerRage, applyRageToCard, buildRageState } from '@/lib/game/rage-engine';
- *   import { sortDeckWithTurinFirst, isTurinForcedLoss, resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive } from '@/lib/game/rage-engine';
  */
 import type { Card, RageModeData } from './types';
 
@@ -13,7 +9,6 @@ import type { Card, RageModeData } from './types';
 // ─────────────────────────────────────────────
 
 export interface RageState {
-  /** البطاقات التي فعّلت وضع الغضب بالفعل في هذه المباراة */
   activatedThisMatch: Set<string>;
 }
 
@@ -21,39 +16,28 @@ export function buildRageState(): RageState {
   return { activatedThisMatch: new Set() };
 }
 
-/**
- * هل يجب تفعيل وضع الغضب لهذه البطاقة بعد خسارتها؟
- *
- * الشروط:
- *   1. البطاقة لديها rageMode.enabled = true
- *   2. إذا كانت oncePer = 'match' → لم تُفعَّل بعد في هذه المباراة
- *   3. إذا كانت oncePer = 'unlimited' → تتفعل في كل خسارة
- */
-export function shouldTriggerRage(
-  card: Card,
-  rageState: RageState,
-): boolean {
+export function shouldTriggerRage(card: Card, rageState: RageState): boolean {
   const rm = card.rageMode;
   if (!rm?.enabled) return false;
   if (rm.oncePer === 'match' && rageState.activatedThisMatch.has(card.id)) return false;
   return true;
 }
 
-/**
- * طبّق وضع الغضب على البطاقة — يُعيد نسخة جديدة من البطاقة بإحصائيات وصورة مُعدَّلة
- */
 export function applyRageToCard(card: Card, rageState: RageState): Card {
   const rm = card.rageMode as RageModeData;
+  if (rm.oncePer === 'match') rageState.activatedThisMatch.add(card.id);
 
-  // تسجيل التفعيل إذا كانت oncePer = 'match'
-  if (rm.oncePer === 'match') {
-    rageState.activatedThisMatch.add(card.id);
-  }
-
-  const hasRageImageOnly = !!(rm.rageImageUrl || (rm as any).image) && !(rm.rageVideoUrl || (rm as any).video);
+  const hasRageImageOnly =
+    !!(rm.rageImageUrl || (rm as any).image) &&
+    !(rm.rageVideoUrl || (rm as any).video);
   const newImageUrl = rm.rageImageUrl || (rm as any).image || card.imageUrl;
-  const newVideoUrl = hasRageImageOnly ? undefined : (rm.rageVideoUrl || (rm as any).video || card.videoUrl);
-  const hasNewRageMedia = !!(rm.rageImageUrl || (rm as any).image || rm.rageVideoUrl || (rm as any).video);
+  const newVideoUrl = hasRageImageOnly
+    ? undefined
+    : rm.rageVideoUrl || (rm as any).video || card.videoUrl;
+  const hasNewRageMedia = !!(
+    rm.rageImageUrl || (rm as any).image ||
+    rm.rageVideoUrl || (rm as any).video
+  );
 
   return {
     ...card,
@@ -75,7 +59,6 @@ export function applyRageToCard(card: Card, rageState: RageState): Card {
   } as Card & { _rageActive: boolean };
 }
 
-/** معلومات الغضب التي تُمرَّر للـ UI عند التفعيل */
 export interface RageTriggerEvent {
   card: Card;
   rageCard: Card;
@@ -83,10 +66,10 @@ export interface RageTriggerEvent {
   imageUrl?: string;
 }
 
-/**
- * بناء حدث الغضب الكامل (يُستخدم لعرض الـ overlay / الفيديو)
- */
-export function buildRageTriggerEvent(original: Card, rageCard: Card): RageTriggerEvent {
+export function buildRageTriggerEvent(
+  original: Card,
+  rageCard: Card,
+): RageTriggerEvent {
   return {
     card:     original,
     rageCard,
@@ -96,15 +79,13 @@ export function buildRageTriggerEvent(original: Card, rageCard: Card): RageTrigg
 }
 
 // ─────────────────────────────────────────────
-// SPECIAL ABILITIES — القدرات الخاصة بالبطاقات
+// SPECIAL ABILITIES
 // ─────────────────────────────────────────────
 
 export type BattleResult = 'win' | 'lose' | 'draw';
 
-/**
- * Turin — يُرتَّب أول الفريق إجباريًا عند بدء المباراة
- * استدعِ هذه الدالة عند بناء ترتيب الفريق أو عند حفظه
- */
+// ── Turin ──────────────────────────────────────
+
 export function sortDeckWithTurinFirst(deck: Card[]): Card[] {
   const turin = deck.find(
     c => (c as any).nameEn === 'Turin' || c.nameAr === 'تورين',
@@ -114,22 +95,36 @@ export function sortDeckWithTurinFirst(deck: Card[]): Card[] {
 }
 
 /**
- * Turin — قدرة "تخسر نصف الجولات"
+ * Returns how many rounds Turin forces the player to lose.
  *
- * المنطق: الجولات من 1 إلى floor(totalRounds / 2) → خسارة إجبارية تلقائية
+ * Formula: Math.max(1, Math.floor(totalRounds / 2))
  *
- * أمثلة:
- *   totalRounds =  6  →  forcedLoss = 3  → الجولات 1-3 خسارة
- *   totalRounds = 10  →  forcedLoss = 5  → الجولات 1-5 خسارة
- *   totalRounds =  7  →  forcedLoss = 3  → الجولات 1-3 خسارة
- *   totalRounds = 20  →  forcedLoss = 10 → الجولات 1-10 خسارة
+ * Examples:
+ *   totalRounds =  1  →  1
+ *   totalRounds =  2  →  1
+ *   totalRounds =  6  →  3
+ *   totalRounds =  7  →  3
+ *   totalRounds = 10  →  5
+ *   totalRounds = 20  → 10
+ */
+export function getTurinPenaltyRounds(totalRounds: number): number {
+  return Math.max(1, Math.floor(totalRounds / 2));
+}
+
+/**
+ * Returns true if Turin forces a loss on this round.
  *
- * استدعِها قبل أي حساب للجولة:
- *   if (isTurinForcedLoss(currentRound, totalRounds, playerDeck)) → نتيجة 'lose'
+ * Rules:
+ *   - Turin must be present in playerDeck (any position)
+ *   - currentRound is 1-based
+ *   - Forces loss for rounds 1 → getTurinPenaltyRounds(totalRounds)
+ *   - After that, normal battle logic runs
  *
- * @param currentRound  رقم الجولة الحالية (يبدأ من 1)
- * @param totalRounds   إجمالي عدد الجولات في المباراة
- * @param playerDeck    قائمة بطاقات اللاعب
+ * Examples (totalRounds = 10, penaltyRounds = 5):
+ *   round 1  → true  (forced loss)
+ *   round 5  → true  (forced loss)
+ *   round 6  → false (normal)
+ *   round 10 → false (normal)
  */
 export function isTurinForcedLoss(
   currentRound: number,
@@ -141,96 +136,110 @@ export function isTurinForcedLoss(
   );
   if (!hasTurin) return false;
 
-  const forcedLossRounds = Math.floor(totalRounds / 2);
-  return currentRound <= forcedLossRounds;
+  const penaltyRounds = getTurinPenaltyRounds(totalRounds);
+  return currentRound <= penaltyRounds;
 }
 
+// ── On-spawn passives ──────────────────────────
+
 /**
- * applyOnSpawnPassive
- * تُطبَّق عند نزول البطاقة للميدان
- *
- * - Tsunade → +2 صحة عند الدخول
+ * Apply when a card enters the field.
+ * - Tsunade → +2 HP on spawn
  */
 export function applyOnSpawnPassive(card: Card): Card {
-  if ((card as any).nameEn === 'Tsunade' || card.nameAr === 'تسونادي') {
-    return { ...card, hp: ((card as any).hp ?? (card as any).health ?? 0) + 2 };
+  if (
+    (card as any).nameEn === 'Tsunade' ||
+    card.nameAr === 'تسونادي'
+  ) {
+    return {
+      ...card,
+      hp: ((card as any).hp ?? (card as any).health ?? 0) + 2,
+    };
   }
   return card;
 }
 
+// ── Combat special abilities ───────────────────
+
 /**
- * resolveSpecialAbility
- * يفحص قبل المقارنة العادية إذا كانت هناك قدرة تحسم النتيجة
+ * Check before normal stat comparison.
+ * Returns 'win' | 'lose' or null (= use normal logic).
  *
- * يُعيد: 'win' | 'lose'  أو  null (= سير المعركة الطبيعي)
- *
- * القدرات المدعومة:
- *   - Dracule Mihawk → ينتصر على جميع السيافين  (tag: 'swordsman')
- *   - Gehrman        → يصطاد جميع الوحوش        (tag: 'monster' | 'beast')
- *   - Sanji          → يخسر من جميع النساء      (tag: 'female' | 'woman')
+ * - Dracule Mihawk  → wins vs all swordsmen  (tag: 'swordsman' | 'sword')
+ * - Gehrman         → wins vs all monsters   (tag: 'monster' | 'beast')
+ * - Sanji           → loses vs all females   (tag: 'female' | 'woman')
  */
 export function resolveSpecialAbility(
   attacker: Card,
   defender: Card,
 ): BattleResult | null {
-  const defTags: string[] = ((defender as any).tags ?? []).map((t: string) => t.toLowerCase());
+  const defTags: string[] = (
+    (defender as any).tags ?? []
+  ).map((t: string) => t.toLowerCase());
+
   const attackerName = ((attacker as any).nameEn ?? '').toLowerCase();
 
-  // Dracule Mihawk
   if (
     (attackerName === 'dracule mihawk' || attacker.nameAr === 'دراكيول ميهوك') &&
     (defTags.includes('swordsman') || defTags.includes('sword'))
-  ) {
-    return 'win';
-  }
+  ) return 'win';
 
-  // Gehrman
   if (
     (attackerName === 'gehrman' || attacker.nameAr === 'غيرمان') &&
     (defTags.includes('monster') || defTags.includes('beast') || defTags.includes('وحش'))
-  ) {
-    return 'win';
-  }
+  ) return 'win';
 
-  // Sanji
   if (
     (attackerName === 'sanji' || attacker.nameAr === 'سانجي') &&
     (defTags.includes('female') || defTags.includes('woman') || defTags.includes('أنثى'))
-  ) {
-    return 'lose';
-  }
+  ) return 'lose';
 
   return null;
 }
 
+// ── Post-battle passives ───────────────────────
+
 /**
- * applyPostBattlePassive
- * يُطبَّق بعد انتهاء المواجهة على المهاجم
- *
- * - Sakura Haruno → +1 صحة عند الفوز فقط
+ * Apply after combat resolves.
+ * - Sakura Haruno → +1 HP on win only
  */
-export function applyPostBattlePassive(card: Card, result: BattleResult): Card {
+export function applyPostBattlePassive(
+  card: Card,
+  result: BattleResult,
+): Card {
   if (
-    ((card as any).nameEn === 'Sakura Haruno' || card.nameAr === 'ساكورا هارونو') &&
+    (
+      (card as any).nameEn === 'Sakura Haruno' ||
+      card.nameAr === 'ساكورا هارونو'
+    ) &&
     result === 'win'
   ) {
-    return { ...card, hp: ((card as any).hp ?? (card as any).health ?? 0) + 1 };
+    return {
+      ...card,
+      hp: ((card as any).hp ?? (card as any).health ?? 0) + 1,
+    };
   }
   return card;
 }
 
+// ─────────────────────────────────────────────
+// MAIN BATTLE RESOLVER
+// ─────────────────────────────────────────────
+
 /**
- * resolveBattle
- * الدالة الرئيسية لحسم المعركة بين بطاقتين
+ * resolveBattle — resolves a full round between two cards.
  *
- * الترتيب:
- *   1. قدرة Turin  → خسارة إجبارية في نصف الجولات الأول
- *   2. القدرات الخاصة (Mihawk / Gehrman / Sanji)
- *   3. مقارنة الإحصائيات العادية
- *   4. تأثيرات ما بعد المعركة (Sakura)
+ * Order of precedence:
+ *   1. Turin forced loss  (first half of rounds)
+ *   2. Special abilities  (Mihawk / Gehrman / Sanji)
+ *   3. Normal stat comparison  (attack + defense)
+ *   4. Post-battle passives  (Sakura)
  *
- * الاستخدام:
- *   const { result, updatedAttacker } = resolveBattle(myCard, enemyCard, currentRound, totalRounds, playerDeck);
+ * @param attacker     Player's card
+ * @param defender     Bot's card
+ * @param currentRound 1-based round number
+ * @param totalRounds  Total rounds in the session
+ * @param playerDeck   Player's full deck (to check for Turin)
  */
 export function resolveBattle(
   attacker: Card,
@@ -239,28 +248,29 @@ export function resolveBattle(
   totalRounds: number,
   playerDeck: Card[],
 ): { result: BattleResult; updatedAttacker: Card } {
-  // 1. Turin — خسارة إجبارية في النصف الأول
+
+  // 1. Turin — forced loss in first half
   if (isTurinForcedLoss(currentRound, totalRounds, playerDeck)) {
     return { result: 'lose', updatedAttacker: attacker };
   }
 
-  // 2. القدرات الخاصة
+  // 2. Special abilities
   const special = resolveSpecialAbility(attacker, defender);
 
   let result: BattleResult;
   if (special) {
     result = special;
   } else {
-    // 3. المقارنة العادية
+    // 3. Normal stat comparison
     const atkPower = (attacker.attack ?? 0) + (attacker.defense ?? 0);
     const defPower = (defender.attack ?? 0) + (defender.defense ?? 0);
 
-    if (atkPower > defPower)      result = 'win';
+    if      (atkPower > defPower) result = 'win';
     else if (atkPower < defPower) result = 'lose';
     else                          result = 'draw';
   }
 
-  // 4. تأثيرات ما بعد المعركة
+  // 4. Post-battle passives
   const updatedAttacker = applyPostBattlePassive(attacker, result);
 
   return { result, updatedAttacker };
