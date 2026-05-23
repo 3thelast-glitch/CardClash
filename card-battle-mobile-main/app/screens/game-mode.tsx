@@ -87,6 +87,21 @@ export default function GameModeScreen() {
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* ── زر البيئة التجريبية ── */}
+          <TouchableOpacity
+            style={styles.sandboxBtn}
+            onPress={() => router.push('/screens/sandbox' as any)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.sandboxIcon}>🧪</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sandboxTitle}>البيئة التجريبية</Text>
+              <Text style={styles.sandboxSub}>حاكي المعارك واختبر القدرات بدون لعب</Text>
+            </View>
+            <Text style={styles.sandboxArrow}>→</Text>
+          </TouchableOpacity>
+
         </View>
       </LuxuryBackground>
     </ScreenContainer>
@@ -114,7 +129,7 @@ const styles = StyleSheet.create({
   backBtnText: {
     color: COLOR.gold,
     fontSize: FONT.md,
-    },
+  },
 
   header: {
     alignItems: 'center',
@@ -147,7 +162,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACE.md,
     justifyContent: 'flex-start',
     overflow: 'hidden',
-    maxWidth: 400, // Limit width on tablets
+    maxWidth: 400,
   },
 
   cardTopAccent: {
@@ -185,5 +200,27 @@ const styles = StyleSheet.create({
 
   cardArrowText: {
     fontSize: FONT.lg,
-    },
+  },
+
+  // ── sandbox button ──
+  sandboxBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm,
+    marginTop: SPACE.md,
+    paddingVertical: SPACE.md,
+    paddingHorizontal: SPACE.lg,
+    borderRadius: RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: 'rgba(134,239,172,0.35)',
+    backgroundColor: 'rgba(134,239,172,0.07)',
+    shadowColor: '#4ade80',
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  sandboxIcon:  { fontSize: 28 },
+  sandboxTitle: { fontSize: FONT.md, fontWeight: '800', color: '#4ade80' },
+  sandboxSub:   { fontSize: FONT.xs, color: COLOR.textMuted, marginTop: 2 },
+  sandboxArrow: { fontSize: FONT.lg, color: '#4ade80' },
 });
