@@ -1,435 +1,540 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
-  View,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-  Alert,
+  View, ScrollView, TouchableOpacity, StyleSheet,
+  Modal, FlatList, TextInput, Image,
+  useWindowDimensions,
 } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL } from '@/components/ui/design-tokens';
+import { ALL_CARDS, determineRoundWinner } from '@/lib/game/cards-data-exports';
+import {
+  Card, AbilityType,
+  ELEMENT_EMOJI, ELEMENT_COLORS,
+  GENDER_EMOJI, GENDER_COLORS,
+  CLASS_EMOJI, RACE_EMOJI,
+} from '@/lib/game/types';
+import { getCardImage } from '@/lib/game/get-card-image';
 
-// ─── بيانات الكروت الخاصة ───────────────────────────────────────────────────
-const SPECIAL_CARDS = [
-  { name: 'Turin',        emoji: '🎭', color: '#a78bfa', tags: [],                desc: 'يخسر نصف الجولات' },
-  { name: 'Dracule Mihawk', emoji: '⚔️', color: '#e4a52a', tags: ['swordsman'],  desc: 'يفوز على جميع السيافين' },
-  { name: 'Gehrman',     emoji: '🐺', color: '#34d399', tags: ['hunter'],        desc: 'يصطاد جميع الوحوش' },
-  { name: 'Sanji',       emoji: '🍳', color: '#f87171', tags: ['cook'],          desc: 'يخسر أمام جميع النساء' },
-  { name: 'Tsunade',     emoji: '💊', color: '#60a5fa', tags: ['medic'],         desc: '+2 صحة عند النزول' },
-  { name: 'Sakura Haruno', emoji: '🌸', color: '#f9a8d4', tags: ['medic'],       desc: '+1 صحة عند الفوز' },
+// ─── قائمة القدرات للإظهار ───────────────────────────────────────────────────────────────────
+const ABILITIES: { key: AbilityType; labelAr: string; emoji: string; color: string }[] = [
+  { key: 'LogicalEncounter',    labelAr: 'مواجهة منطقية', emoji: '🧠', color: '#60a5fa' },
+  { key: 'Recall',              labelAr: 'استدعاء',       emoji: '🔄', color: '#a78bfa' },
+  { key: 'Protection',          labelAr: 'حماية',           emoji: '🛡️', color: '#34d399' },
+  { key: 'Arise',               labelAr: 'بعث',              emoji: '⬆️', color: '#fbbf24' },
+  { key: 'Reinforcement',       labelAr: 'تعزيز',           emoji: '💪', color: '#f97316' },
+  { key: 'Wipe',                labelAr: 'محو',               emoji: '💥', color: '#f87171' },
+  { key: 'Purge',               labelAr: 'تطهير',            emoji: '✨', color: '#e879f9' },
+  { key: 'HalvePoints',         labelAr: 'تنصيف',           emoji: '✂️', color: '#fb923c' },
+  { key: 'Seal',                labelAr: 'ختم',               emoji: '🔒', color: '#64748b' },
+  { key: 'DoubleOrNothing',     labelAr: 'ضعف أو لا شيء', emoji: '🎲', color: '#facc15' },
+  { key: 'StarSuperiority',     labelAr: 'تفوق النجوم',  emoji: '⭐', color: '#fbbf24' },
+  { key: 'Reduction',           labelAr: 'خفض',               emoji: '⬇️', color: '#94a3b8' },
+  { key: 'Sacrifice',           labelAr: 'تضحية',            emoji: '💔', color: '#ef4444' },
+  { key: 'Popularity',          labelAr: 'شعبية',           emoji: '👑', color: '#f472b6' },
+  { key: 'Eclipse',             labelAr: 'كسوف',              emoji: '🌑', color: '#1e293b' },
+  { key: 'CancelAbility',       labelAr: 'إلغاء قدرة',    emoji: '❌', color: '#f87171' },
+  { key: 'Revive',              labelAr: 'إحياء',             emoji: '💚', color: '#4ade80' },
+  { key: 'Lifesteal',           labelAr: 'سرقة حياة',    emoji: '🩸', color: '#f43f5e' },
+  { key: 'Revenge',             labelAr: 'انتقام',           emoji: '🗡️', color: '#dc2626' },
+  { key: 'Greed',               labelAr: 'جشع',               emoji: '🥇', color: '#eab308' },
+  { key: 'Weakening',           labelAr: 'إضعاف',            emoji: '💧', color: '#38bdf8' },
+  { key: 'Trap',                labelAr: 'فخ',                emoji: '🚨', color: '#f59e0b' },
+  { key: 'Shield',              labelAr: 'درع',               emoji: '🛡', color: '#22d3ee' },
+  { key: 'Explosion',           labelAr: 'انفجار',           emoji: '💣', color: '#ef4444' },
+  { key: 'DoublePoints',        labelAr: 'مضاعفة نقاط', emoji: '×2', color: '#a3e635' },
+  { key: 'Pool',                labelAr: 'مجموعة',           emoji: '🪙', color: '#818cf8' },
+  { key: 'Skip',                labelAr: 'تخطي',              emoji: '⏭️', color: '#94a3b8' },
+  { key: 'Suicide',             labelAr: 'انتحار',           emoji: '☠️', color: '#78716c' },
 ];
 
-const ABILITY_TAGS = [
-  { key: 'none',      label: 'بدون قدرة',   color: '#6b7280' },
-  { key: 'swordsman', label: '⚔️ سيّاف',    color: '#e4a52a' },
-  { key: 'monster',   label: '👹 وحش',      color: '#34d399' },
-  { key: 'female',    label: '👩 أنثى',     color: '#f9a8d4' },
-  { key: 'beast',     label: '🐉 مخلوق',    color: '#fb923c' },
-  { key: 'hunter',    label: '🏹 صياد',     color: '#a3e635' },
-  { key: 'medic',     label: '💉 طبيب',     color: '#38bdf8' },
-];
-
-type SimCard = {
-  name: string;
-  power: number;
-  health: number;
-  tags: string[];
-  emoji: string;
-  color: string;
+const RARITY_COLORS: Record<string, string> = {
+  common:    '#9ca3af',
+  rare:      '#60a5fa',
+  epic:      '#c084fc',
+  legendary: '#fbbf24',
+  special:   '#e879f9',
 };
 
-type BattleLog = {
-  round: number;
-  attacker: string;
-  defender: string;
-  result: 'win' | 'lose' | 'draw';
-  reason: string;
-  hpChange?: string;
+// ─── كرت فارغ ────────────────────────────────────────────────────────────────────────────────────────────────────
+const EMPTY_CARD: Card = {
+  id: '', name: '', nameAr: 'اختر كرت', nameEn: '',
+  attack: 10, defense: 5, hp: 3,
+  race: 'human', cardClass: 'warrior', element: 'fire',
+  rarity: 'common', stars: 1,
 };
 
-// ─── منطق القتال (مطابق rage-engine) ─────────────────────────────────────────
-function resolveSpecial(
-  attacker: SimCard,
-  defender: SimCard,
-): { result: 'win' | 'lose' | null; reason: string } {
-  const dt = defender.tags;
-  if (attacker.name === 'Dracule Mihawk' && dt.includes('swordsman'))
-    return { result: 'win', reason: '⚔️ Mihawk يفوز على السيافين' };
-  if (attacker.name === 'Gehrman' && (dt.includes('monster') || dt.includes('beast')))
-    return { result: 'win', reason: '🐺 Gehrman يصطاد الوحوش' };
-  if (attacker.name === 'Sanji' && dt.includes('female'))
-    return { result: 'lose', reason: '🍳 Sanji يخسر أمام النساء' };
-  return { result: null, reason: '' };
+// ─── CardPickerModal ───────────────────────────────────────────────────────────────────────────────
+function CardPickerModal({
+  visible, onClose, onSelect,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (card: Card) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const filtered = useMemo(
+    () => ALL_CARDS.filter(c =>
+      c.nameAr?.includes(search) || c.name.toLowerCase().includes(search.toLowerCase())
+    ),
+    [search]
+  );
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={mp.overlay}>
+        <View style={mp.sheet}>
+          <View style={mp.topBar}>
+            <Text style={mp.title}>🃏 اختر كرت</Text>
+            <TouchableOpacity onPress={onClose} style={mp.closeBtn}>
+              <Text style={mp.closeTxt}>×</Text>
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={mp.search}
+            placeholder="بحث بالاسم..."
+            placeholderTextColor="#555"
+            value={search}
+            onChangeText={setSearch}
+          />
+          <FlatList
+            data={filtered}
+            keyExtractor={c => c.id}
+            numColumns={3}
+            contentContainerStyle={{ padding: SPACE.sm, gap: SPACE.sm }}
+            columnWrapperStyle={{ gap: SPACE.sm }}
+            renderItem={({ item }) => {
+              const rarityColor = RARITY_COLORS[item.rarity ?? 'common'];
+              const img = getCardImage(item);
+              return (
+                <TouchableOpacity
+                  style={[mp.cardThumb, { borderColor: rarityColor + '99' }]}
+                  onPress={() => { onSelect(item); onClose(); }}
+                  activeOpacity={0.8}
+                >
+                  {img ? (
+                    <Image source={img} style={mp.thumbImg} resizeMode="cover" />
+                  ) : (
+                    <View style={[mp.thumbPlaceholder, { backgroundColor: rarityColor + '22' }]}>
+                      <Text style={{ fontSize: 26 }}>
+                        {ELEMENT_EMOJI[item.element] ?? '🃏'}
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={[mp.thumbName, { color: rarityColor }]} numberOfLines={2}>
+                    {item.nameAr || item.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
-function simulateBattle(myCard: SimCard, enemyCard: SimCard): BattleLog[] {
-  const logs: BattleLog[] = [];
-  let myHp   = myCard.health;
-  let enyHp  = enemyCard.health;
-  let round  = 1;
-
-  // تأثير Tsunade عند النزول
-  if (myCard.name === 'Tsunade')   myHp   += 2;
-  if (enemyCard.name === 'Tsunade') enyHp += 2;
-
-  // Turin يخسر نصف الجولات — نحسب كمية الخسارة الأولى
-  let turinLosesNext = myCard.name === 'Turin';
-
-  while (myHp > 0 && enyHp > 0 && round <= 20) {
-    // قدرات خاصة
-    const special = resolveSpecial(myCard, enemyCard);
-    const enemySpecial = resolveSpecial(enemyCard, myCard);
-
-    let result: 'win' | 'lose' | 'draw';
-    let reason: string;
-    let hpChange = '';
-
-    if (turinLosesNext && myCard.name === 'Turin') {
-      result = 'lose';
-      reason = '🎭 Turin يخسر هذه الجولة (penalty)';
-      turinLosesNext = false; // يتناوب
-    } else if (special.result) {
-      result = special.result;
-      reason = special.reason;
-      turinLosesNext = myCard.name === 'Turin' ? true : false;
-    } else if (enemySpecial.result) {
-      result = enemySpecial.result === 'win' ? 'lose' : 'win';
-      reason = enemySpecial.reason + ' (على بطاقتك)';
-      turinLosesNext = myCard.name === 'Turin' ? true : false;
-    } else if (myCard.power > enemyCard.power) {
-      result = 'win';
-      reason = `💪 قوة أعلى (${myCard.power} > ${enemyCard.power})`;
-      turinLosesNext = myCard.name === 'Turin' ? true : false;
-    } else if (myCard.power < enemyCard.power) {
-      result = 'lose';
-      reason = `💔 قوة أقل (${myCard.power} < ${enemyCard.power})`;
-      turinLosesNext = myCard.name === 'Turin' ? true : false;
-    } else {
-      result = 'draw';
-      reason = '🤝 تعادل (قوة متساوية)';
-      turinLosesNext = myCard.name === 'Turin' ? true : false;
-    }
-
-    if (result === 'win') {
-      enyHp -= 1;
-      hpChange = `HP الخصم: ${enyHp + 1} → ${enyHp}`;
-      if (myCard.name === 'Sakura Haruno') {
-        myHp += 1;
-        hpChange += `  |  💊 Sakura: HP أنت +1 → ${myHp}`;
-      }
-    } else if (result === 'lose') {
-      myHp -= 1;
-      hpChange = `HP أنت: ${myHp + 1} → ${myHp}`;
-    }
-
-    logs.push({
-      round,
-      attacker: myCard.name,
-      defender: enemyCard.name,
-      result,
-      reason,
-      hpChange,
-    });
-    round++;
-  }
-
-  const finalResult = myHp <= 0 ? 'lose' : enyHp <= 0 ? 'win' : 'draw';
-  logs.push({
-    round: -1,
-    attacker: '',
-    defender: '',
-    result: finalResult,
-    reason: finalResult === 'win'
-      ? `🏆 انتصرت! HP أنت: ${myHp} | HP خصم: ${enyHp}`
-      : finalResult === 'lose'
-      ? `💀 خسرت! HP أنت: ${myHp} | HP خصم: ${enyHp}`
-      : `🤝 تعادل! HP أنت: ${myHp} | HP خصم: ${enyHp}`,
-  });
-
-  return logs;
+// ─── AbilityPickerModal ───────────────────────────────────────────────────────────────────────────
+function AbilityPickerModal({
+  visible, current, onClose, onSelect,
+}: {
+  visible: boolean;
+  current: AbilityType | undefined;
+  onClose: () => void;
+  onSelect: (ab: AbilityType | undefined) => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={mp.overlay}>
+        <View style={mp.sheet}>
+          <View style={mp.topBar}>
+            <Text style={mp.title}>⚡ اختر قدرة</Text>
+            <TouchableOpacity onPress={onClose} style={mp.closeBtn}>
+              <Text style={mp.closeTxt}>×</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: SPACE.sm }}>
+            {/* بدون قدرة */}
+            <TouchableOpacity
+              style={[mp.abilityRow, !current && mp.abilityRowActive]}
+              onPress={() => { onSelect(undefined); onClose(); }}
+            >
+              <Text style={{ fontSize: 22 }}>❌</Text>
+              <Text style={[mp.abilityLabel, !current && { color: '#fff', fontWeight: '800' }]}>بدون قدرة</Text>
+            </TouchableOpacity>
+            {ABILITIES.map(a => (
+              <TouchableOpacity
+                key={a.key}
+                style={[mp.abilityRow, current === a.key && { borderColor: a.color, backgroundColor: a.color + '22' }]}
+                onPress={() => { onSelect(a.key); onClose(); }}
+              >
+                <Text style={{ fontSize: 22 }}>{a.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[mp.abilityLabel, current === a.key && { color: a.color, fontWeight: '800' }]}>
+                    {a.labelAr}
+                  </Text>
+                  <Text style={mp.abilityKey}>{a.key}</Text>
+                </View>
+                {current === a.key && <Text style={{ color: a.color, fontSize: 18 }}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── BattleCard UI ──────────────────────────────────────────────────────────────────────────────────────────────
+function BattleCardUI({
+  card, ability, side, onPickCard, onPickAbility, result,
+}: {
+  card: Card;
+  ability: AbilityType | undefined;
+  side: 'player' | 'bot';
+  onPickCard: () => void;
+  onPickAbility: () => void;
+  result: 'win' | 'lose' | 'draw' | null;
+}) {
+  const rarityColor = RARITY_COLORS[card.rarity ?? 'common'];
+  const elemColor   = ELEMENT_COLORS[card.element];
+  const img = card.id ? getCardImage(card) : null;
+
+  const abilityInfo = ability ? ABILITIES.find(a => a.key === ability) : null;
+
+  const borderColor = result === 'win' ? '#4ade80'
+    : result === 'lose' ? '#f87171'
+    : result === 'draw' ? '#facc15'
+    : rarityColor;
+
+  return (
+    <View style={[bc.wrapper, { borderColor: borderColor + 'cc' }]}>
+      {/* بادج الندرة */}
+      {card.rarity && (
+        <View style={[bc.rarityBadge, { backgroundColor: rarityColor + '22', borderColor: rarityColor + '88' }]}>
+          <Text style={[bc.rarityTxt, { color: rarityColor }]}>
+            {card.rarity === 'legendary' ? '★ أسطوري' :
+             card.rarity === 'epic'      ? '◆ ملحمي' :
+             card.rarity === 'rare'      ? '◉ نادر' :
+             card.rarity === 'special'   ? '✶ خاص' : '○ عادي'}
+          </Text>
+        </View>
+      )}
+
+      {/* صورة الكرت */}
+      <TouchableOpacity onPress={onPickCard} activeOpacity={0.85} style={bc.imgWrap}>
+        {img ? (
+          <Image source={img} style={bc.img} resizeMode="cover" />
+        ) : (
+          <View style={[bc.imgPlaceholder, { backgroundColor: rarityColor + '22' }]}>
+            <Text style={{ fontSize: 48 }}>{ELEMENT_EMOJI[card.element]}</Text>
+            <Text style={[bc.pickHint, { color: rarityColor }]}>اضغط لاختيار كرت</Text>
+          </View>
+        )}
+        {/* علامة تغيير */}
+        <View style={bc.changeTag}>
+          <Text style={bc.changeTxt}>✏️</Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* اسم الكرت */}
+      <Text style={[bc.cardName, { color: rarityColor }]} numberOfLines={2}>
+        {card.id ? (card.nameAr || card.name) : 'اضغط لاختيار كرت'}
+      </Text>
+
+      {/* النجوم */}
+      {(card.stars ?? 0) > 0 && (
+        <Text style={bc.stars}>
+          {'\u2605'.repeat(card.stars ?? 0)}
+        </Text>
+      )}
+
+      {/* إحصائيات */}
+      <View style={bc.statsRow}>
+        <View style={[bc.statBadge, { backgroundColor: '#ef444433' }]}>
+          <Text style={bc.statEmoji}>⚔️</Text>
+          <Text style={[bc.statVal, { color: '#ef4444' }]}>{card.attack}</Text>
+        </View>
+        <View style={[bc.statBadge, { backgroundColor: elemColor + '33' }]}>
+          <Text style={bc.statEmoji}>{ELEMENT_EMOJI[card.element]}</Text>
+        </View>
+        {card.gender && (
+          <View style={[bc.statBadge, { backgroundColor: GENDER_COLORS[card.gender] + '33' }]}>
+            <Text style={bc.statEmoji}>{GENDER_EMOJI[card.gender]}</Text>
+          </View>
+        )}
+        <View style={[bc.statBadge, { backgroundColor: '#22c55e33' }]}>
+          <Text style={bc.statEmoji}>💧</Text>
+          <Text style={[bc.statVal, { color: '#22c55e' }]}>{card.defense}</Text>
+        </View>
+      </View>
+
+      {/* زر القدرة */}
+      <TouchableOpacity
+        onPress={onPickAbility}
+        style={[
+          bc.abilityBtn,
+          abilityInfo && { borderColor: abilityInfo.color, backgroundColor: abilityInfo.color + '22' }
+        ]}
+        activeOpacity={0.8}
+      >
+        <Text style={{ fontSize: 16 }}>{abilityInfo?.emoji ?? '⚡'}</Text>
+        <Text style={[bc.abilityTxt, abilityInfo && { color: abilityInfo.color }]}>
+          {abilityInfo ? abilityInfo.labelAr : 'اضغط لاختيار قدرة'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* نتيجة */}
+      {result && (
+        <View style={[
+          bc.resultBadge,
+          result === 'win'  && { backgroundColor: '#4ade8022', borderColor: '#4ade80' },
+          result === 'lose' && { backgroundColor: '#f8717122', borderColor: '#f87171' },
+          result === 'draw' && { backgroundColor: '#facc1522', borderColor: '#facc15' },
+        ]}>
+          <Text style={[
+            bc.resultTxt,
+            result === 'win'  && { color: '#4ade80' },
+            result === 'lose' && { color: '#f87171' },
+            result === 'draw' && { color: '#facc15' },
+          ]}>
+            {result === 'win' ? '✅ فوز' : result === 'lose' ? '❌ خسارة' : '🤝 تعادل'}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ─── SandboxScreen ─────────────────────────────────────────────────────────────────────────────────────────────────────
 export default function SandboxScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
 
-  // بطاقة اللاعب
-  const [myName,    setMyName]    = useState('بطاقتي');
-  const [myPower,   setMyPower]   = useState('50');
-  const [myHp,      setMyHp]      = useState('3');
-  const [myTags,    setMyTags]    = useState<string[]>([]);
-  const [myPreset,  setMyPreset]  = useState<string | null>(null);
+  const [playerCard,    setPlayerCard]    = useState<Card>(EMPTY_CARD);
+  const [botCard,       setBotCard]       = useState<Card>(EMPTY_CARD);
+  const [playerAbility, setPlayerAbility] = useState<AbilityType | undefined>(undefined);
+  const [botAbility,    setBotAbility]    = useState<AbilityType | undefined>(undefined);
 
-  // بطاقة الخصم
-  const [enName,    setEnName]    = useState('الخصم');
-  const [enPower,   setEnPower]   = useState('50');
-  const [enHp,      setEnHp]      = useState('3');
-  const [enTags,    setEnTags]    = useState<string[]>([]);
-  const [enPreset,  setEnPreset]  = useState<string | null>(null);
+  // modal state
+  const [showPickPlayer, setShowPickPlayer]   = useState(false);
+  const [showPickBot,    setShowPickBot]       = useState(false);
+  const [showAbPlayer,   setShowAbPlayer]      = useState(false);
+  const [showAbBot,      setShowAbBot]         = useState(false);
 
-  const [logs, setLogs] = useState<BattleLog[] | null>(null);
+  // نتيجة
+  const [simResult, setSimResult] = useState<{
+    playerRes: 'win' | 'lose' | 'draw';
+    botRes:    'win' | 'lose' | 'draw';
+    log: string[];
+  } | null>(null);
 
-  function applyPreset(side: 'my' | 'en', cardName: string) {
-    const card = SPECIAL_CARDS.find(c => c.name === cardName);
-    if (!card) return;
-    if (side === 'my') {
-      setMyName(card.name); setMyTags(card.tags); setMyPreset(card.name);
-    } else {
-      setEnName(card.name); setEnTags(card.tags); setEnPreset(card.name);
+  const canSim = playerCard.id && botCard.id;
+
+  const runSim = useCallback(() => {
+    if (!canSim) return;
+    const res = determineRoundWinner(playerCard, botCard, [], []);
+    const log: string[] = [];
+
+    const playerAdv = res.playerElementAdvantage;
+    const botAdv    = res.botElementAdvantage;
+
+    if (playerAdv !== 'neutral')
+      log.push(`${ELEMENT_EMOJI[playerCard.element]} تفوق عنصري: ${playerAdv === 'strong' ? 'قوي ⬆️' : 'ضعيف ⬇️'}`);
+    if (botAdv !== 'neutral')
+      log.push(`${ELEMENT_EMOJI[botCard.element]} تفوق عنصري خصم: ${botAdv === 'strong' ? 'قوي ⬆️' : 'ضعيف ⬇️'}`);
+
+    log.push(`⚔️ ضرر اللاعب الأساسي: ${res.playerBaseDamage}  →  صافي: ${res.playerDamage}`);
+    log.push(`🤖 ضرر البوت الأساسي: ${res.botBaseDamage}  →  صافي: ${res.botDamage}`);
+
+    if (playerAbility) {
+      const ab = ABILITIES.find(a => a.key === playerAbility);
+      log.push(`⚡ قدرة اللاعب: ${ab?.emoji ?? ''} ${ab?.labelAr ?? playerAbility}`);
     }
-  }
+    if (botAbility) {
+      const ab = ABILITIES.find(a => a.key === botAbility);
+      log.push(`⚡ قدرة البوت: ${ab?.emoji ?? ''} ${ab?.labelAr ?? botAbility}`);
+    }
 
-  function toggleTag(side: 'my' | 'en', tag: string) {
-    const setter = side === 'my' ? setMyTags : setEnTags;
-    setter(prev =>
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    );
-  }
+    const playerRes: 'win' | 'lose' | 'draw' =
+      res.winner === 'player' ? 'win' :
+      res.winner === 'bot'    ? 'lose' : 'draw';
+    const botRes: 'win' | 'lose' | 'draw' =
+      res.winner === 'bot'    ? 'win' :
+      res.winner === 'player' ? 'lose' : 'draw';
 
-  function runSim() {
-    const myCard: SimCard = {
-      name:   myPreset ?? myName,
-      power:  parseInt(myPower) || 50,
-      health: parseInt(myHp)    || 3,
-      tags:   myTags,
-      emoji:  SPECIAL_CARDS.find(c => c.name === myPreset)?.emoji ?? '🃏',
-      color:  SPECIAL_CARDS.find(c => c.name === myPreset)?.color ?? COLOR.gold,
-    };
-    const enCard: SimCard = {
-      name:   enPreset ?? enName,
-      power:  parseInt(enPower) || 50,
-      health: parseInt(enHp)    || 3,
-      tags:   enTags,
-      emoji:  SPECIAL_CARDS.find(c => c.name === enPreset)?.emoji ?? '👾',
-      color:  SPECIAL_CARDS.find(c => c.name === enPreset)?.color ?? '#f87171',
-    };
-    setLogs(simulateBattle(myCard, enCard));
-  }
-
-  const finalLog = logs?.find(l => l.round === -1);
-  const roundLogs = logs?.filter(l => l.round > 0) ?? [];
+    setSimResult({ playerRes, botRes, log });
+  }, [playerCard, botCard, playerAbility, botAbility, canSim]);
 
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header */}
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-            <Text style={styles.backText}>← رجوع</Text>
+
+        {/* ── Header ── */}
+        <View style={s.header}>
+          <TouchableOpacity style={s.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <Text style={s.backTxt}>←</Text>
           </TouchableOpacity>
+          <Text style={s.title}>🧪 البيئة التجريبية</Text>
+          <View style={{ width: 44 }} />
+        </View>
 
-          <Text style={styles.title}>🧪 البيئة التجريبية</Text>
-          <Text style={styles.subtitle}>اختر كروتك وشغّل المحاكاة بدون ما تلعب فعلياً</Text>
+        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-          {/* ── الصف: بطاقتي vs الخصم ── */}
-          <View style={styles.row}>
+          {/* ── ميدان المعركة ── */}
+          <View style={s.arena}>
 
-            {/* بطاقتي */}
-            <View style={[styles.panel, { flex: 1 }]}>
-              <Text style={[styles.panelTitle, { color: '#60a5fa' }]}>🃏 بطاقتي</Text>
+            {/* اللاعب */}
+            <BattleCardUI
+              card={playerCard}
+              ability={playerAbility}
+              side="player"
+              onPickCard={() => setShowPickPlayer(true)}
+              onPickAbility={() => setShowAbPlayer(true)}
+              result={simResult?.playerRes ?? null}
+            />
 
-              {/* Preset */}
-              <Text style={styles.label}>كرت سريع:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACE.sm }}>
-                {SPECIAL_CARDS.map(c => (
-                  <TouchableOpacity
-                    key={c.name}
-                    onPress={() => applyPreset('my', c.name)}
-                    style={[styles.presetBtn, myPreset === c.name && { borderColor: c.color, backgroundColor: c.color + '22' }]}
-                  >
-                    <Text style={{ fontSize: 18 }}>{c.emoji}</Text>
-                    <Text style={[styles.presetName, { color: c.color }]}>{c.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              <Text style={styles.label}>الاسم</Text>
-              <TextInput
-                style={styles.input}
-                value={myName}
-                onChangeText={v => { setMyName(v); setMyPreset(null); }}
-                placeholderTextColor='#555'
-              />
-
-              <View style={styles.numRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>القوة</Text>
-                  <TextInput style={styles.input} value={myPower} onChangeText={setMyPower} keyboardType='numeric' placeholderTextColor='#555' />
-                </View>
-                <View style={{ width: SPACE.sm }} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>الصحة</Text>
-                  <TextInput style={styles.input} value={myHp} onChangeText={setMyHp} keyboardType='numeric' placeholderTextColor='#555' />
-                </View>
+            {/* VS + زر التشغيل */}
+            <View style={s.vsCol}>
+              <View style={s.vsCircle}>
+                <Text style={s.vsEmoji}>⚔️</Text>
+                <Text style={s.vsText}>VS</Text>
               </View>
-
-              <Text style={styles.label}>التاجات:</Text>
-              <View style={styles.tagWrap}>
-                {ABILITY_TAGS.filter(t => t.key !== 'none').map(t => (
-                  <TouchableOpacity
-                    key={t.key}
-                    onPress={() => { toggleTag('my', t.key); setMyPreset(null); }}
-                    style={[styles.tagBtn, myTags.includes(t.key) && { borderColor: t.color, backgroundColor: t.color + '22' }]}
-                  >
-                    <Text style={[styles.tagTxt, myTags.includes(t.key) && { color: t.color }]}>{t.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <TouchableOpacity
+                style={[s.runBtn, !canSim && s.runBtnDisabled]}
+                onPress={runSim}
+                disabled={!canSim}
+                activeOpacity={0.85}
+              >
+                <Text style={s.runTxt}>{canSim ? '🔍 حاكي' : '✕'}</Text>
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.vsCol}>
-              <Text style={styles.vs}>VS</Text>
-            </View>
-
-            {/* الخصم */}
-            <View style={[styles.panel, { flex: 1 }]}>
-              <Text style={[styles.panelTitle, { color: '#f87171' }]}>👾 الخصم</Text>
-
-              <Text style={styles.label}>كرت سريع:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACE.sm }}>
-                {SPECIAL_CARDS.map(c => (
-                  <TouchableOpacity
-                    key={c.name}
-                    onPress={() => applyPreset('en', c.name)}
-                    style={[styles.presetBtn, enPreset === c.name && { borderColor: c.color, backgroundColor: c.color + '22' }]}
-                  >
-                    <Text style={{ fontSize: 18 }}>{c.emoji}</Text>
-                    <Text style={[styles.presetName, { color: c.color }]}>{c.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              <Text style={styles.label}>الاسم</Text>
-              <TextInput
-                style={styles.input}
-                value={enName}
-                onChangeText={v => { setEnName(v); setEnPreset(null); }}
-                placeholderTextColor='#555'
-              />
-
-              <View style={styles.numRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>القوة</Text>
-                  <TextInput style={styles.input} value={enPower} onChangeText={setEnPower} keyboardType='numeric' placeholderTextColor='#555' />
-                </View>
-                <View style={{ width: SPACE.sm }} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>الصحة</Text>
-                  <TextInput style={styles.input} value={enHp} onChangeText={setEnHp} keyboardType='numeric' placeholderTextColor='#555' />
-                </View>
-              </View>
-
-              <Text style={styles.label}>التاجات:</Text>
-              <View style={styles.tagWrap}>
-                {ABILITY_TAGS.filter(t => t.key !== 'none').map(t => (
-                  <TouchableOpacity
-                    key={t.key}
-                    onPress={() => { toggleTag('en', t.key); setEnPreset(null); }}
-                    style={[styles.tagBtn, enTags.includes(t.key) && { borderColor: t.color, backgroundColor: t.color + '22' }]}
-                  >
-                    <Text style={[styles.tagTxt, enTags.includes(t.key) && { color: t.color }]}>{t.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+            {/* البوت */}
+            <BattleCardUI
+              card={botCard}
+              ability={botAbility}
+              side="bot"
+              onPickCard={() => setShowPickBot(true)}
+              onPickAbility={() => setShowAbBot(true)}
+              result={simResult?.botRes ?? null}
+            />
           </View>
 
-          {/* زر المحاكاة */}
-          <TouchableOpacity style={styles.runBtn} onPress={runSim} activeOpacity={0.85}>
-            <Text style={styles.runBtnText}>▶ شغّل المحاكاة</Text>
-          </TouchableOpacity>
-
-          {/* النتائج */}
-          {logs && (
-            <View style={styles.logsWrap}>
-              {/* النتيجة النهائية */}
-              {finalLog && (
-                <View style={[
-                  styles.finalBadge,
-                  finalLog.result === 'win'  && { borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.1)' },
-                  finalLog.result === 'lose' && { borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.1)' },
-                  finalLog.result === 'draw' && { borderColor: '#facc15', backgroundColor: 'rgba(250,204,21,0.1)' },
-                ]}>
-                  <Text style={[
-                    styles.finalText,
-                    finalLog.result === 'win'  && { color: '#4ade80' },
-                    finalLog.result === 'lose' && { color: '#f87171' },
-                    finalLog.result === 'draw' && { color: '#facc15' },
-                  ]}>
-                    {finalLog.reason}
-                  </Text>
-                </View>
-              )}
-
-              {/* سجل الجولات */}
-              <Text style={styles.logsTitle}>📋 سجل الجولات</Text>
-              {roundLogs.map((log, i) => (
-                <View key={i} style={[
-                  styles.logRow,
-                  log.result === 'win'  && { borderLeftColor: '#4ade80' },
-                  log.result === 'lose' && { borderLeftColor: '#f87171' },
-                  log.result === 'draw' && { borderLeftColor: '#facc15' },
-                ]}>
-                  <Text style={styles.logRound}>جولة {log.round}</Text>
-                  <Text style={styles.logResult}>
-                    {log.result === 'win' ? '✅ فوز' : log.result === 'lose' ? '❌ خسارة' : '🤝 تعادل'}
-                  </Text>
-                  <Text style={styles.logReason}>{log.reason}</Text>
-                  {!!log.hpChange && <Text style={styles.logHp}>{log.hpChange}</Text>}
-                </View>
+          {/* ── سجل المحاكاة ── */}
+          {simResult && (
+            <View style={s.logBox}>
+              <Text style={s.logTitle}>📊 تحليل الجولة</Text>
+              {simResult.log.map((line, i) => (
+                <Text key={i} style={s.logLine}>{line}</Text>
               ))}
+              <TouchableOpacity style={s.resetBtn} onPress={() => setSimResult(null)} activeOpacity={0.8}>
+                <Text style={s.resetTxt}>🔄 إعادة تعيين</Text>
+              </TouchableOpacity>
             </View>
           )}
+
+          {!canSim && (
+            <Text style={s.hint}>☝️ اختر كرتين لتفعيل المحاكاة</Text>
+          )}
         </ScrollView>
+
+        {/* ── Modals ── */}
+        <CardPickerModal
+          visible={showPickPlayer}
+          onClose={() => setShowPickPlayer(false)}
+          onSelect={c => { setPlayerCard(c); setSimResult(null); }}
+        />
+        <CardPickerModal
+          visible={showPickBot}
+          onClose={() => setShowPickBot(false)}
+          onSelect={c => { setBotCard(c); setSimResult(null); }}
+        />
+        <AbilityPickerModal
+          visible={showAbPlayer}
+          current={playerAbility}
+          onClose={() => setShowAbPlayer(false)}
+          onSelect={ab => { setPlayerAbility(ab); setSimResult(null); }}
+        />
+        <AbilityPickerModal
+          visible={showAbBot}
+          current={botAbility}
+          onClose={() => setShowAbBot(false)}
+          onSelect={ab => { setBotAbility(ab); setSimResult(null); }}
+        />
       </LuxuryBackground>
     </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  scroll:       { paddingHorizontal: SPACE.md, paddingTop: SPACE.xl, paddingBottom: SPACE.xxl },
-  backBtn:      { alignSelf: 'flex-start', paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md, borderRadius: RADIUS.sm, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(228,165,42,0.3)', marginBottom: SPACE.lg },
-  backText:     { color: COLOR.gold, fontSize: FONT.md },
-  title:        { fontSize: FONT.xl, color: COLOR.gold, textAlign: 'center', marginBottom: SPACE.xs },
-  subtitle:     { fontSize: FONT.sm, color: COLOR.textMuted, textAlign: 'center', marginBottom: SPACE.lg },
+// ─── Styles ─────────────────────────────────────────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  header:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACE.md, paddingTop: SPACE.md, paddingBottom: SPACE.sm },
+  backBtn:  { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.full, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(228,165,42,0.3)' },
+  backTxt:  { color: COLOR.gold, fontSize: FONT.lg, fontWeight: '700' },
+  title:    { fontSize: FONT.lg, color: COLOR.gold, fontWeight: '900', letterSpacing: 1 },
 
-  row:          { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.sm },
-  vsCol:        { alignSelf: 'center', paddingHorizontal: SPACE.xs },
-  vs:           { fontSize: FONT.lg, color: COLOR.gold, fontWeight: '900' },
+  scroll:   { padding: SPACE.md, paddingBottom: SPACE.xxl },
 
-  panel:        { ...GLASS_PANEL, padding: SPACE.md, overflow: 'hidden' },
-  panelTitle:   { fontSize: FONT.md, fontWeight: '800', textAlign: 'center', marginBottom: SPACE.sm },
+  arena:    { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.xs },
 
-  label:        { fontSize: FONT.xs, color: COLOR.textMuted, marginBottom: 2 },
-  input:        { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: RADIUS.sm, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', color: '#fff', fontSize: FONT.sm, paddingHorizontal: SPACE.sm, paddingVertical: SPACE.xs, marginBottom: SPACE.sm },
-  numRow:       { flexDirection: 'row' },
+  vsCol:    { alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: SPACE.md, width: 60 },
+  vsCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(228,165,42,0.15)', borderWidth: 1.5, borderColor: 'rgba(228,165,42,0.5)', alignItems: 'center', justifyContent: 'center' },
+  vsEmoji:  { fontSize: 16 },
+  vsText:   { fontSize: 10, color: COLOR.gold, fontWeight: '900' },
+  runBtn:   { paddingHorizontal: SPACE.sm, paddingVertical: SPACE.sm, borderRadius: RADIUS.md, backgroundColor: '#059669', alignItems: 'center', shadowColor: '#10b981', shadowOpacity: 0.4, shadowRadius: 10, elevation: 5, minWidth: 52 },
+  runBtnDisabled: { backgroundColor: '#1f2937', shadowOpacity: 0 },
+  runTxt:   { color: '#fff', fontSize: 11, fontWeight: '800', textAlign: 'center' },
 
-  presetBtn:    { alignItems: 'center', marginRight: SPACE.xs, padding: SPACE.xs, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', minWidth: 60 },
-  presetName:   { fontSize: 9, fontWeight: '700', textAlign: 'center', marginTop: 2 },
+  logBox:   { marginTop: SPACE.xl, ...GLASS_PANEL, padding: SPACE.md },
+  logTitle: { fontSize: FONT.md, color: COLOR.gold, fontWeight: '800', marginBottom: SPACE.sm },
+  logLine:  { fontSize: FONT.sm, color: '#ddd', marginBottom: SPACE.xs, lineHeight: 20 },
+  resetBtn: { marginTop: SPACE.md, alignSelf: 'center', paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderRadius: RADIUS.full, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  resetTxt: { color: '#aaa', fontSize: FONT.sm },
 
-  tagWrap:      { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  tagBtn:       { paddingHorizontal: SPACE.xs, paddingVertical: 3, borderRadius: RADIUS.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.04)', marginBottom: 4 },
-  tagTxt:       { fontSize: 9, color: '#aaa' },
+  hint:     { textAlign: 'center', color: COLOR.textMuted, fontSize: FONT.sm, marginTop: SPACE.xl },
+});
 
-  runBtn:       { marginTop: SPACE.lg, backgroundColor: '#059669', borderRadius: RADIUS.md, paddingVertical: SPACE.md, alignItems: 'center', shadowColor: '#10b981', shadowOpacity: 0.4, shadowRadius: 14, elevation: 6 },
-  runBtnText:   { color: '#fff', fontSize: FONT.lg, fontWeight: '800', letterSpacing: 1 },
+// ─── BattleCard styles ─────────────────────────────────────────────────────────────────────────────────────────────────
+const bc = StyleSheet.create({
+  wrapper:      { flex: 1, borderRadius: RADIUS.lg, borderWidth: 2, backgroundColor: 'rgba(10,10,20,0.85)', overflow: 'hidden', paddingBottom: SPACE.sm },
+  rarityBadge:  { margin: SPACE.xs, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.full, borderWidth: 1 },
+  rarityTxt:    { fontSize: 9, fontWeight: '800' },
+  imgWrap:      { width: '100%', aspectRatio: 0.75, position: 'relative' },
+  img:          { width: '100%', height: '100%' },
+  imgPlaceholder: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', gap: SPACE.sm },
+  pickHint:     { fontSize: 10, fontWeight: '700', textAlign: 'center' },
+  changeTag:    { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: RADIUS.full, width: 26, height: 26, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  changeTxt:    { fontSize: 13 },
+  cardName:     { fontSize: FONT.sm, fontWeight: '800', textAlign: 'center', paddingHorizontal: SPACE.xs, marginTop: SPACE.xs },
+  stars:        { textAlign: 'center', color: '#fbbf24', fontSize: 11, marginTop: 2 },
+  statsRow:     { flexDirection: 'row', justifyContent: 'center', gap: 4, marginTop: SPACE.xs, flexWrap: 'wrap', paddingHorizontal: SPACE.xs },
+  statBadge:    { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 5, paddingVertical: 3, borderRadius: RADIUS.sm },
+  statEmoji:    { fontSize: 12 },
+  statVal:      { fontSize: 11, fontWeight: '800' },
+  abilityBtn:   { marginHorizontal: SPACE.xs, marginTop: SPACE.xs, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: SPACE.sm, paddingVertical: SPACE.xs, borderRadius: RADIUS.full, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.05)' },
+  abilityTxt:   { fontSize: 9, color: '#bbb', fontWeight: '700', flex: 1 },
+  resultBadge:  { margin: SPACE.xs, borderRadius: RADIUS.sm, borderWidth: 1.5, paddingVertical: SPACE.xs, alignItems: 'center' },
+  resultTxt:    { fontSize: FONT.sm, fontWeight: '900' },
+});
 
-  logsWrap:     { marginTop: SPACE.xl },
-  logsTitle:    { fontSize: FONT.md, color: COLOR.gold, fontWeight: '700', marginBottom: SPACE.sm },
-  finalBadge:   { borderRadius: RADIUS.md, borderWidth: 1.5, padding: SPACE.md, marginBottom: SPACE.lg, alignItems: 'center' },
-  finalText:    { fontSize: FONT.lg, fontWeight: '900', textAlign: 'center' },
-
-  logRow:       { borderLeftWidth: 3, borderLeftColor: '#555', paddingLeft: SPACE.sm, marginBottom: SPACE.sm, paddingVertical: SPACE.xs },
-  logRound:     { fontSize: FONT.xs, color: COLOR.textMuted },
-  logResult:    { fontSize: FONT.sm, fontWeight: '700', color: '#fff' },
-  logReason:    { fontSize: FONT.xs, color: '#ccc', marginTop: 2 },
-  logHp:        { fontSize: FONT.xs, color: '#60a5fa', marginTop: 2 },
+// ─── Modal styles ─────────────────────────────────────────────────────────────────────────────────────────────────
+const mp = StyleSheet.create({
+  overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
+  sheet:        { backgroundColor: '#0f172a', borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl, maxHeight: '85%', borderWidth: 1, borderColor: 'rgba(228,165,42,0.25)' },
+  topBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: SPACE.md, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
+  title:        { fontSize: FONT.lg, color: COLOR.gold, fontWeight: '800' },
+  closeBtn:     { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  closeTxt:     { color: '#fff', fontSize: 20, fontWeight: '300', lineHeight: 22 },
+  search:       { margin: SPACE.md, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: FONT.sm, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm },
+  cardThumb:    { flex: 1, borderRadius: RADIUS.md, borderWidth: 1.5, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.04)', minHeight: 130 },
+  thumbImg:     { width: '100%', height: 90 },
+  thumbPlaceholder: { width: '100%', height: 90, alignItems: 'center', justifyContent: 'center' },
+  thumbName:    { fontSize: 10, fontWeight: '700', textAlign: 'center', padding: 4, lineHeight: 13 },
+  abilityRow:   { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, padding: SPACE.sm, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: SPACE.xs, backgroundColor: 'rgba(255,255,255,0.03)' },
+  abilityRowActive: { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.1)' },
+  abilityLabel: { fontSize: FONT.sm, color: '#ccc', fontWeight: '600' },
+  abilityKey:   { fontSize: 10, color: '#555', marginTop: 2 },
 });
