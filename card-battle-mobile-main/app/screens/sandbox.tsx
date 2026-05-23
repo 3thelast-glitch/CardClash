@@ -27,7 +27,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
-import { AbilityCard } from '@/components/game/ability-card';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
 import { ALL_CARDS, determineRoundWinner } from '@/lib/game/cards-data-exports';
 import {
@@ -109,30 +108,84 @@ const sb = StyleSheet.create({
   fillRight: { left: undefined, right: 0 },
 });
 
+// ─── Element tab data ──────────────────────────────────────────────────────
+const ELEMENT_TABS: { key: Element | 'all'; label: string }[] = [
+  { key: 'all', label: 'الكل' },
+  { key: 'fire', label: '🔥 نار' },
+  { key: 'water', label: '💧 ماء' },
+  { key: 'earth', label: '🌍 أرض' },
+  { key: 'lightning', label: '⚡ برق' },
+  { key: 'wind', label: '💨 ريح' },
+];
+
 // ─── CardPickerModal ───────────────────────────────────────────────────────
-function CardPickerModal({ visible, onClose, onSelect }: {
+function CardPickerModal({ visible, onClose, onSelect, side, selectedId }: {
   visible: boolean; onClose: () => void; onSelect: (c: Card) => void;
+  side: 'player' | 'bot'; selectedId: string;
 }) {
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<Element | 'all'>('all');
+
   const filtered = useMemo(() =>
-    CARDS.filter(c => c.nameAr?.includes(search) || c.name.toLowerCase().includes(search.toLowerCase())),
-    [search]
+    CARDS.filter(c => {
+      if (activeTab !== 'all' && c.element !== activeTab) return false;
+      if (!search) return true;
+      return c.nameAr?.includes(search) || c.name.toLowerCase().includes(search.toLowerCase());
+    }),
+    [search, activeTab]
   );
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={S.modalOverlay}>
         <View style={S.cardPickerSheet}>
+          {/* Header */}
           <View style={S.modalHeader}>
-            <Text style={S.modalTitle}>🃏 اختر كرت</Text>
-            <TouchableOpacity onPress={onClose} style={S.modalClose}><Text style={S.modalCloseText}>✕</Text></TouchableOpacity>
+            <Text style={S.modalTitle}>
+              {side === 'player' ? '👤' : '🤖'} 🃏 اختر كرت
+            </Text>
+            <TouchableOpacity onPress={onClose} style={S.modalClose}>
+              <Text style={S.modalCloseText}>✕</Text>
+            </TouchableOpacity>
           </View>
-          <TextInput
-            style={S.searchInput}
-            placeholder="بحث..."
-            placeholderTextColor="#475569"
-            value={search}
-            onChangeText={setSearch}
-          />
+
+          {/* Element tab bar */}
+          <View style={S.tabBar}>
+            {ELEMENT_TABS.map(tab => (
+              <TouchableOpacity
+                key={tab.key}
+                style={[S.tabItem, activeTab === tab.key && S.tabItemActive]}
+                onPress={() => { setActiveTab(tab.key); setSearch(''); }}
+                activeOpacity={0.8}
+              >
+                <Text style={[S.tabText, activeTab === tab.key && S.tabTextActive]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Search bar with clear button */}
+          <View style={{ position: 'relative' }}>
+            <TextInput
+              style={S.searchInput}
+              placeholder="ابحث عن كرت..."
+              placeholderTextColor="#475569"
+              value={search}
+              onChangeText={setSearch}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity
+                style={S.searchClearBtn}
+                onPress={() => setSearch('')}
+                activeOpacity={0.7}
+              >
+                <Text style={S.searchClearText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Grid */}
           <FlatList
             data={filtered}
             keyExtractor={c => c.id}
@@ -141,16 +194,23 @@ function CardPickerModal({ visible, onClose, onSelect }: {
             columnWrapperStyle={{ gap: SPACE.xs }}
             renderItem={({ item }) => {
               const rc = RARITY_COLORS[item.rarity ?? 'common'];
+              const elColor = ELEMENT_COLORS[item.element] ?? rc;
               const img = getCardImage(item);
+              const isSelected = item.id === selectedId;
               return (
                 <TouchableOpacity
-                  style={[S.thumbCard, { borderColor: rc + '88' }]}
+                  style={[
+                    S.thumbCard,
+                    { borderColor: rc + '88' },
+                    isSelected && S.thumbSelected,
+                  ]}
                   onPress={() => { onSelect(item); onClose(); }}
                   activeOpacity={0.8}
                 >
+                  {isSelected && <Text style={S.thumbCheck}>✓</Text>}
                   {img
                     ? <Image source={img} style={S.thumbImg} resizeMode="cover" />
-                    : <View style={[S.thumbPlaceholder, { backgroundColor: rc + '18' }]}>
+                    : <View style={[S.thumbPlaceholder, { backgroundColor: elColor + '18' }]}>
                         <Text style={{ fontSize: 28 }}>{ELEMENT_EMOJI[item.element] ?? '🃏'}</Text>
                       </View>
                   }
@@ -168,56 +228,110 @@ function CardPickerModal({ visible, onClose, onSelect }: {
 }
 
 // ─── AbilitiesModal ───────────────────────────────────────────────────────
-function AbilitiesModal({ visible, current, onClose, onSelect }: {
+function AbilitiesModal({ visible, current, onClose, onSelect, cardName }: {
   visible: boolean;
   current: AbilityType | undefined;
   onClose: () => void;
   onSelect: (ab: AbilityType | undefined) => void;
+  cardName: string;
 }) {
+  const [pending, setPending] = useState<AbilityType | undefined | '__none__'>(undefined);
+
+  // Sync pending with current when modal opens
+  useEffect(() => {
+    if (visible) setPending(current === undefined ? '__none__' : current);
+  }, [visible, current]);
+
+  const handleConfirm = useCallback(() => {
+    onSelect(pending === '__none__' ? undefined : (pending as AbilityType));
+    onClose();
+  }, [pending, onSelect, onClose]);
+
+  const starsForIndex = (i: number) => {
+    if (i < 10) return '⭐';
+    if (i < 25) return '⭐⭐';
+    return '⭐⭐⭐';
+  };
+
+  const headerTitle = cardName
+    ? `⚡ القدرات — ${cardName}`
+    : '⚡ اختر كرت أولاً';
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={S.modalOverlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity style={S.abilitiesModal} activeOpacity={1}>
+        <TouchableOpacity
+          style={S.abilitiesModal}
+          activeOpacity={1}
+          onPress={e => e.stopPropagation()}
+        >
+          {/* Header */}
           <View style={S.modalHeader}>
-            <Text style={S.modalTitle}>⚡ اختر قدرة</Text>
+            <Text style={S.modalTitle} numberOfLines={1}>{headerTitle}</Text>
             <TouchableOpacity onPress={onClose} style={S.modalClose}>
               <Text style={S.modalCloseText}>✕</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Ability list */}
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* بدون قدرة */}
             <TouchableOpacity
-              style={[S.abilityItemWrap, !current && S.abilityItemActive]}
-              onPress={() => { onSelect(undefined); onClose(); }}
+              style={[
+                S.abilityRow,
+                pending === '__none__' ? S.abilityRowActive : S.abilityRowInactive,
+              ]}
+              onPress={() => setPending('__none__')}
               activeOpacity={0.85}
             >
-              <AbilityCard
-                ability={{
-                  id: -1, nameEn: 'None', nameAr: '❌ بدون قدرة',
-                  description: 'لا تستخدم أي قدرة', icon: null, rarity: 'Common', isActive: true,
-                }}
-                showActionButtons={false}
-              />
+              <View style={S.abilityRowLeft}>
+                <Text style={{ fontSize: 16 }}>⊘</Text>
+              </View>
+              <View style={S.abilityRowCenter}>
+                <Text style={S.abilityRowName}>بدون قدرة</Text>
+                <Text style={S.abilityRowDesc} numberOfLines={1}>لا تستخدم أي قدرة</Text>
+              </View>
+              {pending === '__none__' && <Text style={S.abilityRowCheck}>✓</Text>}
             </TouchableOpacity>
-            {ALL_ABILITIES.map((ab, i) => (
-              <TouchableOpacity
-                key={ab}
-                style={[S.abilityItemWrap, current === ab && S.abilityItemActive]}
-                onPress={() => { onSelect(ab); onClose(); }}
-                activeOpacity={0.85}
-              >
-                <AbilityCard
-                  ability={{
-                    id: i, nameEn: ab,
-                    nameAr: getAbilityNameAr(ab).split('(')[0].trim(),
-                    description: getAbilityDescription(ab),
-                    icon: null, rarity: 'Rare', isActive: true,
-                  }}
-                  showActionButtons={false}
-                />
-              </TouchableOpacity>
-            ))}
+
+            {ALL_ABILITIES.map((ab, i) => {
+              const isActive = pending === ab;
+              return (
+                <TouchableOpacity
+                  key={ab}
+                  style={[
+                    S.abilityRow,
+                    isActive ? S.abilityRowActive : S.abilityRowInactive,
+                  ]}
+                  onPress={() => setPending(ab)}
+                  activeOpacity={0.85}
+                >
+                  <View style={S.abilityRowLeft}>
+                    <Text style={{ fontSize: 10 }}>{starsForIndex(i)}</Text>
+                  </View>
+                  <View style={S.abilityRowCenter}>
+                    <Text style={S.abilityRowName}>
+                      {getAbilityNameAr(ab).split('(')[0].trim()}
+                    </Text>
+                    <Text style={S.abilityRowDesc} numberOfLines={1}>
+                      {getAbilityDescription(ab)}
+                    </Text>
+                  </View>
+                  {isActive && <Text style={S.abilityRowCheck}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
+
+          {/* Confirm button */}
+          <TouchableOpacity
+            style={[S.confirmBtn, pending === undefined && S.confirmBtnDisabled]}
+            onPress={handleConfirm}
+            disabled={pending === undefined}
+            activeOpacity={0.85}
+          >
+            <Text style={S.confirmBtnText}>✅ تأكيد</Text>
+          </TouchableOpacity>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -719,23 +833,29 @@ export default function SandboxScreen() {
         visible={pickingPlayer}
         onClose={() => setPickingPlayer(false)}
         onSelect={c => { setPlayerCard(c); }}
+        side="player"
+        selectedId={playerCard.id}
       />
       <CardPickerModal
         visible={pickingBot}
         onClose={() => setPickingBot(false)}
         onSelect={c => { setBotCard(c); }}
+        side="bot"
+        selectedId={botCard.id}
       />
       <AbilitiesModal
         visible={abPlayer}
         current={playerAbility}
         onClose={() => setAbPlayer(false)}
         onSelect={setPlayerAbility}
+        cardName={playerCard.id ? (playerCard.nameAr || playerCard.name) : ''}
       />
       <AbilitiesModal
         visible={abBot}
         current={botAbility}
         onClose={() => setAbBot(false)}
         onSelect={setBotAbility}
+        cardName={botCard.id ? (botCard.nameAr || botCard.name) : ''}
       />
 
       {/* ── History Modal ── */}
@@ -837,10 +957,10 @@ const S = StyleSheet.create({
 
   // Modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
-  abilitiesModal: { width: '92%', maxWidth: 820, backgroundColor: 'rgba(12,18,36,0.97)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(51,65,85,0.7)', padding: SPACE.xl, paddingBottom: SPACE.lg },
+  abilitiesModal: { width: 340, maxHeight: '75%', backgroundColor: 'rgba(12,18,36,0.97)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(51,65,85,0.7)', padding: SPACE.xl, paddingBottom: SPACE.sm },
   historyModal: { backgroundColor: 'rgba(18,14,28,0.97)', borderRadius: RADIUS.lg, width: '90%', maxHeight: '82%', padding: SPACE.xl, borderWidth: 1, borderColor: '#1e293b' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACE.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)', paddingBottom: SPACE.md },
-  modalTitle: { color: '#f8fafc', fontSize: FONT.xl },
+  modalTitle: { color: '#f8fafc', fontSize: FONT.lg, flex: 1 },
   modalClose: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248,113,113,0.12)', borderRadius: 16 },
   modalCloseText: { color: '#f87171', fontSize: 18 },
   emptyText: { color: '#64748b', textAlign: 'center', marginVertical: SPACE.xxl, fontSize: FONT.base },
@@ -862,14 +982,38 @@ const S = StyleSheet.create({
   sessionResultSub: { fontSize: FONT.sm, color: COLOR.textMuted },
   sessionSmallBtn: { height: 34, paddingHorizontal: SPACE.md, borderRadius: RADIUS.full, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, borderWidth: 1.5 },
 
-  cardPickerSheet: { backgroundColor: '#080612', borderTopLeftRadius: RADIUS.lg, borderTopRightRadius: RADIUS.lg, maxHeight: '88%', borderWidth: 1, borderColor: 'rgba(228,165,42,0.2)' },
-  searchInput: { margin: SPACE.md, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: FONT.sm, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm },
-  thumbCard: { flex: 1, borderRadius: RADIUS.md, borderWidth: 1.5, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.03)', minHeight: 120 },
-  thumbImg: { width: '100%', height: 85 },
-  thumbPlaceholder: { width: '100%', height: 85, alignItems: 'center', justifyContent: 'center' },
-  thumbName: { fontSize: 9, fontWeight: '700', textAlign: 'center', padding: 4, lineHeight: 13 },
-  abilityItemWrap: { marginBottom: SPACE.xs, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'transparent', overflow: 'hidden' },
-  abilityItemActive: { borderColor: 'rgba(228,165,42,0.5)', backgroundColor: 'rgba(228,165,42,0.06)' },
+  cardPickerSheet: { backgroundColor: '#080612', borderTopLeftRadius: RADIUS.lg, borderTopRightRadius: RADIUS.lg, maxHeight: '82%', borderWidth: 1, borderColor: 'rgba(228,165,42,0.2)' },
+  searchInput: { marginHorizontal: SPACE.md, marginBottom: SPACE.sm, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: FONT.sm, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm },
+  searchClearBtn: { position: 'absolute', right: SPACE.md + 10, top: 0, bottom: SPACE.sm, justifyContent: 'center' },
+  searchClearText: { color: COLOR.textMuted, fontSize: 14 },
+  thumbCard: { flex: 1, borderRadius: RADIUS.md, borderWidth: 1.5, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.03)', minHeight: 130 },
+  thumbSelected: { borderWidth: 2, borderColor: COLOR.gold },
+  thumbCheck: { position: 'absolute', top: 4, right: 4, color: COLOR.gold, fontSize: 12, fontWeight: '800', zIndex: 10 },
+  thumbImg: { width: '100%', height: 95 },
+  thumbPlaceholder: { width: '100%', height: 95, alignItems: 'center', justifyContent: 'center' },
+  thumbName: { fontSize: 10, fontWeight: '700', textAlign: 'center', padding: 4, lineHeight: 14 },
+
+  // Tab bar
+  tabBar: { flexDirection: 'row', paddingHorizontal: SPACE.md, gap: SPACE.xs, marginBottom: SPACE.sm, flexWrap: 'wrap' },
+  tabItem: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  tabItemActive: { backgroundColor: COLOR.gold, borderColor: COLOR.gold },
+  tabText: { fontSize: FONT.xs, color: COLOR.textMuted },
+  tabTextActive: { color: '#000', fontWeight: '700' },
+
+  // Ability rows
+  abilityRow: { flexDirection: 'row', alignItems: 'center', height: 64, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.md, borderWidth: 1, marginBottom: SPACE.xs },
+  abilityRowActive: { borderColor: COLOR.gold + '88', backgroundColor: 'rgba(228,165,42,0.08)' },
+  abilityRowInactive: { borderColor: 'rgba(255,255,255,0.07)', backgroundColor: 'rgba(255,255,255,0.03)' },
+  abilityRowLeft: { width: 36, alignItems: 'center' },
+  abilityRowCenter: { flex: 1, marginHorizontal: SPACE.sm },
+  abilityRowName: { fontSize: FONT.sm, fontWeight: '700', color: '#fff' },
+  abilityRowDesc: { fontSize: 9, color: COLOR.textMuted },
+  abilityRowCheck: { color: COLOR.gold, fontSize: FONT.lg, fontWeight: '800' },
+
+  // Confirm button
+  confirmBtn: { height: 44, borderRadius: RADIUS.full, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLOR.gold, backgroundColor: 'rgba(228,165,42,0.15)', marginHorizontal: SPACE.md, marginTop: SPACE.sm, marginBottom: SPACE.md },
+  confirmBtnDisabled: { opacity: 0.4 },
+  confirmBtnText: { color: COLOR.gold, fontSize: FONT.sm, fontWeight: '700', letterSpacing: 0.5 },
   logScroll: { maxHeight: 80, width: '100%' },
   logLine: { fontSize: 9, color: '#94a3b8', textAlign: 'center' },
   pickHint: { color: '#475569', fontSize: FONT.xs, textAlign: 'center', marginTop: SPACE.xs },
