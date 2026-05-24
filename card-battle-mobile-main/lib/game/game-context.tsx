@@ -52,11 +52,29 @@ async function saveRarityWeights(weights: RarityWeights): Promise<void> {
 // ✅ Turin: يُجبر على المركز الأول في الديك دائماً
 function sortDeckWithTurinFirst(deck: Card[]): Card[] {
   const turinIdx = deck.findIndex(c => c.name === 'تورين تورامباز' || c.name === 'Turin');
-  if (turinIdx <= 0) return deck; // إما مش موجود أو بالفعل أول
+  if (turinIdx <= 0) return deck;
   const result = [...deck];
   const [turin] = result.splice(turinIdx, 1);
   result.unshift(turin);
   return result;
+}
+
+// ✅ Turin: هل تورين موجود في الديك؟
+function hasTurinInDeck(deck: Card[]): boolean {
+  return deck.some(c => c.name === 'تورين تورامباز' || c.name === 'Turin');
+}
+
+// ✅ Turin: عدد الجولات المجبرة على الخسارة = نصف totalRounds مُقرَّب للأسفل (بحدٍّ أدنى 1)
+export function getTurinPenaltyRounds(totalRounds: number): number {
+  return Math.max(1, Math.floor(totalRounds / 2));
+}
+
+// ✅ Turin: هل هذه الجولة مجبرة على الخسارة؟
+function isTurinForcedLoss(currentRound: number, totalRounds: number, playerDeck: Card[]): boolean {
+  if (!hasTurinInDeck(playerDeck)) return false;
+  const penaltyRounds = getTurinPenaltyRounds(totalRounds);
+  // currentRound هو 0-based → جولة 1 = index 0
+  return currentRound < penaltyRounds;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────
@@ -123,7 +141,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SET_TOTAL_ROUNDS':
       return { ...state, totalRounds: action.payload };
 
-    // ✅ fix: NEXT_ROUND — كان غائبًا من الـ reducer!
     case 'NEXT_ROUND':
       return { ...state, currentRound: Math.min(state.currentRound + 1, state.totalRounds) };
 
@@ -171,9 +188,36 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         .filter(e => { const d = e.data as { appliesToRound?: number } | undefined; return !d?.appliesToRound || d.appliesToRound === roundNumber; })
         .sort((a, b) => b.priority - a.priority || b.createdAtRound - a.createdAtRound)[0];
 
-      const result = forcedOutcomeEffect
-        ? { winner: forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage }
-        : determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
+      // ✅ Turin: يُجبر اللاعب على الخسارة في النصف الأول من الجولات
+      // مثال: 10 جولات → يخسر جولات 1-5 تلقائياً (index 0-4)
+      const turinForcedLoss = isTurinForcedLoss(state.currentRound, state.totalRounds, state.playerDeck);
+
+      let result: { winner: Side | 'draw'; playerDamage: number; botDamage: number; playerBaseDamage: number; botBaseDamage: number; playerElementAdvantage: ElementAdvantage; botElementAdvantage: ElementAdvantage };
+
+      if (turinForcedLoss) {
+        // Turin: خسارة إجبارية للاعب
+        result = {
+          winner: 'bot',
+          playerDamage: 0,
+          botDamage: 0,
+          playerBaseDamage: 0,
+          botBaseDamage: 0,
+          playerElementAdvantage: 'neutral' as ElementAdvantage,
+          botElementAdvantage: 'neutral' as ElementAdvantage,
+        };
+      } else if (forcedOutcomeEffect) {
+        result = {
+          winner: forcedOutcomeEffect.sourceSide,
+          playerDamage: 0,
+          botDamage: 0,
+          playerBaseDamage: 0,
+          botBaseDamage: 0,
+          playerElementAdvantage: 'neutral' as ElementAdvantage,
+          botElementAdvantage: 'neutral' as ElementAdvantage,
+        };
+      } else {
+        result = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
+      }
 
       const roundResult: RoundResult = {
         round: state.currentRound + 1,
@@ -191,238 +235,226 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       if (result.winner === 'player') botHpDelta    -= 1;
       else if (result.winner === 'bot') playerHpDelta -= 1;
 
-      // ✅ Turin: قدرة "تخسر نصف الجولات" — تُطبَّق في الجولة الأولى فقط
-      // تورين يجب أن يكون في index 0 (الجولة الأولى)، وعندما يلعب يُخصم من الخصم نصف totalRounds
-      const isTurinRound =
-        roundNumber === 1 &&
-        (playerCard.name === 'تورين تورامباز' || playerCard.name === 'Turin');
-
-      if (isTurinRound) {
-        // خسارة نصف عدد الجولات من نقاط الخصم (bot) — مُقرَّبة للأعلى
-        const turinPenalty = Math.ceil(state.totalRounds / 2);
-        botHpDelta -= turinPenalty;
-      }
-
       const effectsToRemove  = new Set<string>();
       const effectsToReplace = new Map<string, Effect>();
       const effectsToAdd: Effect[] = [];
 
-      const orderedEffects = [...activeEffects].sort((a, b) => a.priority - b.priority);
+      // تخطي معالجة التأثيرات في جولات Turin الإجبارية لمنع أي تدخل
+      if (!turinForcedLoss) {
+        const orderedEffects = [...activeEffects].sort((a, b) => a.priority - b.priority);
 
-      orderedEffects.forEach(effect => {
-        switch (effect.kind) {
-          case 'protection': {
-            const d = effect.data as { appliesToRound?: number } | undefined;
-            if (d?.appliesToRound !== undefined && d.appliesToRound !== roundNumber) break;
-            if (effect.targetSide === 'player' && playerHpDelta < 0) { playerHpDelta = 0; effectsToRemove.add(effect.id); }
-            if (effect.targetSide === 'bot'    && botHpDelta    < 0) { botHpDelta    = 0; effectsToRemove.add(effect.id); }
-            break;
-          }
-          case 'doubleOrNothing': {
-            const d = effect.data as { appliesToRound?: number } | undefined;
-            if (!d?.appliesToRound || d.appliesToRound === roundNumber) {
+        orderedEffects.forEach(effect => {
+          switch (effect.kind) {
+            case 'protection': {
+              const d = effect.data as { appliesToRound?: number } | undefined;
+              if (d?.appliesToRound !== undefined && d.appliesToRound !== roundNumber) break;
+              if (effect.targetSide === 'player' && playerHpDelta < 0) { playerHpDelta = 0; effectsToRemove.add(effect.id); }
+              if (effect.targetSide === 'bot'    && botHpDelta    < 0) { botHpDelta    = 0; effectsToRemove.add(effect.id); }
+              break;
+            }
+            case 'doubleOrNothing': {
+              const d = effect.data as { appliesToRound?: number } | undefined;
+              if (!d?.appliesToRound || d.appliesToRound === roundNumber) {
+                if (result.winner === effect.sourceSide) {
+                  if (effect.sourceSide === 'player') botHpDelta    -= 1;
+                  if (effect.sourceSide === 'bot')    playerHpDelta -= 1;
+                } else if (result.winner === getOppositeSide(effect.sourceSide)) {
+                  if (effect.sourceSide === 'player') playerHpDelta -= 1;
+                  if (effect.sourceSide === 'bot')    botHpDelta    -= 1;
+                }
+                effectsToRemove.add(effect.id);
+              }
+              break;
+            }
+            case 'prediction': {
+              const d = effect.data as { predictions?: Record<number, 'win' | 'loss'>; rewardHp?: number; penaltyHp?: number } | undefined;
+              const prediction = d?.predictions?.[roundNumber];
+              if (!prediction) break;
+              const expectedWinner = prediction === 'win' ? effect.sourceSide : getOppositeSide(effect.sourceSide);
+              if (result.winner === expectedWinner) {
+                const reward = d?.rewardHp ?? 1;
+                if (effect.sourceSide === 'player') botHpDelta    -= reward;
+                if (effect.sourceSide === 'bot')    playerHpDelta -= reward;
+              } else if (result.winner && result.winner !== 'draw') {
+                const penalty = d?.penaltyHp ?? 1;
+                if (effect.sourceSide === 'player') playerHpDelta -= penalty;
+                if (effect.sourceSide === 'bot')    botHpDelta    -= penalty;
+              }
+              const nextPredictions = { ...(d?.predictions ?? {}) }; delete nextPredictions[roundNumber];
+              const nextCharges = Math.max(0, (effect.charges ?? 0) - 1);
+              if (nextCharges <= 0 || Object.keys(nextPredictions).length === 0) effectsToRemove.add(effect.id);
+              else effectsToReplace.set(effect.id, { ...effect, charges: nextCharges, data: { ...d, predictions: nextPredictions } });
+              break;
+            }
+            case 'halvePoints': {
+              if (effect.targetSide === 'bot'    && botHpDelta    < 0) botHpDelta    = Math.ceil(botHpDelta    / 2);
+              else if (effect.targetSide === 'player' && playerHpDelta < 0) playerHpDelta = Math.ceil(playerHpDelta / 2);
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'starAdvantage': {
+              const d = effect.data as { appliesToRound?: number } | undefined;
+              if (d?.appliesToRound !== undefined && d.appliesToRound !== roundNumber) break;
+              if (effect.targetSide === 'player') { playerHpDelta = 0; botHpDelta    = Math.min(botHpDelta,    -1); }
+              else if (effect.targetSide === 'bot') { botHpDelta = 0; playerHpDelta = Math.min(playerHpDelta, -1); }
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'fortify': {
+              if (result.winner === effect.sourceSide) effectsToAdd.push({
+                id: makeEffectId('Reinforcement', effect.sourceSide, roundNumber),
+                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
+                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
+                priority: EFFECT_PRIORITY.statModifiers,
+                data: { stat: 'defense', amount: 1 },
+              });
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'greedBuff': {
+              if (result.winner === effect.sourceSide) effectsToAdd.push({
+                id: makeEffectId('Greed', effect.sourceSide, roundNumber),
+                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
+                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
+                priority: EFFECT_PRIORITY.statModifiers,
+                data: { stat: 'attack', amount: 1 },
+              });
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'lifesteal': {
               if (result.winner === effect.sourceSide) {
                 if (effect.sourceSide === 'player') botHpDelta    -= 1;
                 if (effect.sourceSide === 'bot')    playerHpDelta -= 1;
-              } else if (result.winner === getOppositeSide(effect.sourceSide)) {
-                if (effect.sourceSide === 'player') playerHpDelta -= 1;
-                if (effect.sourceSide === 'bot')    botHpDelta    -= 1;
               }
-              effectsToRemove.add(effect.id);
+              effectsToRemove.add(effect.id); break;
             }
-            break;
-          }
-          case 'prediction': {
-            const d = effect.data as { predictions?: Record<number, 'win' | 'loss'>; rewardHp?: number; penaltyHp?: number } | undefined;
-            const prediction = d?.predictions?.[roundNumber];
-            if (!prediction) break;
-            const expectedWinner = prediction === 'win' ? effect.sourceSide : getOppositeSide(effect.sourceSide);
-            if (result.winner === expectedWinner) {
-              const reward = d?.rewardHp ?? 1;
-              if (effect.sourceSide === 'player') botHpDelta    -= reward;
-              if (effect.sourceSide === 'bot')    playerHpDelta -= reward;
-            } else if (result.winner && result.winner !== 'draw') {
-              const penalty = d?.penaltyHp ?? 1;
-              if (effect.sourceSide === 'player') playerHpDelta -= penalty;
-              if (effect.sourceSide === 'bot')    botHpDelta    -= penalty;
+            case 'revengeBuff': {
+              const opponentSide = getOppositeSide(effect.sourceSide);
+              if (result.winner === opponentSide) effectsToAdd.push({
+                id: makeEffectId('Revenge', effect.sourceSide, roundNumber),
+                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
+                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
+                priority: EFFECT_PRIORITY.statModifiers,
+                data: { stat: 'attack', amount: 1 },
+              });
+              effectsToRemove.add(effect.id); break;
             }
-            const nextPredictions = { ...(d?.predictions ?? {}) }; delete nextPredictions[roundNumber];
-            const nextCharges = Math.max(0, (effect.charges ?? 0) - 1);
-            if (nextCharges <= 0 || Object.keys(nextPredictions).length === 0) effectsToRemove.add(effect.id);
-            else effectsToReplace.set(effect.id, { ...effect, charges: nextCharges, data: { ...d, predictions: nextPredictions } });
-            break;
-          }
-          case 'halvePoints': {
-            if (effect.targetSide === 'bot'    && botHpDelta    < 0) botHpDelta    = Math.ceil(botHpDelta    / 2);
-            else if (effect.targetSide === 'player' && playerHpDelta < 0) playerHpDelta = Math.ceil(playerHpDelta / 2);
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'starAdvantage': {
-            const d = effect.data as { appliesToRound?: number } | undefined;
-            if (d?.appliesToRound !== undefined && d.appliesToRound !== roundNumber) break;
-            if (effect.targetSide === 'player') { playerHpDelta = 0; botHpDelta    = Math.min(botHpDelta,    -1); }
-            else if (effect.targetSide === 'bot') { botHpDelta = 0; playerHpDelta = Math.min(playerHpDelta, -1); }
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'fortify': {
-            // ✅ fix: fortify يضيف statModifier دائم للدفاع عند الفوز فقط
-            if (result.winner === effect.sourceSide) effectsToAdd.push({
-              id: makeEffectId('Reinforcement', effect.sourceSide, roundNumber),
-              kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
-              createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-              priority: EFFECT_PRIORITY.statModifiers,
-              data: { stat: 'defense', amount: 1 },
-            });
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'greedBuff': {
-            if (result.winner === effect.sourceSide) effectsToAdd.push({
-              id: makeEffectId('Greed', effect.sourceSide, roundNumber),
-              kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
-              createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-              priority: EFFECT_PRIORITY.statModifiers,
-              data: { stat: 'attack', amount: 1 },
-            });
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'lifesteal': {
-            if (result.winner === effect.sourceSide) {
-              if (effect.sourceSide === 'player') botHpDelta    -= 1;
-              if (effect.sourceSide === 'bot')    playerHpDelta -= 1;
+            case 'suicidePact': {
+              const opponentSide = getOppositeSide(effect.sourceSide);
+              if (result.winner === opponentSide) {
+                if (opponentSide === 'player') playerHpDelta = 0;
+                if (opponentSide === 'bot')    botHpDelta    = 0;
+              }
+              effectsToRemove.add(effect.id); break;
             }
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'revengeBuff': {
-            const opponentSide = getOppositeSide(effect.sourceSide);
-            if (result.winner === opponentSide) effectsToAdd.push({
-              id: makeEffectId('Revenge', effect.sourceSide, roundNumber),
-              kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
-              createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-              priority: EFFECT_PRIORITY.statModifiers,
-              data: { stat: 'attack', amount: 1 },
-            });
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'suicidePact': {
-            const opponentSide = getOppositeSide(effect.sourceSide);
-            if (result.winner === opponentSide) {
+            case 'compensationBuff': {
+              const opponentSide = getOppositeSide(effect.sourceSide);
+              if (result.winner === opponentSide) effectsToAdd.push({
+                id: makeEffectId('Compensation', effect.sourceSide, roundNumber),
+                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
+                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
+                priority: EFFECT_PRIORITY.statModifiers,
+                data: { stat: 'defense', amount: 1 },
+              });
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'weakeningDebuff': {
+              const opponentSide = getOppositeSide(effect.sourceSide);
+              if (result.winner === opponentSide) effectsToAdd.push({
+                id: makeEffectId('Weakening', effect.sourceSide, roundNumber),
+                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: opponentSide,
+                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
+                priority: EFFECT_PRIORITY.statModifiers,
+                data: { stat: 'attack', amount: -1 },
+              });
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'explosionDebuff': {
+              const opponentSide = getOppositeSide(effect.sourceSide);
+              if (result.winner === opponentSide) effectsToAdd.push({
+                id: makeEffectId('Explosion', effect.sourceSide, roundNumber),
+                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: opponentSide,
+                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
+                priority: EFFECT_PRIORITY.statModifiers,
+                data: { stat: 'defense', amount: -1 },
+              });
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'consecutiveLoss': {
+              const opponentSide = getOppositeSide(effect.sourceSide);
+              const d = effect.data as { lossCount?: number } | undefined;
+              const lossCount = d?.lossCount ?? 0;
+              if (result.winner === opponentSide) {
+                const newCount = lossCount + 1;
+                if (newCount >= 2) {
+                  effectsToAdd.push({ id: makeEffectId('ConsecutiveLossBuff', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'attack',  amount: 1 } });
+                  effectsToAdd.push({ id: makeEffectId('ConsecutiveLossBuff', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'defense', amount: 1 } });
+                  effectsToRemove.add(effect.id);
+                } else effectsToReplace.set(effect.id, { ...effect, data: { lossCount: newCount } });
+              } else { if (lossCount > 0) effectsToReplace.set(effect.id, { ...effect, data: { lossCount: 0 } }); }
+              break;
+            }
+            case 'sacrifice': {
+              const opponentSide = getOppositeSide(effect.sourceSide);
+              if (result.winner === opponentSide) {
+                const removable = activeEffects.filter(a => a.id !== effect.id).filter(a => a.sourceSide === opponentSide || a.targetSide === opponentSide).sort((a, b) => b.priority - a.priority || a.createdAtRound - b.createdAtRound);
+                if (removable.length > 0) effectsToRemove.add(removable[0].id);
+              }
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'shieldGuard': {
+              const d = effect.data as { appliesToRound?: number } | undefined;
+              if (d?.appliesToRound !== undefined && d.appliesToRound !== roundNumber) break;
+              if (effect.targetSide === 'player' && playerHpDelta < 0) { playerHpDelta = 0; effectsToRemove.add(effect.id); }
+              if (effect.targetSide === 'bot'    && botHpDelta    < 0) { botHpDelta    = 0; effectsToRemove.add(effect.id); }
+              break;
+            }
+            case 'trap': {
+              const d = effect.data as { appliesToRound?: number } | undefined;
+              if (!d?.appliesToRound || d.appliesToRound !== roundNumber) break;
+              const opponentSide = getOppositeSide(effect.sourceSide);
+              if (opponentSide === 'player') { playerHpDelta = Math.min(playerHpDelta, -1); botHpDelta    = 0; }
+              if (opponentSide === 'bot')    { botHpDelta    = Math.min(botHpDelta,    -1); playerHpDelta = 0; }
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'convertDebuffs': {
+              const sideName = effect.sourceSide;
+              activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === sideName && (e.data as any)?.amount < 0).forEach(ne => { effectsToRemove.add(ne.id); effectsToAdd.push({ ...ne, id: makeEffectId('ConvertDebuffsToBuffs', sideName, roundNumber), sourceSide: sideName, data: { ...(ne.data as object), amount: Math.abs((ne.data as any).amount) } }); });
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'doubleBuffs': {
+              const sideName = effect.sourceSide;
+              activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === sideName && (e.data as any)?.amount > 0 && e.id !== effect.id).forEach(pe => { effectsToReplace.set(pe.id, { ...pe, data: { ...(pe.data as object), amount: (pe.data as any).amount * 2 } }); });
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'conversion': {
+              const opponentSide = getOppositeSide(effect.sourceSide);
+              activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === opponentSide && (e.data as any)?.amount > 0).forEach(ob => { effectsToReplace.set(ob.id, { ...ob, data: { ...(ob.data as object), amount: -(Math.abs((ob.data as any).amount)) } }); });
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'takeIt': {
+              const sideName     = effect.sourceSide;
+              const opponentSide = getOppositeSide(sideName);
+              activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === sideName && (e.data as any)?.amount < 0).forEach(d => { effectsToRemove.add(d.id); effectsToAdd.push({ ...d, id: makeEffectId('TakeIt', opponentSide, roundNumber), targetSide: opponentSide, sourceSide: sideName }); });
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'deprivation': {
+              const opponentSide = getOppositeSide(effect.sourceSide);
+              const d = effect.data as { chosenBuffId?: string } | undefined;
+              const targetBuff = d?.chosenBuffId
+                ? activeEffects.find(e => e.id === d.chosenBuffId && e.targetSide === opponentSide && (e.data as any)?.amount > 0)
+                : activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === opponentSide && (e.data as any)?.amount > 0).sort((a, b) => (b.data as any).amount - (a.data as any).amount)[0];
+              if (targetBuff) { effectsToRemove.add(targetBuff.id); effectsToAdd.push({ ...targetBuff, id: makeEffectId('Deprivation', effect.sourceSide, roundNumber), targetSide: effect.sourceSide, sourceSide: effect.sourceSide }); }
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'pool': {
+              const d = effect.data as { appliesToRound?: number } | undefined;
+              if (!d?.appliesToRound || d.appliesToRound !== roundNumber) break;
+              const opponentSide = getOppositeSide(effect.sourceSide);
               if (opponentSide === 'player') playerHpDelta = 0;
               if (opponentSide === 'bot')    botHpDelta    = 0;
+              effectsToRemove.add(effect.id); break;
             }
-            effectsToRemove.add(effect.id); break;
           }
-          case 'compensationBuff': {
-            const opponentSide = getOppositeSide(effect.sourceSide);
-            if (result.winner === opponentSide) effectsToAdd.push({
-              id: makeEffectId('Compensation', effect.sourceSide, roundNumber),
-              kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
-              createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-              priority: EFFECT_PRIORITY.statModifiers,
-              data: { stat: 'defense', amount: 1 },
-            });
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'weakeningDebuff': {
-            const opponentSide = getOppositeSide(effect.sourceSide);
-            // ✅ fix: يُطبّق فقط عند خسارة صاحب التأثير
-            if (result.winner === opponentSide) effectsToAdd.push({
-              id: makeEffectId('Weakening', effect.sourceSide, roundNumber),
-              kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: opponentSide,
-              createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-              priority: EFFECT_PRIORITY.statModifiers,
-              data: { stat: 'attack', amount: -1 },
-            });
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'explosionDebuff': {
-            const opponentSide = getOppositeSide(effect.sourceSide);
-            // ✅ fix: يُطبّق فقط عند خسارة صاحب التأثير
-            if (result.winner === opponentSide) effectsToAdd.push({
-              id: makeEffectId('Explosion', effect.sourceSide, roundNumber),
-              kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: opponentSide,
-              createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-              priority: EFFECT_PRIORITY.statModifiers,
-              data: { stat: 'defense', amount: -1 },
-            });
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'consecutiveLoss': {
-            const opponentSide = getOppositeSide(effect.sourceSide);
-            const d = effect.data as { lossCount?: number } | undefined;
-            const lossCount = d?.lossCount ?? 0;
-            if (result.winner === opponentSide) {
-              const newCount = lossCount + 1;
-              if (newCount >= 2) {
-                effectsToAdd.push({ id: makeEffectId('ConsecutiveLossBuff', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'attack',  amount: 1 } });
-                effectsToAdd.push({ id: makeEffectId('ConsecutiveLossBuff', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'defense', amount: 1 } });
-                effectsToRemove.add(effect.id);
-              } else effectsToReplace.set(effect.id, { ...effect, data: { lossCount: newCount } });
-            } else { if (lossCount > 0) effectsToReplace.set(effect.id, { ...effect, data: { lossCount: 0 } }); }
-            break;
-          }
-          case 'sacrifice': {
-            const opponentSide = getOppositeSide(effect.sourceSide);
-            if (result.winner === opponentSide) {
-              const removable = activeEffects.filter(a => a.id !== effect.id).filter(a => a.sourceSide === opponentSide || a.targetSide === opponentSide).sort((a, b) => b.priority - a.priority || a.createdAtRound - b.createdAtRound);
-              if (removable.length > 0) effectsToRemove.add(removable[0].id);
-            }
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'shieldGuard': {
-            const d = effect.data as { appliesToRound?: number } | undefined;
-            if (d?.appliesToRound !== undefined && d.appliesToRound !== roundNumber) break;
-            if (effect.targetSide === 'player' && playerHpDelta < 0) { playerHpDelta = 0; effectsToRemove.add(effect.id); }
-            if (effect.targetSide === 'bot'    && botHpDelta    < 0) { botHpDelta    = 0; effectsToRemove.add(effect.id); }
-            break;
-          }
-          case 'trap': {
-            const d = effect.data as { appliesToRound?: number } | undefined;
-            if (!d?.appliesToRound || d.appliesToRound !== roundNumber) break;
-            const opponentSide = getOppositeSide(effect.sourceSide);
-            if (opponentSide === 'player') { playerHpDelta = Math.min(playerHpDelta, -1); botHpDelta    = 0; }
-            if (opponentSide === 'bot')    { botHpDelta    = Math.min(botHpDelta,    -1); playerHpDelta = 0; }
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'convertDebuffs': {
-            const sideName = effect.sourceSide;
-            activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === sideName && (e.data as any)?.amount < 0).forEach(ne => { effectsToRemove.add(ne.id); effectsToAdd.push({ ...ne, id: makeEffectId('ConvertDebuffsToBuffs', sideName, roundNumber), sourceSide: sideName, data: { ...(ne.data as object), amount: Math.abs((ne.data as any).amount) } }); });
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'doubleBuffs': {
-            const sideName = effect.sourceSide;
-            activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === sideName && (e.data as any)?.amount > 0 && e.id !== effect.id).forEach(pe => { effectsToReplace.set(pe.id, { ...pe, data: { ...(pe.data as object), amount: (pe.data as any).amount * 2 } }); });
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'conversion': {
-            const opponentSide = getOppositeSide(effect.sourceSide);
-            activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === opponentSide && (e.data as any)?.amount > 0).forEach(ob => { effectsToReplace.set(ob.id, { ...ob, data: { ...(ob.data as object), amount: -(Math.abs((ob.data as any).amount)) } }); });
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'takeIt': {
-            const sideName     = effect.sourceSide;
-            const opponentSide = getOppositeSide(sideName);
-            activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === sideName && (e.data as any)?.amount < 0).forEach(d => { effectsToRemove.add(d.id); effectsToAdd.push({ ...d, id: makeEffectId('TakeIt', opponentSide, roundNumber), targetSide: opponentSide, sourceSide: sideName }); });
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'deprivation': {
-            const opponentSide = getOppositeSide(effect.sourceSide);
-            const d = effect.data as { chosenBuffId?: string } | undefined;
-            const targetBuff = d?.chosenBuffId
-              ? activeEffects.find(e => e.id === d.chosenBuffId && e.targetSide === opponentSide && (e.data as any)?.amount > 0)
-              : activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === opponentSide && (e.data as any)?.amount > 0).sort((a, b) => (b.data as any).amount - (a.data as any).amount)[0];
-            if (targetBuff) { effectsToRemove.add(targetBuff.id); effectsToAdd.push({ ...targetBuff, id: makeEffectId('Deprivation', effect.sourceSide, roundNumber), targetSide: effect.sourceSide, sourceSide: effect.sourceSide }); }
-            effectsToRemove.add(effect.id); break;
-          }
-          case 'pool': {
-            const d = effect.data as { appliesToRound?: number } | undefined;
-            if (!d?.appliesToRound || d.appliesToRound !== roundNumber) break;
-            const opponentSide = getOppositeSide(effect.sourceSide);
-            if (opponentSide === 'player') playerHpDelta = 0;
-            if (opponentSide === 'bot')    botHpDelta    = 0;
-            effectsToRemove.add(effect.id); break;
-          }
-        }
-      });
+        });
+      }
 
       let nextEffects = state.activeEffects
         .filter(e => !effectsToRemove.has(e.id))
@@ -434,7 +466,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       return {
         ...state,
-        // currentRound: state.currentRound + 1, // ✅ تم إزالة الزيادة من هنا، وتركها لدالة NEXT_ROUND لمنع تخطي الجولات (Double Increment)
         playerScore: Math.max(0, state.playerScore + playerHpDelta),
         botScore:    Math.max(0, state.botScore    + botHpDelta),
         roundResults: [...state.roundResults, roundResult],
@@ -486,8 +517,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         case 'Disaster': { const chosenRoundIndex = Number(data?.roundIndex ?? -1); const chosenResult = state.roundResults[chosenRoundIndex]; if (chosenResult) { const replacementCard = side === 'player' ? chosenResult.botCard : chosenResult.playerCard; if (side === 'player') { const d = [...state.botDeck]; d[state.currentRound] = { ...replacementCard, ability: undefined }; nextState = { ...nextState, botDeck: d }; } else { const d = [...state.playerDeck]; d[state.currentRound] = { ...replacementCard, ability: undefined }; nextState = { ...nextState, playerDeck: d }; } } break; }
         case 'Compensation': { nextEffects = [...nextEffects, { id: makeEffectId('Compensation', side, roundNumber), kind: 'compensationBuff', sourceSide: side, targetSide: side, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.rewards, data: {} }]; break; }
         case 'Weakening': { nextEffects = [...nextEffects, { id: makeEffectId('Weakening', side, roundNumber), kind: 'weakeningDebuff', sourceSide: side, targetSide: opponentSide, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.rewards, data: {} }]; break; }
-
-        // ✅ fix: Misdirection — يحفظ التضعيف عبر effectsToReplace بدل تعديل متغيّر محلي
         case 'Misdirection': {
           const updatedEffects = nextEffects.map(e => {
             if (e.kind === 'statModifier' && e.targetSide === opponentSide && (e.data as any)?.amount < 0) {
@@ -498,20 +527,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           nextEffects = updatedEffects;
           break;
         }
-
         case 'StealAbility': { const botAbilityList = isPlayer ? state.botAbilities : state.playerAbilities; const unusedOppAbility = botAbilityList.find(a => !a.used); if (unusedOppAbility) { const newAbilityForMe = { type: unusedOppAbility.type, used: false }; const updatedOppList = botAbilityList.map(a => a.type === unusedOppAbility.type && !a.used ? { ...a, used: true } : a); return { ...state, usedAbilities: [...state.usedAbilities, abilityType], playerAbilities: isPlayer ? [...abilityStateList.map((a, i) => i === abilityIndex ? { ...a, used: true } : a), newAbilityForMe] : updatedOppList, botAbilities: isPlayer ? updatedOppList : [...abilityStateList.map((a, i) => i === abilityIndex ? { ...a, used: true } : a), newAbilityForMe] }; } break; }
         case 'Rescue': { const curCard = side === 'player' ? state.playerDeck[state.currentRound] : state.botDeck[state.currentRound]; const nextIdx = state.currentRound + 1; if (curCard && nextIdx < state.totalRounds) { if (side === 'player') { const d = [...state.playerDeck]; d[nextIdx] = { ...d[nextIdx], defense: (d[nextIdx].defense ?? 0) + curCard.defense }; nextState = { ...nextState, playerDeck: d }; } else { const d = [...state.botDeck]; d[nextIdx] = { ...d[nextIdx], defense: (d[nextIdx].defense ?? 0) + curCard.defense }; nextState = { ...nextState, botDeck: d }; } } break; }
         case 'Trap': { const trapRound = roundNumber + 1; if (trapRound <= state.totalRounds) nextEffects = [...nextEffects, { id: makeEffectId('Trap', side, roundNumber), kind: 'trap', sourceSide: side, targetSide: opponentSide, createdAtRound: roundNumber, expiresAtRound: trapRound, charges: 1, priority: EFFECT_PRIORITY.forcedOutcome - 1, data: { appliesToRound: trapRound } }]; break; }
         case 'ConvertDebuffsToBuffs': { nextEffects = [...nextEffects, { id: makeEffectId('ConvertDebuffsToBuffs', side, roundNumber), kind: 'convertDebuffs', sourceSide: side, targetSide: side, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.cleanseEffects, data: {} }]; break; }
         case 'Sniping': { const sniperRound = Number(data?.round); if (!Number.isInteger(sniperRound) || sniperRound <= roundNumber || sniperRound > state.totalRounds) return state; nextEffects = [...nextEffects, { id: makeEffectId('Sniping', side, roundNumber), kind: 'forcedOutcome', sourceSide: side, targetSide: side, createdAtRound: roundNumber, expiresAtRound: sniperRound, charges: 1, priority: EFFECT_PRIORITY.forcedOutcome, data: { appliesToRound: sniperRound } }]; break; }
         case 'Merge': { const mergeIdx = data?.roundIndex !== undefined ? Number(data.roundIndex) : state.roundResults.length - 1; const mergeResult = state.roundResults[mergeIdx]; if (mergeResult) { const pastCard = side === 'player' ? mergeResult.playerCard : mergeResult.botCard; const curCard = side === 'player' ? state.playerDeck[state.currentRound] : state.botDeck[state.currentRound]; if (curCard) { const merged: Card = { ...curCard, attack: curCard.attack + pastCard.attack, defense: curCard.defense + pastCard.defense, ability: undefined }; if (side === 'player') { const d = [...state.playerDeck]; d[state.currentRound] = merged; nextState = { ...nextState, playerDeck: d }; } else { const d = [...state.botDeck]; d[state.currentRound] = merged; nextState = { ...nextState, botDeck: d }; } } } break; }
-
-        // ✅ fix: DoubleNextCards — يضاعف الهجوم الفعلي (قيمة الكارت نفسها)
         case 'DoubleNextCards': {
           const n1 = state.currentRound + 1;
           const n2 = state.currentRound + 2;
           [n1, n2].filter(idx => idx < state.totalRounds).forEach(idx => {
-            const r = idx + 1; // roundNumber للـ expiresAtRound
+            const r = idx + 1;
             nextEffects = [...nextEffects, {
               id: makeEffectId('DoubleNextCards', side, r),
               kind: 'statModifier', sourceSide: side, targetSide: side,
@@ -522,60 +548,29 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           });
           break;
         }
-
         case 'Deprivation': { const chosenBuffId = data?.chosenBuffId as string | undefined; nextEffects = [...nextEffects, { id: makeEffectId('Deprivation', side, roundNumber), kind: 'deprivation', sourceSide: side, targetSide: side, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.cleanseEffects, data: { chosenBuffId } }]; break; }
         case 'Greed': { nextEffects = [...nextEffects, { id: makeEffectId('Greed', side, roundNumber), kind: 'greedBuff', sourceSide: side, targetSide: side, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.rewards, data: {} }]; break; }
         case 'Dilemma': { const chosenRoundIndex = Number(data?.roundIndex ?? -1); const myResult = state.roundResults[chosenRoundIndex]; if (myResult) { const myPastCard = side === 'player' ? myResult.playerCard : myResult.botCard; if (side === 'player') { const d = [...state.botDeck]; d[state.currentRound] = { ...myPastCard, ability: undefined }; nextState = { ...nextState, botDeck: d }; } else { const d = [...state.playerDeck]; d[state.currentRound] = { ...myPastCard, ability: undefined }; nextState = { ...nextState, playerDeck: d }; } } break; }
         case 'Subhan': { const guessedAttack = Number(data?.guessedAttack); const nextOppIdx = state.currentRound + 1; const nextOppCard = side === 'player' ? state.botDeck[nextOppIdx] : state.playerDeck[nextOppIdx]; if (nextOppCard && !Number.isNaN(guessedAttack) && nextOppIdx < state.totalRounds) { const diff = Math.abs(nextOppCard.attack - guessedAttack); if (diff <= 3) nextEffects = [...nextEffects, { id: makeEffectId('Subhan', side, roundNumber), kind: 'forcedOutcome', sourceSide: side, targetSide: side, createdAtRound: roundNumber, expiresAtRound: roundNumber + 1, charges: 1, priority: EFFECT_PRIORITY.forcedOutcome, data: { appliesToRound: roundNumber + 1 } }]; } break; }
-
-        // ✅ fix: Propaganda — يُطبّق على الهجوم والدفاع معًا
         case 'Propaganda': {
           const targetClass = data?.targetClass as string | undefined;
           if (!targetClass) return state;
           nextEffects = [
             ...nextEffects,
-            {
-              id: makeEffectId('Propaganda', side, roundNumber),
-              kind: 'statModifier', sourceSide: side, targetSide: opponentSide,
-              createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-              priority: EFFECT_PRIORITY.statModifiers,
-              data: { stat: 'attack',  amount: -2, onlyClass: targetClass },
-            },
-            {
-              id: makeEffectId('Propaganda', side, roundNumber),
-              kind: 'statModifier', sourceSide: side, targetSide: opponentSide,
-              createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-              priority: EFFECT_PRIORITY.statModifiers,
-              data: { stat: 'defense', amount: -2, onlyClass: targetClass },
-            },
+            { id: makeEffectId('Propaganda', side, roundNumber), kind: 'statModifier', sourceSide: side, targetSide: opponentSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'attack',  amount: -2, onlyClass: targetClass } },
+            { id: makeEffectId('Propaganda', side, roundNumber), kind: 'statModifier', sourceSide: side, targetSide: opponentSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'defense', amount: -2, onlyClass: targetClass } },
           ];
           break;
         }
-
         case 'DoubleYourBuffs': { nextEffects = [...nextEffects, { id: makeEffectId('DoubleYourBuffs', side, roundNumber), kind: 'doubleBuffs', sourceSide: side, targetSide: side, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.cleanseEffects + 1, data: {} }]; break; }
-
-        // ✅ fix: Avatar — يضيف +2 هجوم و+2 دفاع كما يصف الوصف
         case 'Avatar': {
           nextEffects = [
             ...nextEffects,
-            {
-              id: makeEffectId('Avatar', side, roundNumber),
-              kind: 'statModifier', sourceSide: side, targetSide: side,
-              createdAtRound: roundNumber, expiresAtRound: roundNumber + 3,
-              priority: EFFECT_PRIORITY.statModifiers,
-              data: { stat: 'attack', amount: 2 },
-            },
-            {
-              id: makeEffectId('Avatar', side, roundNumber),
-              kind: 'statModifier', sourceSide: side, targetSide: side,
-              createdAtRound: roundNumber, expiresAtRound: roundNumber + 3,
-              priority: EFFECT_PRIORITY.statModifiers,
-              data: { stat: 'defense', amount: 2 },
-            },
+            { id: makeEffectId('Avatar', side, roundNumber), kind: 'statModifier', sourceSide: side, targetSide: side, createdAtRound: roundNumber, expiresAtRound: roundNumber + 3, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'attack', amount: 2 } },
+            { id: makeEffectId('Avatar', side, roundNumber), kind: 'statModifier', sourceSide: side, targetSide: side, createdAtRound: roundNumber, expiresAtRound: roundNumber + 3, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'defense', amount: 2 } },
           ];
           break;
         }
-
         case 'Penetration': { nextEffects = [...nextEffects, { id: makeEffectId('Penetration', side, roundNumber), kind: 'statModifier', sourceSide: side, targetSide: opponentSide, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'defense', amount: -9999 } }]; break; }
         case 'Pool': { nextEffects = [...nextEffects, { id: makeEffectId('Pool', side, roundNumber), kind: 'pool', sourceSide: side, targetSide: side, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.forcedOutcome - 1, data: { appliesToRound: roundNumber } }]; break; }
         case 'Conversion': { nextEffects = [...nextEffects, { id: makeEffectId('Conversion', side, roundNumber), kind: 'conversion', sourceSide: side, targetSide: opponentSide, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.cleanseEffects + 2, data: {} }]; break; }
@@ -688,6 +683,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const activeEffects = state.abilitiesEnabled ? state.activeEffects.filter(e => isEffectActive(e, roundNumber)) : [];
     const playerEffects = activeEffects.filter(e => e.targetSide === 'player' || e.targetSide === 'all');
     const botEffects    = activeEffects.filter(e => e.targetSide === 'bot'    || e.targetSide === 'all');
+
+    // ✅ Turin: يعكس النتيجة المتوقعة بشكل صحيح في جولات الخسارة الإجبارية
+    if (isTurinForcedLoss(state.currentRound, state.totalRounds, state.playerDeck)) {
+      return {
+        winner: 'bot' as const,
+        playerDamage: 0, botDamage: 0,
+        playerBaseDamage: 0, botBaseDamage: 0,
+        playerElementAdvantage: 'neutral' as ElementAdvantage,
+        botElementAdvantage: 'neutral' as ElementAdvantage,
+      };
+    }
+
     const forcedOutcomeEffect = activeEffects.filter(e => e.kind === 'forcedOutcome').filter(e => { const d = e.data as { appliesToRound?: number } | undefined; return !d?.appliesToRound || d.appliesToRound === roundNumber; }).sort((a, b) => b.priority - a.priority || b.createdAtRound - a.createdAtRound)[0];
     return forcedOutcomeEffect
       ? { winner: forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage }
