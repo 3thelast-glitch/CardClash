@@ -1,27 +1,19 @@
 /**
- * BattleScreen — Professional Arena
- *
- * Layout (landscape-only):
- *   [PLAYER SIDE] | [CENTER COMMAND] | [BOT SIDE]
- *
- * Changes:
- *  - Fixed all merge conflicts
- *  - Added ActiveEffectsBar (buffs/nerfs visible under HUD)
- *  - Smoother animations via react-native-reanimated
- *  - Round progress bar replaces old round counter
- *  - Effect chips now show descriptive Arabic labels
- *  - Added ExplosionEffect + ElementEffect visual overlays
+ * BattleScreen — Arena
+ * Uses the real GameContext API:
+ *   useGame() → { state, playRound, nextRound, useAbility, isGameOver,
+ *                 currentPlayerCard, currentBotCard, lastRoundResult, expectedRoundResult }
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Pressable,
-  Modal, FlatList, Platform
+  View, Text, TouchableOpacity, StyleSheet,
+  Modal, FlatList, Pressable,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSequence,
-  withDelay, runOnJS, withSpring, interpolate, Extrapolation,
-  FadeIn, FadeOut, SlideInLeft, SlideInRight
+  withDelay, withSpring, FadeIn, FadeOut,
+  SlideInLeft, SlideInRight,
 } from 'react-native-reanimated';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
@@ -35,86 +27,24 @@ import { ElementEffect } from '@/components/game/element-effect';
 import {
   ELEMENT_EMOJI, ElementAdvantage,
   CLASS_LABELS, CLASS_LABELS_SHORT,
-  STAT_LABELS, ELEMENT_LABELS, ALL_CLASSES, ALL_ELEMENTS
+  STAT_LABELS, ELEMENT_LABELS, ALL_CLASSES, ALL_ELEMENTS,
 } from '@/constants/abilities';
-import {
-  getEffectiveStats,
-  applyAbilityEffect,
-} from '@/shared/rage-engine';
 
-const advantageLabel = (a: ElementAdvantage) =>
-  a === 'strong' ? 'قوي ضد' : a === 'weak' ? 'ضعيف ضد' : 'محايد';
-
-// ─── Colour tokens ────────────────────────────────────────────────────────
+// ─── Colour tokens ────────────────────────────────────────────────────────────
 const C = {
-  bg: '#0d0d0d',
-  surface: '#161616',
-  card: '#1e1e1e',
-  border: '#2a2a2a',
-  primary: '#e63946',
-  accent: '#f4a261',
-  text: '#f1f1f1',
-  muted: '#888',
-  win: '#4caf50',
-  lose: '#e63946',
-  draw: '#f4a261',
-  buff: '#4caf50',
-  nerf: '#e63946',
+  bg: '#0d0d0d', surface: '#161616', card: '#1e1e1e', border: '#2a2a2a',
+  primary: '#e63946', accent: '#f4a261', text: '#f1f1f1', muted: '#888',
+  win: '#4caf50', lose: '#e63946', draw: '#f4a261',
+  buff: '#4caf50', nerf: '#e63946',
 };
 
-// ─── Effect label builder ─────────────────────────────────────────────────
-function getEffectLabel(effect: any): string {
-  const d = effect.data as any;
-  switch (effect.kind) {
-    case 'statModifier': {
-      const stat = STAT_LABELS[d?.stat] ?? d?.stat ?? '؟';
-      const amount = d?.amount ?? 0;
-      const sign = amount >= 0 ? '+' : '';
-      const onlyClass: string | undefined = d?.onlyClass;
-      const multiplier: boolean = !!d?.multiplier;
-      if (multiplier) return `${stat} ×${amount > 0 ? amount : '½'}`;
-      if (onlyClass) return `جميع ${CLASS_LABELS_SHORT[onlyClass] ?? onlyClass} ${sign}${amount}`;
-      return `${stat} ${sign}${amount}`;
-    }
-    case 'protection': return '🛡 حماية';
-    case 'fortify': return '🔩 تحصين';
-    case 'halvePoints': return '½ تنصيف';
-    case 'silenceAbilities': return '🔇 ختم قدرات';
-    case 'doubleOrNothing': return '🎲 مضاعفة أو صفر';
-    case 'forcedOutcome': return '🎯 نتيجة مضمونة';
-    case 'starAdvantage': return '⭐ أفضلية نجوم';
-    case 'sacrifice': return '🩸 تضحية';
-    case 'greedBuff': return '💰 جشع';
-    case 'lifesteal': return '🩸 سرقة صحة';
-    case 'revengeBuff': return '😤 انتقام';
-    case 'suicidePact': return '💀 اتفاقية انتحار';
-    case 'compensationBuff': return '🎁 تعويض';
-    case 'weakeningDebuff': return '📉 إضعاف';
-    case 'explosionDebuff': return '💥 انفجار';
-    case 'consecutiveLoss': return '🔄 خسائر متتالية';
-    case 'shieldGuard': return '🛡 درع';
-    case 'trap': return '🪤 فخ';
-    case 'convertDebuffs': return '🔃 تحويل نيرف→بف';
-    case 'doubleBuffs': return '✨ مضاعفة البفات';
-    case 'conversion': return '🔄 تحويل بفات الخصم';
-    case 'takeIt': return '↩️ إعادة النيرف';
-    case 'deprivation': return '🚫 سلب بف';
-    case 'pool': return '🌊 تصفير الجولة';
-    case 'prediction': return '🔮 توقع';
-    case 'turinPenalty': return '⚔️ تخسر نصف الجولات';
-    default: return effect.kind ?? '؟';
-  }
-}
-
-// ─── Round progress bar ───────────────────────────────────────────────────
+// ─── Round progress bar ───────────────────────────────────────────────────────
 function RoundBar({ current, total }: { current: number; total: number }) {
   const filled = useSharedValue(0);
   useEffect(() => {
-    filled.value = withTiming(current / total, { duration: 400 });
+    filled.value = withTiming(total > 0 ? current / total : 0, { duration: 400 });
   }, [current, total]);
-  const barStyle = useAnimatedStyle(() => ({
-    width: `${filled.value * 100}%` as any,
-  }));
+  const barStyle = useAnimatedStyle(() => ({ width: `${filled.value * 100}%` as any }));
   return (
     <View style={rb.wrap}>
       <Animated.View style={[rb.fill, barStyle]} />
@@ -126,97 +56,13 @@ const rb = StyleSheet.create({
   fill: { height: '100%', backgroundColor: C.primary, borderRadius: 2 },
 });
 
-// ─── ElementBadge ─────────────────────────────────────────────────────────
-function ElementBadge({ element, advantage }: { element: string; advantage: ElementAdvantage }) {
-  const [visible, setVisible] = useState(true);
-  useEffect(() => {
-    setVisible(true);
-    const t = setTimeout(() => setVisible(false), 3000);
-    return () => clearTimeout(t);
-  }, [element, advantage]);
-  if (!visible || !element || advantage === 'neutral') return null;
-  const color = advantage === 'strong' ? C.win : C.lose;
-  return (
-    <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(300)} style={[eb.wrap, { borderColor: color }]}>
-      <Text style={[eb.text, { color }]}>
-        {ELEMENT_EMOJI[element as keyof typeof ELEMENT_EMOJI]} {advantageLabel(advantage)}
-      </Text>
-    </Animated.View>
-  );
-}
-const eb = StyleSheet.create({
-  wrap: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, marginTop: 4 },
-  text: { fontSize: 9, fontWeight: '700' },
-});
-
-// ─── Active Effects Bar ───────────────────────────────────────────────────
-function ActiveEffectsBar({ effects, side }: { effects: any[]; side: 'player' | 'bot' }) {
-  const mine = effects.filter(e => e.targetSide === side || e.targetSide === 'all');
-  if (mine.length === 0) return null;
-  return (
-    <View style={eff.row}>
-      {mine.map((e, i) => {
-        const isBuff = e.isBuff !== false;
-        const color = isBuff ? C.buff : C.nerf;
-        const label = getEffectLabel(e);
-        return (
-          <View key={i} style={[eff.chip, { borderColor: color }]}>
-            <Text style={[eff.label, { color }]}>{label}</Text>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-const eff = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  chip: { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
-  label: { fontSize: 9.5, letterSpacing: 0.2 },
-});
-
-// ─── Choice Modal ─────────────────────────────────────────────────────────
-interface ChoiceModal {
-  visible: boolean;
-  title: string;
-  options: { value: string; label: string }[];
-  abilityType: string;
-}
-function ChoiceModalView({ modal, onSelect }: { modal: ChoiceModal; onSelect: (v: string) => void }) {
-  if (!modal.visible) return null;
-  return (
-    <Modal transparent animationType="fade">
-      <View style={cm.overlay}>
-        <View style={cm.box}>
-          <Text style={cm.title}>{modal.title}</Text>
-          <FlatList
-            data={modal.options}
-            keyExtractor={o => o.value}
-            renderItem={({ item: opt }) => (
-              <Pressable style={cm.option} onPress={() => onSelect(opt.value)}>
-                <Text style={cm.optionText}>{opt.label}</Text>
-              </Pressable>
-            )}
-          />
-        </View>
-      </View>
-    </Modal>
-  );
-}
-const cm = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
-  box: { backgroundColor: C.surface, borderRadius: 12, padding: 16, width: '80%', maxHeight: '70%' },
-  title: { color: C.text, fontSize: 14, fontWeight: '700', marginBottom: 12, textAlign: 'center' },
-  option: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border },
-  optionText: { color: C.text, fontSize: 13 },
-});
-
-// ─── Card Image ───────────────────────────────────────────────────────────
-function CardImg({ card, size = 90 }: { card: CardData; size?: number }) {
-  const src = card.imageUri ?? card.imageUrl;
+// ─── Card Image ───────────────────────────────────────────────────────────────
+function CardImg({ card, size = 90 }: { card: any; size?: number }) {
+  const src = card?.imageUri ?? card?.imageUrl;
   if (!src) {
     return (
       <View style={[ci.placeholder, { width: size, height: size * 1.2 }]}>
-        <Text style={ci.initial}>{(card.nameAr ?? card.name ?? '?')[0]}</Text>
+        <Text style={ci.initial}>{(card?.nameAr ?? card?.name ?? '?')[0]}</Text>
       </View>
     );
   }
@@ -233,49 +79,43 @@ const ci = StyleSheet.create({
   initial: { color: C.text, fontSize: 28, fontWeight: '800' },
 });
 
-// ─── Stat Row ─────────────────────────────────────────────────────────────
-function StatRow({ label, base, effective }: { label: string; base: number; effective: number }) {
-  const diff = effective - base;
-  const color = diff > 0 ? C.buff : diff < 0 ? C.nerf : C.muted;
+// ─── Stat Row ─────────────────────────────────────────────────────────────────
+function StatRow({ label, value }: { label: string; value: number }) {
   return (
     <View style={sr.row}>
       <Text style={sr.label}>{label}</Text>
-      <Text style={[sr.value, { color }]}>
-        {effective}{diff !== 0 ? ` (${diff > 0 ? '+' : ''}${diff})` : ''}
-      </Text>
+      <Text style={sr.value}>{value}</Text>
     </View>
   );
 }
 const sr = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
   label: { color: C.muted, fontSize: 10 },
-  value: { fontSize: 10, fontWeight: '700' },
+  value: { color: C.text, fontSize: 10, fontWeight: '700' },
 });
 
-// ─── Main BattleScreen ────────────────────────────────────────────────────
+// ─── Main BattleScreen ────────────────────────────────────────────────────────
 export default function BattleScreen() {
-  const { state, dispatch } = useGame();
+  const {
+    state,
+    playRound,
+    nextRound,
+    useAbility,
+    isGameOver,
+    currentPlayerCard,
+    currentBotCard,
+    lastRoundResult,
+    expectedRoundResult,
+  } = useGame();
+
   const router = useRouter();
   const { playSound } = useSFX();
 
   const [showResult, setShowResult] = useState(false);
   const [roundResult, setRoundResult] = useState<'win' | 'lose' | 'draw' | null>(null);
+  const [showExplosion, setShowExplosion] = useState(false);
   const [showPlayerEffect, setShowPlayerEffect] = useState(false);
   const [showBotEffect, setShowBotEffect] = useState(false);
-  const [showExplosion, setShowExplosion] = useState(false);
-  const [choiceModal, setChoiceModal] = useState<ChoiceModal>({
-    visible: false, title: '', options: [], abilityType: ''
-  });
-
-  type PendingAbility = {
-    cardId: string;
-    abilityType: string;
-    abilityIndex: number;
-    side: 'player' | 'bot';
-    options: { value: string; label: string }[];
-    title: string;
-  };
-  const [pendingAbility, setPendingAbility] = useState<PendingAbility | null>(null);
 
   // animation values
   const playerScale = useSharedValue(1);
@@ -283,74 +123,49 @@ export default function BattleScreen() {
   const resultOpacity = useSharedValue(0);
   const resultScale = useSharedValue(0.7);
 
+  // Navigate when game is over
   useEffect(() => {
-    if (state.battleStatus === 'finished') {
+    if (isGameOver) {
       router.replace('/screens/battle-results');
     }
-  }, [state.battleStatus]);
-
-  useEffect(() => {
-    if (state.battleStatus === 'idle' && state.currentRound === 1) {
-      dispatch({ type: 'START_BATTLE' });
-    }
-  }, []);
+  }, [isGameOver]);
 
   useFocusEffect(
     useCallback(() => {
       return () => {
         setShowResult(false);
+        setShowExplosion(false);
         setShowPlayerEffect(false);
         setShowBotEffect(false);
-        setShowExplosion(false);
       };
     }, [])
   );
 
-  const displayPlayerCard = state.playerDeck[state.currentRound - 1];
-  const displayBotCard = state.botDeck[state.currentRound - 1];
-
+  // Animate on card change
   useEffect(() => {
-    if (displayPlayerCard?.id) {
+    if (currentPlayerCard) {
       playerScale.value = withSequence(
         withTiming(0.95, { duration: 100 }),
         withSpring(1, { damping: 10, stiffness: 200 })
       );
     }
-  }, [displayPlayerCard?.id]);
+  }, [currentPlayerCard?.id]);
 
   useEffect(() => {
-    if (displayBotCard?.id) {
+    if (currentBotCard) {
       botScale.value = withSequence(
         withTiming(0.95, { duration: 100 }),
         withSpring(1, { damping: 10, stiffness: 200 })
       );
     }
-  }, [displayBotCard?.id]);
+  }, [currentBotCard?.id]);
 
-  const handleAttack = useCallback(() => {
-    if (state.battleStatus !== 'inProgress') return;
-    dispatch({ type: 'PLAY_ROUND' });
-    setShowExplosion(true);
-    setTimeout(() => setShowExplosion(false), 800);
-
-    playerScale.value = withSequence(
-      withTiming(1.08, { duration: 150 }),
-      withTiming(1, { duration: 150 })
-    );
-    botScale.value = withSequence(
-      withTiming(1.08, { duration: 150 }),
-      withTiming(1, { duration: 150 })
-    );
-  }, [state.battleStatus, dispatch]);
-
+  // React to lastRoundResult changes
   useEffect(() => {
-    const results = state.roundResults;
-    if (results.length === 0) return;
-    const last = results[results.length - 1];
-    if (last.round !== state.currentRound - 1) return;
+    if (!lastRoundResult) return;
+    const outcome = lastRoundResult.winner === 'player' ? 'win'
+      : lastRoundResult.winner === 'bot' ? 'lose' : 'draw';
 
-    const outcome = last.winner === 'player' ? 'win'
-      : last.winner === 'bot' ? 'lose' : 'draw';
     setRoundResult(outcome);
     setShowResult(true);
     setShowPlayerEffect(true);
@@ -373,83 +188,26 @@ export default function BattleScreen() {
       setShowResult(false);
       setShowPlayerEffect(false);
       setShowBotEffect(false);
+      nextRound();
     }, 1500);
     return () => clearTimeout(t);
   }, [state.roundResults.length]);
 
-  useEffect(() => {
-    if (!state.pendingChoice) return;
-    const { cardId, abilityType, abilityIndex, side } = state.pendingChoice;
-    let title = '🎯 اختر خياراً';
-    let options: { value: string; label: string }[] = [];
+  const handleAttack = useCallback(() => {
+    if (isGameOver) return;
+    playRound();
+    setShowExplosion(true);
+    setTimeout(() => setShowExplosion(false), 800);
 
-    if (abilityType === 'propaganda') {
-      title = '🎙️ بروباغاندا — اختر فئة الخصم';
-      options = ALL_CLASSES.map(c => ({ value: c, label: CLASS_LABELS[c] }));
-    } else if (abilityType === 'addElement') {
-      title = '🧪 إضافة عنصر — اختر العنصر';
-      options = ALL_ELEMENTS.map(e => ({ value: e, label: ELEMENT_LABELS[e] }));
-    } else if (abilityType === 'classSwitch') {
-      title = '🔀 تبديل الفئة — اختر فئتك';
-      options = ALL_CLASSES.map(c => ({ value: c, label: CLASS_LABELS[c] }));
-    } else if (abilityType === 'steal') {
-      const botPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.botCard.nameAr ?? r.botCard.name}` }));
-      title = '🦅 سرقة — اختر كرت البوت';
-      options = botPast;
-    } else if (abilityType === 'revive') {
-      const myPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.playerCard.nameAr ?? r.playerCard.name} (هج ${r.playerCard.attack} / دف ${r.playerCard.defense})` }));
-      title = '💖 إحياء — اختر كرتك';
-      options = myPast;
-    } else if (abilityType === 'revival') {
-      const myPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.playerCard.nameAr ?? r.playerCard.name} (هج ${Math.ceil(r.playerCard.attack / 2)} / دف ${Math.ceil(r.playerCard.defense / 2)})` }));
-      title = '💖 إنعاش — اختر كرتك (بنصف طاقاته)';
-      options = myPast;
-    } else if (abilityType === 'stealAndBuff') {
-      const botPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.botCard.nameAr ?? r.botCard.name} (هج ${r.botCard.attack} / دف ${r.botCard.defense})` }));
-      title = '💎 سرقة وتقوية — اختر كرت البوت';
-      options = botPast;
-    } else if (abilityType === 'copyStats') {
-      const botPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.botCard.nameAr ?? r.botCard.name} (هج ${r.botCard.attack} / دف ${r.botCard.defense})` }));
-      title = '📋 نسخ إحصائيات — اختر كرت البوت';
-      options = botPast;
-    } else if (abilityType === 'buff') {
-      const myPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.playerCard.nameAr ?? r.playerCard.name} (+${r.playerCard.attack} هج / +${r.playerCard.defense} دف)` }));
-      title = '💪 تقوية كرت — اختر كرتك';
-      options = myPast;
-    } else if (abilityType === 'skipRound') {
-      const totalRounds = state.playerDeck.length;
-      const futureRounds = Array.from({ length: totalRounds - state.currentRound }, (_, i) => state.currentRound + i + 1);
-      const options2 = futureRounds.map(r => ({ value: String(r), label: `جولة ${r}` }));
-      title = '⏭️ تخطي جولة — اختر الجولة';
-      options = options2;
-    } else if (abilityType === 'roulette') {
-      const possibleAttacks = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-        .map(v => ({ value: String(v), label: `هجوم: ${v}` }));
-      title = '🎰 روليت — اختر قيمة الهجوم';
-      options = possibleAttacks;
-    }
-
-    if (options.length > 0) {
-      setPendingAbility({ cardId, abilityType, abilityIndex, side, options, title });
-      setChoiceModal({ visible: true, title, options, abilityType });
-    }
-  }, [state.pendingChoice]);
-
-  const handleChoiceSelect = useCallback((value: string) => {
-    if (!pendingAbility) return;
-    dispatch({
-      type: 'RESOLVE_CHOICE',
-      payload: {
-        cardId: pendingAbility.cardId,
-        abilityType: pendingAbility.abilityType,
-        abilityIndex: pendingAbility.abilityIndex,
-        side: pendingAbility.side,
-        chosenValue: value,
-      }
-    });
-    setChoiceModal({ visible: false, title: '', options: [], abilityType: '' });
-    setPendingAbility(null);
-  }, [pendingAbility, dispatch]);
+    playerScale.value = withSequence(
+      withTiming(1.08, { duration: 150 }),
+      withTiming(1, { duration: 150 })
+    );
+    botScale.value = withSequence(
+      withTiming(1.08, { duration: 150 }),
+      withTiming(1, { duration: 150 })
+    );
+  }, [isGameOver, playRound]);
 
   const playerAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: playerScale.value }] }));
   const botAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: botScale.value }] }));
@@ -458,31 +216,13 @@ export default function BattleScreen() {
     transform: [{ scale: resultScale.value }],
   }));
 
-  const playerEffective = displayPlayerCard
-    ? getEffectiveStats(displayPlayerCard.attack, displayPlayerCard.defense, state.activeEffects, 'player')
+  // Expected outcome arrow
+  const expectedOutcome = expectedRoundResult
+    ? expectedRoundResult.winner === 'player' ? 'win'
+      : expectedRoundResult.winner === 'bot' ? 'lose' : 'draw'
     : null;
-  const botEffective = displayBotCard
-    ? getEffectiveStats(displayBotCard.attack, displayBotCard.defense, state.activeEffects, 'bot')
-    : null;
 
-  const isPlayerStronger = playerEffective && botEffective
-    ? playerEffective.attack >= botEffective.attack
-    : false;
-
-  const expectedRoundResult = useMemo(() => {
-    if (!displayPlayerCard || !displayBotCard || !playerEffective || !botEffective) return null;
-    const hasTurin = state.playerDeck.some(c => c.name === 'Turin' || c.nameAr === 'Turin');
-    const halfRounds = Math.floor(state.playerDeck.length / 2);
-    if (hasTurin && state.currentRound <= halfRounds) return 'lose';
-    if (playerEffective.attack > botEffective.attack) return 'win';
-    if (playerEffective.attack < botEffective.attack) return 'lose';
-    return 'draw';
-  }, [displayPlayerCard, displayBotCard, playerEffective, botEffective, state.currentRound, state.playerDeck]);
-
-  const playerElement = displayPlayerCard?.element;
-  const playerAdvantage = state.elementAdvantages?.[playerElement ?? ''] ?? 'neutral';
-
-  if (!displayPlayerCard || !displayBotCard) {
+  if (!currentPlayerCard || !currentBotCard) {
     return (
       <View style={S.centered}>
         <Text style={{ color: C.text }}>تحميل...</Text>
@@ -493,7 +233,6 @@ export default function BattleScreen() {
   return (
     <View style={S.root}>
       {showExplosion && <ExplosionEffect />}
-      <ChoiceModalView modal={choiceModal} onSelect={handleChoiceSelect} />
 
       {/* HUD */}
       <View style={S.hud}>
@@ -501,8 +240,8 @@ export default function BattleScreen() {
           <Ionicons name="chevron-back" size={20} color={C.text} />
         </TouchableOpacity>
         <View style={S.hudCenter}>
-          <Text style={S.roundLabel}>جولة {state.currentRound} / {state.playerDeck.length}</Text>
-          <RoundBar current={state.currentRound - 1} total={state.playerDeck.length} />
+          <Text style={S.roundLabel}>جولة {state.currentRound + 1} / {state.totalRounds}</Text>
+          <RoundBar current={state.currentRound} total={state.totalRounds} />
         </View>
         <View style={S.score}>
           <Text style={[S.scoreNum, { color: C.win }]}>{state.playerScore}</Text>
@@ -511,44 +250,23 @@ export default function BattleScreen() {
         </View>
       </View>
 
-      {/* Effects Bar */}
-      {state.activeEffects.length > 0 && (
-        <View style={S.effectsBar}>
-          <View style={S.effectsBarSide}>
-            <Text style={S.effectsBarLabel}>تأثيراتك</Text>
-            <ActiveEffectsBar effects={state.activeEffects} side="player" />
-          </View>
-          <View style={S.effectsBarDivider} />
-          <View style={S.effectsBarSide}>
-            <Text style={S.effectsBarLabel}>تأثيرات البوت</Text>
-            <ActiveEffectsBar effects={state.activeEffects} side="bot" />
-          </View>
-        </View>
-      )}
-
       {/* Arena */}
       <View style={S.arena}>
+
         {/* PLAYER SIDE */}
         <Animated.View style={[S.side, playerAnimStyle]}>
           <Animated.View entering={SlideInLeft.duration(400)}>
-            <CardImg card={displayPlayerCard} size={100} />
+            <CardImg card={currentPlayerCard} size={100} />
           </Animated.View>
           <Text style={S.cardName} numberOfLines={1}>
-            {displayPlayerCard.nameAr ?? displayPlayerCard.name}
+            {(currentPlayerCard as any).nameAr ?? currentPlayerCard.name}
           </Text>
-          {playerEffective && (
-            <>
-              <StatRow label="هجوم" base={displayPlayerCard.attack} effective={playerEffective.attack} />
-              <StatRow label="دفاع" base={displayPlayerCard.defense} effective={playerEffective.defense} />
-            </>
-          )}
-          {playerElement && (
-            <ElementBadge element={playerElement} advantage={playerAdvantage} />
-          )}
+          <StatRow label="هجوم" value={currentPlayerCard.attack} />
+          <StatRow label="دفاع" value={currentPlayerCard.defense} />
           {showPlayerEffect && (
             <ElementEffect
-              element={playerElement ?? ''}
-              advantage={playerAdvantage}
+              element={(currentPlayerCard as any).element ?? ''}
+              advantage="neutral"
               side="player"
             />
           )}
@@ -556,30 +274,32 @@ export default function BattleScreen() {
 
         {/* CENTER */}
         <View style={S.center}>
-          {expectedRoundResult && !showResult && (
+          {expectedOutcome && !showResult && (
             <View style={S.expectedWrap}>
               <Ionicons
-                name={expectedRoundResult === 'win' ? 'arrow-up' : expectedRoundResult === 'lose' ? 'arrow-down' : 'remove'}
+                name={expectedOutcome === 'win' ? 'arrow-up' : expectedOutcome === 'lose' ? 'arrow-down' : 'remove'}
                 size={18}
-                color={expectedRoundResult === 'win' ? C.win : expectedRoundResult === 'lose' ? C.lose : C.draw}
+                color={expectedOutcome === 'win' ? C.win : expectedOutcome === 'lose' ? C.lose : C.draw}
               />
             </View>
           )}
+
           {showResult && roundResult && (
             <Animated.View style={[S.resultBadge, resultAnimStyle,
               { borderColor: roundResult === 'win' ? C.win : roundResult === 'lose' ? C.lose : C.draw }
             ]}>
               <Text style={[S.resultText, {
-                color: roundResult === 'win' ? C.win : roundResult === 'lose' ? C.lose : C.draw
+                color: roundResult === 'win' ? C.win : roundResult === 'lose' ? C.lose : C.draw,
               }]}>
                 {roundResult === 'win' ? '🏆 فوز' : roundResult === 'lose' ? '💀 خسارة' : '🤝 تعادل'}
               </Text>
             </Animated.View>
           )}
+
           <TouchableOpacity
-            style={[S.attackBtn, state.battleStatus !== 'inProgress' && S.attackBtnDisabled]}
+            style={[S.attackBtn, isGameOver && S.attackBtnDisabled]}
             onPress={handleAttack}
-            disabled={state.battleStatus !== 'inProgress'}
+            disabled={isGameOver}
             activeOpacity={0.75}
           >
             <LinearGradient colors={['#e63946', '#c1121f']} style={S.attackGrad}>
@@ -592,20 +312,16 @@ export default function BattleScreen() {
         {/* BOT SIDE */}
         <Animated.View style={[S.side, botAnimStyle]}>
           <Animated.View entering={SlideInRight.duration(400)}>
-            <CardImg card={displayBotCard} size={100} />
+            <CardImg card={currentBotCard} size={100} />
           </Animated.View>
           <Text style={S.cardName} numberOfLines={1}>
-            {displayBotCard.nameAr ?? displayBotCard.name}
+            {(currentBotCard as any).nameAr ?? currentBotCard.name}
           </Text>
-          {botEffective && (
-            <>
-              <StatRow label="هجوم" base={displayBotCard.attack} effective={botEffective.attack} />
-              <StatRow label="دفاع" base={displayBotCard.defense} effective={botEffective.defense} />
-            </>
-          )}
+          <StatRow label="هجوم" value={currentBotCard.attack} />
+          <StatRow label="دفاع" value={currentBotCard.defense} />
           {showBotEffect && (
             <ElementEffect
-              element={displayBotCard.element ?? ''}
+              element={(currentBotCard as any).element ?? ''}
               advantage="neutral"
               side="bot"
             />
@@ -614,18 +330,13 @@ export default function BattleScreen() {
       </View>
 
       {/* Ability Buttons */}
-      {displayPlayerCard.abilities && displayPlayerCard.abilities.length > 0 && (
+      {(currentPlayerCard as any).abilities?.length > 0 && (
         <View style={S.abilitiesRow}>
-          {displayPlayerCard.abilities.map((ab: any, idx: number) => (
+          {((currentPlayerCard as any).abilities as any[]).map((ab: any, idx: number) => (
             <TouchableOpacity
               key={idx}
               style={S.abilityBtn}
-              onPress={() => {
-                dispatch({
-                  type: 'USE_ABILITY',
-                  payload: { cardId: displayPlayerCard.id, abilityIndex: idx, side: 'player' }
-                });
-              }}
+              onPress={() => useAbility(ab.type ?? ab.name, {}, true)}
             >
               <Text style={S.abilityBtnText} numberOfLines={1}>
                 {ab.nameAr ?? ab.name ?? `قدرة ${idx + 1}`}
@@ -638,7 +349,7 @@ export default function BattleScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const S = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   centered: { flex: 1, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' },
@@ -653,17 +364,9 @@ const S = StyleSheet.create({
   score: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 12 },
   scoreNum: { fontSize: 18, fontWeight: '800' },
   scoreSep: { color: C.muted, fontSize: 14 },
-  effectsBar: {
-    flexDirection: 'row', paddingHorizontal: 10, paddingVertical: 6,
-    backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border,
-  },
-  effectsBarSide: { flex: 1 },
-  effectsBarDivider: { width: 1, backgroundColor: C.border, marginHorizontal: 8 },
-  effectsBarLabel: { color: C.muted, fontSize: 9, marginBottom: 4 },
   arena: {
     flex: 1, flexDirection: 'row',
-    paddingHorizontal: 8, paddingTop: 12, paddingBottom: 4,
-    gap: 4,
+    paddingHorizontal: 8, paddingTop: 12, paddingBottom: 4, gap: 4,
   },
   side: {
     flex: 1, alignItems: 'center', gap: 6,
