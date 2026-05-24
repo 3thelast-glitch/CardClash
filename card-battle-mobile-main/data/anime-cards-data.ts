@@ -112,7 +112,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'water',
-    rarity: 'rare',
+    rarity: 'Rare',
     stars: 4,
   },
   {
@@ -336,7 +336,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'wind',
-    rarity: 'epic',
+    rarity: 'Epic',
     stars: 4,
   },
   {
@@ -609,7 +609,7 @@ export const animeCards: AnimeCard[] = [
     race: 'بشر',
     style: '👊 مقاتل',
     element: 'fire',
-    rarity: 'rare',
+    rarity: 'Rare',
     stars: 4,
   },
   {
