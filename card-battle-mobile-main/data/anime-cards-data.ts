@@ -1854,7 +1854,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'amaimon',
-    nameAر: 'عمايمون',
+    nameAr: 'عمايمون',
     universe: 'Blue Exorcist',
     gender: 'male',
     attack: 13,
@@ -2179,7 +2179,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'ornstein',
-    nameAر: 'أورنشتاين',
+    nameAr: 'أورنشتاين',
     universe: 'Dark Souls',
     gender: 'male',
     attack: 15,
@@ -2231,7 +2231,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'pandoras_actor',
-    nameAر: 'ممثل باندورا',
+    nameAr: 'ممثل باندورا',
     universe: 'Overlord',
     gender: 'male',
     attack: 15,
@@ -2244,7 +2244,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'shalltear',
-    nameAر: 'شالتير',
+    nameAr: 'شالتير',
     universe: 'Overlord',
     gender: 'female',
     attack: 14,
@@ -2257,7 +2257,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'regis',
-    nameAر: 'ريجيس',
+    nameAr: 'ريجيس',
     universe: 'The Witcher',
     gender: 'male',
     attack: 15,
@@ -2270,7 +2270,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'gaunter_o_dimm',
-    nameAر: 'غونتر أو ديم',
+    nameAr: 'غونتر أو ديم',
     universe: 'The Witcher',
     gender: 'male',
     attack: 17,
@@ -2283,7 +2283,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'floki',
-    nameAر: 'فلوكي',
+    nameAr: 'فلوكي',
     universe: 'Vinland Saga',
     gender: 'male',
     attack: 9,
@@ -2296,7 +2296,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'askeladd',
-    nameAر: 'أسكيلاد',
+    nameAr: 'أسكيلاد',
     universe: 'Vinland Saga',
     gender: 'male',
     attack: 13,
@@ -2309,7 +2309,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'thorfinn',
-    nameAر: 'ثورفين',
+    nameAr: 'ثورفين',
     universe: 'Vinland Saga',
     gender: 'male',
     attack: 12,
@@ -2322,7 +2322,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'thorkell',
-    nameAر: 'ثوركيل',
+    nameAr: 'ثوركيل',
     universe: 'Vinland Saga',
     gender: 'male',
     attack: 13,
@@ -2335,7 +2335,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'kamina',
-    nameAر: 'كامينا',
+    nameAr: 'كامينا',
     universe: 'Gurren Lagann',
     gender: 'male',
     attack: 12,
@@ -2348,7 +2348,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'lordgenome',
-    nameAر: 'لورد غينوم',
+    nameAr: 'لورد غينوم',
     universe: 'Gurren Lagann',
     gender: 'male',
     attack: 14,
@@ -2361,7 +2361,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'asuka_langley',
-    nameAر: 'أسوكا لانغلي',
+    nameAr: 'أسوكا لانغلي',
     universe: 'Neon Genesis Evangelion',
     gender: 'female',
     attack: 13,
@@ -2374,7 +2374,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'rei_ayanami',
-    nameAر: 'ري أيانامي',
+    nameAr: 'ري أيانامي',
     universe: 'Neon Genesis Evangelion',
     gender: 'female',
     attack: 13,
@@ -2387,7 +2387,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'kaworu_nagisa',
-    nameAر: 'كاورو ناغيسا',
+    nameAr: 'كاورو ناغيسا',
     universe: 'Neon Genesis Evangelion',
     gender: 'male',
     attack: 14,
@@ -2400,7 +2400,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'dr_cossack',
-    nameAر: 'د. كوساك',
+    nameAr: 'د. كوساك',
     universe: 'Mega Man',
     gender: 'male',
     attack: 6,
@@ -2413,7 +2413,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'mega_man',
-    nameAر: 'ميغا مان',
+    nameAr: 'ميغا مان',
     universe: 'Mega Man',
     gender: 'male',
     attack: 13,
@@ -2426,7 +2426,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'bass',
-    nameAر: 'باس',
+    nameAr: 'باس',
     universe: 'Mega Man',
     gender: 'male',
     attack: 15,
@@ -2439,7 +2439,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'zero',
-    nameAر: 'زيرو',
+    nameAr: 'زيرو',
     universe: 'Mega Man',
     gender: 'male',
     attack: 15,
@@ -2452,7 +2452,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'sigma',
-    nameAر: 'سيغما',
+    nameAr: 'سيغما',
     universe: 'Mega Man',
     gender: 'male',
     attack: 14,
@@ -2465,7 +2465,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'zodd',
-    nameAر: 'زود',
+    nameAr: 'زود',
     universe: 'Berserk',
     gender: 'male',
     attack: 15,
@@ -2478,7 +2478,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'guts',
-    nameAر: 'غاتس',
+    nameAr: 'غاتس',
     universe: 'Berserk',
     gender: 'male',
     attack: 16,
@@ -2491,7 +2491,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'griffith',
-    nameAر: 'غريفث',
+    nameAr: 'غريفث',
     universe: 'Berserk',
     gender: 'male',
     attack: 16,
@@ -2504,7 +2504,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'clare',
-    nameAر: 'كلير',
+    nameAr: 'كلير',
     universe: 'Claymore',
     gender: 'female',
     attack: 13,
@@ -2517,7 +2517,7 @@ export const animeCards: AnimeCard[] = [
   },
   {
     id: 'Turin_Turambar',
-    nameAر: 'تورين تورامبار',
+    nameAr: 'تورين تورامبار',
     universe: 'Special',
     gender: 'male',
     attack: 0,
