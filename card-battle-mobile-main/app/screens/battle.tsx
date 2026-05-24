@@ -27,7 +27,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useGame } from '@/context/game-context';
+import { useGame } from '@/lib/game/game-context';
 import { useSFX } from '@/hooks/use-sfx';
 import { CardData } from '@/types/card';
 import { ExplosionEffect } from '@/components/game/explosion-effect';
@@ -45,7 +45,7 @@ import {
 const advantageLabel = (a: ElementAdvantage) =>
   a === 'strong' ? 'قوي ضد' : a === 'weak' ? 'ضعيف ضد' : 'محايد';
 
-// ─── Colour tokens ────────────────────────────────────────────────────────────
+// ─── Colour tokens ────────────────────────────────────────────────────────
 const C = {
   bg: '#0d0d0d',
   surface: '#161616',
@@ -62,7 +62,7 @@ const C = {
   nerf: '#e63946',
 };
 
-// ─── Effect label builder ───────────────────────────────────────────────────
+// ─── Effect label builder ─────────────────────────────────────────────────
 function getEffectLabel(effect: any): string {
   const d = effect.data as any;
   switch (effect.kind) {
@@ -106,7 +106,7 @@ function getEffectLabel(effect: any): string {
   }
 }
 
-// ─── Round progress bar ──────────────────────────────────────────────────
+// ─── Round progress bar ───────────────────────────────────────────────────
 function RoundBar({ current, total }: { current: number; total: number }) {
   const filled = useSharedValue(0);
   useEffect(() => {
@@ -149,7 +149,7 @@ const eb = StyleSheet.create({
   text: { fontSize: 9, fontWeight: '700' },
 });
 
-// ─── Active Effects Bar ─────────────────────────────────────────────────────
+// ─── Active Effects Bar ───────────────────────────────────────────────────
 function ActiveEffectsBar({ effects, side }: { effects: any[]; side: 'player' | 'bot' }) {
   const mine = effects.filter(e => e.targetSide === side || e.targetSide === 'all');
   if (mine.length === 0) return null;
@@ -333,7 +333,6 @@ export default function BattleScreen() {
     setShowExplosion(true);
     setTimeout(() => setShowExplosion(false), 800);
 
-    // animate both cards
     playerScale.value = withSequence(
       withTiming(1.08, { duration: 150 }),
       withTiming(1, { duration: 150 })
@@ -344,7 +343,6 @@ export default function BattleScreen() {
     );
   }, [state.battleStatus, dispatch]);
 
-  // Show round result overlay
   useEffect(() => {
     const results = state.roundResults;
     if (results.length === 0) return;
@@ -379,7 +377,6 @@ export default function BattleScreen() {
     return () => clearTimeout(t);
   }, [state.roundResults.length]);
 
-  // Handle ability choice triggers
   useEffect(() => {
     if (!state.pendingChoice) return;
     const { cardId, abilityType, abilityIndex, side } = state.pendingChoice;
@@ -472,10 +469,8 @@ export default function BattleScreen() {
     ? playerEffective.attack >= botEffective.attack
     : false;
 
-  // Expected result indicator
   const expectedRoundResult = useMemo(() => {
     if (!displayPlayerCard || !displayBotCard || !playerEffective || !botEffective) return null;
-    // Check Turin forced loss
     const hasTurin = state.playerDeck.some(c => c.name === 'Turin' || c.nameAr === 'Turin');
     const halfRounds = Math.floor(state.playerDeck.length / 2);
     if (hasTurin && state.currentRound <= halfRounds) return 'lose';
@@ -497,13 +492,10 @@ export default function BattleScreen() {
 
   return (
     <View style={S.root}>
-      {/* Explosion overlay */}
       {showExplosion && <ExplosionEffect />}
-
-      {/* Choice Modal */}
       <ChoiceModalView modal={choiceModal} onSelect={handleChoiceSelect} />
 
-      {/* ── HUD ────────────────────────────────────────────────────── */}
+      {/* HUD */}
       <View style={S.hud}>
         <TouchableOpacity onPress={() => router.back()} style={S.backBtn}>
           <Ionicons name="chevron-back" size={20} color={C.text} />
@@ -519,7 +511,7 @@ export default function BattleScreen() {
         </View>
       </View>
 
-      {/* ── Effects Bar ─────────────────────────────────────────────── */}
+      {/* Effects Bar */}
       {state.activeEffects.length > 0 && (
         <View style={S.effectsBar}>
           <View style={S.effectsBarSide}>
@@ -534,9 +526,8 @@ export default function BattleScreen() {
         </View>
       )}
 
-      {/* ── Arena ───────────────────────────────────────────────────── */}
+      {/* Arena */}
       <View style={S.arena}>
-
         {/* PLAYER SIDE */}
         <Animated.View style={[S.side, playerAnimStyle]}>
           <Animated.View entering={SlideInLeft.duration(400)}>
@@ -565,7 +556,6 @@ export default function BattleScreen() {
 
         {/* CENTER */}
         <View style={S.center}>
-          {/* Expected result arrow */}
           {expectedRoundResult && !showResult && (
             <View style={S.expectedWrap}>
               <Ionicons
@@ -575,8 +565,6 @@ export default function BattleScreen() {
               />
             </View>
           )}
-
-          {/* Round result overlay */}
           {showResult && roundResult && (
             <Animated.View style={[S.resultBadge, resultAnimStyle,
               { borderColor: roundResult === 'win' ? C.win : roundResult === 'lose' ? C.lose : C.draw }
@@ -588,18 +576,13 @@ export default function BattleScreen() {
               </Text>
             </Animated.View>
           )}
-
-          {/* Attack Button */}
           <TouchableOpacity
             style={[S.attackBtn, state.battleStatus !== 'inProgress' && S.attackBtnDisabled]}
             onPress={handleAttack}
             disabled={state.battleStatus !== 'inProgress'}
             activeOpacity={0.75}
           >
-            <LinearGradient
-              colors={['#e63946', '#c1121f']}
-              style={S.attackGrad}
-            >
+            <LinearGradient colors={['#e63946', '#c1121f']} style={S.attackGrad}>
               <Ionicons name="flash" size={22} color="#fff" />
               <Text style={S.attackLabel}>هجوم</Text>
             </LinearGradient>
@@ -630,7 +613,7 @@ export default function BattleScreen() {
         </Animated.View>
       </View>
 
-      {/* ── Ability Buttons ─────────────────────────────────────────── */}
+      {/* Ability Buttons */}
       {displayPlayerCard.abilities && displayPlayerCard.abilities.length > 0 && (
         <View style={S.abilitiesRow}>
           {displayPlayerCard.abilities.map((ab: any, idx: number) => (
@@ -640,11 +623,7 @@ export default function BattleScreen() {
               onPress={() => {
                 dispatch({
                   type: 'USE_ABILITY',
-                  payload: {
-                    cardId: displayPlayerCard.id,
-                    abilityIndex: idx,
-                    side: 'player',
-                  }
+                  payload: { cardId: displayPlayerCard.id, abilityIndex: idx, side: 'player' }
                 });
               }}
             >
@@ -659,12 +638,10 @@ export default function BattleScreen() {
   );
 }
 
-// ─── Styles ────────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────────
 const S = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   centered: { flex: 1, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' },
-
-  // HUD
   hud: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 12, paddingVertical: 8,
@@ -676,8 +653,6 @@ const S = StyleSheet.create({
   score: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 12 },
   scoreNum: { fontSize: 18, fontWeight: '800' },
   scoreSep: { color: C.muted, fontSize: 14 },
-
-  // Effects Bar
   effectsBar: {
     flexDirection: 'row', paddingHorizontal: 10, paddingVertical: 6,
     backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border,
@@ -685,8 +660,6 @@ const S = StyleSheet.create({
   effectsBarSide: { flex: 1 },
   effectsBarDivider: { width: 1, backgroundColor: C.border, marginHorizontal: 8 },
   effectsBarLabel: { color: C.muted, fontSize: 9, marginBottom: 4 },
-
-  // Arena
   arena: {
     flex: 1, flexDirection: 'row',
     paddingHorizontal: 8, paddingTop: 12, paddingBottom: 4,
@@ -697,15 +670,8 @@ const S = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 12, padding: 10,
     borderWidth: 1, borderColor: C.border,
   },
-  cardName: {
-    color: C.text, fontSize: 11, fontWeight: '700',
-    textAlign: 'center', maxWidth: 120,
-  },
-
-  // Center
-  center: {
-    width: 90, alignItems: 'center', justifyContent: 'center', gap: 12,
-  },
+  cardName: { color: C.text, fontSize: 11, fontWeight: '700', textAlign: 'center', maxWidth: 120 },
+  center: { width: 90, alignItems: 'center', justifyContent: 'center', gap: 12 },
   expectedWrap: {
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: C.surface, justifyContent: 'center', alignItems: 'center',
@@ -713,24 +679,14 @@ const S = StyleSheet.create({
   },
   resultBadge: {
     paddingHorizontal: 10, paddingVertical: 6,
-    backgroundColor: C.bg, borderRadius: 10, borderWidth: 2,
-    alignItems: 'center',
+    backgroundColor: C.bg, borderRadius: 10, borderWidth: 2, alignItems: 'center',
   },
   resultText: { fontSize: 13, fontWeight: '800' },
-
-  // Attack button
   attackBtn: { borderRadius: 12, overflow: 'hidden', width: 80 },
   attackBtnDisabled: { opacity: 0.4 },
-  attackGrad: {
-    paddingVertical: 12, alignItems: 'center', justifyContent: 'center', gap: 4,
-  },
+  attackGrad: { paddingVertical: 12, alignItems: 'center', justifyContent: 'center', gap: 4 },
   attackLabel: { color: '#fff', fontSize: 13, fontWeight: '800' },
-
-  // Abilities
-  abilitiesRow: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 6,
-    paddingHorizontal: 10, paddingBottom: 10,
-  },
+  abilitiesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 10, paddingBottom: 10 },
   abilityBtn: {
     backgroundColor: C.surface, borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 6,
