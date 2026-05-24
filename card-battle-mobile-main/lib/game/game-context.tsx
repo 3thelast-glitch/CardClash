@@ -621,6 +621,9 @@ type GameContextType = {
   dispatch: React.Dispatch<GameAction>;
   rarityWeights: RarityWeights;
   updateRarityWeights: (weights: RarityWeights) => Promise<void>;
+  // ✅ Helper functions — مكشوفة للاستخدام المباشر في الشاشات
+  setPlayerDeck: (deck: Card[]) => void;
+  startBattle: (deck: Card[], abilities?: AbilityType[]) => void;
 };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -638,8 +641,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     await saveRarityWeights(weights);
   };
 
+  // ✅ setPlayerDeck: يضبط الديك في الـ state
+  const setPlayerDeck = (deck: Card[]) => {
+    dispatch({ type: 'SET_PLAYER_DECK', payload: deck });
+  };
+
+  // ✅ startBattle: يضبط الديك ويبدأ المعركة مع القدرات الاختيارية
+  const startBattle = (deck: Card[], abilities?: AbilityType[]) => {
+    dispatch({ type: 'SET_PLAYER_DECK', payload: deck });
+    dispatch({ type: 'START_BATTLE', payload: { playerAbilities: abilities } });
+  };
+
   return (
-    <GameContext.Provider value={{ state, dispatch, rarityWeights, updateRarityWeights }}>
+    <GameContext.Provider value={{ state, dispatch, rarityWeights, updateRarityWeights, setPlayerDeck, startBattle }}>
       {children}
     </GameContext.Provider>
   );
