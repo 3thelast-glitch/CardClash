@@ -524,8 +524,10 @@ type GameContextType = {
   dispatch: React.Dispatch<GameAction>;
   rarityWeights: RarityWeights;
   updateRarityWeights: (weights: RarityWeights) => Promise<void>;
+  setRarityWeights: (weights: RarityWeights) => void;
   // ── helpers — جميعها مكشوفة لجميع الشاشات ──
   setPlayerDeck: (deck: Card[]) => void;
+  setTotalRounds: (rounds: number) => void;
   startBattle: (deck: Card[], abilities?: AbilityType[]) => void;
   syncDecks: (playerDeck: Card[], botDeck: Card[]) => void;
   setDifficulty: (level: DifficultyLevel) => void;
@@ -556,6 +558,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setRarityWeights(weights);
     await saveRarityWeights(weights);
   };
+
+  const setTotalRounds = useCallback((rounds: number) => {
+    dispatch({ type: 'SET_TOTAL_ROUNDS', payload: rounds });
+  }, []);
 
   const setPlayerDeck = useCallback((deck: Card[]) => {
     dispatch({ type: 'SET_PLAYER_DECK', payload: deck });
@@ -648,7 +654,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   return (
     <GameContext.Provider value={{
       state, dispatch, rarityWeights, updateRarityWeights,
-      setPlayerDeck, startBattle, syncDecks,
+      setRarityWeights: (w: RarityWeights) => { setRarityWeights(w); saveRarityWeights(w); },
+      setPlayerDeck, setTotalRounds, startBattle, syncDecks,
       setDifficulty, setAbilitiesEnabled,
       playRound, nextRound, resetGame, useAbility,
       isGameOver, currentPlayerCard, currentBotCard,
