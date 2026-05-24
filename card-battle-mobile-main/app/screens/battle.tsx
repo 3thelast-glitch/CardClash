@@ -21,6 +21,7 @@
  *  - ✅ Removed edit mode / 🎨 أدوات التحرير
  *  - ✅ Fix: startBattle loop guard (prevent infinite loading freeze)
  *  - ✅ Fix: force 'row' flexDirection in arena (ignore portrait mode)
+ *  - ✅ Refactor: removed old classes (warrior/knight/mage/archer/berserker/paladin)
  */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
@@ -81,14 +82,20 @@ const ELEMENT_LABELS: Record<Element, string> = {
   fire: '🔥 نار', water: '💧 ماء',
   earth: '🌍 أرض', lightning: '⚡ برق', wind: '💨 ريح',
 };
-const ALL_CLASSES: CardClass[] = ['warrior', 'knight', 'mage', 'archer', 'berserker', 'paladin'];
+
+// ✅ الفصائل المعتمدة فقط (حسب الفلتر)
+const ALL_CLASSES: CardClass[] = ['swordsman', 'fighter', 'guardian', 'healer'];
 const CLASS_LABELS: Record<CardClass, string> = {
-  warrior: '⚔️ محارب', knight: '🛡️ فارس', mage: '🔮 ساحر',
-  archer: '🏹 رامي', berserker: '🗡️ بيرسركر', paladin: '💪 بالادين',
+  swordsman: '🤺 سياف',
+  fighter:   '🥊 مقاتل',
+  guardian:  '🤖 والي',
+  healer:    '⚕️ طبيب',
 };
 const CLASS_LABELS_SHORT: Record<string, string> = {
-  warrior: 'المحاربين', knight: 'الفرسان', mage: 'السحرة',
-  archer: 'الرماة', berserker: 'البيرسركر', paladin: 'البالادين',
+  swordsman: 'السيافين',
+  fighter:   'المقاتلين',
+  guardian:  'الولاة',
+  healer:    'الأطباء',
 };
 const STAT_LABELS: Record<string, string> = {
   attack: 'هجوم', defense: 'دفاع', all: 'الكل', hp: 'صحة',
@@ -749,196 +756,180 @@ export default function BattleScreen() {
                   card={displayPlayerCard}
                   style={{ width: cardWidth, height: cardHeight }}
                   effectiveAttack={playerEffective.attack}
-                  effectiveDefense={playerEffective.defense}
-                  isOpenedView={playerWonThisRound}
-                  playAudio={isPlayerStronger}
                 />
-                {showPlayerEffect && <ElementEffect element={displayPlayerCard.element} isActive />}
               </Animated.View>
-              {activeDamageNumbers.filter(n => n.side === 'player').map(n => (
-                <DamageNumber key={n.id} value={n.value} variant={n.variant} x={40} y={-20} onComplete={() => removeDmg(n.id)} />
-              ))}
-              {showResult && lastRoundResult && (
-                <AdvantageChip advantage={lastRoundResult.playerElementAdvantage} element={lastRoundResult.playerCard.element} />
+              {showPlayerEffect && (
+                <ElementEffect element={displayPlayerCard.element} side="player" />
               )}
+              {activeDamageNumbers.filter(n => n.side === 'player').map(n => (
+                <DamageNumber key={n.id} value={n.value} variant={n.variant} onDone={() => removeDmg(n.id)} />
+              ))}
+              <AdvantageChip
+                advantage={lastRoundResult?.playerElementAdvantage ?? 'neutral'}
+                element={displayPlayerCard.element}
+              />
+              <ActiveEffectsBar effects={state.activeEffects} side="player" />
             </View>
 
-            {/* CENTER COLUMN */}
-            <View style={S.centerCol}>
-              <Animated.View style={[S.vsBadge, vsStyle]}>
-                <Text style={S.vsIcon}>⚔️</Text>
-                <Text style={S.vsText}>VS</Text>
+            {/* CENTER PANEL */}
+            <View style={S.centerPanel}>
+              <Animated.View style={vsStyle}>
+                <Text style={S.vsText}>⚔️</Text>
               </Animated.View>
 
-              {phase === 'action' && expectedRoundResult && (
-                <Animated.View style={[S.previewChip, vsStyle, {
-                  borderColor: expectedRoundResult.winner === 'player' ? '#4ade8055' : expectedRoundResult.winner === 'bot' ? '#f8717155' : '#fbbf2455',
-                  backgroundColor: expectedRoundResult.winner === 'player' ? 'rgba(74,222,128,0.08)' : expectedRoundResult.winner === 'bot' ? 'rgba(248,113,113,0.08)' : 'rgba(251,191,36,0.08)',
-                }]}>
-                  <Text style={[S.previewChipText, { color: expectedRoundResult.winner === 'player' ? '#4ade80' : expectedRoundResult.winner === 'bot' ? '#f87171' : '#fbbf24' }]}>
-                    {expectedRoundResult.winner === 'player' ? '👤 متوقع: فوزك' : expectedRoundResult.winner === 'bot' ? '💀 متوقع: خسارتك' : '🤝 متوقع: تعادل'}
+              {phase === 'result' && lastRoundResult && (
+                <Animated.View style={[S.resultChip, resultStyle]}>
+                  <Text style={[
+                    S.resultText,
+                    lastRoundResult.winner === 'player' ? S.resultWin
+                    : lastRoundResult.winner === 'bot' ? S.resultLose
+                    : S.resultDraw,
+                  ]}>
+                    {lastRoundResult.winner === 'player' ? '🏆 فزت'
+                      : lastRoundResult.winner === 'bot' ? '💀 خسرت'
+                      : '🤝 تعادل'}
                   </Text>
                 </Animated.View>
               )}
 
-              {(phase === 'result' || phase === 'waiting') && lastRoundResult && (
-                <View style={[S.resultBadge, {
-                  borderColor: lastRoundResult.winner === 'player' ? '#4ade80' : lastRoundResult.winner === 'bot' ? '#f87171' : '#fbbf24',
-                  backgroundColor: lastRoundResult.winner === 'player' ? 'rgba(74,222,128,0.12)' : lastRoundResult.winner === 'bot' ? 'rgba(248,113,113,0.12)' : 'rgba(251,191,36,0.12)',
-                }]}>
-                  <Text style={[S.resultBadgeText, { color: lastRoundResult.winner === 'player' ? '#4ade80' : lastRoundResult.winner === 'bot' ? '#f87171' : '#fbbf24' }]}>
-                    {lastRoundResult.winner === 'player' ? '🏆 فزت! 🔥' : lastRoundResult.winner === 'bot' ? '💀 خسرت' : '🤝 تعادل'}
-                  </Text>
+              {phase === 'action' && (
+                <View style={S.actionButtons}>
+                  {/* Ability button */}
+                  <TouchableOpacity
+                    style={[S.abilityBtn, state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled]}
+                    onPress={() => setIsAbilitiesModalOpen(true)}
+                    disabled={state.playerAbilities.every(a => a.used)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={S.abilityBtnText}>✨ قدرة</Text>
+                  </TouchableOpacity>
+
+                  {/* Attack button */}
+                  <TouchableOpacity style={S.attackBtn} onPress={handleExecuteAttack} activeOpacity={0.85}>
+                    <Text style={S.attackBtnText}>⚔️ هجوم</Text>
+                  </TouchableOpacity>
+
+                  {canRageNow && (
+                    <TouchableOpacity
+                      style={S.rageBtn}
+                      onPress={() => {
+                        const re = buildRageTriggerEvent(currentPlayerCard!, rageState.current);
+                        if (re) setRageEvent(re);
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={S.rageBtnText}>🔥 RAGE</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
 
-              <View style={S.ctaStack}>
-                {phase === 'action' ? (
-                  <TouchableOpacity style={[S.ctaBtn, S.ctaBtnAttack]} onPress={handleExecuteAttack} activeOpacity={0.85}>
-                    <Text style={S.ctaBtnIcon}>⚔️</Text><Text style={S.ctaBtnText}>هجوم!</Text>
-                  </TouchableOpacity>
-                ) : phase === 'waiting' ? (
-                  <TouchableOpacity style={[S.ctaBtn, S.ctaBtnNext]} onPress={handleNextRound} activeOpacity={0.85}>
-                    <Text style={S.ctaBtnIcon}>{isGameOver ? '🏁' : '▶️'}</Text><Text style={S.ctaBtnText}>{isGameOver ? 'إنهاء' : 'التالي'}</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={[S.ctaBtn, S.ctaBtnDisabled]}>
-                    <Text style={S.ctaBtnText}>{phase === 'combat' ? '⚔️ معركة...' : '⌛ جاري...'}</Text>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={[S.ctaBtn, S.ctaBtnAbilities, phase !== 'action' && S.ctaBtnDisabled]}
-                  onPress={() => phase === 'action' && setIsAbilitiesModalOpen(true)}
-                  activeOpacity={0.8}
-                  disabled={phase !== 'action'}
-                >
-                  <Text style={S.ctaBtnIcon}>⚡</Text><Text style={S.ctaBtnText}>قدرات</Text>
+              {phase === 'result' && !isGameOver && (
+                <TouchableOpacity style={S.nextBtn} onPress={handleNextRound} activeOpacity={0.85}>
+                  <Text style={S.nextBtnText}>التالي ▶</Text>
                 </TouchableOpacity>
-
-                {/* 🔥 زر الغضب */}
-                {canRageNow && phase === 'action' && (
-                  <TouchableOpacity
-                    style={[S.ctaBtn, S.ctaBtnRage]}
-                    onPress={() => {
-                      if (!currentPlayerCard) return;
-                      const rageCard = applyRageToCard(currentPlayerCard, rageState.current);
-                      const event = buildRageTriggerEvent(currentPlayerCard, rageCard);
-                      setRageEvent(event);
-                    }}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={S.ctaBtnIcon}>😡</Text>
-                    <Text style={S.ctaBtnText}>غضب!</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              )}
             </View>
 
             {/* BOT PANEL */}
             <View style={S.botPanel}>
-              <Text style={S.panelLabel}>بوت</Text>
-              <Animated.View style={[botStyle, { transform: [{ scale: 0.95 }] }]}>
+              <Text style={[S.panelLabel, { textAlign: 'right' }]}>بوت</Text>
+              <Animated.View style={botStyle}>
                 <LuxuryCharacterCardAnimated
                   card={displayBotCard}
                   style={{ width: cardWidth, height: cardHeight }}
                   effectiveAttack={botEffective.attack}
-                  effectiveDefense={botEffective.defense}
-                  playAudio={!isPlayerStronger}
                 />
-                {showBotEffect && <ElementEffect element={displayBotCard.element} isActive />}
               </Animated.View>
-              {activeDamageNumbers.filter(n => n.side === 'bot').map(n => (
-                <DamageNumber key={n.id} value={n.value} variant={n.variant} x={40} y={-20} onComplete={() => removeDmg(n.id)} />
-              ))}
-              {showResult && lastRoundResult && (
-                <AdvantageChip advantage={lastRoundResult.botElementAdvantage} element={lastRoundResult.botCard.element} />
+              {showBotEffect && (
+                <ElementEffect element={displayBotCard.element} side="bot" />
               )}
-              <View style={S.botStatus}>
-                <Text style={S.botStatusText}>{phase === 'action' ? '🤖 ينتظر...' : phase === 'combat' ? '⚔️ يقاتل!' : '🤖 جاهز'}</Text>
-              </View>
+              {activeDamageNumbers.filter(n => n.side === 'bot').map(n => (
+                <DamageNumber key={n.id} value={n.value} variant={n.variant} onDone={() => removeDmg(n.id)} />
+              ))}
+              <AdvantageChip
+                advantage={lastRoundResult?.botElementAdvantage ?? 'neutral'}
+                element={displayBotCard.element}
+              />
+              <ActiveEffectsBar effects={state.activeEffects} side="bot" />
             </View>
-
           </View>
         </View>
       </SafeAreaView>
 
-      {/* ── MODALS ── */}
-
-      {/* Abilities modal */}
-      <Modal visible={isAbilitiesModalOpen} transparent animationType="fade" onRequestClose={() => setIsAbilitiesModalOpen(false)}>
-        <TouchableOpacity style={S.modalOverlay} activeOpacity={1} onPress={() => setIsAbilitiesModalOpen(false)}>
-          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={S.abilitiesModal}>
-            <View style={S.modalHeader}>
-              <Text style={S.modalTitle}>⚡ القدرات المتاحة</Text>
-              <TouchableOpacity onPress={() => setIsAbilitiesModalOpen(false)} style={S.modalClose}>
-                <Text style={S.modalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            {state.playerAbilities.length === 0 ? (
-              <Text style={S.emptyText}>لا توجد قدرات متاحة</Text>
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ flexDirection: 'row', gap: SPACE.md, paddingHorizontal: SPACE.sm, paddingVertical: SPACE.sm }}
-              >
-                {state.playerAbilities.map((ability, i) => {
-                  const isSealed = state.activeEffects.some(ef =>
-                    ef.kind === 'silenceAbilities' &&
-                    (ef.targetSide === 'player' || ef.targetSide === 'all') &&
-                    ef.createdAtRound <= roundNumber &&
-                    (ef.expiresAtRound === undefined || roundNumber <= ef.expiresAtRound)
-                  );
-                  const canUse = !ability.used && phase === 'action' && !isSealed;
-                  return (
-                    <TouchableOpacity
-                      key={i}
-                      onPress={() => {
-                        if (!canUse) { if (isSealed) Alert.alert('القدرات مختومة', 'لا يمكنك تفعيل القدرات خلال مدة الختم.'); return; }
-
-                        if (['LogicalEncounter', 'Eclipse', 'Trap', 'Pool'].includes(ability.type)) {
-                          if (!upcomingRounds.length) return;
-                          setPredictionSelections({}); setPredictionAbilityType(ability.type as any);
-                          setIsAbilitiesModalOpen(false); setShowPredictionModal(true); return;
-                        }
-                        if (['Popularity', 'Rescue', 'Penetration'].includes(ability.type)) {
-                          if (!remainingRounds.length) return;
-                          setSelectedPopularityRound(null); setPopularityAbilityType(ability.type as any);
-                          setIsAbilitiesModalOpen(false); setShowPopularityModal(true); return;
-                        }
-                        if (CHOICE_ABILITIES.includes(ability.type)) {
-                          setIsAbilitiesModalOpen(false);
-                          openChoiceModal(ability.type);
-                          return;
-                        }
-                        useAbility(ability.type); setIsAbilitiesModalOpen(false);
-                        hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-                      }}
-                      disabled={!canUse}
-                      activeOpacity={0.85}
-                      style={{ opacity: canUse ? 1 : 0.4, transform: [{ scale: 0.85 }] }}
-                    >
-                      <AbilityCard
-                        ability={{
-                          id: i,
-                          nameEn: ability.type,
-                          nameAr: getAbilityNameAr(ability.type).split('(')[0].trim(),
-                          description: getAbilityDescription(ability.type),
-                          icon: null,
-                          rarity: 'Rare',
-                          isActive: canUse,
-                        }}
-                        showActionButtons={false}
-                      />
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            )}
+      {/* ── History Modal ── */}
+      <Modal visible={isHistoryModalOpen} transparent animationType="fade" onRequestClose={() => setIsHistoryModalOpen(false)}>
+        <TouchableOpacity style={cm.overlay} activeOpacity={1} onPress={() => setIsHistoryModalOpen(false)}>
+          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[cm.box, { width: 340 }]}>
+            <Text style={cm.title}>📜 سجل الجولات</Text>
+            <ScrollView style={{ maxHeight: 320 }}>
+              {roundHistory.length === 0 ? (
+                <Text style={{ color: '#94a3b8', textAlign: 'center', padding: 16 }}>لا توجد جولات مكتملة بعد</Text>
+              ) : roundHistory.map((h, i) => (
+                <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                  <Text style={{ color: '#cbd5e1', fontSize: 12 }}>ج{h.round}: {h.playerCard.nameAr ?? h.playerCard.name}</Text>
+                  <Text style={{ color: '#cbd5e1', fontSize: 12 }}>vs {h.botCard.nameAr ?? h.botCard.name}</Text>
+                  <Text style={{ color: h.winner === 'player' ? '#4ade80' : h.winner === 'bot' ? '#f87171' : '#fbbf24', fontSize: 12 }}>
+                    {h.winner === 'player' ? '✓' : h.winner === 'bot' ? '✗' : '='}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={cm.cancel} onPress={() => setIsHistoryModalOpen(false)}>
+              <Text style={cm.cancelText}>إغلاق</Text>
+            </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
-      {/* Choice modal */}
+      {/* ── Abilities Modal ── */}
+      <Modal visible={isAbilitiesModalOpen} transparent animationType="slide" onRequestClose={() => setIsAbilitiesModalOpen(false)}>
+        <TouchableOpacity style={cm.overlay} activeOpacity={1} onPress={() => setIsAbilitiesModalOpen(false)}>
+          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[cm.box, { width: 340, maxHeight: '80%' }]}>
+            <Text style={cm.title}>✨ قدراتك</Text>
+            <ScrollView contentContainerStyle={{ gap: 8, padding: 4 }}>
+              {state.playerAbilities.map((ab, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[cm.option, ab.used && { opacity: 0.4 }]}
+                  onPress={() => {
+                    if (ab.used) return;
+                    if (CHOICE_ABILITIES.includes(ab.type)) {
+                      openChoiceModal(ab.type);
+                    } else if (['LogicalEncounter', 'Eclipse', 'Trap', 'Pool'].includes(ab.type)) {
+                      setPredictionAbilityType(ab.type as any);
+                      setShowPredictionModal(true);
+                      setIsAbilitiesModalOpen(false);
+                    } else if (['Popularity', 'Rescue', 'Penetration'].includes(ab.type)) {
+                      setPopularityAbilityType(ab.type as any);
+                      setShowPopularityModal(true);
+                      setIsAbilitiesModalOpen(false);
+                    } else {
+                      useAbility(ab.type, {});
+                      setIsAbilitiesModalOpen(false);
+                      hapticImpact(Haptics.ImpactFeedbackStyle.Light);
+                    }
+                  }}
+                  disabled={ab.used}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[cm.optionText, ab.used && { color: '#64748b' }]}>
+                    {ab.used ? '✓ ' : ''}{getAbilityNameAr(ab.type)}
+                  </Text>
+                  <Text style={{ color: '#64748b', fontSize: 11, textAlign: 'center', marginTop: 2 }}>
+                    {getAbilityDescription(ab.type)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={cm.cancel} onPress={() => setIsAbilitiesModalOpen(false)}>
+              <Text style={cm.cancelText}>إلغاء</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Choice Modal ── */}
       <ChoiceModal
         visible={choiceModal.visible}
         title={choiceModal.title}
@@ -947,129 +938,83 @@ export default function BattleScreen() {
         onCancel={() => setChoiceModal(p => ({ ...p, visible: false }))}
       />
 
+      {/* ── Prediction Modal ── */}
       <PredictionModal
         visible={showPredictionModal}
+        abilityType={predictionAbilityType}
         upcomingRounds={upcomingRounds}
-        selections={predictionSelections}
-        onSelect={(r: number, o: 'win' | 'loss') => setPredictionSelections(p => ({ ...p, [r]: o }))}
-        onCancel={() => { setShowPredictionModal(false); setPredictionSelections({}); }}
-        onRequestClose={() => setShowPredictionModal(false)}
-        onConfirm={handleConfirmPrediction}
-        isConfirmDisabled={!predictionComplete}
-      />
-      <PopularityModal
-        visible={showPopularityModal}
         remainingRounds={remainingRounds}
-        selectedRound={selectedPopularityRound}
-        onSelect={(r: number) => setSelectedPopularityRound(r)}
-        onCancel={() => { setShowPopularityModal(false); setSelectedPopularityRound(null); }}
-        onRequestClose={() => setShowPopularityModal(false)}
-        onConfirm={handleConfirmPopularity}
-        isConfirmDisabled={selectedPopularityRound === null}
+        selections={predictionSelections}
+        summary={buildPredictionSummary(upcomingRounds, predictionSelections)}
+        isComplete={predictionComplete}
+        onToggle={(r, v) => setPredictionSelections(p => ({ ...p, [r]: v }))}
+        onConfirm={handleConfirmPrediction}
+        onCancel={() => { setShowPredictionModal(false); setPredictionSelections({}); }}
       />
 
-      {/* History modal */}
-      <Modal visible={isHistoryModalOpen} transparent animationType="slide" onRequestClose={() => setIsHistoryModalOpen(false)}>
-        <View style={S.modalOverlay}>
-          <View style={S.historyModal}>
-            <View style={S.modalHeader}>
-              <Text style={S.modalTitle}>📜 سجل الجولات</Text>
-              <TouchableOpacity onPress={() => setIsHistoryModalOpen(false)} style={S.modalClose}>
-                <Text style={S.modalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={{ flexShrink: 1 }}>
-              {roundHistory.length === 0 ? (
-                <Text style={S.emptyText}>لا يوجد سجل بعد</Text>
-              ) : (
-                roundHistory.map((item, idx) => {
-                  const c = item.winner === 'player' ? '#4ade80' : item.winner === 'bot' ? '#f87171' : '#fbbf24';
-                  const l = item.winner === 'player' ? '🏆 فاز اللاعب' : item.winner === 'bot' ? '🤖 فاز البوت' : '🤝 تعادل';
-                  return (
-                    <View key={idx} style={[S.historyRow, { borderLeftColor: c }]}>
-                      <View style={S.historyCardWrap}>
-                        {item.winner === 'player' && <Text style={S.crown}>👑</Text>}
-                        <LuxuryCharacterCardAnimated card={item.playerCard} style={{ width: 72, height: 100 }} />
-                      </View>
-                      <View style={S.historyCenter}>
-                        <Text style={S.historyRound}>جولة {item.round}</Text>
-                        <Text style={[S.historyResult, { color: c }]}>{l}</Text>
-                      </View>
-                      <View style={S.historyCardWrap}>
-                        {item.winner === 'bot' && <Text style={S.crown}>👑</Text>}
-                        <LuxuryCharacterCardAnimated card={item.botCard} style={{ width: 72, height: 100 }} />
-                      </View>
-                    </View>
-                  );
-                })
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      {/* ── Popularity Modal ── */}
+      <PopularityModal
+        visible={showPopularityModal}
+        abilityType={popularityAbilityType}
+        totalRounds={state.totalRounds}
+        currentRound={state.currentRound}
+        selectedRound={selectedPopularityRound}
+        onSelectRound={setSelectedPopularityRound}
+        onConfirm={handleConfirmPopularity}
+        onCancel={() => { setShowPopularityModal(false); setSelectedPopularityRound(null); }}
+      />
     </View>
   );
 }
 
-// ──────────────────────────── STYLES ───────────────────────────
+// ─── Styles ─────────────────────────────────────────────────────────────────
 const S = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#080612' },
-  bgWrap: { position: 'absolute', inset: 0, zIndex: 0 },
-  flashOverlay: { position: 'absolute', inset: 0, zIndex: 5, backgroundColor: '#fff', pointerEvents: 'none' },
-  loadWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadText: { fontSize: FONT.xl, color: COLOR.textMuted },
+  root: { flex: 1, backgroundColor: '#080d1a' },
+  bgWrap: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
   normalRoot: { flex: 1 },
-  screen: { flex: 1, flexDirection: 'column', paddingBottom: 8, justifyContent: 'space-between' },
-  topHud: { height: 68, flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACE.lg, backgroundColor: 'rgba(8,6,18,0.82)', borderBottomWidth: 1, borderBottomColor: 'rgba(228,165,42,0.18)', gap: SPACE.sm },
+  flashOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: '#fff', zIndex: 99, pointerEvents: 'none' },
+  screen: { flex: 1, flexDirection: 'column', paddingTop: SPACE.sm, paddingBottom: SPACE.sm, zIndex: 1 },
+  loadWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadText: { color: COLOR.gold, fontSize: FONT.lg },
+
+  topHud: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACE.lg, paddingBottom: SPACE.sm, gap: SPACE.sm },
   hudSide: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-  hudSideRight: { justifyContent: 'flex-end' },
-  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  hudInfo: { flex: 1, gap: 4 },
-  hudName: { fontSize: FONT.xs, letterSpacing: 0.5 },
-  hudScore: { fontSize: FONT.xxl, fontVariant: ['tabular-nums'] } as any,
-  hudCenter: { width: 160, alignItems: 'center', gap: SPACE.xs },
-  hudRound: { color: '#e2e8f0', fontSize: FONT.sm, letterSpacing: 0.4 },
-  historyBtn: { paddingHorizontal: SPACE.sm, paddingVertical: 2, borderRadius: RADIUS.full, backgroundColor: 'rgba(228,165,42,0.1)', borderWidth: 1, borderColor: 'rgba(228,165,42,0.25)' },
-  historyBtnText: { color: COLOR.gold, fontSize: FONT.xs - 2 },
-  effectsBar: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: SPACE.lg, paddingVertical: 5, backgroundColor: 'rgba(0,0,0,0.28)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', gap: SPACE.sm, minHeight: 32 },
-  effectsBarSide: { flex: 1, alignItems: 'flex-start' },
-  effectsBarDivider: { width: 1, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.08)' },
-  effectsBarLabel: { color: 'rgba(255,255,255,0.3)', fontSize: 9, letterSpacing: 0.5, marginBottom: 2 },
-  arena: { flex: 1, justifyContent: 'space-evenly', alignItems: 'center', paddingHorizontal: SPACE.lg, gap: SPACE.xl, position: 'relative' },
-  playerPanel: { alignItems: 'center', justifyContent: 'center', zIndex: 2, paddingVertical: SPACE.md },
-  botPanel: { alignItems: 'center', justifyContent: 'center', zIndex: 1, paddingVertical: SPACE.md },
-  panelLabel: { color: COLOR.textMuted, fontSize: FONT.xs - 2, letterSpacing: 1, textTransform: 'uppercase' },
-  botStatus: { marginTop: SPACE.xs, paddingHorizontal: SPACE.md, paddingVertical: 3, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  botStatusText: { color: '#94a3b8', fontSize: FONT.xs - 2 },
-  centerCol: { width: 152, alignItems: 'center', justifyContent: 'center', gap: SPACE.sm, zIndex: 20 },
-  vsBadge: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(8,6,18,0.9)', borderWidth: 2, borderColor: 'rgba(228,165,42,0.7)', alignItems: 'center', justifyContent: 'center', ...SHADOW.gold },
-  vsIcon: { fontSize: 18 },
-  vsText: { fontSize: FONT.sm, color: COLOR.gold, letterSpacing: 1 },
-  previewChip: { paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderRadius: RADIUS.full, borderWidth: 1, alignItems: 'center' },
-  previewChipText: { fontSize: FONT.xs - 2, textAlign: 'center' },
-  resultBadge: { paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderRadius: RADIUS.pill, borderWidth: 1.5, alignItems: 'center' },
-  resultBadgeText: { fontSize: FONT.base, letterSpacing: 0.5 },
-  ctaStack: { gap: SPACE.sm, width: '100%', alignItems: 'center' },
-  ctaBtn: { width: 140, height: 48, borderRadius: RADIUS.pill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, borderWidth: 1.5, backgroundColor: 'rgba(0,0,0,0.4)' },
-  ctaBtnAttack: { backgroundColor: 'rgba(74,222,128,0.12)', borderColor: '#4ade80', shadowColor: '#4ade80', shadowOpacity: 0.5, shadowOffset: { width: 0, height: 0 }, shadowRadius: 10, elevation: 6 },
-  ctaBtnNext: { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: '#60a5fa', shadowColor: '#60a5fa', shadowOpacity: 0.5, shadowOffset: { width: 0, height: 0 }, shadowRadius: 8, elevation: 4 },
-  ctaBtnRage: { backgroundColor: 'rgba(249,115,22,0.18)', borderColor: '#f97316', shadowColor: '#f97316', shadowOpacity: 0.5, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
-  ctaBtnAbilities: { backgroundColor: 'rgba(168,85,247,0.12)', borderColor: '#a855f7', shadowColor: '#a855f7', shadowOpacity: 0.45, shadowOffset: { width: 0, height: 0 }, shadowRadius: 8, elevation: 4 },
-  ctaBtnDisabled: { backgroundColor: 'rgba(71,85,105,0.2)', borderColor: '#475569', shadowOpacity: 0 },
-  ctaBtnIcon: { fontSize: 16 },
-  ctaBtnText: { color: '#f1f5f9', fontSize: FONT.sm, letterSpacing: 0.3 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
-  abilitiesModal: { width: '92%', maxWidth: 820, backgroundColor: 'rgba(12,18,36,0.97)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(51,65,85,0.7)', padding: SPACE.xl, paddingBottom: SPACE.lg },
-  historyModal: { backgroundColor: 'rgba(18,14,28,0.97)', borderRadius: RADIUS.lg, width: '90%', maxHeight: '82%', padding: SPACE.xl, borderWidth: 1, borderColor: '#1e293b' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACE.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)', paddingBottom: SPACE.md },
-  modalTitle: { color: '#f8fafc', fontSize: FONT.xl },
-  modalClose: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248,113,113,0.12)', borderRadius: 16 },
-  modalCloseText: { color: '#f87171', fontSize: 18 },
-  emptyText: { color: '#64748b', textAlign: 'center', marginVertical: SPACE.xxl, fontSize: FONT.base },
-  historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderLeftWidth: 3, paddingLeft: SPACE.lg, paddingVertical: SPACE.md, marginBottom: SPACE.lg, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: RADIUS.md, gap: SPACE.lg },
-  historyCardWrap: { alignItems: 'center', position: 'relative' },
-  crown: { fontSize: 20, position: 'absolute', top: -20, alignSelf: 'center', zIndex: 10 },
-  historyCenter: { flex: 1, alignItems: 'center', gap: SPACE.xs },
-  historyRound: { color: COLOR.gold, fontSize: FONT.sm },
-  historyResult: { fontSize: FONT.base },
+  hudSideRight: { flexDirection: 'row-reverse' },
+  avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  hudInfo: { flex: 1, gap: 3 },
+  hudName: { fontSize: FONT.xs, fontWeight: '700', letterSpacing: 0.5 },
+  hudScore: { fontSize: FONT.xl, fontWeight: '900', minWidth: 28, textAlign: 'center', fontVariant: ['tabular-nums'] } as any,
+  hudCenter: { flex: 1.2, alignItems: 'center', gap: 3 },
+  hudRound: { color: COLOR.gold, fontSize: FONT.xs, fontWeight: '700', letterSpacing: 0.4 },
+  historyBtn: { paddingHorizontal: SPACE.sm, paddingVertical: 2, borderRadius: RADIUS.sm, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  historyBtnText: { color: '#94a3b8', fontSize: FONT.xs - 1 },
+
+  effectsBar: { flexDirection: 'row', paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xs, gap: SPACE.sm },
+  effectsBarSide: { flex: 1 },
+  effectsBarDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
+  effectsBarLabel: { color: '#64748b', fontSize: 9, letterSpacing: 0.3 },
+
+  arena: { flex: 1, paddingHorizontal: LAYOUT_PADDING, gap: SPACE.sm },
+  playerPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
+  botPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
+  centerPanel: { width: 90, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
+  panelLabel: { color: '#64748b', fontSize: FONT.xs, letterSpacing: 0.5 },
+
+  vsText: { fontSize: 28, opacity: 0.85 },
+  resultChip: { backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: RADIUS.lg, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  resultText: { fontSize: FONT.sm, fontWeight: '700', textAlign: 'center' },
+  resultWin: { color: '#4ade80' },
+  resultLose: { color: '#f87171' },
+  resultDraw: { color: '#fbbf24' },
+
+  actionButtons: { gap: SPACE.sm, alignItems: 'center' },
+  abilityBtn: { backgroundColor: 'rgba(139,92,246,0.25)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderWidth: 1, borderColor: 'rgba(139,92,246,0.5)' },
+  abilityBtnDisabled: { opacity: 0.35 },
+  abilityBtnText: { color: '#c4b5fd', fontSize: FONT.xs, fontWeight: '700' },
+  attackBtn: { backgroundColor: 'rgba(239,68,68,0.25)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.md, borderWidth: 1, borderColor: 'rgba(239,68,68,0.6)' },
+  attackBtnText: { color: '#fca5a5', fontSize: FONT.sm, fontWeight: '800', letterSpacing: 0.5 },
+  rageBtn: { backgroundColor: 'rgba(251,146,60,0.3)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderWidth: 1, borderColor: 'rgba(251,146,60,0.7)' },
+  rageBtnText: { color: '#fed7aa', fontSize: FONT.xs, fontWeight: '800', letterSpacing: 1 },
+  nextBtn: { backgroundColor: 'rgba(228,165,42,0.2)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderWidth: 1, borderColor: 'rgba(228,165,42,0.5)' },
+  nextBtnText: { color: COLOR.gold, fontSize: FONT.sm, fontWeight: '700' },
 });
