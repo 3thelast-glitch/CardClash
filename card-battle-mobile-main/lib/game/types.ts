@@ -141,7 +141,8 @@ export type AbilityType =
   | 'AddElement'
   | 'Explosion'
   | 'DoublePoints'
-  | 'ElementalMastery';
+  | 'ElementalMastery'
+  | 'LoseHalfRounds'; // ← Turin: تخسر نصف الجولات الأولى إجباريًا
 
 export type Side = 'player' | 'bot';
 
