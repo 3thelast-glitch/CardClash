@@ -13,10 +13,15 @@ export type Race =
   | 'robot';
 
 export type CardClass =
-  | 'mage'        // ساحر
-  | 'archer'      // رامي
+  | 'warrior'
+  | 'knight'
+  | 'mage'
+  | 'archer'
+  | 'berserker'
+  | 'paladin'
   | 'swordsman'   // سياف
   | 'fighter'     // مقاتل
+  | 'guardian'    //'روبوت
   | 'healer';     // طبيب
 
 // ✦ نظام خماسي
@@ -226,50 +231,55 @@ export interface RoundResult {
 }
 
 export const RACE_EMOJI: Record<Race, string> = {
-  human:   '\u{1F464}',
-  elf:     '\u{1F9DD}',
-  orc:     '\u{1F479}',
-  dragon:  '\u{1F409}',
-  demon:   '\u{1F608}',
-  undead:  '\u{1F480}',
+  human: '\u{1F464}',
+  elf: '\u{1F9DD}',
+  orc: '\u{1F479}',
+  dragon: '\u{1F409}',
+  demon: '\u{1F608}',
+  undead: '\u{1F480}',
   monster: '\u{1F47E}',
-  robot:   '\u{1F916}',
+  robot: '\u{1F916}',
 };
 
 export const CLASS_EMOJI: Record<CardClass, string> = {
-  mage:      '\u{1F9D9}',          // 🧙  ساحر
-  archer:    '\u{1F3F9}',          // 🏹  رامي
+  warrior: '\u2694\ufe0f',       // ⚔️  محارب
+  knight: '\u{1F6E1}\ufe0f',   // 🛡️  فارس
+  mage: '\u{1F52E}',          // 🔮  ساحر
+  archer: '\u{1F3F9}',          // 🏹  رامي
+  berserker: '\u{1F5E1}\ufe0f',   // 🗡️  ضاري
+  paladin: '\u{1F4AA}',          // 💪  بالادين
   swordsman: '\u{1F93A}',          // 🤺  سياف
-  fighter:   '\u{1F94A}',          // 🥊  مقاتل
-  healer:    '\u2695\ufe0f',       // ⚕️  طبيب
+  fighter: '\u{1F94A}',          // 🥊  مقاتل
+  guardian: '\u{1F916}',          // 🤖  روبوت (robot)
+  healer: '\u2695\ufe0f',       // ⚕️  طبيب
 };
 
 // ✦ بدون ice
 export const ELEMENT_EMOJI: Record<Element, string> = {
-  fire:      '\u{1F525}',
-  water:     '\u{1F4A7}',
-  earth:     '\u{1F30D}',
+  fire: '\u{1F525}',
+  water: '\u{1F4A7}',
+  earth: '\u{1F30D}',
   lightning: '\u26a1',
-  wind:      '\u{1F4A8}',
+  wind: '\u{1F4A8}',
 };
 
 export const ELEMENT_COLORS: Record<Element, string> = {
-  fire:      '#ef4444',
-  water:     '#3b82f6',
-  earth:     '#a3e635',
+  fire: '#ef4444',
+  water: '#3b82f6',
+  earth: '#a3e635',
   lightning: '#facc15',
-  wind:      '#a78bfa',
+  wind: '#a78bfa',
 };
 
 export const GENDER_EMOJI: Record<Gender, string> = {
-  male:    '\u{1F466}',  // 👦
-  female:  '\u{1F467}',  // 👧
+  male: '\u{1F466}',  // 👦
+  female: '\u{1F467}',  // 👧
   unknown: '\u2753',     // ❓
 };
 
 export const GENDER_COLORS: Record<Gender, string> = {
-  male:    '#60A5FA',
-  female:  '#F472B6',
+  male: '#60A5FA',
+  female: '#F472B6',
   unknown: '#6B7280',
 };
 
@@ -283,26 +293,26 @@ export const ELEMENT_MULTIPLIER = {
 
 // ─── نظام التفوق العنصري الخماسي ────────────────────────────────────────────
 export const ELEMENT_ADVANTAGES: Record<Element, Element[]> = {
-  fire:      ['earth'],
-  water:     ['fire'],
-  earth:     ['lightning', 'water'],
+  fire: ['earth'],
+  water: ['fire'],
+  earth: ['lightning', 'water'],
   lightning: ['water', 'wind'],
-  wind:      ['earth'],
+  wind: ['earth'],
 };
 
 export const ELEMENT_WEAKNESSES: Record<Element, Element[]> = {
-  fire:      ['water', 'wind'],
-  water:     ['earth', 'lightning'],
-  earth:     ['wind'],
+  fire: ['water', 'wind'],
+  water: ['earth', 'lightning'],
+  earth: ['wind'],
   lightning: ['earth'],
-  wind:      ['lightning', 'fire'],
+  wind: ['lightning', 'fire'],
 };
 
 // ─── خريطة المضاعفات العنصرية (ELEMENTAL_MAP) ────────────────────────────────
 export const ELEMENTAL_MAP: Record<string, Record<string, number>> = {
-  '\u0646\u0627\u0631':  { '\u0623\u0631\u0636': 2.0, '\u0645\u0627\u0621': 0.5 },
-  '\u0645\u0627\u0621':  { '\u0646\u0627\u0631': 2.0, '\u0623\u0631\u0636': 0.5, '\u0628\u0631\u0642': 0.5 },
-  '\u0623\u0631\u0636':  { '\u0628\u0631\u0642': 2.0, '\u0645\u0627\u0621': 2.0, '\u0631\u064a\u062d': 0.5 },
-  '\u0628\u0631\u0642':  { '\u0645\u0627\u0621': 2.0, '\u0631\u064a\u062d': 2.0, '\u0623\u0631\u0636': 0.5 },
-  '\u0631\u064a\u062d':  { '\u0623\u0631\u0636': 2.0, '\u0628\u0631\u0642': 0.5, '\u0646\u0627\u0631': 0.5 },
+  '\u0646\u0627\u0631': { '\u0623\u0631\u0636': 2.0, '\u0645\u0627\u0621': 0.5 },
+  '\u0645\u0627\u0621': { '\u0646\u0627\u0631': 2.0, '\u0623\u0631\u0636': 0.5, '\u0628\u0631\u0642': 0.5 },
+  '\u0623\u0631\u0636': { '\u0628\u0631\u0642': 2.0, '\u0645\u0627\u0621': 2.0, '\u0631\u064a\u062d': 0.5 },
+  '\u0628\u0631\u0642': { '\u0645\u0627\u0621': 2.0, '\u0631\u064a\u062d': 2.0, '\u0623\u0631\u0636': 0.5 },
+  '\u0631\u064a\u062d': { '\u0623\u0631\u0636': 2.0, '\u0628\u0631\u0642': 0.5, '\u0646\u0627\u0631': 0.5 },
 };
