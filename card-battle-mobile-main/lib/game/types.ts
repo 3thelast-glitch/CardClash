@@ -13,12 +13,6 @@ export type Race =
   | 'robot';
 
 export type CardClass =
-  | 'warrior'
-  | 'knight'
-  | 'mage'
-  | 'archer'
-  | 'berserker'
-  | 'paladin'
   | 'swordsman'   // سياف
   | 'fighter'     // مقاتل
   | 'guardian'    // والي
@@ -242,15 +236,9 @@ export const RACE_EMOJI: Record<Race, string> = {
 };
 
 export const CLASS_EMOJI: Record<CardClass, string> = {
-  warrior:    '\u2694\ufe0f',       // ⚔️  محارب
-  knight:     '\u{1F6E1}\ufe0f',   // 🛡️  فارس
-  mage:       '\u{1F52E}',          // 🔮  ساحر
-  archer:     '\u{1F3F9}',          // 🏹  رامي
-  berserker:  '\u{1F5E1}\ufe0f',   // 🗡️  ضاري
-  paladin:    '\u{1F4AA}',          // 💪  بالادين
   swordsman:  '\u{1F93A}',          // 🤺  سياف
   fighter:    '\u{1F94A}',          // 🥊  مقاتل
-  guardian:   '\u{1F916}',          // 🤖  والي (robot)
+  guardian:   '\u{1F916}',          // 🤖  والي
   healer:     '\u2695\ufe0f',       // ⚕️  طبيب
 };
 

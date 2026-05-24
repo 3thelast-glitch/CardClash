@@ -277,12 +277,12 @@ export function buildBotAbilityData(
     }
     classCounts[playerCard.cardClass] = (classCounts[playerCard.cardClass] ?? 0) + 1;
     const topClass = (Object.entries(classCounts).sort((a, b) => b[1] - a[1])[0]?.[0]
-      ?? 'warrior') as CardClass;
+      ?? 'swordsman') as CardClass;
     return { selection: topClass, targetClass: topClass };
   }
 
   if (abilityType === 'AddElement') {
-    const allElements: Element[] = ['fire', 'ice', 'water', 'earth', 'lightning', 'wind'];
+    const allElements: Element[] = ['fire', 'water', 'earth', 'lightning', 'wind'];
     const strongEl = allElements.find(
       e => getElementAdvantage(e, playerCard.element) === 'strong'
     ) ?? 'fire';
@@ -290,7 +290,7 @@ export function buildBotAbilityData(
   }
 
   if (abilityType === 'SwapClass') {
-    const classes: CardClass[] = ['warrior', 'knight', 'mage', 'archer', 'berserker', 'paladin'];
+    const classes: CardClass[] = ['swordsman', 'fighter', 'guardian', 'healer'];
     const pick = classes[Math.floor(Math.random() * classes.length)];
     return { myClass: pick, oppClass: playerCard.cardClass };
   }
