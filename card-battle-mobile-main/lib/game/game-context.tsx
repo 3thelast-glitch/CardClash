@@ -49,6 +49,17 @@ async function saveRarityWeights(weights: RarityWeights): Promise<void> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────
+// ✅ Turin: يُجبر على المركز الأول في الديك دائماً
+function sortDeckWithTurinFirst(deck: Card[]): Card[] {
+  const turinIdx = deck.findIndex(c => c.name === 'تورين تورامباز' || c.name === 'Turin');
+  if (turinIdx <= 0) return deck; // إما مش موجود أو بالفعل أول
+  const result = [...deck];
+  const [turin] = result.splice(turinIdx, 1);
+  result.unshift(turin);
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────
 const EFFECT_PRIORITY = {
   forcedOutcome: 100,
   silenceAbilities: 90,
@@ -118,8 +129,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'START_BATTLE': {
       const assignedAbilities = action.payload?.playerAbilities;
+      // ✅ Turin: يُرتَّب الديك بحيث يكون تورين في المركز الأول إجباريًا
+      const sortedPlayerDeck = sortDeckWithTurinFirst(state.playerDeck);
       return {
         ...state,
+        playerDeck: sortedPlayerDeck,
         currentRound: 0,
         playerScore: state.totalRounds,
         botScore:    state.totalRounds,
@@ -176,6 +190,18 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (result.winner === 'player') botHpDelta    -= 1;
       else if (result.winner === 'bot') playerHpDelta -= 1;
+
+      // ✅ Turin: قدرة "تخسر نصف الجولات" — تُطبَّق في الجولة الأولى فقط
+      // تورين يجب أن يكون في index 0 (الجولة الأولى)، وعندما يلعب يُخصم من الخصم نصف totalRounds
+      const isTurinRound =
+        roundNumber === 1 &&
+        (playerCard.name === 'تورين تورامباز' || playerCard.name === 'Turin');
+
+      if (isTurinRound) {
+        // خسارة نصف عدد الجولات من نقاط الخصم (bot) — مُقرَّبة للأعلى
+        const turinPenalty = Math.ceil(state.totalRounds / 2);
+        botHpDelta -= turinPenalty;
+      }
 
       const effectsToRemove  = new Set<string>();
       const effectsToReplace = new Map<string, Effect>();
