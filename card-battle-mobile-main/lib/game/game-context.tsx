@@ -126,7 +126,7 @@ type GameAction =
   | { type: 'SET_PLAYER_DECK'; payload: Card[] }
   | { type: 'SET_BOT_DECK'; payload: Card[] }
   | { type: 'SET_TOTAL_ROUNDS'; payload: number }
-  | { type: 'START_BATTLE'; payload?: { playerAbilities?: AbilityType[] } }
+  | { type: 'START_BATTLE'; payload?: { playerAbilities?: AbilityType[]; botDeck?: Card[] } }
   | { type: 'PLAY_ROUND' }
   | { type: 'NEXT_ROUND' }
   | { type: 'RESET_GAME' }
@@ -158,17 +158,30 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'START_BATTLE': {
       const assignedAbilities = action.payload?.playerAbilities;
-      const sortedPlayerDeck = sortDeckWithTurinFirst(state.playerDeck);
-      const deckWithPassives = sortedPlayerDeck.map(applyOnSpawnPassive);
+      const incomingBotDeck   = action.payload?.botDeck;
+      const sortedPlayerDeck  = sortDeckWithTurinFirst(state.playerDeck);
+      const deckWithPassives  = sortedPlayerDeck.map(applyOnSpawnPassive);
       const turinEffects = hasTurinInDeck(deckWithPassives)
         ? buildTurinPenaltyEffects(state.totalRounds)
         : [];
+
+      // استخدم botDeck الواردة من الـ action، أو الموجودة بالفعل في الـ state،
+      // أو ولّد واحدة جديدة تلقائياً بناءً على حجم الـ playerDeck
+      const resolvedBotDeck =
+        (incomingBotDeck && incomingBotDeck.length > 0)
+          ? incomingBotDeck
+          : (state.botDeck && state.botDeck.length > 0)
+            ? state.botDeck
+            : getBotCards(deckWithPassives.length, state.difficulty as DifficultyLevel ?? 2);
+
       return {
         ...state,
         playerDeck: deckWithPassives,
+        botDeck: resolvedBotDeck,
+        totalRounds: deckWithPassives.length,
         currentRound: 0,
-        playerScore: state.totalRounds,
-        botScore:    state.totalRounds,
+        playerScore: deckWithPassives.length,
+        botScore:    deckWithPassives.length,
         roundResults: [],
         activeEffects: turinEffects,
         playerAbilities: state.abilitiesEnabled
@@ -528,7 +541,7 @@ type GameContextType = {
   // ── helpers — جميعها مكشوفة لجميع الشاشات ──
   setPlayerDeck: (deck: Card[]) => void;
   setTotalRounds: (rounds: number) => void;
-  startBattle: (deck: Card[], abilities?: AbilityType[]) => void;
+  startBattle: (deck: Card[], abilities?: AbilityType[], botDeck?: Card[]) => void;
   syncDecks: (playerDeck: Card[], botDeck: Card[]) => void;
   setDifficulty: (level: DifficultyLevel) => void;
   setAbilitiesEnabled: (enabled: boolean) => void;
@@ -567,9 +580,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_PLAYER_DECK', payload: deck });
   }, []);
 
-  const startBattle = useCallback((deck: Card[], abilities?: AbilityType[]) => {
+  const startBattle = useCallback((deck: Card[], abilities?: AbilityType[], botDeck?: Card[]) => {
     dispatch({ type: 'SET_PLAYER_DECK', payload: deck });
-    dispatch({ type: 'START_BATTLE', payload: { playerAbilities: abilities } });
+    dispatch({ type: 'START_BATTLE', payload: { playerAbilities: abilities, botDeck } });
   }, []);
 
   const syncDecks = useCallback((playerDeck: Card[], botDeck: Card[]) => {
