@@ -624,6 +624,8 @@ type GameContextType = {
   // ✅ Helper functions — مكشوفة للاستخدام المباشر في الشاشات
   setPlayerDeck: (deck: Card[]) => void;
   startBattle: (deck: Card[], abilities?: AbilityType[]) => void;
+  // ✅ syncDecks: يُزامن كلا الديكين في آنٍ واحد (مستخدم في battle.tsx)
+  syncDecks: (playerDeck: Card[], botDeck: Card[]) => void;
 };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -652,8 +654,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'START_BATTLE', payload: { playerAbilities: abilities } });
   };
 
+  // ✅ syncDecks: يُزامن playerDeck و botDeck معاً بدون إعادة تشغيل المعركة
+  const syncDecks = (playerDeck: Card[], botDeck: Card[]) => {
+    dispatch({ type: 'SYNC_DECKS', payload: { playerDeck, botDeck } });
+  };
+
   return (
-    <GameContext.Provider value={{ state, dispatch, rarityWeights, updateRarityWeights, setPlayerDeck, startBattle }}>
+    <GameContext.Provider value={{ state, dispatch, rarityWeights, updateRarityWeights, setPlayerDeck, startBattle, syncDecks }}>
       {children}
     </GameContext.Provider>
   );
