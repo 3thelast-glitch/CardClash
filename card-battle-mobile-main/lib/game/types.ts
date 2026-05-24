@@ -13,6 +13,8 @@ export type Race =
   | 'robot';
 
 export type CardClass =
+  | 'mage'        // ساحر
+  | 'archer'      // رامي
   | 'swordsman'   // سياف
   | 'fighter'     // مقاتل
   | 'guardian'    // والي
@@ -236,10 +238,12 @@ export const RACE_EMOJI: Record<Race, string> = {
 };
 
 export const CLASS_EMOJI: Record<CardClass, string> = {
-  swordsman:  '\u{1F93A}',          // 🤺  سياف
-  fighter:    '\u{1F94A}',          // 🥊  مقاتل
-  guardian:   '\u{1F916}',          // 🤖  والي
-  healer:     '\u2695\ufe0f',       // ⚕️  طبيب
+  mage:      '\u{1F9D9}',          // 🧙  ساحر
+  archer:    '\u{1F3F9}',          // 🏹  رامي
+  swordsman: '\u{1F93A}',          // 🤺  سياف
+  fighter:   '\u{1F94A}',          // 🥊  مقاتل
+  guardian:  '\u{1F6E1}',          // 🛡️  والي
+  healer:    '\u2695\ufe0f',       // ⚕️  طبيب
 };
 
 // ✦ بدون ice
