@@ -23,6 +23,10 @@ import {
   ELEMENT_WEAKNESSES,
   ELEMENT_MULTIPLIER,
 } from './types';
+import { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive } from './rage-engine';
+
+// re-export so callers can use them directly from this module if needed
+export { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive };
 
 // ─── ALL_CARDS ────────────────────────────────────────────────────────────────
 export const ALL_CARDS: Card[] = [
@@ -142,14 +146,47 @@ export function determineRoundWinner(
   const playerAdv = getElementAdvantage(playerCard.element, botCard.element);
   const botAdv    = getElementAdvantage(botCard.element,    playerCard.element);
 
-  // ─ نسخ مؤقتة لتطبيق التفاعلات دون تعديل البيانات الأصلية
+  // ── 1. قدرات خاصة (Mihawk / Gehrman / Sanji) ─────────────────────────
+  // تُفحص أولاً قبل أي حسابات إحصائية أو عناصر
+  const playerSpecial = resolveSpecialAbility(playerCard, botCard);
+  const botSpecial    = resolveSpecialAbility(botCard,    playerCard);
+
+  if (playerSpecial === 'win' || botSpecial === 'lose') {
+    // اللاعب يفوز بقدرة خاصة
+    return {
+      winner: 'player',
+      playerDamage: 0,
+      botDamage: 0,
+      playerBaseDamage: 0,
+      botBaseDamage: 0,
+      playerElementAdvantage: playerAdv,
+      botElementAdvantage: botAdv,
+    };
+  }
+
+  if (playerSpecial === 'lose' || botSpecial === 'win') {
+    // البوت يفوز بقدرة خاصة
+    return {
+      winner: 'bot',
+      playerDamage: 0,
+      botDamage: 0,
+      playerBaseDamage: 0,
+      botBaseDamage: 0,
+      playerElementAdvantage: playerAdv,
+      botElementAdvantage: botAdv,
+    };
+  }
+
+  // ── 2. حسابات الإحصائيات العادية ─────────────────────────────────────
+
+  // نسخ مؤقتة لتطبيق التفاعلات دون تعديل البيانات الأصلية
   const p = { attack: playerCard.attack, defense: playerCard.defense, hp: playerCard.hp, element: playerCard.element };
   const b = { attack: botCard.attack,    defense: botCard.defense,    hp: botCard.hp,    element: botCard.element };
 
   applyElementalReactions(p, b); // تفاعل لاعب على بوت
   applyElementalReactions(b, p); // تفاعل بوت على لاعب
 
-  // ─ تطبيق تأثيرات القدرات
+  // تطبيق تأثيرات القدرات
   const applySideEffects = (baseAtk: number, baseDef: number, effects: Effect[]) => {
     let atk = baseAtk;
     let def = baseDef;
@@ -180,19 +217,14 @@ export function determineRoundWinner(
   const pStats = applySideEffects(p.attack, p.defense, playerEffects);
   const bStats = applySideEffects(b.attack, b.defense, botEffects);
 
-  let playerAtk = pStats.atk;
-  let playerDef = pStats.def;
-  let botAtk    = bStats.atk;
-  let botDef    = bStats.def;
-
-  const playerRaw = playerAtk * ELEMENT_MULTIPLIER[playerAdv];
-  const botRaw    = botAtk    * ELEMENT_MULTIPLIER[botAdv];
+  const playerRaw = pStats.atk * ELEMENT_MULTIPLIER[playerAdv];
+  const botRaw    = bStats.atk * ELEMENT_MULTIPLIER[botAdv];
 
   const playerBaseDamage = Math.max(0, Math.floor(playerRaw));
   const botBaseDamage    = Math.max(0, Math.floor(botRaw));
 
-  const playerDamage = Math.max(0, Math.floor(playerRaw - botDef));
-  const botDamage    = Math.max(0, Math.floor(botRaw    - playerDef));
+  const playerDamage = Math.max(0, Math.floor(playerRaw - bStats.def));
+  const botDamage    = Math.max(0, Math.floor(botRaw    - pStats.def));
 
   let winner: 'player' | 'bot' | 'draw';
   if      (playerDamage > botDamage) winner = 'player';

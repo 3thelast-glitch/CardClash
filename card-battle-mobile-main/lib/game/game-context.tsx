@@ -5,6 +5,7 @@ import { getRandomAbilities } from './abilities';
 import type { DifficultyLevel } from '@/app/screens/difficulty';
 import { determineRoundWinner } from './cards-data-exports';
 import { getBotCards } from './bot-ai';
+import { applyOnSpawnPassive, applyPostBattlePassive } from './rage-engine';
 
 // ─────────────────────────────────────────────────────────────────────────────────
 const initialState: GameState = {
@@ -87,7 +88,7 @@ function buildTurinPenaltyEffects(totalRounds: number): Effect[] {
       sourceSide: 'bot',
       targetSide: 'player',
       createdAtRound: 0,
-      expiresAtRound: i + 1, // تنتهي بعد انقضاء جولتها
+      expiresAtRound: i + 1,
       priority: 100,
       data: { appliesToRound: i + 1, penaltyRound: i + 1, totalPenalty: penaltyCount },
     });
@@ -167,19 +168,22 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       // ✅ Turin: يُرتَّب الديك بحيث يكون تورين في المركز الأول إجباريًا
       const sortedPlayerDeck = sortDeckWithTurinFirst(state.playerDeck);
 
+      // ✅ Tsunade on-spawn passive: +2 HP
+      const deckWithPassives = sortedPlayerDeck.map(applyOnSpawnPassive);
+
       // ✅ Turin: نُنشئ effects مرئية لكل جولات الخسارة عند بداية المعركة
-      const turinEffects = hasTurinInDeck(sortedPlayerDeck)
+      const turinEffects = hasTurinInDeck(deckWithPassives)
         ? buildTurinPenaltyEffects(state.totalRounds)
         : [];
 
       return {
         ...state,
-        playerDeck: sortedPlayerDeck,
+        playerDeck: deckWithPassives,
         currentRound: 0,
         playerScore: state.totalRounds,
         botScore:    state.totalRounds,
         roundResults: [],
-        activeEffects: turinEffects, // ✅ التأثيرات تظهر الآن في شاشة الـ effects
+        activeEffects: turinEffects,
         playerAbilities: state.abilitiesEnabled
           ? (assignedAbilities
               ? assignedAbilities.map(type => ({ type, used: false }))
@@ -238,12 +242,28 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           botElementAdvantage: 'neutral' as ElementAdvantage,
         };
       } else {
+        // ✅ Special abilities (Mihawk/Gehrman/Sanji) مُدمجة داخل determineRoundWinner
         result = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
       }
 
+      // ✅ Sakura Haruno: +1 HP بعد الفوز
+      const winner = result.winner;
+      let updatedPlayerCard = playerCard;
+      if (winner === 'player') {
+        updatedPlayerCard = applyPostBattlePassive(playerCard, 'win');
+      } else if (winner === 'bot') {
+        updatedPlayerCard = applyPostBattlePassive(playerCard, 'lose');
+      } else {
+        updatedPlayerCard = applyPostBattlePassive(playerCard, 'draw');
+      }
+      // إذا تغيّرت البطاقة (Sakura HP++)، نحدّث الديك
+      const updatedPlayerDeck = updatedPlayerCard !== playerCard
+        ? state.playerDeck.map((c, i) => i === state.currentRound ? updatedPlayerCard : c)
+        : state.playerDeck;
+
       const roundResult: RoundResult = {
         round: state.currentRound + 1,
-        playerCard, botCard,
+        playerCard: updatedPlayerCard, botCard,
         playerDamage: result.playerDamage, botDamage: result.botDamage,
         playerBaseDamage: result.playerBaseDamage, botBaseDamage: result.botBaseDamage,
         playerElementAdvantage: result.playerElementAdvantage,
@@ -266,7 +286,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
         orderedEffects.forEach(effect => {
           switch (effect.kind) {
-            case 'turinPenalty': break; // يُعالَج أعلاه — لا حاجة لمعالجة إضافية
+            // ✅ turinPenalty: يُحذف فور انتهاء جولته (expiresAtRound = roundNumber)
+            case 'turinPenalty': {
+              effectsToRemove.add(effect.id);
+              break;
+            }
             case 'protection': {
               const d = effect.data as { appliesToRound?: number } | undefined;
               if (d?.appliesToRound !== undefined && d.appliesToRound !== roundNumber) break;
@@ -476,6 +500,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             }
           }
         });
+      } else {
+        // ✅ turinPenalty: احذف الـ effect الخاص بهذه الجولة تحديداً
+        state.activeEffects
+          .filter(e => e.kind === 'turinPenalty' && (e.data as any)?.appliesToRound === roundNumber)
+          .forEach(e => effectsToRemove.add(e.id));
       }
 
       let nextEffects = state.activeEffects
@@ -488,6 +517,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       return {
         ...state,
+        playerDeck: updatedPlayerDeck,
         playerScore: Math.max(0, state.playerScore + playerHpDelta),
         botScore:    Math.max(0, state.botScore    + botHpDelta),
         roundResults: [...state.roundResults, roundResult],
