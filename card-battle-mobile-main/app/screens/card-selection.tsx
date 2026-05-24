@@ -112,7 +112,13 @@ interface CardRound { card: Card; round: number | null; }
 export default function CardSelectionScreen() {
   const router = useRouter();
   const { width, isLandscape, size } = useLandscapeLayout();
-  const { state, setPlayerDeck, startBattle, rarityWeights } = useGame();
+  const game = useGame();
+  const { state, rarityWeights } = game;
+
+  // ✅ استخراج الدوال بشكل آمن مع fallback صريح
+  const setPlayerDeck = typeof game.setPlayerDeck === 'function' ? game.setPlayerDeck : null;
+  const startBattle   = typeof game.startBattle   === 'function' ? game.startBattle   : null;
+
   const [cardRounds, setCardRounds] = useState<CardRound[]>([]);
   const [focusedCardIndex, setFocusedCardIndex] = useState<number | null>(null);
   const [isAbilitiesModalOpen, setIsAbilitiesModalOpen] = useState(false);
@@ -164,6 +170,12 @@ export default function CardSelectionScreen() {
   const handleStartBattle = () => {
     const allAssigned = cardRounds.every(cr => cr.round !== null);
     if (!allAssigned) return;
+
+    // ✅ حماية: تأكد أن الدوال موجودة قبل الاستدعاء
+    if (!setPlayerDeck || !startBattle) {
+      console.error('[CardSelection] game context functions not ready — setPlayerDeck:', setPlayerDeck, 'startBattle:', startBattle);
+      return;
+    }
 
     // رتّب حسب اختيار اللاعب
     const sortedByRound = [...cardRounds]
