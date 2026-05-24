@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Card, GameState, RoundResult, Effect, AbilityType, Side, ElementAdvantage } from './types';
 import { getRandomAbilities } from './abilities';
@@ -24,8 +24,6 @@ const initialState: GameState = {
   usedAbilities: [],
 };
 
-const initialDifficulty: DifficultyLevel = 2;
-
 export type RarityKey = 'common' | 'rare' | 'epic' | 'legendary' | 'special';
 export type RarityWeights = Record<RarityKey, number>;
 
@@ -50,7 +48,6 @@ async function saveRarityWeights(weights: RarityWeights): Promise<void> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────
-// ✅ Turin: يُجبر على المركز الأول في الديك دائماً
 function sortDeckWithTurinFirst(deck: Card[]): Card[] {
   const turinIdx = deck.findIndex(c => c.name === 'تورين تورامباز' || c.name === 'Turin');
   if (turinIdx <= 0) return deck;
@@ -60,24 +57,20 @@ function sortDeckWithTurinFirst(deck: Card[]): Card[] {
   return result;
 }
 
-// ✅ Turin: هل تورين موجود في الديك؟
 function hasTurinInDeck(deck: Card[]): boolean {
   return deck.some(c => c.name === 'تورين تورامباز' || c.name === 'Turin');
 }
 
-// ✅ Turin: عدد الجولات المجبرة على الخسارة = نصف totalRounds مُقرَّب للأسفل (بحدٍّ أدنى 1)
 export function getTurinPenaltyRounds(totalRounds: number): number {
   return Math.max(1, Math.floor(totalRounds / 2));
 }
 
-// ✅ Turin: هل هذه الجولة مجبرة على الخسارة؟
 function isTurinForcedLoss(currentRound: number, totalRounds: number, playerDeck: Card[]): boolean {
   if (!hasTurinInDeck(playerDeck)) return false;
   const penaltyRounds = getTurinPenaltyRounds(totalRounds);
   return currentRound < penaltyRounds;
 }
 
-// ✅ Turin: يبني قائمة Effects مرئية لكل جولات الخسارة الإجبارية
 function buildTurinPenaltyEffects(totalRounds: number): Effect[] {
   const penaltyCount = getTurinPenaltyRounds(totalRounds);
   const effects: Effect[] = [];
@@ -165,17 +158,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'START_BATTLE': {
       const assignedAbilities = action.payload?.playerAbilities;
-      // ✅ Turin: يُرتَّب الديك بحيث يكون تورين في المركز الأول إجباريًا
       const sortedPlayerDeck = sortDeckWithTurinFirst(state.playerDeck);
-
-      // ✅ Tsunade on-spawn passive: +2 HP
       const deckWithPassives = sortedPlayerDeck.map(applyOnSpawnPassive);
-
-      // ✅ Turin: نُنشئ effects مرئية لكل جولات الخسارة عند بداية المعركة
       const turinEffects = hasTurinInDeck(deckWithPassives)
         ? buildTurinPenaltyEffects(state.totalRounds)
         : [];
-
       return {
         ...state,
         playerDeck: deckWithPassives,
@@ -216,47 +203,24 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         .filter(e => { const d = e.data as { appliesToRound?: number } | undefined; return !d?.appliesToRound || d.appliesToRound === roundNumber; })
         .sort((a, b) => b.priority - a.priority || b.createdAtRound - a.createdAtRound)[0];
 
-      // ✅ Turin: يُجبر اللاعب على الخسارة في النصف الأول من الجولات
       const turinForcedLoss = isTurinForcedLoss(state.currentRound, state.totalRounds, state.playerDeck);
 
       let result: { winner: Side | 'draw'; playerDamage: number; botDamage: number; playerBaseDamage: number; botBaseDamage: number; playerElementAdvantage: ElementAdvantage; botElementAdvantage: ElementAdvantage };
 
       if (turinForcedLoss) {
-        result = {
-          winner: 'bot',
-          playerDamage: 0,
-          botDamage: 0,
-          playerBaseDamage: 0,
-          botBaseDamage: 0,
-          playerElementAdvantage: 'neutral' as ElementAdvantage,
-          botElementAdvantage: 'neutral' as ElementAdvantage,
-        };
+        result = { winner: 'bot', playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
       } else if (forcedOutcomeEffect) {
-        result = {
-          winner: forcedOutcomeEffect.sourceSide,
-          playerDamage: 0,
-          botDamage: 0,
-          playerBaseDamage: 0,
-          botBaseDamage: 0,
-          playerElementAdvantage: 'neutral' as ElementAdvantage,
-          botElementAdvantage: 'neutral' as ElementAdvantage,
-        };
+        result = { winner: forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
       } else {
-        // ✅ Special abilities (Mihawk/Gehrman/Sanji) مُدمجة داخل determineRoundWinner
         result = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
       }
 
-      // ✅ Sakura Haruno: +1 HP بعد الفوز
       const winner = result.winner;
       let updatedPlayerCard = playerCard;
-      if (winner === 'player') {
-        updatedPlayerCard = applyPostBattlePassive(playerCard, 'win');
-      } else if (winner === 'bot') {
-        updatedPlayerCard = applyPostBattlePassive(playerCard, 'lose');
-      } else {
-        updatedPlayerCard = applyPostBattlePassive(playerCard, 'draw');
-      }
-      // إذا تغيّرت البطاقة (Sakura HP++)، نحدّث الديك
+      if (winner === 'player') updatedPlayerCard = applyPostBattlePassive(playerCard, 'win');
+      else if (winner === 'bot') updatedPlayerCard = applyPostBattlePassive(playerCard, 'lose');
+      else updatedPlayerCard = applyPostBattlePassive(playerCard, 'draw');
+
       const updatedPlayerDeck = updatedPlayerCard !== playerCard
         ? state.playerDeck.map((c, i) => i === state.currentRound ? updatedPlayerCard : c)
         : state.playerDeck;
@@ -273,7 +237,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       let playerHpDelta = 0;
       let botHpDelta    = 0;
-
       if (result.winner === 'player') botHpDelta    -= 1;
       else if (result.winner === 'bot') playerHpDelta -= 1;
 
@@ -283,14 +246,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (!turinForcedLoss) {
         const orderedEffects = [...activeEffects].sort((a, b) => a.priority - b.priority);
-
         orderedEffects.forEach(effect => {
           switch (effect.kind) {
-            // ✅ turinPenalty: يُحذف فور انتهاء جولته (expiresAtRound = roundNumber)
-            case 'turinPenalty': {
-              effectsToRemove.add(effect.id);
-              break;
-            }
+            case 'turinPenalty': { effectsToRemove.add(effect.id); break; }
             case 'protection': {
               const d = effect.data as { appliesToRound?: number } | undefined;
               if (d?.appliesToRound !== undefined && d.appliesToRound !== roundNumber) break;
@@ -301,13 +259,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             case 'doubleOrNothing': {
               const d = effect.data as { appliesToRound?: number } | undefined;
               if (!d?.appliesToRound || d.appliesToRound === roundNumber) {
-                if (result.winner === effect.sourceSide) {
-                  if (effect.sourceSide === 'player') botHpDelta    -= 1;
-                  if (effect.sourceSide === 'bot')    playerHpDelta -= 1;
-                } else if (result.winner === getOppositeSide(effect.sourceSide)) {
-                  if (effect.sourceSide === 'player') playerHpDelta -= 1;
-                  if (effect.sourceSide === 'bot')    botHpDelta    -= 1;
-                }
+                if (result.winner === effect.sourceSide) { if (effect.sourceSide === 'player') botHpDelta -= 1; if (effect.sourceSide === 'bot') playerHpDelta -= 1; }
+                else if (result.winner === getOppositeSide(effect.sourceSide)) { if (effect.sourceSide === 'player') playerHpDelta -= 1; if (effect.sourceSide === 'bot') botHpDelta -= 1; }
                 effectsToRemove.add(effect.id);
               }
               break;
@@ -317,15 +270,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               const prediction = d?.predictions?.[roundNumber];
               if (!prediction) break;
               const expectedWinner = prediction === 'win' ? effect.sourceSide : getOppositeSide(effect.sourceSide);
-              if (result.winner === expectedWinner) {
-                const reward = d?.rewardHp ?? 1;
-                if (effect.sourceSide === 'player') botHpDelta    -= reward;
-                if (effect.sourceSide === 'bot')    playerHpDelta -= reward;
-              } else if (result.winner && result.winner !== 'draw') {
-                const penalty = d?.penaltyHp ?? 1;
-                if (effect.sourceSide === 'player') playerHpDelta -= penalty;
-                if (effect.sourceSide === 'bot')    botHpDelta    -= penalty;
-              }
+              if (result.winner === expectedWinner) { const reward = d?.rewardHp ?? 1; if (effect.sourceSide === 'player') botHpDelta -= reward; if (effect.sourceSide === 'bot') playerHpDelta -= reward; }
+              else if (result.winner && result.winner !== 'draw') { const penalty = d?.penaltyHp ?? 1; if (effect.sourceSide === 'player') playerHpDelta -= penalty; if (effect.sourceSide === 'bot') botHpDelta -= penalty; }
               const nextPredictions = { ...(d?.predictions ?? {}) }; delete nextPredictions[roundNumber];
               const nextCharges = Math.max(0, (effect.charges ?? 0) - 1);
               if (nextCharges <= 0 || Object.keys(nextPredictions).length === 0) effectsToRemove.add(effect.id);
@@ -333,94 +279,52 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               break;
             }
             case 'halvePoints': {
-              if (effect.targetSide === 'bot'    && botHpDelta    < 0) botHpDelta    = Math.ceil(botHpDelta    / 2);
+              if (effect.targetSide === 'bot' && botHpDelta < 0) botHpDelta = Math.ceil(botHpDelta / 2);
               else if (effect.targetSide === 'player' && playerHpDelta < 0) playerHpDelta = Math.ceil(playerHpDelta / 2);
               effectsToRemove.add(effect.id); break;
             }
             case 'starAdvantage': {
               const d = effect.data as { appliesToRound?: number } | undefined;
               if (d?.appliesToRound !== undefined && d.appliesToRound !== roundNumber) break;
-              if (effect.targetSide === 'player') { playerHpDelta = 0; botHpDelta    = Math.min(botHpDelta,    -1); }
+              if (effect.targetSide === 'player') { playerHpDelta = 0; botHpDelta = Math.min(botHpDelta, -1); }
               else if (effect.targetSide === 'bot') { botHpDelta = 0; playerHpDelta = Math.min(playerHpDelta, -1); }
               effectsToRemove.add(effect.id); break;
             }
             case 'fortify': {
-              if (result.winner === effect.sourceSide) effectsToAdd.push({
-                id: makeEffectId('Reinforcement', effect.sourceSide, roundNumber),
-                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
-                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-                priority: EFFECT_PRIORITY.statModifiers,
-                data: { stat: 'defense', amount: 1 },
-              });
+              if (result.winner === effect.sourceSide) effectsToAdd.push({ id: makeEffectId('Reinforcement', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'defense', amount: 1 } });
               effectsToRemove.add(effect.id); break;
             }
             case 'greedBuff': {
-              if (result.winner === effect.sourceSide) effectsToAdd.push({
-                id: makeEffectId('Greed', effect.sourceSide, roundNumber),
-                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
-                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-                priority: EFFECT_PRIORITY.statModifiers,
-                data: { stat: 'attack', amount: 1 },
-              });
+              if (result.winner === effect.sourceSide) effectsToAdd.push({ id: makeEffectId('Greed', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'attack', amount: 1 } });
               effectsToRemove.add(effect.id); break;
             }
             case 'lifesteal': {
-              if (result.winner === effect.sourceSide) {
-                if (effect.sourceSide === 'player') botHpDelta    -= 1;
-                if (effect.sourceSide === 'bot')    playerHpDelta -= 1;
-              }
+              if (result.winner === effect.sourceSide) { if (effect.sourceSide === 'player') botHpDelta -= 1; if (effect.sourceSide === 'bot') playerHpDelta -= 1; }
               effectsToRemove.add(effect.id); break;
             }
             case 'revengeBuff': {
               const opponentSide = getOppositeSide(effect.sourceSide);
-              if (result.winner === opponentSide) effectsToAdd.push({
-                id: makeEffectId('Revenge', effect.sourceSide, roundNumber),
-                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
-                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-                priority: EFFECT_PRIORITY.statModifiers,
-                data: { stat: 'attack', amount: 1 },
-              });
+              if (result.winner === opponentSide) effectsToAdd.push({ id: makeEffectId('Revenge', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'attack', amount: 1 } });
               effectsToRemove.add(effect.id); break;
             }
             case 'suicidePact': {
               const opponentSide = getOppositeSide(effect.sourceSide);
-              if (result.winner === opponentSide) {
-                if (opponentSide === 'player') playerHpDelta = 0;
-                if (opponentSide === 'bot')    botHpDelta    = 0;
-              }
+              if (result.winner === opponentSide) { if (opponentSide === 'player') playerHpDelta = 0; if (opponentSide === 'bot') botHpDelta = 0; }
               effectsToRemove.add(effect.id); break;
             }
             case 'compensationBuff': {
               const opponentSide = getOppositeSide(effect.sourceSide);
-              if (result.winner === opponentSide) effectsToAdd.push({
-                id: makeEffectId('Compensation', effect.sourceSide, roundNumber),
-                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide,
-                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-                priority: EFFECT_PRIORITY.statModifiers,
-                data: { stat: 'defense', amount: 1 },
-              });
+              if (result.winner === opponentSide) effectsToAdd.push({ id: makeEffectId('Compensation', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'defense', amount: 1 } });
               effectsToRemove.add(effect.id); break;
             }
             case 'weakeningDebuff': {
               const opponentSide = getOppositeSide(effect.sourceSide);
-              if (result.winner === opponentSide) effectsToAdd.push({
-                id: makeEffectId('Weakening', effect.sourceSide, roundNumber),
-                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: opponentSide,
-                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-                priority: EFFECT_PRIORITY.statModifiers,
-                data: { stat: 'attack', amount: -1 },
-              });
+              if (result.winner === opponentSide) effectsToAdd.push({ id: makeEffectId('Weakening', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: opponentSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'attack', amount: -1 } });
               effectsToRemove.add(effect.id); break;
             }
             case 'explosionDebuff': {
               const opponentSide = getOppositeSide(effect.sourceSide);
-              if (result.winner === opponentSide) effectsToAdd.push({
-                id: makeEffectId('Explosion', effect.sourceSide, roundNumber),
-                kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: opponentSide,
-                createdAtRound: roundNumber, expiresAtRound: state.totalRounds,
-                priority: EFFECT_PRIORITY.statModifiers,
-                data: { stat: 'defense', amount: -1 },
-              });
+              if (result.winner === opponentSide) effectsToAdd.push({ id: makeEffectId('Explosion', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: opponentSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'defense', amount: -1 } });
               effectsToRemove.add(effect.id); break;
             }
             case 'consecutiveLoss': {
@@ -430,7 +334,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               if (result.winner === opponentSide) {
                 const newCount = lossCount + 1;
                 if (newCount >= 2) {
-                  effectsToAdd.push({ id: makeEffectId('ConsecutiveLossBuff', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'attack',  amount: 1 } });
+                  effectsToAdd.push({ id: makeEffectId('ConsecutiveLossBuff', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'attack', amount: 1 } });
                   effectsToAdd.push({ id: makeEffectId('ConsecutiveLossBuff', effect.sourceSide, roundNumber), kind: 'statModifier', sourceSide: effect.sourceSide, targetSide: effect.sourceSide, createdAtRound: roundNumber, expiresAtRound: state.totalRounds, priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'defense', amount: 1 } });
                   effectsToRemove.add(effect.id);
                 } else effectsToReplace.set(effect.id, { ...effect, data: { lossCount: newCount } });
@@ -456,8 +360,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               const d = effect.data as { appliesToRound?: number } | undefined;
               if (!d?.appliesToRound || d.appliesToRound !== roundNumber) break;
               const opponentSide = getOppositeSide(effect.sourceSide);
-              if (opponentSide === 'player') { playerHpDelta = Math.min(playerHpDelta, -1); botHpDelta    = 0; }
-              if (opponentSide === 'bot')    { botHpDelta    = Math.min(botHpDelta,    -1); playerHpDelta = 0; }
+              if (opponentSide === 'player') { playerHpDelta = Math.min(playerHpDelta, -1); botHpDelta = 0; }
+              if (opponentSide === 'bot')    { botHpDelta = Math.min(botHpDelta, -1); playerHpDelta = 0; }
               effectsToRemove.add(effect.id); break;
             }
             case 'convertDebuffs': {
@@ -476,7 +380,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               effectsToRemove.add(effect.id); break;
             }
             case 'takeIt': {
-              const sideName     = effect.sourceSide;
+              const sideName = effect.sourceSide;
               const opponentSide = getOppositeSide(sideName);
               activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === sideName && (e.data as any)?.amount < 0).forEach(d => { effectsToRemove.add(d.id); effectsToAdd.push({ ...d, id: makeEffectId('TakeIt', opponentSide, roundNumber), targetSide: opponentSide, sourceSide: sideName }); });
               effectsToRemove.add(effect.id); break;
@@ -501,7 +405,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           }
         });
       } else {
-        // ✅ turinPenalty: احذف الـ effect الخاص بهذه الجولة تحديداً
         state.activeEffects
           .filter(e => e.kind === 'turinPenalty' && (e.data as any)?.appliesToRound === roundNumber)
           .forEach(e => effectsToRemove.add(e.id));
@@ -621,11 +524,22 @@ type GameContextType = {
   dispatch: React.Dispatch<GameAction>;
   rarityWeights: RarityWeights;
   updateRarityWeights: (weights: RarityWeights) => Promise<void>;
-  // ✅ Helper functions — مكشوفة للاستخدام المباشر في الشاشات
+  // ── helpers — جميعها مكشوفة لجميع الشاشات ──
   setPlayerDeck: (deck: Card[]) => void;
   startBattle: (deck: Card[], abilities?: AbilityType[]) => void;
-  // ✅ syncDecks: يُزامن كلا الديكين في آنٍ واحد (مستخدم في battle.tsx)
   syncDecks: (playerDeck: Card[], botDeck: Card[]) => void;
+  setDifficulty: (level: DifficultyLevel) => void;
+  setAbilitiesEnabled: (enabled: boolean) => void;
+  playRound: () => void;
+  nextRound: () => void;
+  resetGame: () => void;
+  useAbility: (abilityType: AbilityType, data?: Record<string, unknown>, isPlayer?: boolean) => void;
+  // ── derived state ──
+  isGameOver: boolean;
+  currentPlayerCard: Card | null;
+  currentBotCard: Card | null;
+  lastRoundResult: RoundResult | null;
+  expectedRoundResult: RoundResult | null;
 };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -643,24 +557,104 @@ export function GameProvider({ children }: { children: ReactNode }) {
     await saveRarityWeights(weights);
   };
 
-  // ✅ setPlayerDeck: يضبط الديك في الـ state
-  const setPlayerDeck = (deck: Card[]) => {
+  const setPlayerDeck = useCallback((deck: Card[]) => {
     dispatch({ type: 'SET_PLAYER_DECK', payload: deck });
-  };
+  }, []);
 
-  // ✅ startBattle: يضبط الديك ويبدأ المعركة مع القدرات الاختيارية
-  const startBattle = (deck: Card[], abilities?: AbilityType[]) => {
+  const startBattle = useCallback((deck: Card[], abilities?: AbilityType[]) => {
     dispatch({ type: 'SET_PLAYER_DECK', payload: deck });
     dispatch({ type: 'START_BATTLE', payload: { playerAbilities: abilities } });
-  };
+  }, []);
 
-  // ✅ syncDecks: يُزامن playerDeck و botDeck معاً بدون إعادة تشغيل المعركة
-  const syncDecks = (playerDeck: Card[], botDeck: Card[]) => {
+  const syncDecks = useCallback((playerDeck: Card[], botDeck: Card[]) => {
     dispatch({ type: 'SYNC_DECKS', payload: { playerDeck, botDeck } });
-  };
+  }, []);
+
+  const setDifficulty = useCallback((level: DifficultyLevel) => {
+    dispatch({ type: 'SET_DIFFICULTY', payload: level });
+  }, []);
+
+  const setAbilitiesEnabled = useCallback((enabled: boolean) => {
+    dispatch({ type: 'SET_ABILITIES_ENABLED', payload: enabled });
+  }, []);
+
+  const playRound = useCallback(() => {
+    dispatch({ type: 'PLAY_ROUND' });
+  }, []);
+
+  const nextRound = useCallback(() => {
+    dispatch({ type: 'NEXT_ROUND' });
+  }, []);
+
+  const resetGame = useCallback(() => {
+    dispatch({ type: 'RESET_GAME' });
+  }, []);
+
+  const useAbility = useCallback((abilityType: AbilityType, data?: Record<string, unknown>, isPlayer: boolean = true) => {
+    dispatch({ type: 'USE_ABILITY', payload: { abilityType, isPlayer, data } });
+  }, []);
+
+  // ── derived state ──
+  const isGameOver = useMemo(() =>
+    state.totalRounds > 0 && state.roundResults.length >= state.totalRounds,
+    [state.totalRounds, state.roundResults.length]
+  );
+
+  const currentPlayerCard = useMemo(() =>
+    state.playerDeck[state.currentRound] ?? null,
+    [state.playerDeck, state.currentRound]
+  );
+
+  const currentBotCard = useMemo(() =>
+    state.botDeck[state.currentRound] ?? null,
+    [state.botDeck, state.currentRound]
+  );
+
+  const lastRoundResult = useMemo(() =>
+    state.roundResults.length > 0 ? state.roundResults[state.roundResults.length - 1] : null,
+    [state.roundResults]
+  );
+
+  // expectedRoundResult: توقع نتيجة الجولة الحالية بدون تنفيذ (null = لم يتم الحساب بعد)
+  const expectedRoundResult = useMemo((): RoundResult | null => {
+    const playerCard = state.playerDeck[state.currentRound];
+    const botCard = state.botDeck[state.currentRound];
+    if (!playerCard || !botCard) return null;
+    const roundNumber = state.currentRound + 1;
+    const activeEffects = state.activeEffects.filter(e => isEffectActive(e, roundNumber));
+    const playerEffects = activeEffects.filter(e => e.targetSide === 'player' || e.targetSide === 'all');
+    const botEffects = activeEffects.filter(e => e.targetSide === 'bot' || e.targetSide === 'all');
+    const turinForcedLoss = isTurinForcedLoss(state.currentRound, state.totalRounds, state.playerDeck);
+    let winner: Side | 'draw';
+    if (turinForcedLoss) {
+      winner = 'bot';
+    } else {
+      const r = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
+      winner = r.winner;
+    }
+    return {
+      round: roundNumber,
+      playerCard,
+      botCard,
+      playerDamage: 0,
+      botDamage: 0,
+      playerBaseDamage: 0,
+      botBaseDamage: 0,
+      playerElementAdvantage: 'neutral',
+      botElementAdvantage: 'neutral',
+      winner,
+    };
+  }, [state.playerDeck, state.botDeck, state.currentRound, state.activeEffects, state.abilitiesEnabled, state.totalRounds]);
 
   return (
-    <GameContext.Provider value={{ state, dispatch, rarityWeights, updateRarityWeights, setPlayerDeck, startBattle, syncDecks }}>
+    <GameContext.Provider value={{
+      state, dispatch, rarityWeights, updateRarityWeights,
+      setPlayerDeck, startBattle, syncDecks,
+      setDifficulty, setAbilitiesEnabled,
+      playRound, nextRound, resetGame, useAbility,
+      isGameOver, currentPlayerCard, currentBotCard,
+      lastRoundResult, expectedRoundResult,
+    }}>
       {children}
     </GameContext.Provider>
   );
