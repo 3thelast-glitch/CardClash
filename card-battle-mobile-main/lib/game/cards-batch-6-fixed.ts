@@ -321,5 +321,6 @@ race: 'human', cardClass: 'warrior', element: 'lightning',
 tags: ["sword"],
 rarity: 'special', stars: 4,
 animationPreset: 'lightning',
+specialAbility: 'تخسر نصف الجولات',
 },
 ];
