@@ -138,10 +138,21 @@ card-battle-mobile-main/
 │   ├── schema.ts               # جدول users
 │   └── migrations/
 │
+├── scripts/                    # سكريبتات المشروع (generate_qr.mjs)
 ├── constants/
 ├── hooks/
 ├── assets/                     # خطوط، صور
-└── scripts/                    # generate_qr.mjs
+├── types/
+├── data/
+├── app.config.ts
+├── drizzle.config.ts
+├── package.json
+├── tsconfig.json
+├── tailwind.config.js
+├── babel.config.js
+├── metro.config.js
+├── theme.config.js
+└── .env.example
 ```
 
 ---
@@ -268,6 +279,7 @@ pnpm test
 - المكونات UI خالصة — لا business logic
 - كود الـ server في `server/` فقط — لا يُستورد من Client
 - القدرات الخاصة بالبطاقات في `lib/game/rage-engine.ts` — لا تُضاف في `game-context`
+- السكريبتات المؤقتة تُوضع في `scripts/` ولا تُرفع للـ root مباشرة
 
 ---
 
