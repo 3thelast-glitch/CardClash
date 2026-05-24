@@ -126,7 +126,7 @@ type GameAction =
   | { type: 'SET_PLAYER_DECK'; payload: Card[] }
   | { type: 'SET_BOT_DECK'; payload: Card[] }
   | { type: 'SET_TOTAL_ROUNDS'; payload: number }
-  | { type: 'START_BATTLE'; payload?: { playerAbilities?: AbilityType[]; botDeck?: Card[] } }
+  | { type: 'START_BATTLE'; payload?: { playerDeck?: Card[]; playerAbilities?: AbilityType[]; botDeck?: Card[] } }
   | { type: 'PLAY_ROUND' }
   | { type: 'NEXT_ROUND' }
   | { type: 'RESET_GAME' }
@@ -159,14 +159,16 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'START_BATTLE': {
       const assignedAbilities = action.payload?.playerAbilities;
       const incomingBotDeck   = action.payload?.botDeck;
-      const sortedPlayerDeck  = sortDeckWithTurinFirst(state.playerDeck);
+      // ── FIX: إذا أُرسل playerDeck ضمن الـ action استخدمه مباشرة، وإلا استخدم الـ state
+      const rawPlayerDeck     = (action.payload?.playerDeck && action.payload.playerDeck.length > 0)
+        ? action.payload.playerDeck
+        : state.playerDeck;
+      const sortedPlayerDeck  = sortDeckWithTurinFirst(rawPlayerDeck);
       const deckWithPassives  = sortedPlayerDeck.map(applyOnSpawnPassive);
       const turinEffects = hasTurinInDeck(deckWithPassives)
-        ? buildTurinPenaltyEffects(state.totalRounds)
+        ? buildTurinPenaltyEffects(deckWithPassives.length)
         : [];
 
-      // استخدم botDeck الواردة من الـ action، أو الموجودة بالفعل في الـ state،
-      // أو ولّد واحدة جديدة تلقائياً بناءً على حجم الـ playerDeck
       const resolvedBotDeck =
         (incomingBotDeck && incomingBotDeck.length > 0)
           ? incomingBotDeck
@@ -580,9 +582,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_PLAYER_DECK', payload: deck });
   }, []);
 
+  // ── FIX: إرسال playerDeck داخل START_BATTLE مباشرة بدل dispatch منفصل
+  // كانت المشكلة أن dispatch('SET_PLAYER_DECK') + dispatch('START_BATTLE') يحدثان
+  // في نفس الـ render cycle، فـ START_BATTLE كان يقرأ totalRounds = 0 من الـ state القديم
   const startBattle = useCallback((deck: Card[], abilities?: AbilityType[], botDeck?: Card[]) => {
-    dispatch({ type: 'SET_PLAYER_DECK', payload: deck });
-    dispatch({ type: 'START_BATTLE', payload: { playerAbilities: abilities, botDeck } });
+    dispatch({ type: 'START_BATTLE', payload: { playerDeck: deck, playerAbilities: abilities, botDeck } });
   }, []);
 
   const syncDecks = useCallback((playerDeck: Card[], botDeck: Card[]) => {
