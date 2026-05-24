@@ -20,6 +20,7 @@
  *  - ✅ Step 4: replace hardcoded delays with BATTLE_TIMINGS
  *  - ✅ Removed edit mode / 🎨 أدوات التحرير
  *  - ✅ Fix: startBattle loop guard (prevent infinite loading freeze)
+ *  - ✅ Fix: force 'row' flexDirection in arena (ignore portrait mode)
  */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
@@ -303,9 +304,11 @@ export default function BattleScreen() {
     if (Platform.OS !== 'web' && settings.vibration) Haptics.notificationAsync(type);
   }, [settings.vibration]);
 
-  const isPortrait = height > width;
-  // Dynamic scaling instead of fixed maxes
-  const cardWidth = isPortrait ? (width * 0.44) : Math.min(width * CARD_WIDTH_FACTOR[size] * 0.88, (height * 0.54) / 1.5);
+  // ✅ Fix: الـ arena دائماً row بغض النظر عن وضع الشاشة
+  // cardWidth يحسب بناءً على أكبر بُعد (max) حتى تظهر الكروت بحجم مناسب
+  const longSide = Math.max(width, height);
+  const shortSide = Math.min(width, height);
+  const cardWidth = Math.min(longSide * CARD_WIDTH_FACTOR[size] * 0.88, (shortSide * 0.54) / 1.5);
   const cardHeight = cardWidth * (320 / 220);
 
   const {
@@ -410,8 +413,6 @@ export default function BattleScreen() {
   );
 
   // ✅ FIX: استدعاء startBattle مرة واحدة فقط عند الدخول للشاشة
-  // السبب: الكود القديم كان يعيد استدعاء startBattle كلما كانت currentPlayerCard = null
-  // مما يسبب حلقة لانهائية (startBattle → reset state → null → startBattle ...)
   useEffect(() => {
     if (!battleStarted.current && state.totalRounds > 0 && state.playerDeck.length > 0 && !currentPlayerCard && !currentBotCard) {
       battleStarted.current = true;
@@ -426,7 +427,6 @@ export default function BattleScreen() {
       playerAnim.value = withDelay(80, withTiming(1, { duration: 280 }));
       botAnim.value = withDelay(240, withTiming(1, { duration: 280 }));
       vsOpacity.value = withDelay(440, withTiming(1, { duration: 200 }));
-      // ✅ Step 4: استخدام BATTLE_TIMINGS بدل الرقم الثابت 720
       setTimeout(() => setPhase('action'), BATTLE_TIMINGS.cardEntrance);
     }
   }, [currentPlayerCard, currentBotCard, phase, state.currentRound]);
@@ -606,7 +606,6 @@ export default function BattleScreen() {
         return [...prev, { round: lastRoundResult.round, playerCard: lastRoundResult.playerCard, botCard: lastRoundResult.botCard, winner: lastRoundResult.winner }];
       });
 
-      // ✅ Step 3: إظهار أرقام الضرر فقط إذا كان الإعداد مفعّلاً
       if (settings.showDamageNumbers) {
         if (lastRoundResult.botDamage > 0) spawnDmg('bot', lastRoundResult.botDamage, lastRoundResult.playerElementAdvantage === 'strong' ? 'critical' : 'damage');
         if (lastRoundResult.playerDamage > 0) spawnDmg('player', lastRoundResult.playerDamage, lastRoundResult.botElementAdvantage === 'strong' ? 'critical' : 'damage');
@@ -739,8 +738,8 @@ export default function BattleScreen() {
             </View>
           )}
 
-          {/* ══ ARENA ══ */}
-          <View style={[S.arena, { flexDirection: isPortrait ? 'column-reverse' : 'row' }]}>
+          {/* ══ ARENA — دائماً row بغض النظر عن portrait/landscape ══ */}
+          <View style={[S.arena, { flexDirection: 'row' }]}>
 
             {/* PLAYER PANEL */}
             <View style={S.playerPanel}>
@@ -817,7 +816,7 @@ export default function BattleScreen() {
                   <Text style={S.ctaBtnIcon}>⚡</Text><Text style={S.ctaBtnText}>قدرات</Text>
                 </TouchableOpacity>
 
-                {/* 🔥 زر الغضب — قرار استراتيجي بناءً على التوقع */}
+                {/* 🔥 زر الغضب */}
                 {canRageNow && phase === 'action' && (
                   <TouchableOpacity
                     style={[S.ctaBtn, S.ctaBtnRage]}
