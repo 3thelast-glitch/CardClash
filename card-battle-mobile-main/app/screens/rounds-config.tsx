@@ -123,7 +123,7 @@ export default function RoundsConfigScreen() {
   const pendingMatchSettings = mp?.state?.pendingMatchSettings ?? null;
 
   const [rounds, setRounds] = React.useState(5);
-  const [withAbility, setWithAbility] = React.useState(false);
+  const [withAbility, setWithAbility] = React.useState(true); // ✅ مفعّلة افتراضياً
   const [settingsSent, setSettingsSent] = React.useState(false);
 
   useEffect(() => {
