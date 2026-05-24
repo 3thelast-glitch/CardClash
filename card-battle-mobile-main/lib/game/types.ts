@@ -17,7 +17,6 @@ export type CardClass =
   | 'archer'      // رامي
   | 'swordsman'   // سياف
   | 'fighter'     // مقاتل
-  | 'guardian'    // والي
   | 'healer';     // طبيب
 
 // ✦ نظام خماسي
@@ -242,7 +241,6 @@ export const CLASS_EMOJI: Record<CardClass, string> = {
   archer:    '\u{1F3F9}',          // 🏹  رامي
   swordsman: '\u{1F93A}',          // 🤺  سياف
   fighter:   '\u{1F94A}',          // 🥊  مقاتل
-  guardian:  '\u{1F6E1}',          // 🛡️  والي
   healer:    '\u2695\ufe0f',       // ⚕️  طبيب
 };
 
