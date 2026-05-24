@@ -172,7 +172,8 @@ export type EffectKind =
   | 'conversion'
   | 'takeIt'
   | 'deprivation'
-  | 'pool';
+  | 'pool'
+  | 'turinPenalty'; // ✅ Turin: جولات الخسارة الإجبارية
 
 export interface Effect {
   id: string;
