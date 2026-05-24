@@ -9,8 +9,9 @@ import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { useGame } from '@/lib/game/game-context';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
+import type { DifficultyLevel } from '@/lib/game/difficulty-types';
 
-export type DifficultyLevel = 1 | 2 | 3 | 4;
+export type { DifficultyLevel };
 
 const LEVELS: {
   level: DifficultyLevel;

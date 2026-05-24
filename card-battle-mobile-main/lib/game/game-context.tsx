@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, useState, useEffect, useM
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Card, GameState, RoundResult, Effect, AbilityType, Side, ElementAdvantage } from './types';
 import { getRandomAbilities } from './abilities';
-import type { DifficultyLevel } from '@/app/screens/difficulty';
+import type { DifficultyLevel } from './difficulty-types';
 import { determineRoundWinner } from './cards-data-exports';
 import { getBotCards } from './bot-ai';
 import { applyOnSpawnPassive, applyPostBattlePassive } from './rage-engine';
@@ -615,7 +615,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [state.roundResults]
   );
 
-  // expectedRoundResult: توقع نتيجة الجولة الحالية بدون تنفيذ (null = لم يتم الحساب بعد)
   const expectedRoundResult = useMemo((): RoundResult | null => {
     const playerCard = state.playerDeck[state.currentRound];
     const botCard = state.botDeck[state.currentRound];
