@@ -8,7 +8,6 @@
  *   - determineRoundWinner      ← game-context.tsx
  */
 
-import { CARDS_BATCH_1 } from './cards-batch-1-fixed';
 import { CARDS_BATCH_2 } from './cards-batch-2-fixed';
 import { CARDS_BATCH_3 } from './cards-batch-3-fixed';
 import { CARDS_BATCH_4 } from './cards-batch-4-fixed';
@@ -30,7 +29,6 @@ export { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive };
 
 // ─── ALL_CARDS ────────────────────────────────────────────────────────────────
 export const ALL_CARDS: Card[] = [
-  ...CARDS_BATCH_1,
   ...CARDS_BATCH_2,
   ...CARDS_BATCH_3,
   ...CARDS_BATCH_4,
@@ -152,7 +150,6 @@ export function determineRoundWinner(
   const botSpecial    = resolveSpecialAbility(botCard,    playerCard);
 
   if (playerSpecial === 'win' || botSpecial === 'lose') {
-    // اللاعب يفوز بقدرة خاصة
     return {
       winner: 'player',
       playerDamage: 0,
@@ -165,7 +162,6 @@ export function determineRoundWinner(
   }
 
   if (playerSpecial === 'lose' || botSpecial === 'win') {
-    // البوت يفوز بقدرة خاصة
     return {
       winner: 'bot',
       playerDamage: 0,
@@ -178,15 +174,12 @@ export function determineRoundWinner(
   }
 
   // ── 2. حسابات الإحصائيات العادية ─────────────────────────────────────
-
-  // نسخ مؤقتة لتطبيق التفاعلات دون تعديل البيانات الأصلية
   const p = { attack: playerCard.attack, defense: playerCard.defense, hp: playerCard.hp, element: playerCard.element };
   const b = { attack: botCard.attack,    defense: botCard.defense,    hp: botCard.hp,    element: botCard.element };
 
-  applyElementalReactions(p, b); // تفاعل لاعب على بوت
-  applyElementalReactions(b, p); // تفاعل بوت على لاعب
+  applyElementalReactions(p, b);
+  applyElementalReactions(b, p);
 
-  // تطبيق تأثيرات القدرات
   const applySideEffects = (baseAtk: number, baseDef: number, effects: Effect[]) => {
     let atk = baseAtk;
     let def = baseDef;
