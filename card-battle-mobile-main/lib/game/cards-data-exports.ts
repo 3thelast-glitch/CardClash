@@ -8,11 +8,13 @@
  *   - determineRoundWinner      ← game-context.tsx
  */
 
+import { CARDS_BATCH_1 } from './cards-batch-1-fixed';
 import { CARDS_BATCH_2 } from './cards-batch-2-fixed';
 import { CARDS_BATCH_3 } from './cards-batch-3-fixed';
 import { CARDS_BATCH_4 } from './cards-batch-4-fixed';
 import { CARDS_BATCH_5 } from './cards-batch-5-fixed';
 import { CARDS_BATCH_6 } from './cards-batch-6-fixed';
+import { animeCards } from '../../data/anime-cards-data';
 import {
   Card,
   Element,
@@ -29,11 +31,13 @@ export { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive };
 
 // ─── ALL_CARDS ────────────────────────────────────────────────────────────────
 export const ALL_CARDS: Card[] = [
+  ...CARDS_BATCH_1,
   ...CARDS_BATCH_2,
   ...CARDS_BATCH_3,
   ...CARDS_BATCH_4,
   ...CARDS_BATCH_5,
   ...CARDS_BATCH_6,
+  ...(animeCards as unknown as Card[]),
 ];
 
 // ─── getElementAdvantage ─────────────────────────────────────────────────────
