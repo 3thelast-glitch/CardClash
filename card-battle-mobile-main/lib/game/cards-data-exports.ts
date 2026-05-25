@@ -37,7 +37,7 @@ export const ALL_CARDS: Card[] = [
   ...CARDS_BATCH_4,
   ...CARDS_BATCH_5,
   ...CARDS_BATCH_6,
-  ...(animeCards as unknown as Card[]),
+  ...animeCards,
 ];
 
 // ─── getElementAdvantage ─────────────────────────────────────────────────────
