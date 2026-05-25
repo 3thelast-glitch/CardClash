@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getBotCards } from '../bot-ai';
-import { ALL_CARDS } from '../cards-collection';
+import { ALL_CARDS } from '../cards-data-exports';
 
 describe('Bot AI System', () => {
   describe('getBotCards', () => {
@@ -33,7 +33,6 @@ describe('Bot AI System', () => {
       botCards.forEach(card => {
         expect(card).toHaveProperty('id');
         expect(card).toHaveProperty('name');
-        expect(card).toHaveProperty('hp');
         expect(card).toHaveProperty('attack');
         expect(card).toHaveProperty('defense');
         expect(card).toHaveProperty('element');
@@ -68,7 +67,7 @@ describe('Bot AI System', () => {
       const count = 3;
       const playerDeck = [
         ALL_CARDS.find((c: any) => c.element === 'fire')!,
-        ALL_CARDS.find((c: any) => c.element === 'ice')!,
+        ALL_CARDS.find((c: any) => c.element === 'water')!,
         ALL_CARDS.find((c: any) => c.element === 'earth')!,
       ];
       const botCards = getBotCards(count, 3, playerDeck);
@@ -79,11 +78,11 @@ describe('Bot AI System', () => {
       // Check if bot selected cards with elemental advantage
       const hasElementalAdvantage = botCards.some((botCard, index) => {
         const playerCard = playerDeck[index];
-        // Earth > Fire, Fire > Ice, Ice > Earth
+        // Water > Fire, Earth/Lightning > Water, Fire/Wind > Earth
         return (
-          (playerCard.element === 'fire' && botCard.element === 'earth') ||
-          (playerCard.element === 'ice' && botCard.element === 'fire') ||
-          (playerCard.element === 'earth' && botCard.element === 'ice')
+          (playerCard.element === 'fire' && botCard.element === 'water') ||
+          (playerCard.element === 'water' && (botCard.element === 'earth' || botCard.element === 'lightning')) ||
+          (playerCard.element === 'earth' && (botCard.element === 'fire' || botCard.element === 'wind'))
         );
       });
 

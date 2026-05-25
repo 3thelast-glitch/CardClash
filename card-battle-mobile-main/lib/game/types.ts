@@ -42,7 +42,7 @@ export interface LocalizedString {
 }
 
 /** Per-card animation preset key */
-export type CardAnimationPreset = 'default' | 'fire' | 'lightning' | 'shadow' | 'holy';
+export type CardAnimationPreset = 'default' | 'fire' | 'lightning' | 'shadow' | 'holy' | 'wind' | 'water' | 'earth';
 
 /** جنس الكارت */
 export type Gender = 'male' | 'female' | 'unknown';
