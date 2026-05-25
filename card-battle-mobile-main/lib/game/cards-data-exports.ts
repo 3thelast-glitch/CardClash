@@ -14,7 +14,14 @@ import { CARDS_BATCH_3 } from './cards-batch-3-fixed';
 import { CARDS_BATCH_4 } from './cards-batch-4-fixed';
 import { CARDS_BATCH_5 } from './cards-batch-5-fixed';
 import { CARDS_BATCH_6 } from './cards-batch-6-fixed';
-import { animeCards } from '../../data/anime-cards-data';
+import {
+  cardsBatch1,
+  cardsBatch2,
+  cardsBatch3,
+  cardsBatch4,
+  cardsBatch5,
+  cardsBatch6,
+} from '../../data';
 import {
   Card,
   Element,
@@ -37,7 +44,12 @@ export const ALL_CARDS: Card[] = [
   ...CARDS_BATCH_4,
   ...CARDS_BATCH_5,
   ...CARDS_BATCH_6,
-  ...animeCards,
+  ...cardsBatch1,
+  ...cardsBatch2,
+  ...cardsBatch3,
+  ...cardsBatch4,
+  ...cardsBatch5,
+  ...cardsBatch6,
 ];
 
 // ─── getElementAdvantage ─────────────────────────────────────────────────────
