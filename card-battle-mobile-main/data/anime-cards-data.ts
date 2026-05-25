@@ -1,6 +1,6 @@
 // ============================================================
 // anime-cards-data.ts  — Auto-generated from anime_cards_v4.xlsx
-// 192 cards | Updated: 2026-05-15
+// 196 cards | Updated: 2026-05-25
 // ============================================================
 
 export type Rarity = 'Common' | 'Rare' | 'Epic' | 'Legendary' | 'Special';
@@ -219,6 +219,33 @@ export const animeCards: AnimeCard[] = [
     rarity: 'Legendary',
     stars: 5,
     specialAbility: 'يخسر من جميع النساء',
+  },
+  {
+    id: 'portgas_d_ace',
+    nameAr: 'إيس',
+    universe: 'One Piece',
+    gender: 'male',
+    attack: 16,
+    defense: 14,
+    race: 'بشر',
+    style: '🔥 محارب لهب',
+    element: 'fire',
+    rarity: 'Legendary',
+    stars: 5,
+  },
+  {
+    id: 'boa_hancock',
+    nameAr: 'بوا هانكوك',
+    universe: 'One Piece',
+    gender: 'female',
+    attack: 15,
+    defense: 12,
+    race: 'بشر',
+    style: '👊 مقاتل',
+    element: 'fire',
+    rarity: 'Legendary',
+    stars: 5,
+    specialAbility: 'تحجّر جميع الذكور عند الهجوم',
   },
   {
     id: 'roronoa_zoro',
@@ -2514,6 +2541,32 @@ export const animeCards: AnimeCard[] = [
     element: 'lightning',
     rarity: 'Epic',
     stars: 4,
+  },
+  {
+    id: 'the_tarnished',
+    nameAr: 'التارنيشد',
+    universe: 'Elden Ring',
+    gender: 'unknown',
+    attack: 17,
+    defense: 16,
+    race: 'بشر',
+    style: '⚔️ سياف',
+    element: 'earth',
+    rarity: 'Legendary',
+    stars: 5,
+  },
+  {
+    id: 'starscourge_radahn',
+    nameAr: 'رادان',
+    universe: 'Elden Ring',
+    gender: 'male',
+    attack: 18,
+    defense: 17,
+    race: 'بشر',
+    style: '⚔️ سياف',
+    element: 'earth',
+    rarity: 'Legendary',
+    stars: 5,
   },
   {
     id: 'Turin_Turambar',
