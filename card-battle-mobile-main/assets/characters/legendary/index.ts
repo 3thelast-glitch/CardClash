@@ -11,12 +11,12 @@ export const LEGENDARY_IMAGES: Record<string, any> = {
     diablo: require('./Diablo.png'),
     dracula: require('./Dracula.png'),
     fatalis: require('./Fatalis.png'),
-        ganondorf: require('./Ganondorf.png'),
+    ganondorf: require('./Ganondorf.png'),
     garou: require('./Garou.png'),
     gaunter_o_dimm: require('./gaunter_o_dimm.png'),
     giyu_tomioka: require('./giyu_tomioka.png'),
-        griffith: require('./Griffith.png'),
-        gwyn: require('./Gwyn.png'),
+    griffith: require('./Griffith.png'),
+    gwyn: require('./Gwyn.png'),
     hisoka_morow: require('./Hisoka_Morow.png'),
     igneel: require('./Igneel.png'),
     kaguya_otsutsuki: require('./kaguya_otsutsuki.png'),
@@ -37,7 +37,17 @@ export const LEGENDARY_IMAGES: Record<string, any> = {
     son_goku: require('./Son_Goku.png'),
     the_hunter: require('./the_hunter.png'),
     ulquiorra_cifer: require('./Ulquiorra_Cifer.png'),
-        };
+    akainu: require('./Akainu.png'),
+    benimaru: require('./Benimaru.png'),
+    big_mom: require('./Big_Mom.png'),
+    blackbeard: require('./blackbeard.png'),
+    hashirama_senju: require('./Hashirama_Senju.png'),
+    kisuke_urahara: require('./Kisuke_Urahara.png'),
+    maliketh: require('./Maliketh.png'),
+    reinhard_van_astrea: require('./Reinhard_van_Astrea.png'),
+    sung_jinwoo: require('./Sung_Jinwoo.png'),
+    bam: require('./Bam.png'),
+};
 
 /** فيديوهات الكروت الأسطورية — mp4 */
 export const LEGENDARY_VIDEOS: Record<string, any> = {
@@ -71,11 +81,11 @@ export const LEGENDARY_VIDEOS: Record<string, any> = {
     ryomen_sukuna: require('./ryomen_sukuna.mp4'),
     satoru_gojo: require('./satoru_gojo.mp4'),
     sosuke_aizen: require('./sosuke_aizen.mp4'),
-    white_snake: require('./white_snake.mp4'),
+    whitebeard: require('./Whitebeard.mp4'),
 };
 
 /** ملفات GIF */
 export const LEGENDARY_GIFS: Record<string, any> = {
     isaac_netero: require('./Isaac_Netero.gif'),
-        sasuke_uchiha: require('./sasuke_uchiha.gif'),
+    sasuke_uchiha: require('./sasuke_uchiha.gif'),
 };

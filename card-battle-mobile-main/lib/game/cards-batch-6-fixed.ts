@@ -289,7 +289,7 @@ export const CARDS_BATCH_6: Card[] = [
         stars: 5,
         gender: 'male',
         universe: 'Solo Leveling',
-        specialAbility: 'ملك الظلام — يستدعي جيشاً من الظلام',
+        specialAbility: '',
         animationPreset: 'shadow',
         tags: ['crown'],
     },

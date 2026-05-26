@@ -91,6 +91,24 @@ export const EPIC_IMAGES: Record<string, any> = {
     zodd: require('./zodd.png'),
     neji_hyuga: require('./neji_hyuga.png'),
         tengen_uzui: require('./tengen_uzui.png'),
+    boa_hancock: require('./Boa_Hancock.png'),
+    marco: require('./Marco.png'),
+    katakuri: require('./Katakuri.png'),
+    ranni: require('./Ranni.png'),
+    melina: require('./Melina.png'),
+    tarnished: require('./Tarnished.png'),
+    tobirama_senju: require('./Tobirama_Senju.png'),
+    yoruichi_shihoin: require('./Yoruichi_Shihoin.png'),
+    nelliel_tu: require('./Nelliel_Tu_Odelschwanck.png'),
+    kirito: require('./Kirito.png'),
+    goto_ryuji: require('./Goto_Ryuji.png'),
+    ay_raikage: require('./Ay_Raikage.png'),
+    toshiro_hitsugaya: require('./Toshiro_Hitsugaya.png'),
+    pride_fma: require('./Pride_Fma.png'),
+    megumin: require('./Megumin.png'),
+    spike_spiegel: require('./Spike_Spiegel.png'),
+    milim_nava: require('./Milim_Nava.png'),
+    aki_hayakawa: require('./Aki_Hayakawa.png'),
         };
 
 /** فيديوهات الكروت الإبيك — mp4 */
@@ -100,6 +118,9 @@ export const EPIC_VIDEOS: Record<string, any> = {
     jiraiya: require('./jiraiya.mp4'),
     kakashi_hatake: require('./kakashi_hatake.mp4'),
     yuta_okkotsu: require('./yuta_okkotsu.mp4'),
+    aokiji: require('./Aokiji.mp4'),
+    toshiro_hitsugaya: require('./Toshiro_Hitsugaya.mp4'),
+    melina: require('../legendary/Melina.mp4'),
 };
 
 /** ملفات GIF */

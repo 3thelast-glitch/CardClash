@@ -149,7 +149,7 @@ export const CARDS_BATCH_5: Card[] = [
     {
         id: 'borsalino',
         name: 'Borsalino',
-        nameAr: 'بورسالينو (كيزارو)',
+        nameAr: 'كيزارو',
         attack: 17,
         defense: 16,
         race: 'human',
