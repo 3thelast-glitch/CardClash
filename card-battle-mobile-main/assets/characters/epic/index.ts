@@ -121,7 +121,6 @@ export const EPIC_VIDEOS: Record<string, any> = {
     yuta_okkotsu: require('./yuta_okkotsu.mp4'),
     aokiji: require('./Aokiji.mp4'),
     toshiro_hitsugaya: require('./Toshiro_Hitsugaya.mp4'),
-    malenia: require('../legendary/malenia.mp4'),
     borsalino: require('../legendary/Borsalino.mp4'),
 };
 

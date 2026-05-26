@@ -83,6 +83,7 @@ export const LEGENDARY_VIDEOS: Record<string, any> = {
     radahn: require('./Radahn.mp4'),
     ashborn: require('./Ashborn.mp4'),
     borsalino: require('./Borsalino.mp4'),
+    malenia: require('./malenia.mp4'),
 };
 
 /** ملفات GIF */
