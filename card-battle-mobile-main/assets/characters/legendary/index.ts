@@ -1,4 +1,7 @@
 export const LEGENDARY_IMAGES: Record<string, any> = {
+    reiner_braun: require('./reiner_braun.png'),
+    trunks: require('./trunks.png'),
+    piccolo: require('./piccolo.png'),
     acnologia: require('./Acnologia.png'),
     alduin: require('./Alduin.png'),
     alucard: require('./Alucard.png'),
@@ -8,15 +11,12 @@ export const LEGENDARY_IMAGES: Record<string, any> = {
     diablo: require('./Diablo.png'),
     dracula: require('./Dracula.png'),
     fatalis: require('./Fatalis.png'),
-    frieza: require('./frieza.png'),
-    ganondorf: require('./Ganondorf.png'),
+        ganondorf: require('./Ganondorf.png'),
     garou: require('./Garou.png'),
     gaunter_o_dimm: require('./gaunter_o_dimm.png'),
     giyu_tomioka: require('./giyu_tomioka.png'),
-    gohan: require('./gohan.png'),
-    griffith: require('./Griffith.png'),
-    grimmjow_jaegerjaquez: require('./grimmjow_jaegerjaquez.png'),
-    gwyn: require('./Gwyn.png'),
+        griffith: require('./Griffith.png'),
+        gwyn: require('./Gwyn.png'),
     hisoka_morow: require('./Hisoka_Morow.png'),
     igneel: require('./Igneel.png'),
     kaguya_otsutsuki: require('./kaguya_otsutsuki.png'),
@@ -37,9 +37,7 @@ export const LEGENDARY_IMAGES: Record<string, any> = {
     son_goku: require('./Son_Goku.png'),
     the_hunter: require('./the_hunter.png'),
     ulquiorra_cifer: require('./Ulquiorra_Cifer.png'),
-    vegeta: require('./vegeta.png'),
-    zeke_yeager: require('./zeke_yeager.png'),
-};
+        };
 
 /** فيديوهات الكروت الأسطورية — mp4 */
 export const LEGENDARY_VIDEOS: Record<string, any> = {
@@ -79,6 +77,5 @@ export const LEGENDARY_VIDEOS: Record<string, any> = {
 /** ملفات GIF */
 export const LEGENDARY_GIFS: Record<string, any> = {
     isaac_netero: require('./Isaac_Netero.gif'),
-    sanji: require('./sanji.gif'),
-    sasuke_uchiha: require('./sasuke_uchiha.gif'),
+        sasuke_uchiha: require('./sasuke_uchiha.gif'),
 };

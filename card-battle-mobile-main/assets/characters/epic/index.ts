@@ -1,4 +1,10 @@
 export const EPIC_IMAGES: Record<string, any> = {
+    zeke_yeager: require('./zeke_yeager.png'),
+    vegeta: require('./vegeta.png'),
+    frieza: require('./frieza.png'),
+    gohan: require('./gohan.png'),
+    master_roshi: require('./master_roshi.png'),
+    krillin: require('./krillin.png'),
     nobara_kugisaki: require('./Nobara_Kugisaki.png'),
     alger_wilson: require('./alger_wilson.png'),
     alice_zuberg: require('./alice_zuberg.png'),
@@ -48,8 +54,7 @@ export const EPIC_IMAGES: Record<string, any> = {
     megumi_fushiguro: require('./megumi_fushiguro.png'),
     mikasa_ackerman: require('./mikasa_ackerman.png'),
     mitsuri_kanroji: require('./mitsuri_kanroji.png'),
-    nanami_kento: require('./nanami_kento.png'),
-    neferpitou: require('./neferpitou.png'),
+        neferpitou: require('./neferpitou.png'),
     nezuko_kamado: require('./nezuko_kamado.png'),
     nyanta: require('./nyanta.png'),
     olivier_armstrong: require('./olivier_armstrong.png'),
@@ -62,8 +67,7 @@ export const EPIC_IMAGES: Record<string, any> = {
     regis: require('./regis.png'),
     rei_ayanami: require('./rei_ayanami.png'),
     rin_okumura: require('./rin_okumura.png'),
-    rock_lee: require('./rock_lee.png'),
-    roswaal: require('./roswaal.png'),
+        roswaal: require('./roswaal.png'),
     roy_mustang: require('./roy_mustang.png'),
     rukia_kuchiki: require('./rukia_kuchiki.png'),
     sabo: require('./sabo.png'),
@@ -86,11 +90,8 @@ export const EPIC_IMAGES: Record<string, any> = {
     zero: require('./zero.png'),
     zodd: require('./zodd.png'),
     neji_hyuga: require('./neji_hyuga.png'),
-    reiner_braun: require('./reiner_braun.png'),
-    tengen_uzui: require('./tengen_uzui.png'),
-    trunks: require('./trunks.png'),
-    piccolo: require('./piccolo.png'),
-};
+        tengen_uzui: require('./tengen_uzui.png'),
+        };
 
 /** فيديوهات الكروت الإبيك — mp4 */
 export const EPIC_VIDEOS: Record<string, any> = {
@@ -103,5 +104,6 @@ export const EPIC_VIDEOS: Record<string, any> = {
 
 /** ملفات GIF */
 export const EPIC_GIFS: Record<string, any> = {
+    sanji: require('./sanji.gif'),
     might_guy: require('./might_guy.gif'),
 };
