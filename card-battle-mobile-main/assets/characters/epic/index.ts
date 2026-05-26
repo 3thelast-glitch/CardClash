@@ -54,7 +54,7 @@ export const EPIC_IMAGES: Record<string, any> = {
     megumi_fushiguro: require('./megumi_fushiguro.png'),
     mikasa_ackerman: require('./mikasa_ackerman.png'),
     mitsuri_kanroji: require('./mitsuri_kanroji.png'),
-        neferpitou: require('./neferpitou.png'),
+    neferpitou: require('./neferpitou.png'),
     nezuko_kamado: require('./nezuko_kamado.png'),
     nyanta: require('./nyanta.png'),
     olivier_armstrong: require('./olivier_armstrong.png'),
@@ -67,7 +67,7 @@ export const EPIC_IMAGES: Record<string, any> = {
     regis: require('./regis.png'),
     rei_ayanami: require('./rei_ayanami.png'),
     rin_okumura: require('./rin_okumura.png'),
-        roswaal: require('./roswaal.png'),
+    roswaal: require('./roswaal.png'),
     roy_mustang: require('./roy_mustang.png'),
     rukia_kuchiki: require('./rukia_kuchiki.png'),
     sabo: require('./sabo.png'),
@@ -90,7 +90,7 @@ export const EPIC_IMAGES: Record<string, any> = {
     zero: require('./zero.png'),
     zodd: require('./zodd.png'),
     neji_hyuga: require('./neji_hyuga.png'),
-        tengen_uzui: require('./tengen_uzui.png'),
+    tengen_uzui: require('./tengen_uzui.png'),
     boa_hancock: require('./Boa_Hancock.png'),
     marco: require('./Marco.png'),
     katakuri: require('./Katakuri.png'),
@@ -109,7 +109,7 @@ export const EPIC_IMAGES: Record<string, any> = {
     spike_spiegel: require('./Spike_Spiegel.png'),
     milim_nava: require('./Milim_Nava.png'),
     aki_hayakawa: require('./Aki_Hayakawa.png'),
-        };
+};
 
 /** فيديوهات الكروت الإبيك — mp4 */
 export const EPIC_VIDEOS: Record<string, any> = {
@@ -120,7 +120,7 @@ export const EPIC_VIDEOS: Record<string, any> = {
     yuta_okkotsu: require('./yuta_okkotsu.mp4'),
     aokiji: require('./Aokiji.mp4'),
     toshiro_hitsugaya: require('./Toshiro_Hitsugaya.mp4'),
-    melina: require('../legendary/Melina.mp4'),
+    malenia: require('../legendary/malenia.mp4'),
     borsalino: require('../legendary/Borsalino.mp4'),
 };
 
