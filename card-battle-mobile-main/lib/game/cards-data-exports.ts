@@ -14,6 +14,8 @@ import { CARDS_BATCH_3 } from './cards-batch-3-fixed';
 import { CARDS_BATCH_4 } from './cards-batch-4-fixed';
 import { CARDS_BATCH_5 } from './cards-batch-5-fixed';
 import { CARDS_BATCH_6 } from './cards-batch-6-fixed';
+import { CARDS_BATCH_7 } from './cards-batch-7-fixed';
+import { CARDS_BATCH_8 } from './cards-batch-8-fixed';
 import {
   Card,
   Element,
@@ -38,6 +40,8 @@ export const ALL_CARDS: Card[] = [
   ...CARDS_BATCH_4,
   ...CARDS_BATCH_5,
   ...CARDS_BATCH_6,
+  ...CARDS_BATCH_7,
+  ...CARDS_BATCH_8,
 ].map(card => ({
   ...card,
   rarity: getRarityFromStars(card.stars)
