@@ -9,7 +9,7 @@ export const CARDS_BATCH_1: Card[] = [
         attack: 12, defense: 10,
         race: 'human', cardClass: 'swordsman', element: 'earth',
         tags: ["sword"],
-        rarity: 'epic', stars: 4,
+        rarity: 'common', stars: 0,
         animationPreset: 'default',
     },
     {
@@ -51,7 +51,7 @@ export const CARDS_BATCH_1: Card[] = [
         attack: 5, defense: 6,
         race: 'orc', cardClass: 'healer', element: 'water',
         tags: ["magic"],
-        rarity: 'rare', stars: 3,
+        rarity: 'common', stars: 2,
         animationPreset: 'default',
     },
     {
@@ -62,7 +62,7 @@ export const CARDS_BATCH_1: Card[] = [
         gender: 'female',
         race: 'human', cardClass: 'mage', element: 'earth',
         tags: ["magic"],
-        rarity: 'epic', stars: 4,
+        rarity: 'rare', stars: 3,
         animationPreset: 'default',
     },
     {
@@ -72,7 +72,7 @@ export const CARDS_BATCH_1: Card[] = [
         attack: 10, defense: 13,
         race: 'human', cardClass: 'swordsman', element: 'water',
         tags: ["sword"],
-        rarity: 'epic', stars: 4,
+        rarity: 'rare', stars: 3,
         animationPreset: 'default',
     },
     {
@@ -82,7 +82,7 @@ export const CARDS_BATCH_1: Card[] = [
         attack: 11, defense: 8,
         race: 'undead', cardClass: 'swordsman', element: 'water',
         tags: ["sword"],
-        rarity: 'epic', stars: 4,
+        rarity: 'common', stars: 2,
         animationPreset: 'default',
     },
     {
@@ -103,7 +103,7 @@ export const CARDS_BATCH_1: Card[] = [
         gender: 'female',
         race: 'human', cardClass: 'swordsman', element: 'fire',
         tags: ["sword"],
-        rarity: 'legendary', stars: 4,
+        rarity: 'epic', stars: 4,
         animationPreset: 'fire',
     },
     {
@@ -113,7 +113,7 @@ export const CARDS_BATCH_1: Card[] = [
         attack: 16, defense: 15,
         race: 'orc', cardClass: 'swordsman', element: 'fire',
         tags: ["sword", "crown"],
-        rarity: 'legendary', stars: 4,
+        rarity: 'epic', stars: 4,
         animationPreset: 'fire',
     },
     {
@@ -123,7 +123,7 @@ export const CARDS_BATCH_1: Card[] = [
         attack: 16, defense: 14,
         race: 'human', cardClass: 'swordsman', element: 'fire',
         tags: ["sword", "crown"],
-        rarity: 'legendary', stars: 4,
+        rarity: 'epic', stars: 4,
         animationPreset: 'fire',
     },
 
@@ -134,7 +134,7 @@ export const CARDS_BATCH_1: Card[] = [
         attack: 17, defense: 16,
         race: 'orc', cardClass: 'swordsman', element: 'earth',
         tags: ["sword", "crown"],
-        rarity: 'legendary', stars: 4,
+        rarity: 'epic', stars: 4,
         animationPreset: 'default',
     },
     {
@@ -338,16 +338,6 @@ export const CARDS_BATCH_1: Card[] = [
         race: 'human', cardClass: 'swordsman', element: 'wind',
         tags: ["sword", "crown"],
         rarity: 'legendary', stars: 5,
-        animationPreset: 'default',
-    },
-    {
-        id: 'elden_ring_knight',
-        name: 'Elden Ring Knight',
-        nameAr: 'فارس إلدن رينغ',
-        attack: 10, defense: 13,
-        race: 'human', cardClass: 'swordsman', element: 'earth',
-        tags: ["sword"],
-        rarity: 'epic', stars: 4,
         animationPreset: 'default',
     },
 ];

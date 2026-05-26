@@ -50,7 +50,7 @@ export const CARDS_BATCH_3: Card[] = [
         gender: 'female',
         race: 'human', cardClass: 'swordsman', element: 'wind',
         tags: ["sword"],
-        rarity: 'rare', stars: 3,
+        rarity: 'common', stars: 2,
         animationPreset: 'wind',
     },
     {
@@ -60,7 +60,7 @@ export const CARDS_BATCH_3: Card[] = [
         attack: 10, defense: 10,
         race: 'human', cardClass: 'swordsman', element: 'wind',
         tags: ["sword"],
-        rarity: 'rare', stars: 4,
+        rarity: 'rare', stars: 3,
         animationPreset: 'wind',
     },
     {
@@ -70,7 +70,7 @@ export const CARDS_BATCH_3: Card[] = [
         attack: 11, defense: 13,
         race: 'human', cardClass: 'swordsman', element: 'wind',
         tags: ["sword"],
-        rarity: 'rare', stars: 4,
+        rarity: 'common', stars: 2,
         animationPreset: 'wind',
     },
     {
@@ -91,7 +91,7 @@ export const CARDS_BATCH_3: Card[] = [
         gender: 'female',
         race: 'human', cardClass: 'swordsman', element: 'wind',
         tags: ["sword"],
-        rarity: 'epic', stars: 4,
+        rarity: 'common', stars: 2,
         animationPreset: 'wind',
     },
     {
@@ -102,7 +102,7 @@ export const CARDS_BATCH_3: Card[] = [
         gender: 'female',
         race: 'human', cardClass: 'swordsman', element: 'wind',
         tags: ["sword"],
-        rarity: 'epic', stars: 4,
+        rarity: 'common', stars: 2,
         animationPreset: 'wind',
     },
     {
@@ -113,7 +113,7 @@ export const CARDS_BATCH_3: Card[] = [
         gender: 'female',
         race: 'human', cardClass: 'swordsman', element: 'wind',
         tags: ["sword"],
-        rarity: 'epic', stars: 4,
+        rarity: 'rare', stars: 3,
         animationPreset: 'wind',
     },
     {
@@ -123,7 +123,7 @@ export const CARDS_BATCH_3: Card[] = [
         attack: 12, defense: 12,
         race: 'human', cardClass: 'swordsman', element: 'wind',
         tags: ["sword"],
-        rarity: 'epic', stars: 4,
+        rarity: 'rare', stars: 3,
         animationPreset: 'wind',
     },
     {
@@ -135,17 +135,6 @@ export const CARDS_BATCH_3: Card[] = [
         tags: ["sword"],
         rarity: 'epic', stars: 4,
         animationPreset: 'lightning',
-    },
-    {
-        id: 'tsunade_senju',
-        name: 'Tsunade Senju',
-        nameAr: 'تسونادي سنجو',
-        attack: 14, defense: 15,
-        gender: 'female',
-        race: 'human', cardClass: 'mage', element: 'fire',
-        tags: ["magic"],
-        rarity: 'epic', stars: 4,
-        animationPreset: 'fire',
     },
     {
         id: 'obito_uchiha',
@@ -164,7 +153,7 @@ export const CARDS_BATCH_3: Card[] = [
         attack: 17, defense: 16,
         race: 'human', cardClass: 'swordsman', element: 'water',
         tags: ["sword", "crown"],
-        rarity: 'legendary', stars: 4,
+        rarity: 'epic', stars: 4,
         animationPreset: 'water',
     },
     {
@@ -174,7 +163,7 @@ export const CARDS_BATCH_3: Card[] = [
         attack: 16, defense: 16,
         race: 'human', cardClass: 'swordsman', element: 'wind',
         tags: ["sword", "crown"],
-        rarity: 'legendary', stars: 3,
+        rarity: 'rare', stars: 3,
         animationPreset: 'wind',
     },
     {
@@ -215,7 +204,7 @@ export const CARDS_BATCH_3: Card[] = [
         attack: 13, defense: 14,
         race: 'human', cardClass: 'swordsman', element: 'lightning',
         tags: ["sword"],
-        rarity: 'epic', stars: 4,
+        rarity: 'rare', stars: 3,
         animationPreset: 'lightning',
     },
     {
@@ -245,7 +234,7 @@ export const CARDS_BATCH_3: Card[] = [
         attack: 15, defense: 14,
         race: 'human', cardClass: 'swordsman', element: 'water',
         tags: ["sword"],
-        rarity: 'legendary', stars: 4,
+        rarity: 'epic', stars: 4,
         animationPreset: 'water',
     },
     {
@@ -266,7 +255,7 @@ export const CARDS_BATCH_3: Card[] = [
         gender: 'female',
         race: 'human', cardClass: 'swordsman', element: 'water',
         tags: ["sword"],
-        rarity: 'rare', stars: 3,
+        rarity: 'common', stars: 2,
         animationPreset: 'water',
     },
     {
@@ -289,7 +278,7 @@ export const CARDS_BATCH_3: Card[] = [
         race: 'human',
         cardClass: 'warrior',
         element: 'lightning',
-        rarity: 'legendary',
+        rarity: 'epic',
         stars: 4,
         gender: 'female',
         universe: 'Bleach',
@@ -299,7 +288,7 @@ export const CARDS_BATCH_3: Card[] = [
     {
         id: 'nelliel_tu',
         name: 'Nelliel Tu Odelschwanck',
-        nameAr: 'نيليل تو أوديلشفانك',
+        nameAr: 'نيليل',
         attack: 14, defense: 13,
         gender: 'female',
         race: 'undead', cardClass: 'swordsman', element: 'water',
@@ -330,7 +319,7 @@ export const CARDS_BATCH_3: Card[] = [
         attack: 16, defense: 14,
         race: 'undead', cardClass: 'swordsman', element: 'water',
         tags: ["sword", "crown"],
-        rarity: 'legendary', stars: 3,
+        rarity: 'rare', stars: 3,
         animationPreset: 'water',
     },
     {

@@ -6,6 +6,7 @@ export const RARE_IMAGES: Record<string, any> = {
     emlyn_white: require('./emlyn_white.png'),
     falco_grice: require('./falco_grice.png'),
     franky: require('./franky.png'),
+    gon_freecss: require('./Gon_Freecss.png'),
     krillin: require('./krillin.png'),
     master_roshi: require('./master_roshi.png'),
     rundelhaus: require('./rundelhaus.jpg'),

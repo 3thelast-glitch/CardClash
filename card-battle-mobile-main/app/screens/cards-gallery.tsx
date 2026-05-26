@@ -15,7 +15,7 @@ import {
   Card, CardRarity, CardClass, Element, Race, Tag, Gender, RageModeData,
   ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI, GENDER_COLORS,
 } from '@/lib/game/types';
-import { getRarityConfig } from '@/lib/game/card-rarity';
+import { getRarityConfig, getRarityFromStars } from '@/lib/game/card-rarity';
 import { useLandscapeLayout, useCardSize, LAYOUT_PADDING } from '@/utils/layout';
 import {
   ArrowLeft, Minus, Plus, Image as ImageIcon, Film, X,
@@ -872,7 +872,7 @@ export default function CardsGalleryScreen() {
                   <View style={ep.divider} />
 
                   <RNText style={ep.label}>⭐ عدد النجوم</RNText>
-                  <StarPicker value={edits.stars} onChange={n => patch({ stars: n })} />
+                  <StarPicker value={edits.stars} onChange={n => patch({ stars: n, rarity: getRarityFromStars(n) })} />
                   {edits.stars === 0 && <RNText style={ep.hint}>الكرت بدون نجوم</RNText>}
                   <View style={ep.divider} />
 

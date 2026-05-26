@@ -15,6 +15,7 @@ import { saveImage } from '@/lib/game/image-storage';
 import { Card, CardRarity, Race, CardClass, Element, Tag, Gender, ELEMENT_EMOJI, ELEMENT_COLORS, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI, GENDER_COLORS } from '@/lib/game/types';
 import { CARD_EDITS_KEY } from '@/app/screens/cards-gallery';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
+import { getRarityFromStars } from '@/lib/game/card-rarity';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const RACE_AR: Record<Race, string> = {
@@ -55,7 +56,6 @@ const RARITIES: { value: CardRarity; label: string; color: string }[] = [
   { value: 'rare', label: 'نادر', color: '#f59e0b' },
   { value: 'epic', label: 'ملحمي', color: '#8b5cf6' },
   { value: 'legendary', label: 'أسطوري', color: '#ef4444' },
-  { value: 'special', label: 'خاص', color: '#ec4899' },
 ];
 const RARITY_STARS: Record<CardRarity, number> = {
   common: 1, rare: 3, epic: 4, legendary: 5, special: 5,
@@ -205,6 +205,7 @@ export default function AddCardScreen() {
     setSaving(true);
     try {
       const id = nameToId(form.nameEn);
+      const finalRarity = getRarityFromStars(stars);
       const card: Card = {
         id,
         name: form.nameEn.trim(),
@@ -214,7 +215,7 @@ export default function AddCardScreen() {
         hp: Math.max(1, Math.min(99, parseInt(form.defense) || 16)),
         race, cardClass: cls, element, gender,
         tags: tags.length ? tags : ['sword'],
-        rarity, stars,
+        rarity: finalRarity, stars,
         specialAbility: form.specialAbility.trim() || undefined,
       };
       await saveCustomCard(card);
@@ -222,7 +223,7 @@ export default function AddCardScreen() {
       const rawEdits = await AsyncStorage.getItem(CARD_EDITS_KEY);
       const editsMap: Record<string, any> = rawEdits ? JSON.parse(rawEdits) : {};
       editsMap[id] = {
-        nameAr: card.nameAr, stars, rarity,
+        nameAr: card.nameAr, stars, rarity: finalRarity,
         attack: card.attack, defense: card.defense,
         hasAbility: !!card.specialAbility, specialAbility: card.specialAbility ?? '',
         hasCustomImage: !!mediaB64, isVideo, imageOffsetY: 0, fitInsideBorder: false,

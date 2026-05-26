@@ -5,13 +5,18 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Card } from './types';
+import { getRarityFromStars } from './card-rarity';
 
 export const CUSTOM_CARDS_KEY = 'custom_cards_v1';
 
 /** حفظ كارت جديد أو تحديث موجود */
 export async function saveCustomCard(card: Card): Promise<void> {
   const existing = await loadCustomCards();
-  const updated = [...existing.filter(c => c.id !== card.id), card];
+  const normalizedCard = {
+    ...card,
+    rarity: getRarityFromStars(card.stars)
+  };
+  const updated = [...existing.filter(c => c.id !== card.id), normalizedCard];
   await AsyncStorage.setItem(CUSTOM_CARDS_KEY, JSON.stringify(updated));
 }
 
@@ -40,6 +45,8 @@ export function generateCardCode(card: Card): string {
   const abilityStr = card.specialAbility
     ? `\n  specialAbility: '${card.specialAbility.replace(/'/g, "\\'")}'` + ','
     : '';
+  const starsCount = card.stars ?? 1;
+  const determinedRarity = getRarityFromStars(starsCount);
   return `  {
   id: '${card.id}',
   name: '${card.name}',
@@ -51,7 +58,7 @@ export function generateCardCode(card: Card): string {
   cardClass: '${card.cardClass}',
   element: '${card.element}',
   tags: [${tagsStr}],
-  rarity: '${card.rarity ?? 'common'}',
-  stars: ${card.stars ?? 1},${abilityStr}${effectsStr}
+  rarity: '${determinedRarity}',
+  stars: ${starsCount},${abilityStr}${effectsStr}
 },`;
 }

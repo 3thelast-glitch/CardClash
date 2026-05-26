@@ -25,6 +25,8 @@ import {
 } from './types';
 import { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive } from './rage-engine';
 
+import { getRarityFromStars } from './card-rarity';
+
 // re-export so callers can use them directly from this module if needed
 export { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive };
 
@@ -36,7 +38,10 @@ export const ALL_CARDS: Card[] = [
   ...CARDS_BATCH_4,
   ...CARDS_BATCH_5,
   ...CARDS_BATCH_6,
-];
+].map(card => ({
+  ...card,
+  rarity: getRarityFromStars(card.stars)
+}));
 
 // ─── getElementAdvantage ─────────────────────────────────────────────────────
 export function getElementAdvantage(

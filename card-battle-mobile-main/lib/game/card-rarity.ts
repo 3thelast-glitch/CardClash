@@ -95,3 +95,12 @@ export const RARITY_CONFIG: Record<CardRarity, RarityConfig> = {
 export function getRarityConfig(rarity?: CardRarity): RarityConfig {
     return RARITY_CONFIG[rarity ?? 'common'];
 }
+
+/** Resolve rarity directly from star count */
+export function getRarityFromStars(stars?: number): CardRarity {
+    if (!stars || stars <= 2) return 'common';
+    if (stars === 3) return 'rare';
+    if (stars === 4) return 'epic';
+    return 'legendary';
+}
+

@@ -14,7 +14,6 @@ export const LEGENDARY_IMAGES: Record<string, any> = {
     gaunter_o_dimm: require('./gaunter_o_dimm.png'),
     giyu_tomioka: require('./giyu_tomioka.png'),
     gohan: require('./gohan.png'),
-    gon_freecss: require('./Gon_Freecss.png'),
     griffith: require('./Griffith.png'),
     grimmjow_jaegerjaquez: require('./grimmjow_jaegerjaquez.png'),
     gwyn: require('./Gwyn.png'),
