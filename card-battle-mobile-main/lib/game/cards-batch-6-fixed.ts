@@ -311,7 +311,7 @@ export const CARDS_BATCH_6: Card[] = [
         tags: ['crown'],
     },
     {
-        id: 'power_csm',
+        id: 'power',
         name: 'Power Csm',
         nameAr: 'باور',
         attack: 15,

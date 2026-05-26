@@ -1,0 +1,189 @@
+Missing cards: 93
+
+=== SUGGESTIONS ===
+Card: ID="Turin" Name="Turin" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="chopper" Name="Chopper" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="robin" Name="Robin" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="brook" Name="Brook" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="boa_hancock" Name="Boa Hancock" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="marco" Name="Marco" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="ace" Name="Ace" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="katakuri" Name="Katakuri" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="whitebeard" Name="Whitebeard" Rarity="legendary"
+  -> Suggested keys: white_snake
+Card: ID="shanks" Name="Shanks" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="hashirama_senju" Name="Hashirama Senju" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="mob" Name="Mob" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="ranni" Name="Ranni" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="melina" Name="Melina" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="malenia" Name="Malenia" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="radahn" Name="Radahn" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="maliketh" Name="Maliketh" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="tarnished" Name="Tarnished" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="ten_ten" Name="Tenten" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="shikamaru_nara" Name="Shikamaru Nara" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="choji_akimichi" Name="Choji Akimichi" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="hinata_hyuga" Name="Hinata Hyuga" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="ino_yamanaka" Name="Ino Yamanaka" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="temari" Name="Temari" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="kankuro" Name="Kankuro" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="tobirama_senju" Name="Tobirama Senju" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="hiruzen_sarutobi" Name="Hiruzen Sarutobi" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="pain_rikudo" Name="Pain (Six Paths)" Rarity="legendary"
+  -> Suggested keys: pain_nagato
+Card: ID="smoker" Name="Smoker" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="doflamingo" Name="Doflamingo" Rarity="epic"
+  -> Suggested keys: donquixote_doflamingo
+Card: ID="blackbeard" Name="Marshall D. Teach" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="orihime_inoue" Name="Orihime Inoue" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="yoruichi_shihoin" Name="Yoruichi Shihoin" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="nelliel_tu" Name="Nelliel Tu Odelschwanck" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="killua_zoldyck" Name="Killua Zoldyck" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="netero" Name="Netero" Rarity="legendary"
+  -> Suggested keys: isaac_netero
+Card: ID="kirito" Name="Kirito" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="sinon" Name="Sinon" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="emilia" Name="Emilia" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="reinhard_van_astrea" Name="Reinhard van Astrea" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="ainz_ooal_gown" Name="Ainz Ooal Gown" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="bam" Name="Twenty-Fifth Bam" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="rak_wraithraiser" Name="Rak Wraithraiser" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="khun_aguero" Name="Khun Aguero Agnes" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="goto_ryuji" Name="Goto Ryuji" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="ashborn" Name="Ashborn" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="kaya" Name="Kaya" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="alvida" Name="Alvida" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="buggy" Name="Buggy" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="cabaji" Name="Cabaji" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="mr_3" Name="Mr 3" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="miss_doublefinger" Name="Miss Doublefinger" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="mr_1" Name="Mr 1" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="perona" Name="Perona" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="ichiji" Name="Ichiji" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="yonji" Name="Yonji" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="borsalino" Name="Borsalino" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="aokiji" Name="Aokiji" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="akainu" Name="Akainu" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="big_mom" Name="Big Mom" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="uta" Name="Uta" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="iruka" Name="Iruka" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="asuma" Name="Asuma" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="kurenai" Name="Kurenai" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="anko" Name="Anko" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="danzo" Name="Danzo" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="kabuto" Name="Kabuto" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="mei_terumi" Name="Mei Terumi" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="ay_raikage" Name="Ay Raikage" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="renji_abarai" Name="Renji Abarai" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="toshiro_hitsugaya" Name="Toshiro Hitsugaya" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="kisuke_urahara" Name="Kisuke Urahara" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="winry_rockbell" Name="Winry Rockbell" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="riza_hawkeye" Name="Riza Hawkeye" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="alex_armstrong" Name="Alex Armstrong" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="scar_fma" Name="Scar Fma" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="envy" Name="Envy" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="pride_fma" Name="Pride Fma" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="leafa" Name="Leafa" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="yui_sao" Name="Yui Sao" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="kazuma" Name="Kazuma" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="aqua" Name="Aqua" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="megumin" Name="Megumin" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="wiz" Name="Wiz" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="violet_evergarden" Name="Violet Evergarden" Rarity="common"
+  -> No direct suggestions found.
+Card: ID="spike_spiegel" Name="Spike Spiegel" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="milim_nava" Name="Milim Nava" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="shuna" Name="Shuna" Rarity="rare"
+  -> No direct suggestions found.
+Card: ID="benimaru" Name="Benimaru" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="sung_jinwoo" Name="Sung Jinwoo" Rarity="legendary"
+  -> No direct suggestions found.
+Card: ID="power_csm" Name="Power Csm" Rarity="epic"
+  -> Suggested keys: power
+Card: ID="aki_hayakawa" Name="Aki Hayakawa" Rarity="epic"
+  -> No direct suggestions found.
+Card: ID="toge_inumaki" Name="Toge Inumaki" Rarity="rare"
+  -> No direct suggestions found.

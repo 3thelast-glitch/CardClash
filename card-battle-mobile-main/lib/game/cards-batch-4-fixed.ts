@@ -43,7 +43,7 @@ export const CARDS_BATCH_4: Card[] = [
         animationPreset: 'default',
     },
     {
-        id: 'netero',
+        id: 'isaac_netero',
         name: 'Netero',
         nameAr: 'نيتيرو',
         attack: 20,

@@ -1,0 +1,251 @@
+Total cards: 192
+
+Unmapped files in assets/characters/common (23):
+  - Alvida.png
+  - Anko.png
+  - Brook.png
+  - Cabaji.png
+  - Choji_Akimichi.png
+  - Chopper.png
+  - Emilia.png
+  - Hinata_Hyuga.png
+  - ino_yamanaka.png
+  - Iruka.png
+  - Kaya.png
+  - Kurenai.png
+  - miss_doublefinger.png
+  - Mob.png
+  - mr_3.png
+  - orihime_inoue.png
+  - Sinon.png
+  - Tenten.png
+  - violet_evergarden.png
+  - winry_rockbell.png
+  - Wiz.png
+  - Yonji.png
+  - yui_sao.png
+
+Unmapped files in assets/characters/rare (27):
+  - Alex_Armstrong.png
+  - Aqua.png
+  - Asuma.png
+  - Buggy.png
+  - Danzo.png
+  - Envy.png
+  - Hiruzen_Sarutobi.png
+  - Ichiji.png
+  - Kabuto.png
+  - Kankuro.png
+  - Kazuma.png
+  - Khun_Aguero_Agnes.png
+  - Leafa.png
+  - Mei_Terumi.png
+  - Mr_1.png
+  - Perona.png
+  - Rak_Wraithraiser.png
+  - Renji_Abarai.png
+  - Riza_Hawkeye.png
+  - Robin.png
+  - Scar_Fma.png
+  - Shikamaru_Nara.png
+  - Shuna.png
+  - Smoker.png
+  - Temari.png
+  - Toge_Inumaki.png
+  - Uta.png
+
+Unmapped files in assets/characters/epic (0):
+
+Unmapped files in assets/characters/legendary (0):
+
+Unmapped files in assets/characters/special (0):
+
+Unmapped files in assets/characters/rage (0):
+
+=== ALL MISSING CARDS AND POTENTIAL MATCHES (93) ===
+Card: ID="Turin" Name="Turin" Rarity="common" Stars=0 File="lib/game/cards-batch-1-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="chopper" Name="Chopper" Rarity="common" Stars=2 File="lib/game/cards-batch-1-fixed.ts"
+  -> Found matching files: common/Chopper.png
+Card: ID="robin" Name="Robin" Rarity="rare" Stars=3 File="lib/game/cards-batch-1-fixed.ts"
+  -> Found matching files: rare/Robin.png
+Card: ID="brook" Name="Brook" Rarity="common" Stars=2 File="lib/game/cards-batch-1-fixed.ts"
+  -> Found matching files: common/Brook.png
+Card: ID="boa_hancock" Name="Boa Hancock" Rarity="epic" Stars=4 File="lib/game/cards-batch-1-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="marco" Name="Marco" Rarity="epic" Stars=4 File="lib/game/cards-batch-1-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="ace" Name="Ace" Rarity="epic" Stars=4 File="lib/game/cards-batch-1-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="katakuri" Name="Katakuri" Rarity="epic" Stars=4 File="lib/game/cards-batch-1-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="whitebeard" Name="Whitebeard" Rarity="legendary" Stars=5 File="lib/game/cards-batch-1-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="shanks" Name="Shanks" Rarity="legendary" Stars=5 File="lib/game/cards-batch-1-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="hashirama_senju" Name="Hashirama Senju" Rarity="legendary" Stars=5 File="lib/game/cards-batch-1-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="mob" Name="Mob" Rarity="common" Stars=1 File="lib/game/cards-batch-1-fixed.ts"
+  -> Found matching files: common/Mob.png
+Card: ID="ranni" Name="Ranni" Rarity="epic" Stars=4 File="lib/game/cards-batch-2-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="melina" Name="Melina" Rarity="epic" Stars=4 File="lib/game/cards-batch-2-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="malenia" Name="Malenia" Rarity="legendary" Stars=5 File="lib/game/cards-batch-2-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="radahn" Name="Radahn" Rarity="legendary" Stars=5 File="lib/game/cards-batch-2-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="maliketh" Name="Maliketh" Rarity="legendary" Stars=5 File="lib/game/cards-batch-2-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="tarnished" Name="Tarnished" Rarity="epic" Stars=4 File="lib/game/cards-batch-2-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="ten_ten" Name="Tenten" Rarity="common" Stars=2 File="lib/game/cards-batch-3-fixed.ts"
+  -> Found matching files: common/Tenten.png
+Card: ID="shikamaru_nara" Name="Shikamaru Nara" Rarity="rare" Stars=3 File="lib/game/cards-batch-3-fixed.ts"
+  -> Found matching files: rare/Shikamaru_Nara.png
+Card: ID="choji_akimichi" Name="Choji Akimichi" Rarity="common" Stars=2 File="lib/game/cards-batch-3-fixed.ts"
+  -> Found matching files: common/Choji_Akimichi.png
+Card: ID="hinata_hyuga" Name="Hinata Hyuga" Rarity="common" Stars=2 File="lib/game/cards-batch-3-fixed.ts"
+  -> Found matching files: common/Hinata_Hyuga.png
+Card: ID="ino_yamanaka" Name="Ino Yamanaka" Rarity="common" Stars=2 File="lib/game/cards-batch-3-fixed.ts"
+  -> Found matching files: common/ino_yamanaka.png
+Card: ID="temari" Name="Temari" Rarity="rare" Stars=3 File="lib/game/cards-batch-3-fixed.ts"
+  -> Found matching files: rare/Temari.png
+Card: ID="kankuro" Name="Kankuro" Rarity="rare" Stars=3 File="lib/game/cards-batch-3-fixed.ts"
+  -> Found matching files: rare/Kankuro.png
+Card: ID="tobirama_senju" Name="Tobirama Senju" Rarity="epic" Stars=4 File="lib/game/cards-batch-3-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="hiruzen_sarutobi" Name="Hiruzen Sarutobi" Rarity="rare" Stars=3 File="lib/game/cards-batch-3-fixed.ts"
+  -> Found matching files: rare/Hiruzen_Sarutobi.png
+Card: ID="pain_rikudo" Name="Pain (Six Paths)" Rarity="legendary" Stars=5 File="lib/game/cards-batch-3-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="smoker" Name="Smoker" Rarity="rare" Stars=3 File="lib/game/cards-batch-3-fixed.ts"
+  -> Found matching files: rare/Smoker.png
+Card: ID="doflamingo" Name="Doflamingo" Rarity="epic" Stars=4 File="lib/game/cards-batch-3-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="blackbeard" Name="Marshall D. Teach" Rarity="legendary" Stars=5 File="lib/game/cards-batch-3-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="orihime_inoue" Name="Orihime Inoue" Rarity="common" Stars=2 File="lib/game/cards-batch-3-fixed.ts"
+  -> Found matching files: common/orihime_inoue.png
+Card: ID="yoruichi_shihoin" Name="Yoruichi Shihoin" Rarity="epic" Stars=4 File="lib/game/cards-batch-3-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="nelliel_tu" Name="Nelliel Tu Odelschwanck" Rarity="epic" Stars=4 File="lib/game/cards-batch-3-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="killua_zoldyck" Name="Killua Zoldyck" Rarity="legendary" Stars=5 File="lib/game/cards-batch-3-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="netero" Name="Netero" Rarity="legendary" Stars=5 File="lib/game/cards-batch-4-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="kirito" Name="Kirito" Rarity="epic" Stars=4 File="lib/game/cards-batch-4-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="sinon" Name="Sinon" Rarity="common" Stars=2 File="lib/game/cards-batch-4-fixed.ts"
+  -> Found matching files: common/Sinon.png
+Card: ID="emilia" Name="Emilia" Rarity="common" Stars=2 File="lib/game/cards-batch-4-fixed.ts"
+  -> Found matching files: common/Emilia.png
+Card: ID="reinhard_van_astrea" Name="Reinhard van Astrea" Rarity="legendary" Stars=5 File="lib/game/cards-batch-4-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="ainz_ooal_gown" Name="Ainz Ooal Gown" Rarity="legendary" Stars=5 File="lib/game/cards-batch-4-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="bam" Name="Twenty-Fifth Bam" Rarity="legendary" Stars=5 File="lib/game/cards-batch-4-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="rak_wraithraiser" Name="Rak Wraithraiser" Rarity="rare" Stars=3 File="lib/game/cards-batch-4-fixed.ts"
+  -> Found matching files: rare/Rak_Wraithraiser.png
+Card: ID="khun_aguero" Name="Khun Aguero Agnes" Rarity="rare" Stars=3 File="lib/game/cards-batch-4-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="goto_ryuji" Name="Goto Ryuji" Rarity="epic" Stars=4 File="lib/game/cards-batch-4-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="ashborn" Name="Ashborn" Rarity="legendary" Stars=5 File="lib/game/cards-batch-4-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="kaya" Name="Kaya" Rarity="common" Stars=1 File="lib/game/cards-batch-4-fixed.ts"
+  -> Found matching files: common/Kaya.png
+Card: ID="alvida" Name="Alvida" Rarity="common" Stars=2 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: common/Alvida.png
+Card: ID="buggy" Name="Buggy" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Buggy.png
+Card: ID="cabaji" Name="Cabaji" Rarity="common" Stars=1 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: common/Cabaji.png
+Card: ID="mr_3" Name="Mr 3" Rarity="common" Stars=2 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: common/mr_3.png
+Card: ID="miss_doublefinger" Name="Miss Doublefinger" Rarity="common" Stars=1 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: common/miss_doublefinger.png
+Card: ID="mr_1" Name="Mr 1" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Mr_1.png
+Card: ID="perona" Name="Perona" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Perona.png
+Card: ID="ichiji" Name="Ichiji" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Ichiji.png
+Card: ID="yonji" Name="Yonji" Rarity="common" Stars=2 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: common/Yonji.png
+Card: ID="borsalino" Name="Borsalino" Rarity="epic" Stars=4 File="lib/game/cards-batch-5-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="aokiji" Name="Aokiji" Rarity="epic" Stars=4 File="lib/game/cards-batch-5-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="akainu" Name="Akainu" Rarity="legendary" Stars=5 File="lib/game/cards-batch-5-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="big_mom" Name="Big Mom" Rarity="legendary" Stars=5 File="lib/game/cards-batch-5-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="uta" Name="Uta" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Uta.png
+Card: ID="iruka" Name="Iruka" Rarity="common" Stars=2 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: common/Iruka.png
+Card: ID="asuma" Name="Asuma" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Asuma.png
+Card: ID="kurenai" Name="Kurenai" Rarity="common" Stars=2 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: common/Kurenai.png
+Card: ID="anko" Name="Anko" Rarity="common" Stars=2 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: common/Anko.png
+Card: ID="danzo" Name="Danzo" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Danzo.png
+Card: ID="kabuto" Name="Kabuto" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Kabuto.png
+Card: ID="mei_terumi" Name="Mei Terumi" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Mei_Terumi.png
+Card: ID="ay_raikage" Name="Ay Raikage" Rarity="epic" Stars=4 File="lib/game/cards-batch-5-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="renji_abarai" Name="Renji Abarai" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Renji_Abarai.png
+Card: ID="toshiro_hitsugaya" Name="Toshiro Hitsugaya" Rarity="epic" Stars=4 File="lib/game/cards-batch-5-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="kisuke_urahara" Name="Kisuke Urahara" Rarity="legendary" Stars=5 File="lib/game/cards-batch-5-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="winry_rockbell" Name="Winry Rockbell" Rarity="common" Stars=2 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: common/winry_rockbell.png
+Card: ID="riza_hawkeye" Name="Riza Hawkeye" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Riza_Hawkeye.png
+Card: ID="alex_armstrong" Name="Alex Armstrong" Rarity="rare" Stars=3 File="lib/game/cards-batch-5-fixed.ts"
+  -> Found matching files: rare/Alex_Armstrong.png
+Card: ID="scar_fma" Name="Scar Fma" Rarity="rare" Stars=3 File="lib/game/cards-batch-6-fixed.ts"
+  -> Found matching files: rare/Scar_Fma.png
+Card: ID="envy" Name="Envy" Rarity="rare" Stars=3 File="lib/game/cards-batch-6-fixed.ts"
+  -> Found matching files: rare/Envy.png
+Card: ID="pride_fma" Name="Pride Fma" Rarity="epic" Stars=4 File="lib/game/cards-batch-6-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="leafa" Name="Leafa" Rarity="rare" Stars=3 File="lib/game/cards-batch-6-fixed.ts"
+  -> Found matching files: rare/Leafa.png
+Card: ID="yui_sao" Name="Yui Sao" Rarity="common" Stars=2 File="lib/game/cards-batch-6-fixed.ts"
+  -> Found matching files: common/yui_sao.png
+Card: ID="kazuma" Name="Kazuma" Rarity="rare" Stars=3 File="lib/game/cards-batch-6-fixed.ts"
+  -> Found matching files: rare/Kazuma.png
+Card: ID="aqua" Name="Aqua" Rarity="rare" Stars=3 File="lib/game/cards-batch-6-fixed.ts"
+  -> Found matching files: rare/Aqua.png
+Card: ID="megumin" Name="Megumin" Rarity="epic" Stars=4 File="lib/game/cards-batch-6-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="wiz" Name="Wiz" Rarity="common" Stars=2 File="lib/game/cards-batch-6-fixed.ts"
+  -> Found matching files: common/Wiz.png
+Card: ID="violet_evergarden" Name="Violet Evergarden" Rarity="common" Stars=1 File="lib/game/cards-batch-6-fixed.ts"
+  -> Found matching files: common/violet_evergarden.png
+Card: ID="spike_spiegel" Name="Spike Spiegel" Rarity="epic" Stars=4 File="lib/game/cards-batch-6-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="milim_nava" Name="Milim Nava" Rarity="epic" Stars=4 File="lib/game/cards-batch-6-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="shuna" Name="Shuna" Rarity="rare" Stars=3 File="lib/game/cards-batch-6-fixed.ts"
+  -> Found matching files: rare/Shuna.png
+Card: ID="benimaru" Name="Benimaru" Rarity="legendary" Stars=5 File="lib/game/cards-batch-6-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="sung_jinwoo" Name="Sung Jinwoo" Rarity="legendary" Stars=5 File="lib/game/cards-batch-6-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="power_csm" Name="Power Csm" Rarity="epic" Stars=4 File="lib/game/cards-batch-6-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="aki_hayakawa" Name="Aki Hayakawa" Rarity="epic" Stars=4 File="lib/game/cards-batch-6-fixed.ts"
+  -> NO MATCHING FILES FOUND!
+Card: ID="toge_inumaki" Name="Toge Inumaki" Rarity="rare" Stars=3 File="lib/game/cards-batch-6-fixed.ts"
+  -> Found matching files: rare/Toge_Inumaki.png

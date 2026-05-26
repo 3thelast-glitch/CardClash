@@ -3,7 +3,7 @@ import { Card } from './types';
 // Batch 1/6 — 39 cards
 export const CARDS_BATCH_1: Card[] = [
     {
-        id: 'Turin',
+        id: 'Turin_Turambar',
         name: 'Turin',
         nameAr: 'تورين',
         attack: 12, defense: 10,

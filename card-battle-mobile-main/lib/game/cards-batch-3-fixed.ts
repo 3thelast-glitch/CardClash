@@ -167,7 +167,7 @@ export const CARDS_BATCH_3: Card[] = [
         animationPreset: 'wind',
     },
     {
-        id: 'pain_rikudo',
+        id: 'pain_nagato',
         name: 'Pain (Six Paths)',
         nameAr: 'بين',
         attack: 18, defense: 17,
@@ -218,7 +218,7 @@ export const CARDS_BATCH_3: Card[] = [
         animationPreset: 'lightning',
     },
     {
-        id: 'doflamingo',
+        id: 'donquixote_doflamingo',
         name: 'Doflamingo',
         nameAr: 'دوفلامينغو',
         attack: 15, defense: 14,
