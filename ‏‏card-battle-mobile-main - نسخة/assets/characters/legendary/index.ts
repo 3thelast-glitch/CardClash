@@ -1,5 +1,4 @@
 export const LEGENDARY_IMAGES: Record<string, any> = {
-    reiner_braun: require('./reiner_braun.png'),
     trunks: require('./trunks.png'),
     acnologia: require('./Acnologia.png'),
     alduin: require('./Alduin.png'),

@@ -22,5 +22,6 @@ export const RARE_IMAGES: Record<string, any> = {
     yamcha: require('./yamcha.png'),
     floki: require('./floki.png'),
     piccolo: require('./piccolo.png'),
-
+    sakura_haruno: require('./sakura_haruno.png'),
+    krillin: require('./krillin.png'),
 };

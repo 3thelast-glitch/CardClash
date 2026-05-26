@@ -195,7 +195,7 @@ export const CARDS_BATCH_1: Card[] = [
         gender: 'female',
         race: 'human', cardClass: 'healer', element: 'earth',
         tags: ["magic"],
-        rarity: 'common', stars: 1,
+        rarity: 'rare', stars: 3,
         animationPreset: 'default',
     },
     {

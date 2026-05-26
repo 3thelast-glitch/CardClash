@@ -4,7 +4,6 @@ export const EPIC_IMAGES: Record<string, any> = {
     frieza: require('./frieza.png'),
     gohan: require('./gohan.png'),
     master_roshi: require('./master_roshi.png'),
-    krillin: require('./krillin.png'),
     nobara_kugisaki: require('./Nobara_Kugisaki.png'),
     alger_wilson: require('./alger_wilson.png'),
     alice_zuberg: require('./alice_zuberg.png'),
@@ -109,6 +108,8 @@ export const EPIC_IMAGES: Record<string, any> = {
     spike_spiegel: require('./Spike_Spiegel.png'),
     milim_nava: require('./Milim_Nava.png'),
     aki_hayakawa: require('./Aki_Hayakawa.png'),
+    reiner_braun: require('./reiner_braun.png'),
+    trunks: require('./trunks.png'),
 };
 
 /** فيديوهات الكروت الإبيك — mp4 */

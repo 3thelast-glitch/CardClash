@@ -49,4 +49,6 @@ export const RARE_IMAGES: Record<string, any> = {
     shuna: require('./Shuna.png'),
     toge_inumaki: require('./Toge_Inumaki.png'),
     piccolo: require('./piccolo.png'),
+    sakura_haruno: require('./sakura_haruno.png'),
+    krillin: require('./krillin.png'),
 };
