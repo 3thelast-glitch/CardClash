@@ -113,7 +113,7 @@ export const CARDS_BATCH_2: Card[] = [
         attack: 18, defense: 16,
         race: 'orc', cardClass: 'swordsman', element: 'fire',
         tags: ["sword", "crown"],
-        rarity: 'legendary', stars: 5,
+        rarity: 'rare', stars: 3,
         animationPreset: 'fire',
     },
     {

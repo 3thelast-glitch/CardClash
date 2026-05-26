@@ -107,16 +107,6 @@ export const CARDS_BATCH_2: Card[] = [
         animationPreset: 'fire',
     },
     {
-        id: 'piccolo',
-        name: 'Piccolo',
-        nameAr: 'بيكولو',
-        attack: 18, defense: 16,
-        race: 'orc', cardClass: 'swordsman', element: 'fire',
-        tags: ["sword", "crown"],
-        rarity: 'legendary', stars: 5,
-        animationPreset: 'fire',
-    },
-    {
         id: 'trunks',
         name: 'Trunks',
         nameAr: 'ترانكس',

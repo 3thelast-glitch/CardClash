@@ -1,7 +1,6 @@
 export const LEGENDARY_IMAGES: Record<string, any> = {
     reiner_braun: require('./reiner_braun.png'),
     trunks: require('./trunks.png'),
-    piccolo: require('./piccolo.png'),
     acnologia: require('./Acnologia.png'),
     alduin: require('./Alduin.png'),
     alucard: require('./Alucard.png'),
@@ -82,6 +81,10 @@ export const LEGENDARY_VIDEOS: Record<string, any> = {
     satoru_gojo: require('./satoru_gojo.mp4'),
     sosuke_aizen: require('./sosuke_aizen.mp4'),
     whitebeard: require('./Whitebeard.mp4'),
+    shanks: require('./Shanks.mp4'),
+    radahn: require('./Radahn.mp4'),
+    ashborn: require('./Ashborn.mp4'),
+    borsalino: require('./Borsalino.mp4'),
 };
 
 /** ملفات GIF */

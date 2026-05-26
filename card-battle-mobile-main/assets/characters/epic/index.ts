@@ -121,6 +121,7 @@ export const EPIC_VIDEOS: Record<string, any> = {
     aokiji: require('./Aokiji.mp4'),
     toshiro_hitsugaya: require('./Toshiro_Hitsugaya.mp4'),
     melina: require('../legendary/Melina.mp4'),
+    borsalino: require('../legendary/Borsalino.mp4'),
 };
 
 /** ملفات GIF */
