@@ -52,3 +52,8 @@ export const RARE_IMAGES: Record<string, any> = {
     sakura_haruno: require('./sakura_haruno.png'),
     krillin: require('./krillin.png'),
 };
+
+export const RARE_VIDEOS: Record<string, any> = {
+    enel: require('./enel.mp4'),
+
+};

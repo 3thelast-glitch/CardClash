@@ -1,7 +1,7 @@
 import type { ImageSourcePropType } from 'react-native';
 import type { Card, CardRarity } from '@/lib/game/types';
 import { COMMON_IMAGES, COMMON_VIDEOS } from '@/assets/characters/common';
-import { RARE_IMAGES } from '@/assets/characters/rare';
+import { RARE_IMAGES, RARE_VIDEOS } from '@/assets/characters/rare';
 import { EPIC_IMAGES, EPIC_VIDEOS, EPIC_GIFS } from '@/assets/characters/epic';
 import { LEGENDARY_IMAGES, LEGENDARY_VIDEOS, LEGENDARY_GIFS } from '@/assets/characters/legendary';
 import { SPECIAL_IMAGES, SPECIAL_VIDEOS } from '@/assets/characters/special';
@@ -19,6 +19,7 @@ const IMAGE_MAPS: Record<string, Record<string, any>> = {
 // ─── خرائط الفيديو لكل ندرة ──────────────────────────────────────────────────
 const VIDEO_MAPS: Record<string, Record<string, any>> = {
     common: COMMON_VIDEOS,
+    rare: RARE_VIDEOS,
     epic: EPIC_VIDEOS,
     legendary: LEGENDARY_VIDEOS,
     special: SPECIAL_VIDEOS,

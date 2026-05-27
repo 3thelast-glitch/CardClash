@@ -93,7 +93,7 @@ export const CARDS_BATCH_2: Card[] = [
         attack: 15, defense: 13,
         race: 'human', cardClass: 'swordsman', element: 'fire',
         tags: ["sword"],
-        rarity: 'epic', stars: 4,
+        rarity: 'rare', stars: 3,
         animationPreset: 'fire',
     },
     {
@@ -123,7 +123,7 @@ export const CARDS_BATCH_2: Card[] = [
         attack: 17, defense: 16,
         race: 'orc', cardClass: 'swordsman', element: 'fire',
         tags: ["sword", "crown"],
-        rarity: 'legendary', stars: 5,
+        rarity: 'epic', stars: 4,
         animationPreset: 'fire',
     },
     {
@@ -277,7 +277,7 @@ export const CARDS_BATCH_2: Card[] = [
         attack: 16, defense: 16,
         race: 'orc', cardClass: 'swordsman', element: 'earth',
         tags: ["sword", "crown"],
-        rarity: 'legendary', stars: 5,
+        rarity: 'epic', stars: 4,
         animationPreset: 'default',
     },
     {
