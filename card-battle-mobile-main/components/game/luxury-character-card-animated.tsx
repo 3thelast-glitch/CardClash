@@ -32,6 +32,7 @@ interface Props {
     effectiveDefense?: number;
     /** هل يتم تشغيل الصوت (للفيديو)؟ الافتراضي false */
     playAudio?: boolean;
+    isWinner?: boolean;
 }
 
 function isVideoUri(uri: string): boolean {
@@ -238,11 +239,13 @@ const StatBadge = ({
             {isModified ? (
                 <>
                     <Text style={[styles.statValue, { fontSize: fs, color: diffColor, fontWeight: 'bold', flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                        {effectiveValue}
+                        {diff < 0 ? diff : effectiveValue}
                     </Text>
-                    <Text style={{ fontSize: Math.max(8, fs - 6), color: diffColor, fontWeight: 'bold', flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                        ({diff > 0 ? `+${diff}▲` : `${diff}▼`})
-                    </Text>
+                    {diff > 0 && (
+                        <Text style={{ fontSize: Math.max(8, fs - 6), color: diffColor, fontWeight: 'bold', flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                            (+{diff}▲)
+                        </Text>
+                    )}
                 </>
             ) : (
                 <Text style={[styles.statValue, { fontSize: fs, flexShrink: 1 }, isAttack ? styles.attackText : styles.defenseText]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
@@ -427,7 +430,7 @@ const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imgStyle, 
 // ─────────────────────────────────────────────
 export function LuxuryCharacterCardAnimated({
     card, style, imageOffsetY = 0, fitInsideBorder = false, isOpenedView = false,
-    effectiveAttack, effectiveDefense, playAudio = false,
+    effectiveAttack, effectiveDefense, playAudio = false, isWinner,
 }: Props) {
     const rarity: CardRarity = card.rarity ?? 'common';
     const theme = RARITY_THEMES[rarity] ?? RARITY_THEMES.common;
@@ -566,6 +569,12 @@ export function LuxuryCharacterCardAnimated({
                         </View>
                     )}
 
+                    {(isWinner || card.winState === 'win') && (
+                        <View style={styles.winnerBadge}>
+                            <Text style={styles.winnerBadgeText}>🏆 WINNER</Text>
+                        </View>
+                    )}
+
                     {/* Stats row: [ ⚔️ 18 ] [ icons ] [ 🛡️ 16 ] */}
                     <View style={[styles.statsRow, { bottom: statsBottom, paddingHorizontal: Math.max(4, 8 * scW) }]}>
                         <StatBadge icon="⚔️" value={baseAttack} effectiveValue={displayAttack} isAttack={true} fs={statFs} />
@@ -630,6 +639,34 @@ const styles = StyleSheet.create({
 
     particle: { position: 'absolute', width: 5, height: 5, borderRadius: 3 },
     smokeBlob: { position: 'absolute', zIndex: 3 },
+    winnerBadge: {
+        position: 'absolute',
+        top: '40%',
+        left: '10%',
+        right: '10%',
+        backgroundColor: 'rgba(217, 119, 6, 0.95)',
+        borderWidth: 2,
+        borderColor: '#FFD700',
+        borderRadius: 12,
+        paddingVertical: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 99,
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.8,
+        shadowRadius: 10,
+        elevation: 10,
+    },
+    winnerBadgeText: {
+        color: '#FFFFFF',
+        fontWeight: '900',
+        fontSize: 14,
+        letterSpacing: 2,
+        textShadowColor: 'rgba(0, 0, 0, 0.6)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 3,
+    },
     sideVinesWrapper: { position: 'absolute', top: '20%', left: 0, right: 0, bottom: '15%', zIndex: 3 },
     vineLeft: { position: 'absolute', left: 2 },
     vineRight: { position: 'absolute', right: 2 },

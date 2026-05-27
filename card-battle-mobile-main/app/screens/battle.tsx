@@ -53,7 +53,7 @@ import { AbilityCard } from '@/components/game/ability-card';
 import PredictionModal from '@/components/modals/PredictionModal';
 import PopularityModal from '@/components/modals/PopularityModal';
 import {
-  buildPredictionSummary, getRemainingRounds,
+  getRemainingRounds,
   getUpcomingPredictionRounds, isPredictionComplete,
   getEffectiveStats,
 } from '@/lib/game/ui-helpers';
@@ -90,6 +90,12 @@ const CLASS_LABELS: Record<CardClass, string> = {
   fighter:   '🥊 مقاتل',
   guardian:  '🤖 والي',
   healer:    '⚕️ طبيب',
+  warrior:   '⚔️ محارب',
+  knight:    '🛡️ فارس',
+  mage:      '🧙 ساحر',
+  archer:    '🏹 رامي',
+  berserker: '🔥 هائج',
+  paladin:   '⛪ مدافع',
 };
 const CLASS_LABELS_SHORT: Record<string, string> = {
   swordsman: 'السيافين',
@@ -461,8 +467,11 @@ export default function BattleScreen() {
     const newDeck = [...state.playerDeck];
     newDeck[state.currentRound] = rageCard;
     setPlayerDeck(newDeck);
+    if (currentPlayerCard?.id && currentPlayerCard.rageMode?.oncePer === 'match') {
+      rageState.current.activatedThisMatch.add(currentPlayerCard.id);
+    }
     setRageEvent(null);
-  }, [state.playerDeck, state.currentRound, setPlayerDeck]);
+  }, [state.playerDeck, state.currentRound, setPlayerDeck, currentPlayerCard]);
 
   const handleExecuteAttack = useCallback(() => {
     if (isTransitioning.current) return;
@@ -658,11 +667,11 @@ export default function BattleScreen() {
   const displayBotCard = showResult && lastRoundResult ? lastRoundResult.botCard : fallbackBotCard;
 
   const playerEffective = displayPlayerCard
-    ? getEffectiveStats(displayPlayerCard.attack, displayPlayerCard.defense, state.activeEffects, 'player')
+    ? getEffectiveStats(displayPlayerCard.attack, displayPlayerCard.defense, state.activeEffects, 'player', displayPlayerCard.cardClass)
     : { attack: 0, defense: 0 };
-
+ 
   const botEffective = displayBotCard
-    ? getEffectiveStats(displayBotCard.attack, displayBotCard.defense, state.activeEffects, 'bot')
+    ? getEffectiveStats(displayBotCard.attack, displayBotCard.defense, state.activeEffects, 'bot', displayBotCard.cardClass)
     : { attack: 0, defense: 0 };
 
   const isPlayerStronger = playerEffective.attack >= botEffective.attack;
@@ -746,7 +755,7 @@ export default function BattleScreen() {
           )}
 
           {/* ══ ARENA — دائماً row بغض النظر عن portrait/landscape ══ */}
-          <View style={[S.arena, { flexDirection: 'row' }]}>
+          <View style={[S.arena, { flexDirection: 'row', paddingHorizontal: LAYOUT_PADDING[size] }]}>
 
             {/* PLAYER PANEL */}
             <View style={S.playerPanel}>
@@ -756,13 +765,15 @@ export default function BattleScreen() {
                   card={displayPlayerCard}
                   style={{ width: cardWidth, height: cardHeight }}
                   effectiveAttack={playerEffective.attack}
+                  effectiveDefense={playerEffective.defense}
+                  isWinner={phase === 'result' && displayPlayerCard?.winState === 'win'}
                 />
               </Animated.View>
               {showPlayerEffect && (
-                <ElementEffect element={displayPlayerCard.element} side="player" />
+                <ElementEffect element={displayPlayerCard.element} isActive position="bottom" />
               )}
               {activeDamageNumbers.filter(n => n.side === 'player').map(n => (
-                <DamageNumber key={n.id} value={n.value} variant={n.variant} onDone={() => removeDmg(n.id)} />
+                <DamageNumber key={n.id} value={n.value} variant={n.variant} onComplete={() => removeDmg(n.id)} />
               ))}
               <AdvantageChip
                 advantage={lastRoundResult?.playerElementAdvantage ?? 'neutral'}
@@ -813,7 +824,9 @@ export default function BattleScreen() {
                     <TouchableOpacity
                       style={S.rageBtn}
                       onPress={() => {
-                        const re = buildRageTriggerEvent(currentPlayerCard!, rageState.current);
+                        const tempState = { activatedThisMatch: new Set(rageState.current.activatedThisMatch) };
+                        const rageCard = applyRageToCard(currentPlayerCard!, tempState);
+                        const re = buildRageTriggerEvent(currentPlayerCard!, rageCard);
                         if (re) setRageEvent(re);
                       }}
                       activeOpacity={0.85}
@@ -839,13 +852,15 @@ export default function BattleScreen() {
                   card={displayBotCard}
                   style={{ width: cardWidth, height: cardHeight }}
                   effectiveAttack={botEffective.attack}
+                  effectiveDefense={botEffective.defense}
+                  isWinner={phase === 'result' && displayBotCard?.winState === 'win'}
                 />
               </Animated.View>
               {showBotEffect && (
-                <ElementEffect element={displayBotCard.element} side="bot" />
+                <ElementEffect element={displayBotCard.element} isActive position="top" />
               )}
               {activeDamageNumbers.filter(n => n.side === 'bot').map(n => (
-                <DamageNumber key={n.id} value={n.value} variant={n.variant} onDone={() => removeDmg(n.id)} />
+                <DamageNumber key={n.id} value={n.value} variant={n.variant} onComplete={() => removeDmg(n.id)} />
               ))}
               <AdvantageChip
                 advantage={lastRoundResult?.botElementAdvantage ?? 'neutral'}
@@ -941,27 +956,25 @@ export default function BattleScreen() {
       {/* ── Prediction Modal ── */}
       <PredictionModal
         visible={showPredictionModal}
-        abilityType={predictionAbilityType}
         upcomingRounds={upcomingRounds}
-        remainingRounds={remainingRounds}
         selections={predictionSelections}
-        summary={buildPredictionSummary(upcomingRounds, predictionSelections)}
-        isComplete={predictionComplete}
-        onToggle={(r, v) => setPredictionSelections(p => ({ ...p, [r]: v }))}
+        onSelect={(r: number, v: 'win' | 'loss') => setPredictionSelections(p => ({ ...p, [r]: v }))}
         onConfirm={handleConfirmPrediction}
         onCancel={() => { setShowPredictionModal(false); setPredictionSelections({}); }}
+        onRequestClose={() => { setShowPredictionModal(false); setPredictionSelections({}); }}
+        isConfirmDisabled={!predictionComplete}
       />
 
       {/* ── Popularity Modal ── */}
       <PopularityModal
         visible={showPopularityModal}
-        abilityType={popularityAbilityType}
-        totalRounds={state.totalRounds}
-        currentRound={state.currentRound}
+        remainingRounds={remainingRounds}
         selectedRound={selectedPopularityRound}
-        onSelectRound={setSelectedPopularityRound}
-        onConfirm={handleConfirmPopularity}
+        onSelect={setSelectedPopularityRound}
         onCancel={() => { setShowPopularityModal(false); setSelectedPopularityRound(null); }}
+        onRequestClose={() => { setShowPopularityModal(false); setSelectedPopularityRound(null); }}
+        onConfirm={handleConfirmPopularity}
+        isConfirmDisabled={selectedPopularityRound === null}
       />
     </View>
   );
@@ -994,7 +1007,7 @@ const S = StyleSheet.create({
   effectsBarDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
   effectsBarLabel: { color: '#64748b', fontSize: 9, letterSpacing: 0.3 },
 
-  arena: { flex: 1, paddingHorizontal: LAYOUT_PADDING, gap: SPACE.sm },
+  arena: { flex: 1, gap: SPACE.sm },
   playerPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
   botPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
   centerPanel: { width: 90, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },

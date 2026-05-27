@@ -15,7 +15,7 @@ interface PopularityModalProps {
 
 export default function PopularityModal({
   visible,
-  remainingRounds,
+  remainingRounds = [],
   selectedRound,
   onSelect,
   onCancel,
@@ -35,7 +35,7 @@ export default function PopularityModal({
           <Text style={styles.title}>اختر جولة للفوز الشعبي</Text>
 
           <View style={styles.options}>
-            {remainingRounds.map((round) => (
+            {(remainingRounds || []).map((round) => (
               <TouchableOpacity
                 key={round}
                 style={[

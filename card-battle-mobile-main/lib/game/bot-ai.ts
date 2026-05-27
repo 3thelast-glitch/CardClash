@@ -132,8 +132,8 @@ export function chooseBotMode(
 ): BotMode {
   const diff = botScore - playerScore;
   const roundsLeft = totalRounds - currentRound;
-  const aggressiveThreshold = difficulty >= 5 ? -1 : -2;
-  const safeGap = difficulty >= 5 ? 1 : 2;
+  const aggressiveThreshold = difficulty >= 4 ? -1 : -2;
+  const safeGap = difficulty >= 4 ? 1 : 2;
 
   if (diff <= aggressiveThreshold) return 'aggressive';
   if (diff >= safeGap && roundsLeft <= 2) return 'safe';
@@ -223,7 +223,7 @@ export function evaluateAbilityTiming(
 function abilityThreshold(mode: BotMode, difficulty: DifficultyLevel): number {
   const base = mode === 'aggressive' ? 0.50 : mode === 'safe' ? 0.68 : 0.58;
   if (difficulty === 3)  return Math.min(base + 0.08, 0.90);
-  if (difficulty >= 5)   return Math.max(base - 0.05, 0.35);
+  if (difficulty >= 4)   return Math.max(base - 0.05, 0.35);
   return base;
 }
 
@@ -351,7 +351,7 @@ export function decideBotAbility(
 
   const roundsLeft = totalRounds - currentRound;
   let lockedAbility: AbilityType | null = null;
-  if (difficulty >= 5 && roundsLeft > 1 && memory.strongestBotAbility) {
+  if (difficulty >= 4 && roundsLeft > 1 && memory.strongestBotAbility) {
     lockedAbility = memory.strongestBotAbility;
   }
 
@@ -448,9 +448,17 @@ export function getBotCards(
 ): Card[] {
   if (difficulty <= 1) return pickRandom(count);
   if (difficulty === 2) return pickBalanced(count);
-  if (difficulty === 3) return pickBalancedHard(count);
-  if (difficulty === 4) return pickSmart(count, playerCards ?? [], 0.05);
-  return pickSmart(count, playerCards ?? [], 0.03);
+
+  const hasPlayerCards = playerCards && playerCards.length > 0;
+  if (difficulty === 3) {
+    return hasPlayerCards
+      ? pickSmart(count, playerCards, 0.20)
+      : pickBalancedHard(count);
+  }
+
+  return hasPlayerCards
+    ? pickSmart(count, playerCards, 0.05)
+    : pickBalancedHard(count);
 }
 
 // ──────────────────────────────── Strategy label ────────────────────────────────
@@ -459,8 +467,7 @@ export function getBotStrategyDescription(difficulty: DifficultyLevel): string {
     case 1: return 'البوت يختار عشوائياً بدون استراتيجية';
     case 2: return 'البوت يختار من أفضل نصف الكروت ويستخدم القدرات بعشوائية';
     case 3: return 'البوت يختار من أقوى الكروت ويوقّت قدراته بذكاء';
-    case 4: return 'البوت يحسب utility لكل قرار ويستغل نقاط ضعفك';
-    case 5: return 'البوت يتذكر أنماطك، يضغط في الجولات الحرجة، ويحتفظ بأقوى قدرة للحظة المناسبة';
+    case 4: return 'البوت يتذكر أنماطك، يحسب منفعة كل قرار، ويحتفظ بأقوى قدرة للنهاية';
     default: return 'البوت يستخدم استراتيجية متوازنة';
   }
 }

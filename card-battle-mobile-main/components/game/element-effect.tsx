@@ -53,22 +53,6 @@ export function ElementEffect({ element, isActive, position = 'top' }: ElementEf
           );
           break;
 
-        case 'ice':
-          // تأثير الجليد: تجمد مع بريق
-          opacity.value = withSequence(
-            withTiming(1, { duration: 150 }),
-            withTiming(0.6, { duration: 150 }),
-            withTiming(1, { duration: 150 }),
-            withDelay(200, withTiming(0, { duration: 300 }))
-          );
-          scale.value = withSequence(
-            withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) }),
-            withTiming(0.95, { duration: 150 }),
-            withTiming(1.05, { duration: 150 }),
-            withDelay(200, withTiming(1.3, { duration: 300 }))
-          );
-          break;
-
         case 'earth':
           // تأثير الأرض: ارتجاج
           opacity.value = withSequence(

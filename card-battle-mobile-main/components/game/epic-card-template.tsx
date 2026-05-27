@@ -35,13 +35,13 @@ import type { ImageSourcePropType } from 'react-native';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface EpicCardProps {
-    imageSrc: ImageSourcePropType;
+    imageSrc?: ImageSourcePropType | null;
     nameAr: string;
     nameEn: string;
     hp?: number;
     attack: number;
     defense?: number;
-    rarity?: 'common' | 'rare' | 'epic' | 'legendary';
+    rarity?: 'common' | 'rare' | 'epic' | 'legendary' | 'special';
     element?: string;
     emoji?: string;
     scale?: number;
@@ -56,6 +56,7 @@ const RARITY = {
     rare: { stars: 2, color: '#60A5FA', glow: '#60A5FA', label: 'نادر', borderColor: '#3B82F6' },
     epic: { stars: 3, color: '#C084FC', glow: '#C084FC', label: 'ملحمي', borderColor: '#A855F7' },
     legendary: { stars: 4, color: '#FFD700', glow: '#FCD34D', label: 'أسطوري', borderColor: '#FFD700' },
+    special: { stars: 5, color: '#ec4899', glow: '#ec4899', label: 'خاص', borderColor: '#ec4899' },
 } as const;
 
 function starsString(count: number): string {
@@ -219,14 +220,16 @@ export function EpicCardTemplate({
                     },
                 ]}
             >
-                <Image
-                    source={imageSrc}
-                    style={s.art}
-                    contentFit="cover"
-                    contentPosition="top"
-                    cachePolicy="memory-disk"
-                    transition={200}
-                />
+                {imageSrc && (
+                    <Image
+                        source={imageSrc}
+                        style={s.art}
+                        contentFit="cover"
+                        contentPosition="top"
+                        cachePolicy="memory-disk"
+                        transition={200}
+                    />
+                )}
 
                 <CardOverlay w={W} h={H} />
 

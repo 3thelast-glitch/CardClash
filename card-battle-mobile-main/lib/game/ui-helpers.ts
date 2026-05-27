@@ -48,10 +48,13 @@ export function getEffectiveStats(
   baseAttack: number,
   baseDefense: number,
   effects: Effect[],
-  side: Side
+  side: Side,
+  cardClass?: string
 ): { attack: number; defense: number } {
   let atk = baseAttack;
   let def = baseDefense;
+
+  const isShielded = effects.some(e => e.kind === 'shieldGuard' && (e.targetSide === side || e.targetSide === 'all'));
 
   for (const eff of effects) {
     // تجاهل التأثيرات التي لا تستهدف هذا الجانب
@@ -60,15 +63,25 @@ export function getEffectiveStats(
     const data = (eff.data ?? {}) as Record<string, unknown>;
     const amount = typeof data.amount === 'number' ? data.amount : 0;
 
+    if (isShielded && amount < 0) continue;
+
     switch (eff.kind) {
       case 'statModifier': {
         // تجاهل elementalOverride — لا يؤثر على القيم المعروضة
         if (data.stat === 'elementalOverride') break;
 
+        // بروباغاندا - تضعيف فئة معينة
+        if (data.stat === 'all_stats' && cardClass && data.targetClass === cardClass) {
+          atk = Math.max(0, atk + amount);
+          def = Math.max(0, def + amount);
+          break;
+        }
+
         // مضاعفة (DoubleNextCards / DoublePoints)
         if (data.multiplier === true) {
-          if (data.stat === 'attack')  atk = Math.max(0, atk + amount);
-          if (data.stat === 'defense') def = Math.max(0, def + amount);
+          const multAmount = data.double === true ? (data.stat === 'attack' ? atk : def) : amount;
+          if (data.stat === 'attack')  atk = Math.max(0, atk + multAmount);
+          if (data.stat === 'defense') def = Math.max(0, def + multAmount);
           break;
         }
 
@@ -84,8 +97,8 @@ export function getEffectiveStats(
       case 'greedBuff':         atk = Math.max(0, atk + 1);  break; // Greed: +1 هجوم عند الفوز
       case 'revengeBuff':       atk = Math.max(0, atk + 1);  break; // Revenge: +1 هجوم عند الخسارة
       case 'compensationBuff':  def = Math.max(0, def + 1);  break; // Compensation: +1 دفاع عند الخسارة
-      case 'weakeningDebuff':   atk = Math.max(0, atk - 1);  break; // Weakening: -1 هجوم للخصم
-      case 'explosionDebuff':   def = Math.max(0, def - 1);  break; // Explosion: -1 دفاع للخصم
+      case 'weakeningDebuff':   if (!isShielded) atk = Math.max(0, atk - 1);  break; // Weakening: -1 هجوم للخصم
+      case 'explosionDebuff':   if (!isShielded) def = Math.max(0, def - 1);  break; // Explosion: -1 دفاع للخصم
 
       default:
         break;

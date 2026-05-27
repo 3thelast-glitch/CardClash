@@ -89,6 +89,7 @@ export interface Card {
   _rageActive?: boolean;
   gender?: Gender;
   universe?: string;
+  winState?: 'win' | 'lose' | 'draw';
 }
 
 export type AbilityType =

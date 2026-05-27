@@ -99,7 +99,19 @@ export default function MultiplayerBattleScreen() {
     unsubs.push(mpClient.on('ROUND_RESULT', (msg: MPMessage) => {
       const r = msg.payload;
       const myWin = (isPlayer1 && r.winner === 'player1') || (!isPlayer1 && r.winner === 'player2');
-      setLastResult({ ...r, myWin });
+      
+      const p1WinState = r.winner === 'player1' ? 'win' : r.winner === 'player2' ? 'lose' : 'draw';
+      const p2WinState = r.winner === 'player2' ? 'win' : r.winner === 'player1' ? 'lose' : 'draw';
+
+      const p1Card = r.p1Card ? { ...r.p1Card, winState: p1WinState } : undefined;
+      const p2Card = r.p2Card ? { ...r.p2Card, winState: p2WinState } : undefined;
+
+      setLastResult({
+        ...r,
+        p1Card,
+        p2Card,
+        myWin,
+      });
       setMyScore(isPlayer1 ? r.p1Score : r.p2Score);
       setOppScore(isPlayer1 ? r.p2Score : r.p1Score);
       resultOp.value = withTiming(1, { duration: 300 });
@@ -207,6 +219,7 @@ export default function MultiplayerBattleScreen() {
                 card={myCard}
                 style={{ width: cardWidth, height: cardHeight }}
                 isOpenedView={phase === 'result' && lastResult?.myWin}
+                isWinner={phase === 'result' && myCard?.winState === 'win'}
               />
               {phase === 'result' && <ElementEffect element={myCard.element} isActive />}
             </Animated.View>
@@ -262,7 +275,7 @@ export default function MultiplayerBattleScreen() {
               <LuxuryCharacterCardAnimated
                 card={oppCard}
                 style={{ width: cardWidth, height: cardHeight }}
-
+                isWinner={phase === 'result' && oppCard?.winState === 'win'}
               />
               {phase === 'result' && <ElementEffect element={oppCard.element} isActive />}
             </Animated.View>

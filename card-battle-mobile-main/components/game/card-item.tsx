@@ -17,7 +17,7 @@ import Animated from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Card, Side } from '@/lib/game/types';
+import { Card, Side, CardRarity } from '@/lib/game/types';
 import { getRarityConfig } from '@/lib/game/card-rarity';
 import { CARD_DIMENSIONS, CARD_SHADOW } from '@/constants/game-config';
 import { useCardTapAnimation, useCardSummonAnimation } from '@/lib/animations';
@@ -113,7 +113,7 @@ export function CardItem({
   customHeight,
 }: CardItemProps) {
   const preset    = SIZE_PRESETS[size];
-  const rarity    = (card.rarity ?? 'common') as string;
+  const rarity    = (card.rarity ?? 'common') as CardRarity;
   const rarityCfg = getRarityConfig(rarity);
   const width     = customWidth  ?? preset.width;
   const height    = customHeight ?? preset.height;
@@ -125,7 +125,7 @@ export function CardItem({
   // ── حساب القيم الفعلية بعد تطبيق التأثيرات ──────────────────────────────
   const { attack: effectiveAttack, defense: effectiveDefense } =
     activeEffects.length > 0
-      ? getEffectiveStats(card.attack, card.defense, activeEffects, cardSide)
+      ? getEffectiveStats(card.attack, card.defense, activeEffects, cardSide, card.cardClass)
       : { attack: card.attack, defense: card.defense };
 
   // ── Resolve image / video ──────────────────────────────────────────────────
@@ -266,6 +266,12 @@ export function CardItem({
             </View>
           )}
 
+          {card.winState === 'win' && (
+            <View style={[styles.winnerBadge, size === 'small' && { paddingVertical: 1, borderRadius: 4 }]}>
+              <Text style={[styles.winnerBadgeText, { fontSize: preset.badgeFontSize + 1 }]}>🏆 WINNER</Text>
+            </View>
+          )}
+
           {isSelected && <View style={styles.selectedOverlay} />}
         </Animated.View>
       </Pressable>
@@ -302,11 +308,13 @@ function StatBadge({ icon, base, effective, size }: {
             {base}
           </Text>
           <Text style={[styles.statValue, { fontSize: size, color: diffColor, fontWeight: '900' }]}>
-            {effective}
+            {diff < 0 ? diff : effective}
           </Text>
-          <Text style={[styles.statDiff, { fontSize: size - 2, color: diffColor }]}>
-            {diff > 0 ? `▲+${diff}` : `▼${diff}`}
-          </Text>
+          {diff > 0 && (
+            <Text style={[styles.statDiff, { fontSize: size - 2, color: diffColor }]}>
+              ▲+{diff}
+            </Text>
+          )}
         </>
       ) : (
         <Text style={[styles.statValue, { fontSize: size }]}>{base}</Text>
@@ -352,4 +360,32 @@ const styles = StyleSheet.create({
   effectsRow:      { position: 'absolute', bottom: 52, right: 4, gap: 2, alignItems: 'center' },
   effectIcon:      { fontSize: 10 },
   selectedOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 13 },
+  winnerBadge: {
+    position: 'absolute',
+    top: '35%',
+    left: '5%',
+    right: '5%',
+    backgroundColor: 'rgba(217, 119, 6, 0.95)',
+    borderWidth: 1.5,
+    borderColor: '#FFD700',
+    borderRadius: 8,
+    paddingVertical: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 99,
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  winnerBadgeText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 9,
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
 });

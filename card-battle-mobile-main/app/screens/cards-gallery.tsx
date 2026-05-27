@@ -398,10 +398,10 @@ function RageModeSection({ cardId, data, onChange }: {
       {data.enabled && (
         <>
           <RNText style={[ep.label, { marginTop: 10 }]}>⚡ اسم وضع الغضب</RNText>
-          <TextInput style={[ep.nameArInput, { borderColor: RAGE_COLOR + '55', color: RAGE_COLOR }]}
+          <TextInput style={[ep.nameArInput, { borderColor: RAGE_COLOR + '55', color: RAGE_COLOR, writingDirection: 'rtl' }]}
             value={data.rageNameAr ?? ''} onChangeText={t => onChange({ rageNameAr: t })}
             placeholder="مثال: سوبر سايان..." placeholderTextColor="#555"
-            textAlign="right" writingDirection="rtl" />
+            textAlign="right" />
           <RNText style={[ep.label, { marginTop: 10 }]}>⚡ زيادة الطاقات</RNText>
           <View style={ep.steppers}>
             <StatStepper icon="⚔️" label="هجوم +" value={data.rageAttackBoost} color="#f87171" onChange={v => onChange({ rageAttackBoost: clamp(v, 0, 999) })} />
@@ -865,10 +865,10 @@ export default function CardsGalleryScreen() {
                   <View style={ep.divider} />
 
                   <RNText style={ep.label}>✏️ الاسم العربي</RNText>
-                  <TextInput style={[ep.nameArInput, { borderColor: rarityColor + '55', color: rarityColor }]}
+                  <TextInput style={[ep.nameArInput, { borderColor: rarityColor + '55', color: rarityColor, writingDirection: 'rtl' }]}
                     value={edits.nameAr} onChangeText={t => patch({ nameAr: t })}
                     placeholder="الاسم بالعربي..." placeholderTextColor="#444"
-                    textAlign="right" writingDirection="rtl" />
+                    textAlign="right" />
                   <View style={ep.divider} />
 
                   <RNText style={ep.label}>⭐ عدد النجوم</RNText>

@@ -48,6 +48,7 @@ const KIND_INFO: Record<EffectKind, { label: string; emoji: string; color: strin
   takeIt: { label: 'خذ البطاقة', emoji: '\u{1F9F2}', color: '#f472b6' },
   deprivation: { label: 'حرمان', emoji: '\u274c', color: '#f87171' },
   pool: { label: 'تجميع النقاط', emoji: '\u{1F3B1}', color: '#06b6d4' },
+  turinPenalty: { label: 'عقوبة تورين', emoji: '📉', color: '#f87171' },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────
