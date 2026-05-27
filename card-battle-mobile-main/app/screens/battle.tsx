@@ -667,11 +667,11 @@ export default function BattleScreen() {
   const displayBotCard = showResult && lastRoundResult ? lastRoundResult.botCard : fallbackBotCard;
 
   const playerEffective = displayPlayerCard
-    ? getEffectiveStats(displayPlayerCard.attack, displayPlayerCard.defense, state.activeEffects, 'player', displayPlayerCard.cardClass)
+    ? getEffectiveStats(displayPlayerCard.attack, displayPlayerCard.defense, state.activeEffects, 'player', displayPlayerCard.cardClass, displayBotCard, displayPlayerCard)
     : { attack: 0, defense: 0 };
  
   const botEffective = displayBotCard
-    ? getEffectiveStats(displayBotCard.attack, displayBotCard.defense, state.activeEffects, 'bot', displayBotCard.cardClass)
+    ? getEffectiveStats(displayBotCard.attack, displayBotCard.defense, state.activeEffects, 'bot', displayBotCard.cardClass, displayPlayerCard, displayBotCard)
     : { attack: 0, defense: 0 };
 
   const isPlayerStronger = playerEffective.attack >= botEffective.attack;
@@ -766,7 +766,11 @@ export default function BattleScreen() {
                   style={{ width: cardWidth, height: cardHeight }}
                   effectiveAttack={playerEffective.attack}
                   effectiveDefense={playerEffective.defense}
-                  isWinner={phase === 'result' && displayPlayerCard?.winState === 'win'}
+                  winnerState={
+                    phase === 'result'
+                      ? (lastRoundResult?.winner === 'player' ? 'winner' : null)
+                      : (expectedRoundResult?.winner === 'player' ? 'leading' : null)
+                  }
                 />
               </Animated.View>
               {showPlayerEffect && (
@@ -853,7 +857,11 @@ export default function BattleScreen() {
                   style={{ width: cardWidth, height: cardHeight }}
                   effectiveAttack={botEffective.attack}
                   effectiveDefense={botEffective.defense}
-                  isWinner={phase === 'result' && displayBotCard?.winState === 'win'}
+                  winnerState={
+                    phase === 'result'
+                      ? (lastRoundResult?.winner === 'bot' ? 'winner' : null)
+                      : (expectedRoundResult?.winner === 'bot' ? 'leading' : null)
+                  }
                 />
               </Animated.View>
               {showBotEffect && (

@@ -241,6 +241,11 @@ export function CardItem({
               <Text style={[styles.cardName, { fontSize: preset.nameFontSize }]} numberOfLines={1}>
                 {card.nameAr}
               </Text>
+              {card.winState === 'win' && (
+                <View style={[styles.inlineWinnerBadge, { marginTop: 2 }]}>
+                  <Text style={[styles.inlineWinnerBadgeText, { fontSize: preset.badgeFontSize }]}>🏆 WINNER</Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -263,12 +268,6 @@ export function CardItem({
                   {EFFECT_ICONS[effect]}
                 </Text>
               ))}
-            </View>
-          )}
-
-          {card.winState === 'win' && (
-            <View style={[styles.winnerBadge, size === 'small' && { paddingVertical: 1, borderRadius: 4 }]}>
-              <Text style={[styles.winnerBadgeText, { fontSize: preset.badgeFontSize + 1 }]}>🏆 WINNER</Text>
             </View>
           )}
 
@@ -304,16 +303,22 @@ function StatBadge({ icon, base, effective, size }: {
       <Text style={[styles.statIcon, { fontSize: size }]}>{icon}</Text>
       {isModified ? (
         <>
-          <Text style={[styles.statValue, styles.statStruck, { fontSize: size - 1, color: 'rgba(255,255,255,0.35)' }]}>
-            {base}
-          </Text>
-          <Text style={[styles.statValue, { fontSize: size, color: diffColor, fontWeight: '900' }]}>
-            {diff < 0 ? diff : effective}
-          </Text>
-          {diff > 0 && (
-            <Text style={[styles.statDiff, { fontSize: size - 2, color: diffColor }]}>
-              ▲+{diff}
+          {diff < 0 ? (
+            <Text style={[styles.statValue, { fontSize: size - 1, color: diffColor, fontWeight: '900' }]}>
+              {base} → {effective}
             </Text>
+          ) : (
+            <>
+              <Text style={[styles.statValue, styles.statStruck, { fontSize: size - 1, color: 'rgba(255,255,255,0.35)' }]}>
+                {base}
+              </Text>
+              <Text style={[styles.statValue, { fontSize: size, color: diffColor, fontWeight: '900' }]}>
+                {effective}
+              </Text>
+              <Text style={[styles.statDiff, { fontSize: size - 2, color: diffColor }]}>
+                ▲+{diff}
+              </Text>
+            </>
           )}
         </>
       ) : (
@@ -387,5 +392,19 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+  },
+  inlineWinnerBadge: {
+    backgroundColor: 'rgba(217, 119, 6, 0.95)',
+    borderWidth: 1,
+    borderColor: '#FFD700',
+    borderRadius: 4,
+    paddingVertical: 1.5,
+    paddingHorizontal: 6,
+    alignSelf: 'center',
+  },
+  inlineWinnerBadgeText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });

@@ -1,4 +1,4 @@
-import { Effect, Side } from './types';
+import { Effect, Side, Card } from './types';
 
 export type PredictionSelections = Record<number, 'win' | 'loss'>;
 
@@ -33,6 +33,53 @@ export const buildPredictionSummary = (activeEffects: Effect[], sourceSide: Side
 };
 
 /**
+ * Applies matchup-based and self-buff special abilities to stats.
+ */
+export function applySpecialAbilityModifications(
+  ownCard: Card,
+  opponentCard: Card | null,
+  ownStats: { attack: number; defense: number },
+  oppStats?: { attack: number; defense: number }
+) {
+  const ownId = ownCard.id;
+
+  // 1. Ainz Ooal Gown (ainz_ooal_gown) / Death Note / Ryuk: cancels defender defense
+  if (ownId === 'ainz_ooal_gown' && oppStats) {
+    oppStats.defense = 0;
+  }
+  if (opponentCard?.id === 'ainz_ooal_gown') {
+    ownStats.defense = 0;
+  }
+
+  // 2. Gojo (satoru_gojo): Infinity (defense = 99)
+  if (ownId === 'satoru_gojo') {
+    ownStats.defense = 99;
+  }
+
+  // 3. Sukuna (ryomen_sukuna): Curses / high attack boost (+6)
+  if (ownId === 'ryomen_sukuna') {
+    ownStats.attack += 6;
+  }
+
+  // 4. Makima (makima): control opponent (steal 4 attack)
+  if (ownId === 'makima') {
+    ownStats.attack += 4;
+    if (oppStats) {
+      oppStats.attack = Math.max(0, oppStats.attack - 4);
+    }
+  }
+  if (opponentCard?.id === 'makima') {
+    ownStats.attack = Math.max(0, ownStats.attack - 4);
+  }
+
+  // 5. Kaido (kaido): +4 defense and +2 attack
+  if (ownId === 'kaido') {
+    ownStats.defense += 4;
+    ownStats.attack += 2;
+  }
+}
+
+/**
  * يحسب قيم الهجوم والدفاع الفعلية للكرت بعد تطبيق كل التأثيرات النشطة.
  *
  * ✅ إصلاح: game-context يخزن القيمة في `data.amount` — لذا نقرأ `amount` هنا.
@@ -49,10 +96,20 @@ export function getEffectiveStats(
   baseDefense: number,
   effects: Effect[],
   side: Side,
-  cardClass?: string
+  cardClass?: string,
+  opponentCard?: Card | null,
+  ownCard?: Card
 ): { attack: number; defense: number } {
   let atk = baseAttack;
   let def = baseDefense;
+
+  // Apply card special abilities first
+  if (ownCard) {
+    const ownStats = { attack: atk, defense: def };
+    applySpecialAbilityModifications(ownCard, opponentCard ?? null, ownStats);
+    atk = ownStats.attack;
+    def = ownStats.defense;
+  }
 
   const isShielded = effects.some(e => e.kind === 'shieldGuard' && (e.targetSide === side || e.targetSide === 'all'));
 

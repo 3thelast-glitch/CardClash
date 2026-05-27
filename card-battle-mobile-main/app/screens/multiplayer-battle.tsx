@@ -219,7 +219,7 @@ export default function MultiplayerBattleScreen() {
                 card={myCard}
                 style={{ width: cardWidth, height: cardHeight }}
                 isOpenedView={phase === 'result' && lastResult?.myWin}
-                isWinner={phase === 'result' && myCard?.winState === 'win'}
+                winnerState={phase === 'result' && myCard?.winState === 'win' ? 'winner' : null}
               />
               {phase === 'result' && <ElementEffect element={myCard.element} isActive />}
             </Animated.View>
@@ -275,7 +275,7 @@ export default function MultiplayerBattleScreen() {
               <LuxuryCharacterCardAnimated
                 card={oppCard}
                 style={{ width: cardWidth, height: cardHeight }}
-                isWinner={phase === 'result' && oppCard?.winState === 'win'}
+                winnerState={phase === 'result' && oppCard?.winState === 'win' ? 'winner' : null}
               />
               {phase === 'result' && <ElementEffect element={oppCard.element} isActive />}
             </Animated.View>

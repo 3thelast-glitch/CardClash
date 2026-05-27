@@ -32,7 +32,7 @@ interface Props {
     effectiveDefense?: number;
     /** هل يتم تشغيل الصوت (للفيديو)؟ الافتراضي false */
     playAudio?: boolean;
-    isWinner?: boolean;
+    winnerState?: 'winner' | 'leading' | null;
 }
 
 function isVideoUri(uri: string): boolean {
@@ -238,13 +238,19 @@ const StatBadge = ({
             </View>
             {isModified ? (
                 <>
-                    <Text style={[styles.statValue, { fontSize: fs, color: diffColor, fontWeight: 'bold', flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                        {diff < 0 ? diff : effectiveValue}
-                    </Text>
-                    {diff > 0 && (
-                        <Text style={{ fontSize: Math.max(8, fs - 6), color: diffColor, fontWeight: 'bold', flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                            (+{diff}▲)
+                    {diff < 0 ? (
+                        <Text style={[styles.statValue, { fontSize: Math.max(9, fs - 2), color: diffColor, fontWeight: 'bold', flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                            {value} → {effectiveValue}
                         </Text>
+                    ) : (
+                        <>
+                            <Text style={[styles.statValue, { fontSize: fs, color: diffColor, fontWeight: 'bold', flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                                {effectiveValue}
+                            </Text>
+                            <Text style={{ fontSize: Math.max(8, fs - 6), color: diffColor, fontWeight: 'bold', flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                                (+{diff}▲)
+                            </Text>
+                        </>
                     )}
                 </>
             ) : (
@@ -430,7 +436,7 @@ const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imgStyle, 
 // ─────────────────────────────────────────────
 export function LuxuryCharacterCardAnimated({
     card, style, imageOffsetY = 0, fitInsideBorder = false, isOpenedView = false,
-    effectiveAttack, effectiveDefense, playAudio = false, isWinner,
+    effectiveAttack, effectiveDefense, playAudio = false, winnerState,
 }: Props) {
     const rarity: CardRarity = card.rarity ?? 'common';
     const theme = RARITY_THEMES[rarity] ?? RARITY_THEMES.common;
@@ -472,7 +478,11 @@ export function LuxuryCharacterCardAnimated({
     const ABILITY_H = hasAbility ? Math.round((rarity === 'legendary' || rarity === 'special' ? 50 : 42) * scH) : 0;
     const ABILITY_GAP = hasAbility ? Math.round(4 * scH) : 0;
     const abilityBottom = statsBottom + STAT_AREA_H + ABILITY_GAP;
-    const nameBottom = abilityBottom + (hasAbility ? ABILITY_H + Math.round(4 * scH) : 0) + Math.round((stars > 0 ? 4 : 6) * scH);
+    const showBadge = !!(winnerState === 'winner' || (!winnerState && card.winState === 'win') || winnerState === 'leading');
+    const badgeBottom = hasAbility
+        ? abilityBottom + ABILITY_H + Math.round(4 * scH)
+        : statsBottom + STAT_AREA_H + Math.round(6 * scH);
+    const nameBottom = abilityBottom + (hasAbility ? ABILITY_H + Math.round(4 * scH) : 0) + Math.round((stars > 0 ? 4 : 6) * scH) + (showBadge ? Math.round(18 * scH) : 0);
 
     const nameFontSize = Math.max(10, (rarity === 'legendary' || rarity === 'special' ? 18 : 17) * sc);
     const badgeFontSize = Math.max(7, 10 * sc);
@@ -562,6 +572,22 @@ export function LuxuryCharacterCardAnimated({
                         {stars > 0 && <StarsRow count={stars} color={theme.starColor} emptyColor={theme.starEmpty} sc={sc} />}
                     </View>
 
+                    {/* Winner/Leading indicator in lower section */}
+                    {(winnerState === 'winner' || (!winnerState && card.winState === 'win')) && (
+                        <View style={{ bottom: badgeBottom, left: 0, right: 0, position: 'absolute', alignItems: 'center', zIndex: 11 }} pointerEvents="none">
+                            <View style={styles.inlineWinnerBadge}>
+                                <Text style={[styles.inlineWinnerBadgeText, { fontSize: Math.max(8, 9 * sc) }]}>🏆 WINNER</Text>
+                            </View>
+                        </View>
+                    )}
+                    {winnerState === 'leading' && (
+                        <View style={{ bottom: badgeBottom, left: 0, right: 0, position: 'absolute', alignItems: 'center', zIndex: 11 }} pointerEvents="none">
+                            <View style={styles.inlineLeadingBadge}>
+                                <Text style={[styles.inlineWinnerBadgeText, { fontSize: Math.max(8, 9 * sc) }]}>👑 LEADING</Text>
+                            </View>
+                        </View>
+                    )}
+
                     {/* ability */}
                     {hasAbility && (
                         <View style={[styles.abilityContainer, { bottom: abilityBottom, left: Math.max(4, 8 * scW), right: Math.max(4, 8 * scW) }]}>
@@ -569,11 +595,7 @@ export function LuxuryCharacterCardAnimated({
                         </View>
                     )}
 
-                    {(isWinner || card.winState === 'win') && (
-                        <View style={styles.winnerBadge}>
-                            <Text style={styles.winnerBadgeText}>🏆 WINNER</Text>
-                        </View>
-                    )}
+
 
                     {/* Stats row: [ ⚔️ 18 ] [ icons ] [ 🛡️ 16 ] */}
                     <View style={[styles.statsRow, { bottom: statsBottom, paddingHorizontal: Math.max(4, 8 * scW) }]}>
@@ -658,6 +680,25 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         elevation: 10,
     },
+    leadingBadge: {
+        position: 'absolute',
+        top: '40%',
+        left: '10%',
+        right: '10%',
+        backgroundColor: 'rgba(30, 41, 59, 0.95)',
+        borderWidth: 2,
+        borderColor: '#F59E0B',
+        borderRadius: 12,
+        paddingVertical: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 99,
+        shadowColor: '#F59E0B',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.8,
+        shadowRadius: 10,
+        elevation: 10,
+    },
     winnerBadgeText: {
         color: '#FFFFFF',
         fontWeight: '900',
@@ -666,6 +707,34 @@ const styles = StyleSheet.create({
         textShadowColor: 'rgba(0, 0, 0, 0.6)',
         textShadowOffset: { width: 1, height: 1 },
         textShadowRadius: 3,
+    },
+    inlineWinnerBadge: {
+        backgroundColor: 'rgba(217, 119, 6, 0.95)',
+        borderWidth: 1,
+        borderColor: '#FFD700',
+        borderRadius: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    inlineLeadingBadge: {
+        backgroundColor: 'rgba(30, 41, 59, 0.95)',
+        borderWidth: 1,
+        borderColor: '#F59E0B',
+        borderRadius: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    inlineWinnerBadgeText: {
+        color: '#FFFFFF',
+        fontWeight: '900',
+        letterSpacing: 1,
+        textShadowColor: 'rgba(0, 0, 0, 0.6)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 2,
     },
     sideVinesWrapper: { position: 'absolute', top: '20%', left: 0, right: 0, bottom: '15%', zIndex: 3 },
     vineLeft: { position: 'absolute', left: 2 },
