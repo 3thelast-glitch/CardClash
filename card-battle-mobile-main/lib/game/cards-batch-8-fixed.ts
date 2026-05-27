@@ -683,8 +683,8 @@ export const CARDS_BATCH_8: Card[] = [
     },
     {
         id: 'lady_maria',
-        name: 'Lady Maria of the Astral Clocktower',
-        nameAr: 'اللميدي ماريا من برج الساعة الفلكي',
+        name: 'Lady Maria',
+        nameAr: 'اللميدي ماريا ',
         attack: 19,
         defense: 17,
         race: 'undead',

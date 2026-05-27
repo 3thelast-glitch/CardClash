@@ -31,7 +31,7 @@ export const CARDS_BATCH_1: Card[] = [
         gender: 'female',
         race: 'human', cardClass: 'swordsman', element: 'lightning',
         tags: ["sword"],
-        rarity: 'rare', stars: 3,
+        rarity: 'Common', stars: 2,
         animationPreset: 'lightning',
     },
     {

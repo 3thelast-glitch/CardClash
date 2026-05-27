@@ -11,6 +11,8 @@ export const COMMON_IMAGES: Record<string, any> = {
     the_plain_doll: require('./the_plain_doll.png'),
     happy: require('./happy.png'),
     mineta: require('./mineta.png'),
+    master_roshi: require('./master_roshi.png'),
+
 };
 
 /** فيديوهات الكروت العادية — mp4 / webm */

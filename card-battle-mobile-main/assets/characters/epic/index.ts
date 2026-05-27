@@ -3,7 +3,6 @@ export const EPIC_IMAGES: Record<string, any> = {
     vegeta: require('./vegeta.png'),
     frieza: require('./frieza.png'),
     gohan: require('./gohan.png'),
-    master_roshi: require('./master_roshi.png'),
     nobara_kugisaki: require('./Nobara_Kugisaki.png'),
     alger_wilson: require('./alger_wilson.png'),
     alice_zuberg: require('./alice_zuberg.png'),

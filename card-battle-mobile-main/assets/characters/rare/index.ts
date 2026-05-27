@@ -1,9 +1,7 @@
 export const RARE_IMAGES: Record<string, any> = {
     nanami_kento: require('./nanami_kento.png'),
-    leorio: require('./leorio.png'),
     grimmjow_jaegerjaquez: require('./grimmjow_jaegerjaquez.png'),
     rock_lee: require('./rock_lee.png'),
-    nami: require('./nami.png'),
     barry_the_chopper: require('./barry_the_chopper.png'),
     dende: require('./dende.png'),
     dr_cossack: require('./dr_cossack.png'),

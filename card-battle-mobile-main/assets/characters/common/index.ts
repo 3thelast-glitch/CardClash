@@ -34,6 +34,9 @@ export const COMMON_IMAGES: Record<string, any> = {
     yui_sao: require('./yui_sao.png'),
     wiz: require('./Wiz.png'),
     violet_evergarden: require('./violet_evergarden.png'),
+    master_roshi: require('./master_roshi.png'),
+    leorio: require('./leorio.png'),
+    nami: require('./nami.png'),
 };
 
 /** فيديوهات الكروت العادية — mp4 / webm */
