@@ -230,6 +230,7 @@ export function determineRoundWinner(
         case 'compensationBuff':  def = Math.max(0, def + 1);  break;
         case 'weakeningDebuff':   if (!isShielded) atk = Math.max(0, atk - 1);  break;
         case 'explosionDebuff':   if (!isShielded) def = Math.max(0, def - 1);  break;
+        case 'phantomBlade':      atk = Math.max(0, atk + (d?.amount ?? 0));    break;
       }
     }
     return { atk, def };

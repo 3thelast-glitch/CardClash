@@ -6,6 +6,9 @@ import type { DifficultyLevel } from './difficulty-types';
 import { determineRoundWinner } from './cards-data-exports';
 import { getBotCards } from './bot-ai';
 import { applyOnSpawnPassive, applyPostBattlePassive } from './rage-engine';
+import { useEffectToast } from '../../components/game/EffectToast';
+import { ABILITY_DETAILS, CATEGORY_CONFIG } from './ability-details';
+import { getAbilityNameOnly } from './ability-names';
 
 // ─────────────────────────────────────────────────────────────────────────────────
 const initialState: GameState = {
@@ -213,6 +216,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const playerEffects = activeEffects.filter(e => e.targetSide === 'player' || e.targetSide === 'all');
       const botEffects    = activeEffects.filter(e => e.targetSide === 'bot'    || e.targetSide === 'all');
 
+      const absoluteDominanceEffect = activeEffects
+        .filter(e => e.kind === 'absoluteDominance')
+        .filter(e => { const d = e.data as { appliesToRound?: number } | undefined; return !d?.appliesToRound || d.appliesToRound === roundNumber; })
+        .sort((a, b) => b.priority - a.priority)[0];
+
       const forcedOutcomeEffect = activeEffects
         .filter(e => e.kind === 'forcedOutcome')
         .filter(e => { const d = e.data as { appliesToRound?: number } | undefined; return !d?.appliesToRound || d.appliesToRound === roundNumber; })
@@ -222,7 +230,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       let result: { winner: Side | 'draw'; playerDamage: number; botDamage: number; playerBaseDamage: number; botBaseDamage: number; playerElementAdvantage: ElementAdvantage; botElementAdvantage: ElementAdvantage };
 
-      if (turinForcedLoss) {
+      if (absoluteDominanceEffect) {
+        // السيطرة المطلقة — أعلى أولوية، تتجاوز حتى تورين والنتائج المضمونة
+        result = { winner: absoluteDominanceEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
+      } else if (turinForcedLoss) {
         result = { winner: 'bot', playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
       } else if (forcedOutcomeEffect) {
         result = { winner: forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
@@ -444,6 +455,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               effectsToRemove.add(effect.id); break;
             }
             case 'elementalMastery' as any: {
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'absoluteDominance': {
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'phantomBlade': {
               effectsToRemove.add(effect.id); break;
             }
           }
@@ -937,6 +954,61 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           }];
           break;
         }
+        case 'AbsoluteDominance': {
+          // السيطرة المطلقة — فوز مضمون بأعلى أولوية (200)
+          nextEffects = [...nextEffects, {
+            id: makeEffectId('AbsoluteDominance', side, roundNumber),
+            kind: 'absoluteDominance',
+            sourceSide: side,
+            targetSide: side,
+            createdAtRound: roundNumber,
+            expiresAtRound: roundNumber,
+            charges: 1,
+            priority: 200, // أعلى من أي تأثير آخر
+            data: { appliesToRound: roundNumber }
+          }];
+          break;
+        }
+        case 'InfinityLoop': {
+          // الحلقة الأبدية — إعادة آخر 3 جولات
+          const rewindCount = Math.min(3, state.roundResults.length);
+          if (rewindCount > 0) {
+            const rewindedResults = state.roundResults.slice(0, -rewindCount);
+            // حساب النتيجة الجديدة بعد الإرجاع
+            let newPlayerScore = state.playerDeck.length;
+            let newBotScore = state.playerDeck.length;
+            for (const rr of rewindedResults) {
+              if (rr.winner === 'player') newBotScore -= 1;
+              else if (rr.winner === 'bot') newPlayerScore -= 1;
+            }
+            nextState = {
+              ...nextState,
+              currentRound: Math.max(0, state.currentRound - rewindCount),
+              roundResults: rewindedResults,
+              playerScore: Math.max(0, newPlayerScore),
+              botScore: Math.max(0, newBotScore),
+            };
+          }
+          break;
+        }
+        case 'PhantomBlade': {
+          // شفرة الوهم — هجوم مضاعف هذه الجولة
+          const currentCard = side === 'player' ? state.playerDeck[state.currentRound] : state.botDeck[state.currentRound];
+          if (currentCard) {
+            nextEffects = [...nextEffects, {
+              id: makeEffectId('PhantomBlade', side, roundNumber),
+              kind: 'phantomBlade',
+              sourceSide: side,
+              targetSide: side,
+              createdAtRound: roundNumber,
+              expiresAtRound: roundNumber,
+              charges: 1,
+              priority: EFFECT_PRIORITY.statModifiers,
+              data: { stat: 'attack', amount: currentCard.attack }
+            }];
+          }
+          break;
+        }
         default: break;
       }
 
@@ -1014,6 +1086,7 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [rarityWeights, setRarityWeights] = useState<RarityWeights>(DEFAULT_RARITY_WEIGHTS);
+  const { showToast } = useEffectToast();
 
   useEffect(() => {
     loadRarityWeights().then(setRarityWeights);
@@ -1065,7 +1138,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const useAbility = useCallback((abilityType: AbilityType, data?: Record<string, unknown>, isPlayer: boolean = true) => {
     dispatch({ type: 'USE_ABILITY', payload: { abilityType, isPlayer, data } });
-  }, []);
+    try {
+      const detail = ABILITY_DETAILS[abilityType];
+      const catConfig = detail ? CATEGORY_CONFIG[detail.category] : null;
+      const abilityName = getAbilityNameOnly(abilityType);
+      if (detail) {
+        showToast({
+          title: `${catConfig?.emoji ?? '✨'} ${abilityName}`,
+          subtitle: detail.effectAr,
+          target: isPlayer ? 'player' : 'bot',
+          kind: detail.category === 'buff' ? 'buff' : detail.category === 'debuff' ? 'debuff' : 'info',
+          duration: 2800,
+        });
+      }
+    } catch (e) {
+      console.warn('Toast trigger error in useAbility:', e);
+    }
+  }, [showToast]);
 
   // ── derived state ──
   const isGameOver = useMemo(() =>

@@ -14,7 +14,8 @@ export const ALL_ABILITIES: AbilityType[] = [
   'Sniping', 'Merge', 'DoubleNextCards', 'Deprivation', 'Greed',
   'Dilemma', 'Subhan', 'Propaganda', 'DoubleYourBuffs', 'Avatar',
   'Penetration', 'Pool', 'Conversion', 'Shield', 'SwapClass',
-  'TakeIt', 'Skip', 'AddElement', 'Explosion', 'DoublePoints', 'ElementalMastery'
+  'TakeIt', 'Skip', 'AddElement', 'Explosion', 'DoublePoints', 'ElementalMastery',
+  'AbsoluteDominance', 'InfinityLoop', 'PhantomBlade'
 ];
 
 export const NAME_TO_ABILITY_TYPE: Record<string, AbilityType> = {
@@ -69,6 +70,9 @@ export const NAME_TO_ABILITY_TYPE: Record<string, AbilityType> = {
   'Cancel Ability': 'CancelAbility',
   'Elemental Mastery': 'ElementalMastery',
   'Deprivation (Ability)': 'Deprivation',
+  'Absolute Dominance': 'AbsoluteDominance',
+  'Infinity Loop': 'InfinityLoop',
+  'Phantom Blade': 'PhantomBlade',
 };
 
 let _disabledCache: Set<AbilityType> | null = null;

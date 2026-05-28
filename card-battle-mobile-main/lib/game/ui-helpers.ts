@@ -156,6 +156,7 @@ export function getEffectiveStats(
       case 'compensationBuff':  def = Math.max(0, def + 1);  break; // Compensation: +1 دفاع عند الخسارة
       case 'weakeningDebuff':   if (!isShielded) atk = Math.max(0, atk - 1);  break; // Weakening: -1 هجوم للخصم
       case 'explosionDebuff':   if (!isShielded) def = Math.max(0, def - 1);  break; // Explosion: -1 دفاع للخصم
+      case 'phantomBlade':       atk = Math.max(0, atk + (typeof data.amount === 'number' ? data.amount : 0));  break; // PhantomBlade: هجوم مضاعف
 
       default:
         break;

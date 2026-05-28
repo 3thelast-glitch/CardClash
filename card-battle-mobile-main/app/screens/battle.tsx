@@ -47,9 +47,12 @@ import { DamageNumber, DamageNumberVariant } from '@/components/game/damage-numb
 import { BattleResultOverlay } from '@/components/game/BattleResultOverlay';
 import { useLandscapeLayout, LAYOUT_PADDING, CARD_WIDTH_FACTOR } from '@/utils/layout';
 import { useGame } from '@/lib/game/game-context';
-import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass } from '@/lib/game/types';
-import { getAbilityNameAr, getAbilityDescription } from '@/lib/game/ability-names';
+import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass, AbilityType, ELEMENT_MULTIPLIER } from '@/lib/game/types';
+import { getElementAdvantage, applyElementalReactions } from '@/lib/game/cards-data-exports';
+import { getAbilityNameAr, getAbilityNameOnly, getAbilityDescription } from '@/lib/game/ability-names';
 import { AbilityCard } from '@/components/game/ability-card';
+import { EffectToast, useEffectToast } from '@/components/game/EffectToast';
+import { ABILITY_DETAILS, CATEGORY_CONFIG } from '@/lib/game/ability-details';
 import PredictionModal from '@/components/modals/PredictionModal';
 import PopularityModal from '@/components/modals/PopularityModal';
 import {
@@ -307,6 +310,7 @@ export default function BattleScreen() {
 
   // ✅ Step 1: تهيئة الـ hook — جاهز للربط في الخطوات القادمة
   const { settings } = useSettings();
+  const { showToast } = useEffectToast();
 
   // ✅ Step 2: helper يحترم إعداد الاهتزاز
   const hapticImpact = useCallback((style: Haptics.ImpactFeedbackStyle) => {
@@ -331,6 +335,7 @@ export default function BattleScreen() {
   } = useGame();
 
   const [phase, setPhase] = useState<BattlePhase>('selection');
+  const [isBattleFinished, setIsBattleFinished] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [showPlayerEffect, setShowPlayerEffect] = useState(false);
   const [showBotEffect, setShowBotEffect] = useState(false);
@@ -437,6 +442,7 @@ export default function BattleScreen() {
     if (currentPlayerCard && currentBotCard && phase === 'selection') {
       playerAnim.value = 0; botAnim.value = 0; vsOpacity.value = 0; resultOp.value = 0;
       setShowResult(false); setShowPlayerEffect(false); setShowBotEffect(false);
+      setIsBattleFinished(false);
       playerAnim.value = withDelay(80, withTiming(1, { duration: 280 }));
       botAnim.value = withDelay(240, withTiming(1, { duration: 280 }));
       vsOpacity.value = withDelay(440, withTiming(1, { duration: 200 }));
@@ -512,6 +518,14 @@ export default function BattleScreen() {
       nextRound();
     }
   }, [isGameOver, router, nextRound, hapticImpact]);
+
+  const handleEndBattle = useCallback(() => {
+    hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
+    setPhase('waiting');
+    setIsBattleFinished(true);
+    setShowResult(true);
+    resultOp.value = withTiming(1, { duration: 300 });
+  }, [hapticImpact]);
 
   const handleConfirmPrediction = useCallback(() => {
     useAbility(predictionAbilityType, { predictions: predictionSelections });
@@ -617,6 +631,31 @@ export default function BattleScreen() {
     try {
       updateBotMemory(lastRoundResult, undefined, state.botAbilities);
 
+      // Show toasts for passive effects that triggered this round
+      try {
+        const roundNumber = lastRoundResult.round;
+        state.activeEffects.forEach(effect => {
+          if (effect.createdAtRound === roundNumber) {
+            const prefix = effect.id.split('-')[0]; // e.g., "Greed"
+            if (['Greed', 'Reinforcement', 'Revenge', 'Compensation', 'Weakening', 'Explosion', 'ConsecutiveLossBuff'].includes(prefix)) {
+              const detail = ABILITY_DETAILS[prefix as AbilityType];
+              const catConfig = detail ? CATEGORY_CONFIG[detail.category] : null;
+              if (detail) {
+                showToast({
+                  title: `${catConfig?.emoji ?? '✨'} تفعيل: ${getAbilityNameOnly(prefix as AbilityType)}`,
+                  subtitle: detail.effectAr,
+                  target: effect.targetSide === 'player' ? 'player' : effect.targetSide === 'bot' ? 'bot' : 'all',
+                  kind: detail.category === 'buff' ? 'buff' : detail.category === 'debuff' ? 'debuff' : 'info',
+                  duration: 2800,
+                });
+              }
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Error displaying passive toasts:', e);
+      }
+
       setRoundHistory(prev => {
         if (prev.some(h => h.round === lastRoundResult.round)) return prev;
         return [...prev, { round: lastRoundResult.round, playerCard: lastRoundResult.playerCard, botCard: lastRoundResult.botCard, winner: lastRoundResult.winner }];
@@ -631,11 +670,9 @@ export default function BattleScreen() {
       isTransitioning.current = false;
     } finally {
       if (isGameOver) {
-        setShowResult(true); resultOp.value = withTiming(1, { duration: 300 });
         if (lastRoundResult.winner === 'player') hapticNotification(Haptics.NotificationFeedbackType.Success);
         else if (lastRoundResult.winner === 'bot') hapticNotification(Haptics.NotificationFeedbackType.Error);
         else hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
-        setPhase('waiting');
         isTransitioning.current = false;
       } else {
         hapticImpact(Haptics.ImpactFeedbackStyle.Light);
@@ -674,6 +711,35 @@ export default function BattleScreen() {
     ? getEffectiveStats(displayBotCard.attack, displayBotCard.defense, state.activeEffects, 'bot', displayBotCard.cardClass, displayPlayerCard, displayBotCard)
     : { attack: 0, defense: 0 };
 
+  const computedWinner = useMemo(() => {
+    if (!displayPlayerCard || !displayBotCard) return 'draw';
+
+    // 1. Copy stats with temporary and class modifiers
+    const pTemp = { attack: playerEffective.attack, defense: playerEffective.defense, element: displayPlayerCard.element };
+    const bTemp = { attack: botEffective.attack, defense: botEffective.defense, element: displayBotCard.element };
+
+    // 2. Apply elemental reactions
+    applyElementalReactions(pTemp, bTemp);
+    applyElementalReactions(bTemp, pTemp);
+
+    // 3. Apply elemental advantage multipliers
+    const playerHasMastery = state.activeEffects.some(e => e.kind === 'elementalMastery' as any && e.targetSide === 'player');
+    const botHasMastery = state.activeEffects.some(e => e.kind === 'elementalMastery' as any && e.targetSide === 'bot');
+    const playerAdv = playerHasMastery ? 'strong' : getElementAdvantage(displayPlayerCard.element, displayBotCard.element);
+    const botAdv = botHasMastery ? 'strong' : getElementAdvantage(displayBotCard.element, displayPlayerCard.element);
+
+    const playerFinalAtk = pTemp.attack * ELEMENT_MULTIPLIER[playerAdv];
+    const botFinalAtk = bTemp.attack * ELEMENT_MULTIPLIER[botAdv];
+
+    // Compute totals using formula: base attack + base defense + temporary modifiers + element/class modifiers
+    const playerTotal = playerFinalAtk + pTemp.defense;
+    const botTotal = botFinalAtk + bTemp.defense;
+
+    if (playerTotal > botTotal) return 'player';
+    if (botTotal > playerTotal) return 'bot';
+    return 'draw';
+  }, [displayPlayerCard, displayBotCard, playerEffective, botEffective, state.activeEffects]);
+
   const isPlayerStronger = playerEffective.attack >= botEffective.attack;
   const playerWonThisRound = !!lastRoundResult && lastRoundResult.winner === 'player';
   const maxScore = state.totalRounds;
@@ -682,7 +748,7 @@ export default function BattleScreen() {
   const canRageNow = isExpectedLoss && !!currentPlayerCard && shouldTriggerRage(currentPlayerCard, rageState.current);
 
   const CHOICE_ABILITIES = ['Propaganda', 'AddElement', 'SwapClass', 'Dilemma', 'Recall', 'Revive', 'Arise', 'Disaster', 'Merge', 'Sniping', 'Subhan'];
-  const DIRECT_ABILITIES = ['CancelAbility', 'Trap', 'DoubleOrNothing', 'Sacrifice', 'Pool', 'Skip'];
+  const DIRECT_ABILITIES = ['CancelAbility', 'Trap', 'DoubleOrNothing', 'Sacrifice', 'Pool', 'Skip', 'AbsoluteDominance', 'InfinityLoop', 'PhantomBlade'];
 
   if (!displayPlayerCard || !displayBotCard) {
     return (<View style={S.root}><View style={S.loadWrap}><Text style={S.loadText}>جاري تحميل الساحة...</Text></View></View>);
@@ -692,11 +758,12 @@ export default function BattleScreen() {
     <View style={S.root}>
       <StatusBar hidden />
       <View style={S.bgWrap}><LuxuryBackground /></View>
+      <EffectToast />
       <Animated.View style={[S.flashOverlay, flashStyle]} pointerEvents="none" />
 
       <SafeAreaView style={S.normalRoot}>
         <BattleResultOverlay
-          visible={showResult && phase === 'waiting'}
+          visible={showResult && phase === 'waiting' && isBattleFinished}
           winner={state.playerScore > state.botScore ? 'player' : state.botScore > state.playerScore ? 'bot' : 'draw'}
           playerScore={state.playerScore} botScore={state.botScore}
           onPlayAgain={() => { resetGame(); router.replace('/screens/rounds-config' as any); }}
@@ -767,9 +834,9 @@ export default function BattleScreen() {
                   effectiveAttack={playerEffective.attack}
                   effectiveDefense={playerEffective.defense}
                   winnerState={
-                    phase === 'result'
-                      ? (lastRoundResult?.winner === 'player' ? 'winner' : null)
-                      : (expectedRoundResult?.winner === 'player' ? 'leading' : null)
+                    computedWinner === 'player'
+                      ? (phase === 'result' ? 'winner' : 'leading')
+                      : null
                   }
                 />
               </Animated.View>
@@ -846,6 +913,12 @@ export default function BattleScreen() {
                   <Text style={S.nextBtnText}>التالي ▶</Text>
                 </TouchableOpacity>
               )}
+
+              {phase === 'result' && isGameOver && (
+                <TouchableOpacity style={S.endBattleBtn} onPress={handleEndBattle} activeOpacity={0.85}>
+                  <Text style={S.endBattleBtnText}>إنهاء المعركة 🏁</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* BOT PANEL */}
@@ -858,9 +931,9 @@ export default function BattleScreen() {
                   effectiveAttack={botEffective.attack}
                   effectiveDefense={botEffective.defense}
                   winnerState={
-                    phase === 'result'
-                      ? (lastRoundResult?.winner === 'bot' ? 'winner' : null)
-                      : (expectedRoundResult?.winner === 'bot' ? 'leading' : null)
+                    computedWinner === 'bot'
+                      ? (phase === 'result' ? 'winner' : 'leading')
+                      : null
                   }
                 />
               </Animated.View>
@@ -911,12 +984,16 @@ export default function BattleScreen() {
           <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[cm.box, { width: 340, maxHeight: '80%' }]}>
             <Text style={cm.title}>✨ قدراتك</Text>
             <ScrollView contentContainerStyle={{ gap: 8, padding: 4 }}>
-              {state.playerAbilities.map((ab, i) => (
+              {state.playerAbilities.map((ab, i) => {
+                const detail = ABILITY_DETAILS[ab.type];
+                const catConfig = detail ? CATEGORY_CONFIG[detail.category] : null;
+                return (
                 <TouchableOpacity
                   key={i}
                   style={[cm.option, ab.used && { opacity: 0.4 }]}
                   onPress={() => {
                     if (ab.used) return;
+                    const abilityName = getAbilityNameOnly(ab.type);
                     if (CHOICE_ABILITIES.includes(ab.type)) {
                       openChoiceModal(ab.type);
                     } else if (['LogicalEncounter', 'Eclipse', 'Trap', 'Pool'].includes(ab.type)) {
@@ -936,14 +1013,39 @@ export default function BattleScreen() {
                   disabled={ab.used}
                   activeOpacity={0.8}
                 >
+                  {/* Ability name */}
                   <Text style={[cm.optionText, ab.used && { color: '#64748b' }]}>
-                    {ab.used ? '✓ ' : ''}{getAbilityNameAr(ab.type)}
+                    {ab.used ? '✓ ' : ''}{getAbilityNameOnly(ab.type)}
                   </Text>
-                  <Text style={{ color: '#64748b', fontSize: 11, textAlign: 'center', marginTop: 2 }}>
-                    {getAbilityDescription(ab.type)}
+                  {/* Trigger + Duration badges */}
+                  {detail && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                      <View style={{ backgroundColor: (catConfig?.color ?? '#60a5fa') + '22', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: (catConfig?.color ?? '#60a5fa') + '44' }}>
+                        <Text style={{ color: catConfig?.color ?? '#60a5fa', fontSize: 9, fontWeight: '700' }}>{detail.triggerAr}</Text>
+                      </View>
+                      <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }}>
+                        <Text style={{ color: '#94a3b8', fontSize: 9 }}>⏱ {detail.durationAr}</Text>
+                      </View>
+                    </View>
+                  )}
+                  {/* Effect description */}
+                  <Text style={{ color: '#cbd5e1', fontSize: 10.5, textAlign: 'center', marginTop: 4, lineHeight: 15 }}>
+                    {detail?.effectAr ?? getAbilityDescription(ab.type)}
                   </Text>
+                  {/* Condition/cooldown warning */}
+                  {detail?.conditionAr && (
+                    <Text style={{ color: '#fbbf24', fontSize: 9, textAlign: 'center', marginTop: 3 }}>
+                      ⚙️ {detail.conditionAr}
+                    </Text>
+                  )}
+                  {detail?.cooldownAr && (
+                    <Text style={{ color: '#f87171', fontSize: 9, textAlign: 'center', marginTop: 2 }}>
+                      🔒 {detail.cooldownAr}
+                    </Text>
+                  )}
                 </TouchableOpacity>
-              ))}
+                );
+              })}
             </ScrollView>
             <TouchableOpacity style={cm.cancel} onPress={() => setIsAbilitiesModalOpen(false)}>
               <Text style={cm.cancelText}>إلغاء</Text>
@@ -1038,4 +1140,6 @@ const S = StyleSheet.create({
   rageBtnText: { color: '#fed7aa', fontSize: FONT.xs, fontWeight: '800', letterSpacing: 1 },
   nextBtn: { backgroundColor: 'rgba(228,165,42,0.2)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderWidth: 1, borderColor: 'rgba(228,165,42,0.5)' },
   nextBtnText: { color: COLOR.gold, fontSize: FONT.sm, fontWeight: '700' },
+  endBattleBtn: { backgroundColor: 'rgba(228,165,42,0.3)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderWidth: 1.5, borderColor: COLOR.gold },
+  endBattleBtnText: { color: COLOR.gold, fontSize: FONT.sm, fontWeight: '700' },
 });

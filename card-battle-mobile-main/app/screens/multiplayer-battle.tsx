@@ -59,6 +59,7 @@ export default function MultiplayerBattleScreen() {
   const [oppCardRevealed, setOppCardRevealed] = useState(false);
   const [disconnected, setDisconnected] = useState(false);
   const [isPlayer1, setIsPlayer1] = useState(true);
+  const [endBattleClicked, setEndBattleClicked] = useState(false);
 
   // ─── Animations ─────────────────────────────────────────────────────────────
   const myCardAnim = useSharedValue(0);
@@ -88,6 +89,7 @@ export default function MultiplayerBattleScreen() {
       setMyScore(iAmP1 ? p1Score : p2Score);
       setOppScore(iAmP1 ? p2Score : p1Score);
       setCurrentRound(0);
+      setEndBattleClicked(false);
       setPhase('selection');
       enterCards();
     }));
@@ -121,7 +123,12 @@ export default function MultiplayerBattleScreen() {
 
     unsubs.push(mpClient.on('GAME_OVER', (msg: MPMessage) => {
       setGameOver(msg.payload);
-      setPhase('game_over');
+      setPhase(curr => {
+        if (curr === 'result') {
+          return curr;
+        }
+        return 'game_over';
+      });
     }));
 
     unsubs.push(mpClient.on('OPPONENT_DISCONNECTED', () => {
@@ -137,6 +144,21 @@ export default function MultiplayerBattleScreen() {
 
     return () => unsubs.forEach(u => u());
   }, [params.playerId, isPlayer1, enterCards]);
+
+  useEffect(() => {
+    if (gameOver && endBattleClicked) {
+      setPhase('game_over');
+    }
+  }, [gameOver, endBattleClicked]);
+
+  const handleEndMPBattle = useCallback(() => {
+    setEndBattleClicked(true);
+    if (gameOver) {
+      setPhase('game_over');
+    } else {
+      Alert.alert('⌛ في انتظار نتيجة المعركة', 'ننتظر استلام النتيجة النهائية من السيرفر...');
+    }
+  }, [gameOver]);
 
   // ─── الكرت الحالي ────────────────────────────────────────────────────────────
   const myCurrentCard = myCards[currentRound];
@@ -260,9 +282,14 @@ export default function MultiplayerBattleScreen() {
               <Text style={S.btnText}>⌛ ننتظر الخصم...</Text>
             </View>
           )}
-          {phase === 'result' && (
+          {phase === 'result' && currentRound < totalRounds - 1 && (
             <TouchableOpacity style={[S.btn, S.btnNext]} onPress={handleNext} activeOpacity={0.85}>
               <Text style={S.btnText}>▶️ التالي</Text>
+            </TouchableOpacity>
+          )}
+          {phase === 'result' && currentRound === totalRounds - 1 && (
+            <TouchableOpacity style={[S.btn, S.btnEndBattle]} onPress={handleEndMPBattle} activeOpacity={0.85}>
+              <Text style={S.btnText}>🏁 إنهاء المعركة</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -321,6 +348,7 @@ const S = StyleSheet.create({
   btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: SPACE.xl, borderWidth: 1.5 },
   btnAttack: { backgroundColor: 'rgba(74,222,128,0.12)', borderColor: '#4ade80' },
   btnNext: { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: '#60a5fa' },
+  btnEndBattle: { backgroundColor: 'rgba(228,165,42,0.12)', borderColor: COLOR.gold },
   btnWait: { backgroundColor: 'rgba(71,85,105,0.2)', borderColor: '#475569' },
   btnHome: { backgroundColor: 'rgba(228,165,42,0.12)', borderColor: COLOR.gold, marginTop: SPACE.lg },
   btnIcon: { fontSize: 16 },

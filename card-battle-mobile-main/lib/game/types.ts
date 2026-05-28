@@ -143,7 +143,10 @@ export type AbilityType =
   | 'Explosion'
   | 'DoublePoints'
   | 'ElementalMastery'
-  | 'LoseHalfRounds'; // ← Turin: تخسر نصف الجولات الأولى إجباريًا
+  | 'LoseHalfRounds' // ← Turin: تخسر نصف الجولات الأولى إجباريًا
+  | 'AbsoluteDominance'
+  | 'InfinityLoop'
+  | 'PhantomBlade';
 
 export type Side = 'player' | 'bot';
 
@@ -174,7 +177,9 @@ export type EffectKind =
   | 'takeIt'
   | 'deprivation'
   | 'pool'
-  | 'turinPenalty'; // ✅ Turin: جولات الخسارة الإجبارية
+  | 'turinPenalty' // ✅ Turin: جولات الخسارة الإجبارية
+  | 'absoluteDominance'
+  | 'phantomBlade';
 
 export interface Effect {
   id: string;

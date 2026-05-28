@@ -49,6 +49,8 @@ const KIND_INFO: Record<EffectKind, { label: string; emoji: string; color: strin
   deprivation: { label: 'حرمان', emoji: '\u274c', color: '#f87171' },
   pool: { label: 'تجميع النقاط', emoji: '\u{1F3B1}', color: '#06b6d4' },
   turinPenalty: { label: 'عقوبة تورين', emoji: '📉', color: '#f87171' },
+  absoluteDominance: { label: 'سيطرة مطلقة', emoji: '👑', color: '#e879f9' },
+  phantomBlade: { label: 'شفرة الوهم', emoji: '⚔️', color: '#c084fc' },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────
