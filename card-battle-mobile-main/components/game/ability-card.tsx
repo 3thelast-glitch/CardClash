@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, ImageBackground, TouchableOpacity,
+    View, Text, StyleSheet, ImageBackground, TouchableOpacity, ScrollView,
 } from 'react-native';
 import { ThemedText } from '@/components/ui/ThemedText';
 import * as LucideIcons from 'lucide-react-native';
@@ -25,6 +25,7 @@ interface Props {
     ability: AbilityData;
     showActionButtons?: boolean;
     onToggleDisabled?: (nowDisabled: boolean) => void;
+    style?: any;
 }
 
 const CARD_W = 220;
@@ -101,30 +102,30 @@ const BLACK_GLOW       = '#000000';
 const BLACK_GLOW_RADIUS = 28;
 const BLACK_GLOW_PEAK   = 0.85;
 
-function CornerOrnament({ color }: { color: string }) {
-    return <View style={[styles.cornerDiamond, { borderColor: color + 'BB' }]} />;
+function CornerOrnament({ color, size = 8 }: { color: string; size?: number }) {
+    return <View style={[styles.cornerDiamond, { borderColor: color + 'BB', width: size, height: size }]} />;
 }
 
-function StarRow({ count, color }: { count: number; color: string }) {
+function StarRow({ count, color, size = 8 }: { count: number; color: string; size?: number }) {
     return (
         <View style={styles.starRow}>
             {Array.from({ length: 4 }).map((_, i) => (
-                <Text key={i} style={[styles.star, { color: i < count ? color : color + '30' }]}>★</Text>
+                <Text key={i} style={[styles.star, { color: i < count ? color : color + '30', fontSize: size }]}>★</Text>
             ))}
         </View>
     );
 }
 
-function ShimmerSweep({ color }: { color: string }) {
-    const translateX = useSharedValue(-CARD_W);
+function ShimmerSweep({ color, cardWidth }: { color: string; cardWidth: number }) {
+    const translateX = useSharedValue(-cardWidth);
     useEffect(() => {
         translateX.value = withRepeat(
             withSequence(
-                withTiming(CARD_W * 1.5, { duration: 1600, easing: Easing.inOut(Easing.quad) }),
-                withTiming(-CARD_W, { duration: 0 }),
+                withTiming(cardWidth * 1.5, { duration: 1600, easing: Easing.inOut(Easing.quad) }),
+                withTiming(-cardWidth, { duration: 0 }),
             ), -1,
         );
-    }, []);
+    }, [cardWidth]);
     const style = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
     return (
         <Animated.View style={[StyleSheet.absoluteFill, style, { overflow: 'hidden', zIndex: 8 }]}>
@@ -134,7 +135,7 @@ function ShimmerSweep({ color }: { color: string }) {
 }
 
 // ─── Main Component ─────────────────────────────────────────────────────────────────
-export function AbilityCard({ ability, showActionButtons = true, onToggleDisabled }: Props) {
+export function AbilityCard({ ability, showActionButtons = true, onToggleDisabled, style }: Props) {
     const IconComponent = ability.icon;
     const [localRarity, setLocalRarity] = useState(ability.rarity);
     const [isDisabled, setIsDisabled] = useState(ability.isActive === false);
@@ -170,8 +171,8 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
         const base = peak * 0.4;
         glowOpacity.value = withRepeat(
             withSequence(
-                withTiming(peak, { duration: isLegendaryOrSpecial ? 1100 : 1800, easing: Easing.inOut(Easing.sin) }),
-                withTiming(base, { duration: isLegendaryOrSpecial ? 1100 : 1800, easing: Easing.inOut(Easing.sin) }),
+                withTiming(peak, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
+                withTiming(base, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
             ), -1, true,
         );
     }, [localRarity]);
@@ -180,6 +181,40 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
 
     const warningText = (ability as any).descriptionWarning as string | undefined;
 
+    // Viewport-aware responsive calculation
+    const flattenedStyle = StyleSheet.flatten(style) || {};
+    const actualWidth = (flattenedStyle.width as number) || CARD_W;
+    const actualHeight = (flattenedStyle.height as number) || CARD_H;
+    const scaleFactor = Math.min(1, actualHeight / CARD_H);
+
+    // Responsive styling properties
+    const bottomBarHeight = Math.max(24, Math.round(38 * scaleFactor));
+    const iconCircleSize = Math.max(16, Math.round(22 * scaleFactor));
+    const iconSize = Math.max(8, Math.round(12 * scaleFactor));
+    const nameEnSize = Math.max(7, Math.round(10 * scaleFactor));
+    const nameArSize = Math.max(9, Math.round(Math.min(theme.titleSize, 15) * scaleFactor));
+    const dividerMargin = Math.max(2, Math.round(6 * scaleFactor));
+    const descSize = Math.max(8, Math.round(9.5 * scaleFactor));
+    const descLineHeight = Math.round(descSize * 1.35);
+    const warningSize = Math.max(7, Math.round(8.5 * scaleFactor));
+    const warningLineHeight = Math.round(warningSize * 1.35);
+    const starSize = Math.max(5, Math.round(8 * scaleFactor));
+    const bottomRarityLabelSize = Math.max(6, Math.round(8 * scaleFactor));
+    const infoPaddingV = Math.max(2, Math.round(8 * scaleFactor));
+    const infoPaddingH = Math.max(4, Math.round(12 * scaleFactor));
+    const rarityTextSize = Math.max(5.5, Math.round(7 * scaleFactor));
+    const rarityBadgePaddingV = Math.max(1.5, Math.round(2 * scaleFactor));
+    const rarityBadgePaddingH = Math.max(3.5, Math.round(6 * scaleFactor));
+    const rarityBadgeRadius = Math.max(4, Math.round(8 * scaleFactor));
+    const cornerDiamondSize = Math.max(5, Math.round(8 * scaleFactor));
+    const cornerPos = Math.max(4, Math.round(8 * scaleFactor));
+    const badgeDevTop = Math.max(6, Math.round(10 * scaleFactor));
+    const devBtnSize = Math.max(16, Math.round(22 * scaleFactor));
+
+    // Dynamic section flex ratios
+    const artworkFlex = actualHeight < 200 ? 0.8 : 1.1;
+    const infoFlex = actualHeight < 200 ? 1.2 : 1;
+
     return (
         <Animated.View
             style={[
@@ -187,100 +222,155 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
                 {
                     shadowColor:  BLACK_GLOW,
                     shadowRadius: BLACK_GLOW_RADIUS,
-                    shadowOffset: { width: 0, height: 6 },
+                    shadowOffset: { width: 0, height: Math.max(2, Math.round(6 * scaleFactor)) },
+                    width: actualWidth,
+                    height: actualHeight,
                 },
                 animatedGlow,
                 isDisabled && { opacity: 0.45 },
+                style,
             ]}
         >
             <View style={[
                 styles.cardContainer,
                 { borderColor: theme.border, borderWidth: theme.borderWidth },
             ]}>
-                {/* 1. Artwork */}
-                <ImageBackground source={imageSource} style={StyleSheet.absoluteFill} imageStyle={styles.artImage} resizeMode="cover">
-                    <View style={[StyleSheet.absoluteFill, styles.blackOverlay]} />
-                    {isLegendaryOrSpecial && <View style={[
-                        styles.legendaryEdgeGlow,
-                        { borderColor: theme.primary + '44' },
-                    ]} />}
-                </ImageBackground>
+                {/* Section 1: Artwork (Top portion) */}
+                <View style={[styles.artworkSection, { flex: artworkFlex }]}>
+                    <ImageBackground source={imageSource} style={StyleSheet.absoluteFill} imageStyle={styles.artImage} resizeMode="cover">
+                        <View style={[StyleSheet.absoluteFill, styles.blackOverlay]} />
+                        {isLegendaryOrSpecial && <View style={[
+                            styles.legendaryEdgeGlow,
+                            { borderColor: theme.primary + '44' },
+                        ]} />}
+                    </ImageBackground>
 
-                {/* 2. Shimmer */}
-                {theme.shimmer && <ShimmerSweep color={theme.primary} />}
+                    {/* Shimmer sweep */}
+                    {theme.shimmer && <ShimmerSweep color={theme.primary} cardWidth={actualWidth} />}
 
-                {/* 3. Corner ornaments */}
+                    {/* Rarity badge */}
+                    <View style={[
+                        styles.rarityBadge,
+                        {
+                            backgroundColor: theme.badgeBg,
+                            borderColor: theme.border,
+                            paddingVertical: rarityBadgePaddingV,
+                            paddingHorizontal: rarityBadgePaddingH,
+                            borderRadius: rarityBadgeRadius,
+                            top: badgeDevTop,
+                            right: badgeDevTop,
+                        }
+                    ]}>
+                        <Text style={[styles.rarityText, { color: theme.primary, fontSize: rarityTextSize }]}>{theme.label}</Text>
+                    </View>
+
+                    {/* Dev / Production controls */}
+                    {showActionButtons && (
+                        <View style={[styles.devControls, { top: badgeDevTop, left: badgeDevTop }]}>
+                            <TouchableOpacity
+                                onPress={handleTogglePower}
+                                style={[
+                                    styles.devBtn,
+                                    { width: devBtnSize, height: devBtnSize, borderRadius: devBtnSize / 2 },
+                                    isDisabled && { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.5)' }
+                                ]}
+                            >
+                                <LucideIcons.Power size={iconSize - 2} color={isDisabled ? '#ef4444' : '#fff'} />
+                            </TouchableOpacity>
+                            {__DEV__ && (
+                                <TouchableOpacity
+                                    onPress={cycleRarity}
+                                    style={[styles.devBtn, { width: devBtnSize, height: devBtnSize, borderRadius: devBtnSize / 2 }]}
+                                >
+                                    <LucideIcons.RefreshCw size={iconSize - 2} color="#38bdf8" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
+                </View>
+
+                {/* Section 2: Info Panel (Middle portion) */}
+                <View style={[
+                    styles.infoSection,
+                    {
+                        borderColor: theme.primary + '15',
+                        paddingVertical: infoPaddingV,
+                        paddingHorizontal: infoPaddingH,
+                        flex: infoFlex,
+                    }
+                ]}>
+                    <Text style={[styles.nameEn, { fontSize: nameEnSize }]} numberOfLines={1}>{ability.nameEn}</Text>
+                    <Text style={[styles.nameAr, { textShadowColor: theme.glow, fontSize: nameArSize }]} numberOfLines={1}>
+                        {ability.nameAr}
+                    </Text>
+                    <View style={[styles.divider, { backgroundColor: theme.primary + '44', marginVertical: dividerMargin }]} />
+                    
+                    <ScrollView 
+                        style={styles.descriptionScroll} 
+                        contentContainerStyle={styles.descriptionScrollContent}
+                        nestedScrollEnabled
+                    >
+                        <Text style={[styles.description, { fontSize: descSize, lineHeight: descLineHeight }]}>
+                            {ability.description}
+                        </Text>
+                        {warningText ? (
+                            <Text style={[styles.descriptionWarning, { fontSize: warningSize, lineHeight: warningLineHeight }]}>
+                                {warningText}
+                            </Text>
+                        ) : null}
+                    </ScrollView>
+                </View>
+
+                {/* Section 3: Bottom Bar (Bottom portion) */}
+                <View style={[styles.bottomBar, { borderTopColor: theme.border, height: bottomBarHeight }]}>
+                    <View style={[
+                        styles.iconCircle,
+                        {
+                            backgroundColor: theme.primary + '33',
+                            borderColor: theme.primary + '88',
+                            width: iconCircleSize,
+                            height: iconCircleSize,
+                            borderRadius: iconCircleSize / 2,
+                        }
+                    ]}>
+                        {IconComponent ? <IconComponent size={iconSize} color={theme.primary} strokeWidth={2} /> : null}
+                    </View>
+                    <StarRow count={theme.stars} color={theme.primary} size={starSize} />
+                    <Text style={[styles.bottomRarityLabel, { color: theme.primary + 'CC', fontSize: bottomRarityLabelSize }]}>{localRarity}</Text>
+                </View>
+
+                {/* Corner ornaments */}
                 {theme.cornerOrnament && (
                     <>
-                        <View style={styles.cornerTL}><CornerOrnament color={theme.primary} /></View>
-                        <View style={styles.cornerTR}><CornerOrnament color={theme.primary} /></View>
-                        <View style={styles.cornerBL}><CornerOrnament color={theme.primary} /></View>
-                        <View style={styles.cornerBR}><CornerOrnament color={theme.primary} /></View>
+                        <View style={{ position: 'absolute', top: cornerPos, left: cornerPos, zIndex: 18 }}>
+                            <CornerOrnament color={theme.primary} size={cornerDiamondSize} />
+                        </View>
+                        <View style={{ position: 'absolute', top: cornerPos, right: cornerPos, zIndex: 18 }}>
+                            <CornerOrnament color={theme.primary} size={cornerDiamondSize} />
+                        </View>
+                        <View style={{ position: 'absolute', bottom: bottomBarHeight + cornerPos - 2, left: cornerPos, zIndex: 18 }}>
+                            <CornerOrnament color={theme.primary} size={cornerDiamondSize} />
+                        </View>
+                        <View style={{ position: 'absolute', bottom: bottomBarHeight + cornerPos - 2, right: cornerPos, zIndex: 18 }}>
+                            <CornerOrnament color={theme.primary} size={cornerDiamondSize} />
+                        </View>
                     </>
                 )}
 
-                {/* 4. Dev / Production controls */}
-                {showActionButtons && __DEV__ && (
-                    <View style={styles.devControls}>
-                        <TouchableOpacity
-                            onPress={handleTogglePower}
-                            style={[styles.devBtn, isDisabled && { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.5)' }]}
-                        >
-                            <LucideIcons.Power size={10} color={isDisabled ? '#ef4444' : '#fff'} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={cycleRarity} style={styles.devBtn}>
-                            <LucideIcons.RefreshCw size={10} color="#38bdf8" />
-                        </TouchableOpacity>
-                    </View>
-                )}
-                {showActionButtons && !__DEV__ && (
-                    <View style={styles.devControls}>
-                        <TouchableOpacity
-                            onPress={handleTogglePower}
-                            style={[styles.devBtn, isDisabled && { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.5)' }]}
-                        >
-                            <LucideIcons.Power size={10} color={isDisabled ? '#ef4444' : '#fff'} />
-                        </TouchableOpacity>
-                    </View>
-                )}
-
-                {/* 5. Disabled overlay */}
+                {/* Disabled overlay */}
                 {isDisabled && (
                     <View style={styles.disabledOverlay}>
-                        <View style={styles.disabledStamp}>
-                            <ThemedText style={styles.disabledText}>DEACTIVATED</ThemedText>
+                        <View style={[
+                            styles.disabledStamp,
+                            {
+                                paddingHorizontal: Math.max(6, Math.round(12 * scaleFactor)),
+                                paddingVertical: Math.max(2, Math.round(4 * scaleFactor)),
+                            }
+                        ]}>
+                            <ThemedText style={[styles.disabledText, { fontSize: Math.max(6.5, Math.round(9 * scaleFactor)) }]}>DEACTIVATED</ThemedText>
                         </View>
                     </View>
                 )}
-
-                {/* 6. Rarity badge */}
-                <View style={[styles.rarityBadge, { backgroundColor: theme.badgeBg, borderColor: theme.border }]}>
-                    <Text style={[styles.rarityText, { color: theme.primary }]}>{theme.label}</Text>
-                </View>
-
-                {/* 7. Title panel */}
-                <View style={styles.titlePanel}>
-                    <View style={[styles.titlePanelInner, { borderColor: theme.primary + '22' }]}>
-                        <Text style={styles.nameEn} numberOfLines={1}>{ability.nameEn}</Text>
-                        <Text style={[styles.nameAr, { textShadowColor: theme.glow, fontSize: theme.titleSize }]} numberOfLines={1}>
-                            {ability.nameAr}
-                        </Text>
-                        <View style={[styles.divider, { backgroundColor: theme.primary + '66' }]} />
-                        <Text style={styles.description} numberOfLines={3}>{ability.description}</Text>
-                        {warningText ? (
-                            <Text style={styles.descriptionWarning} numberOfLines={3}>{warningText}</Text>
-                        ) : null}
-                    </View>
-                </View>
-
-                {/* 8. Bottom bar */}
-                <View style={[styles.bottomBar, { borderTopColor: theme.border }]}>
-                    <View style={[styles.iconCircle, { backgroundColor: theme.primary + '33', borderColor: theme.primary + '88' }]}>
-                        {IconComponent ? <IconComponent size={14} color={theme.primary} strokeWidth={2} /> : null}
-                    </View>
-                    <StarRow count={theme.stars} color={theme.primary} />
-                    <Text style={[styles.bottomRarityLabel, { color: theme.primary + 'CC' }]}>{localRarity}</Text>
-                </View>
             </View>
         </Animated.View>
     );
@@ -288,33 +378,42 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
 
 const styles = StyleSheet.create({
     outerShell:        { width: CARD_W, height: CARD_H, shadowOffset: { width: 0, height: 6 }, elevation: 18 },
-    cardContainer:     { flex: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: '#000000' },
-    artImage:          { borderRadius: 20 },
-    blackOverlay:      { backgroundColor: 'rgba(0,0,0,0.62)', borderRadius: 20 },
-    legendaryEdgeGlow: { ...StyleSheet.absoluteFillObject, borderWidth: 2, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 22, elevation: 10 },
+    cardContainer:     { flex: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: '#090d16', flexDirection: 'column' },
+    artworkSection:    { flex: 1.1, position: 'relative', overflow: 'hidden', backgroundColor: '#000' },
+    artImage:          { borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+    blackOverlay:      { backgroundColor: 'rgba(0,0,0,0.40)' },
+    legendaryEdgeGlow: { ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 12, elevation: 5 },
     shimmerStreak:     { position: 'absolute', top: 0, bottom: 0, width: 28, backgroundColor: 'rgba(255,255,255,0.04)', borderLeftWidth: 1, borderRightWidth: 1, transform: [{ skewX: '-18deg' }] },
+    
     cornerTL:          { position: 'absolute', top: 8,    left: 8,  zIndex: 18 },
     cornerTR:          { position: 'absolute', top: 8,    right: 8, zIndex: 18 },
     cornerBL:          { position: 'absolute', bottom: 44, left: 8,  zIndex: 18 },
     cornerBR:          { position: 'absolute', bottom: 44, right: 8, zIndex: 18 },
     cornerDiamond:     { width: 8, height: 8, borderWidth: 1.5, transform: [{ rotate: '45deg' }] },
-    devControls:       { position: 'absolute', top: 36, left: 10, zIndex: 50, flexDirection: 'row', gap: 4 },
-    devBtn:            { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-    disabledOverlay:   { ...StyleSheet.absoluteFillObject, zIndex: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
-    disabledStamp:     { backgroundColor: 'rgba(220,38,38,0.9)', paddingHorizontal: 14, paddingVertical: 5, borderRadius: 8, borderWidth: 2, borderColor: '#f87171', transform: [{ rotate: '-12deg' }] },
-    disabledText:      { color: '#fff', fontWeight: '900', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase' },
-    rarityBadge:       { position: 'absolute', top: 10, right: 10, zIndex: 20, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1 },
-    rarityText:        { fontSize: 8, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase' },
-    titlePanel:        { position: 'absolute', bottom: 50, left: 12, right: 12, zIndex: 15 },
-    titlePanelInner:   { backgroundColor: 'rgba(0,0,0,0.82)', borderRadius: 14, borderWidth: 1, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.9, shadowRadius: 10, elevation: 6 },
-    nameEn:            { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
-    nameAr:            { color: '#FFD700', fontWeight: '900', textAlign: 'center', marginTop: 3, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8, letterSpacing: 0.5 },
-    divider:           { width: 36, height: 1.5, borderRadius: 1, marginVertical: 8 },
-    description:       { color: 'rgba(203,213,225,0.85)', fontSize: 10, fontWeight: '500', textAlign: 'center', lineHeight: 15, writingDirection: 'rtl' },
-    descriptionWarning:{ color: '#ef4444', fontSize: 9, fontWeight: '700', textAlign: 'center', lineHeight: 14, marginTop: 5, writingDirection: 'rtl' },
-    bottomBar:         { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 15, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.90)', borderTopWidth: 1, paddingVertical: 7, paddingHorizontal: 10, gap: 6 },
-    iconCircle:        { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-    starRow:           { flex: 1, flexDirection: 'row', gap: 2 },
-    star:              { fontSize: 10 },
-    bottomRarityLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
+    
+    devControls:       { position: 'absolute', top: 10, left: 10, zIndex: 50, flexDirection: 'row', gap: 4 },
+    devBtn:            { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    
+    disabledOverlay:   { ...StyleSheet.absoluteFillObject, zIndex: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+    disabledStamp:     { backgroundColor: 'rgba(220,38,38,0.95)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6, borderWidth: 1.5, borderColor: '#f87171', transform: [{ rotate: '-12deg' }] },
+    disabledText:      { color: '#fff', fontWeight: '900', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase' },
+    
+    rarityBadge:       { position: 'absolute', top: 10, right: 10, zIndex: 20, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 1 },
+    rarityText:        { fontSize: 7, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
+    
+    infoSection:       { flex: 1, backgroundColor: 'rgba(10,15,30,0.92)', paddingVertical: 8, paddingHorizontal: 12, alignItems: 'center', borderTopWidth: 1 },
+    nameEn:            { color: '#cbd5e1', fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center', opacity: 0.8 },
+    nameAr:            { color: '#FFD700', fontWeight: '900', textAlign: 'center', marginTop: 1, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 6, letterSpacing: 0.5 },
+    divider:           { width: 24, height: 1, borderRadius: 0.5, marginVertical: 6 },
+    
+    descriptionScroll: { flex: 1, width: '100%' },
+    descriptionScrollContent: { alignItems: 'center', paddingBottom: 4 },
+    description:       { color: 'rgba(226,232,240,0.9)', fontSize: 9.5, fontWeight: '500', textAlign: 'center', lineHeight: 13, writingDirection: 'rtl' },
+    descriptionWarning:{ color: '#f87171', fontSize: 8.5, fontWeight: '600', textAlign: 'center', lineHeight: 12, marginTop: 4, writingDirection: 'rtl' },
+    
+    bottomBar:         { height: 38, flexDirection: 'row', alignItems: 'center', backgroundColor: '#060a12', borderTopWidth: 1, paddingHorizontal: 10, gap: 6 },
+    iconCircle:        { width: 22, height: 22, borderRadius: 11, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    starRow:           { flex: 1, flexDirection: 'row', gap: 1.5 },
+    star:              { fontSize: 8 },
+    bottomRarityLabel: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
 });

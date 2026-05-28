@@ -51,7 +51,9 @@ import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass, AbilityType, ELEME
 import { getElementAdvantage, applyElementalReactions } from '@/lib/game/cards-data-exports';
 import { getAbilityNameAr, getAbilityNameOnly, getAbilityDescription } from '@/lib/game/ability-names';
 import { AbilityCard } from '@/components/game/ability-card';
+import { abilities as ALL_ABILITIES } from '@/data/abilities';
 import { EffectToast, useEffectToast } from '@/components/game/EffectToast';
+import { AbilityActivationOverlay } from '@/components/game/AbilityActivationOverlay';
 import { ABILITY_DETAILS, CATEGORY_CONFIG } from '@/lib/game/ability-details';
 import PredictionModal from '@/components/modals/PredictionModal';
 import PopularityModal from '@/components/modals/PopularityModal';
@@ -307,6 +309,16 @@ export default function BattleScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height, isLandscape, size } = useLandscapeLayout();
+
+  // Dynamic scaling parameters for the abilities modal:
+  const modalAvailableH = height * 0.95 - 100; // safe area margin for modal padding, title, cancel button
+  const modalAbilityCardH = Math.max(140, Math.min(240, modalAvailableH));
+  const modalAbilityCardW = Math.round(modalAbilityCardH * (160 / 240));
+
+  const modalPadding = height < 400 ? 10 : 16;
+  const modalGap = height < 400 ? 8 : 16;
+  const modalTitleMargin = height < 400 ? 6 : 16;
+  const modalCancelMargin = height < 400 ? 6 : 16;
 
   // ✅ Step 1: تهيئة الـ hook — جاهز للربط في الخطوات القادمة
   const { settings } = useSettings();
@@ -712,36 +724,13 @@ export default function BattleScreen() {
     : { attack: 0, defense: 0 };
 
   const computedWinner = useMemo(() => {
-    if (!displayPlayerCard || !displayBotCard) return 'draw';
+    if (phase === 'result' && lastRoundResult) {
+      return lastRoundResult.winner;
+    }
+    return expectedRoundResult?.winner ?? 'draw';
+  }, [phase, lastRoundResult, expectedRoundResult]);
 
-    // 1. Copy stats with temporary and class modifiers
-    const pTemp = { attack: playerEffective.attack, defense: playerEffective.defense, element: displayPlayerCard.element };
-    const bTemp = { attack: botEffective.attack, defense: botEffective.defense, element: displayBotCard.element };
 
-    // 2. Apply elemental reactions
-    applyElementalReactions(pTemp, bTemp);
-    applyElementalReactions(bTemp, pTemp);
-
-    // 3. Apply elemental advantage multipliers
-    const playerHasMastery = state.activeEffects.some(e => e.kind === 'elementalMastery' as any && e.targetSide === 'player');
-    const botHasMastery = state.activeEffects.some(e => e.kind === 'elementalMastery' as any && e.targetSide === 'bot');
-    const playerAdv = playerHasMastery ? 'strong' : getElementAdvantage(displayPlayerCard.element, displayBotCard.element);
-    const botAdv = botHasMastery ? 'strong' : getElementAdvantage(displayBotCard.element, displayPlayerCard.element);
-
-    const playerFinalAtk = pTemp.attack * ELEMENT_MULTIPLIER[playerAdv];
-    const botFinalAtk = bTemp.attack * ELEMENT_MULTIPLIER[botAdv];
-
-    // Compute totals using formula: base attack + base defense + temporary modifiers + element/class modifiers
-    const playerTotal = playerFinalAtk + pTemp.defense;
-    const botTotal = botFinalAtk + bTemp.defense;
-
-    if (playerTotal > botTotal) return 'player';
-    if (botTotal > playerTotal) return 'bot';
-    return 'draw';
-  }, [displayPlayerCard, displayBotCard, playerEffective, botEffective, state.activeEffects]);
-
-  const isPlayerStronger = playerEffective.attack >= botEffective.attack;
-  const playerWonThisRound = !!lastRoundResult && lastRoundResult.winner === 'player';
   const maxScore = state.totalRounds;
 
   const isExpectedLoss = expectedRoundResult?.winner === 'bot';
@@ -759,6 +748,7 @@ export default function BattleScreen() {
       <StatusBar hidden />
       <View style={S.bgWrap}><LuxuryBackground /></View>
       <EffectToast />
+      <AbilityActivationOverlay />
       <Animated.View style={[S.flashOverlay, flashStyle]} pointerEvents="none" />
 
       <SafeAreaView style={S.normalRoot}>
@@ -981,73 +971,63 @@ export default function BattleScreen() {
       {/* ── Abilities Modal ── */}
       <Modal visible={isAbilitiesModalOpen} transparent animationType="slide" onRequestClose={() => setIsAbilitiesModalOpen(false)}>
         <TouchableOpacity style={cm.overlay} activeOpacity={1} onPress={() => setIsAbilitiesModalOpen(false)}>
-          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[cm.box, { width: 340, maxHeight: '80%' }]}>
-            <Text style={cm.title}>✨ قدراتك</Text>
-            <ScrollView contentContainerStyle={{ gap: 8, padding: 4 }}>
+          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[S.abilitiesBox, { padding: modalPadding }]}>
+            <Text style={[cm.title, { marginBottom: modalTitleMargin }]}>✨ قدراتك</Text>
+            <ScrollView 
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ flexDirection: 'row', gap: modalGap, paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center' }}
+            >
               {state.playerAbilities.map((ab, i) => {
-                const detail = ABILITY_DETAILS[ab.type];
-                const catConfig = detail ? CATEGORY_CONFIG[detail.category] : null;
+                const match = ALL_ABILITIES.find(
+                  a => a.nameEn.replace(/\s+/g, '').toLowerCase() === ab.type.replace(/\s+/g, '').toLowerCase()
+                );
+                const abilityData = {
+                  id: ab.type,
+                  nameEn: match?.nameEn ?? getAbilityNameOnly(ab.type),
+                  nameAr: match?.nameAr ?? getAbilityNameAr(ab.type),
+                  description: match?.description ?? getAbilityDescription(ab.type),
+                  descriptionWarning: match?.descriptionWarning,
+                  rarity: match?.rarity ?? 'Common',
+                  icon: match?.icon,
+                  isActive: !ab.used,
+                };
+
                 return (
-                <TouchableOpacity
-                  key={i}
-                  style={[cm.option, ab.used && { opacity: 0.4 }]}
-                  onPress={() => {
-                    if (ab.used) return;
-                    const abilityName = getAbilityNameOnly(ab.type);
-                    if (CHOICE_ABILITIES.includes(ab.type)) {
-                      openChoiceModal(ab.type);
-                    } else if (['LogicalEncounter', 'Eclipse', 'Trap', 'Pool'].includes(ab.type)) {
-                      setPredictionAbilityType(ab.type as any);
-                      setShowPredictionModal(true);
-                      setIsAbilitiesModalOpen(false);
-                    } else if (['Popularity', 'Rescue', 'Penetration'].includes(ab.type)) {
-                      setPopularityAbilityType(ab.type as any);
-                      setShowPopularityModal(true);
-                      setIsAbilitiesModalOpen(false);
-                    } else {
-                      useAbility(ab.type, {});
-                      setIsAbilitiesModalOpen(false);
-                      hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-                    }
-                  }}
-                  disabled={ab.used}
-                  activeOpacity={0.8}
-                >
-                  {/* Ability name */}
-                  <Text style={[cm.optionText, ab.used && { color: '#64748b' }]}>
-                    {ab.used ? '✓ ' : ''}{getAbilityNameOnly(ab.type)}
-                  </Text>
-                  {/* Trigger + Duration badges */}
-                  {detail && (
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                      <View style={{ backgroundColor: (catConfig?.color ?? '#60a5fa') + '22', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: (catConfig?.color ?? '#60a5fa') + '44' }}>
-                        <Text style={{ color: catConfig?.color ?? '#60a5fa', fontSize: 9, fontWeight: '700' }}>{detail.triggerAr}</Text>
-                      </View>
-                      <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }}>
-                        <Text style={{ color: '#94a3b8', fontSize: 9 }}>⏱ {detail.durationAr}</Text>
-                      </View>
-                    </View>
-                  )}
-                  {/* Effect description */}
-                  <Text style={{ color: '#cbd5e1', fontSize: 10.5, textAlign: 'center', marginTop: 4, lineHeight: 15 }}>
-                    {detail?.effectAr ?? getAbilityDescription(ab.type)}
-                  </Text>
-                  {/* Condition/cooldown warning */}
-                  {detail?.conditionAr && (
-                    <Text style={{ color: '#fbbf24', fontSize: 9, textAlign: 'center', marginTop: 3 }}>
-                      ⚙️ {detail.conditionAr}
-                    </Text>
-                  )}
-                  {detail?.cooldownAr && (
-                    <Text style={{ color: '#f87171', fontSize: 9, textAlign: 'center', marginTop: 2 }}>
-                      🔒 {detail.cooldownAr}
-                    </Text>
-                  )}
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    key={i}
+                    style={{ opacity: ab.used ? 0.45 : 1 }}
+                    onPress={() => {
+                      if (ab.used) return;
+                      if (CHOICE_ABILITIES.includes(ab.type)) {
+                        openChoiceModal(ab.type);
+                      } else if (['LogicalEncounter', 'Eclipse', 'Trap', 'Pool'].includes(ab.type)) {
+                        setPredictionAbilityType(ab.type as any);
+                        setShowPredictionModal(true);
+                        setIsAbilitiesModalOpen(false);
+                      } else if (['Popularity', 'Rescue', 'Penetration'].includes(ab.type)) {
+                        setPopularityAbilityType(ab.type as any);
+                        setShowPopularityModal(true);
+                        setIsAbilitiesModalOpen(false);
+                      } else {
+                        useAbility(ab.type, {});
+                        setIsAbilitiesModalOpen(false);
+                        hapticImpact(Haptics.ImpactFeedbackStyle.Light);
+                      }
+                    }}
+                    disabled={ab.used}
+                    activeOpacity={0.8}
+                  >
+                    <AbilityCard
+                      ability={abilityData}
+                      showActionButtons={false}
+                      style={{ width: modalAbilityCardW, height: modalAbilityCardH }}
+                    />
+                  </TouchableOpacity>
                 );
               })}
             </ScrollView>
-            <TouchableOpacity style={cm.cancel} onPress={() => setIsAbilitiesModalOpen(false)}>
+            <TouchableOpacity style={[cm.cancel, { marginTop: modalCancelMargin }]} onPress={() => setIsAbilitiesModalOpen(false)}>
               <Text style={cm.cancelText}>إلغاء</Text>
             </TouchableOpacity>
           </TouchableOpacity>
@@ -1120,7 +1100,7 @@ const S = StyleSheet.create({
   arena: { flex: 1, gap: SPACE.sm },
   playerPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
   botPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
-  centerPanel: { width: 90, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
+  centerPanel: { width: 120, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
   panelLabel: { color: '#64748b', fontSize: FONT.xs, letterSpacing: 0.5 },
 
   vsText: { fontSize: 28, opacity: 0.85 },
@@ -1130,16 +1110,93 @@ const S = StyleSheet.create({
   resultLose: { color: '#f87171' },
   resultDraw: { color: '#fbbf24' },
 
-  actionButtons: { gap: SPACE.sm, alignItems: 'center' },
-  abilityBtn: { backgroundColor: 'rgba(139,92,246,0.25)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderWidth: 1, borderColor: 'rgba(139,92,246,0.5)' },
+  actionButtons: { gap: SPACE.sm, alignItems: 'center', width: '100%' },
+  abilityBtn: { 
+    width: 110, 
+    height: 44, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(139,92,246,0.18)', 
+    borderRadius: RADIUS.md, 
+    borderWidth: 1.5, 
+    borderColor: 'rgba(139,92,246,0.5)',
+    shadowColor: '#8b5cf6',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
   abilityBtnDisabled: { opacity: 0.35 },
-  abilityBtnText: { color: '#c4b5fd', fontSize: FONT.xs, fontWeight: '700' },
-  attackBtn: { backgroundColor: 'rgba(239,68,68,0.25)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.md, borderWidth: 1, borderColor: 'rgba(239,68,68,0.6)' },
-  attackBtnText: { color: '#fca5a5', fontSize: FONT.sm, fontWeight: '800', letterSpacing: 0.5 },
-  rageBtn: { backgroundColor: 'rgba(251,146,60,0.3)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderWidth: 1, borderColor: 'rgba(251,146,60,0.7)' },
-  rageBtnText: { color: '#fed7aa', fontSize: FONT.xs, fontWeight: '800', letterSpacing: 1 },
-  nextBtn: { backgroundColor: 'rgba(228,165,42,0.2)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderWidth: 1, borderColor: 'rgba(228,165,42,0.5)' },
-  nextBtnText: { color: COLOR.gold, fontSize: FONT.sm, fontWeight: '700' },
-  endBattleBtn: { backgroundColor: 'rgba(228,165,42,0.3)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderWidth: 1.5, borderColor: COLOR.gold },
-  endBattleBtnText: { color: COLOR.gold, fontSize: FONT.sm, fontWeight: '700' },
+  abilityBtnText: { color: '#c4b5fd', fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  attackBtn: { 
+    width: 110, 
+    height: 44, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(239,68,68,0.18)', 
+    borderRadius: RADIUS.md, 
+    borderWidth: 1.5, 
+    borderColor: 'rgba(239,68,68,0.6)',
+    shadowColor: '#ef4444',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  attackBtnText: { color: '#fca5a5', fontSize: 13, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },
+  rageBtn: { 
+    width: 110, 
+    height: 44, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(251,146,60,0.22)', 
+    borderRadius: RADIUS.md, 
+    borderWidth: 1.5, 
+    borderColor: 'rgba(251,146,60,0.7)',
+    shadowColor: '#fb923c',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  rageBtnText: { color: '#fed7aa', fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },
+  nextBtn: { 
+    width: 110, 
+    height: 44, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(228,165,42,0.18)', 
+    borderRadius: RADIUS.md, 
+    borderWidth: 1.5, 
+    borderColor: 'rgba(228,165,42,0.5)',
+    shadowColor: COLOR.gold,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  nextBtnText: { color: COLOR.gold, fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  endBattleBtn: { 
+    width: 110, 
+    height: 44, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(228,165,42,0.25)', 
+    borderRadius: RADIUS.md, 
+    borderWidth: 1.5, 
+    borderColor: COLOR.gold,
+    shadowColor: COLOR.gold,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  endBattleBtnText: { color: COLOR.gold, fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  abilitiesBox: {
+    width: '90%',
+    maxWidth: 620,
+    maxHeight: '90%',
+    backgroundColor: 'rgba(10,16,32,0.96)',
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: 'rgba(228,165,42,0.3)',
+    padding: 16,
+    alignSelf: 'center',
+    justifyContent: 'center',
+  },
 });

@@ -7,6 +7,7 @@ import { determineRoundWinner } from './cards-data-exports';
 import { getBotCards } from './bot-ai';
 import { applyOnSpawnPassive, applyPostBattlePassive } from './rage-engine';
 import { useEffectToast } from '../../components/game/EffectToast';
+import { useAbilityActivationOverlay } from '../../components/game/AbilityActivationOverlay';
 import { ABILITY_DETAILS, CATEGORY_CONFIG } from './ability-details';
 import { getAbilityNameOnly } from './ability-names';
 
@@ -1087,6 +1088,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [rarityWeights, setRarityWeights] = useState<RarityWeights>(DEFAULT_RARITY_WEIGHTS);
   const { showToast } = useEffectToast();
+  const { showAbilityCard } = useAbilityActivationOverlay();
 
   useEffect(() => {
     loadRarityWeights().then(setRarityWeights);
@@ -1140,21 +1142,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'USE_ABILITY', payload: { abilityType, isPlayer, data } });
     try {
       const detail = ABILITY_DETAILS[abilityType];
-      const catConfig = detail ? CATEGORY_CONFIG[detail.category] : null;
-      const abilityName = getAbilityNameOnly(abilityType);
       if (detail) {
-        showToast({
-          title: `${catConfig?.emoji ?? '✨'} ${abilityName}`,
-          subtitle: detail.effectAr,
+        showAbilityCard({
+          abilityType,
           target: isPlayer ? 'player' : 'bot',
-          kind: detail.category === 'buff' ? 'buff' : detail.category === 'debuff' ? 'debuff' : 'info',
-          duration: 2800,
+          duration: 3200,
         });
       }
     } catch (e) {
-      console.warn('Toast trigger error in useAbility:', e);
+      console.warn('Ability card overlay trigger error in useAbility:', e);
     }
-  }, [showToast]);
+  }, [showAbilityCard]);
 
   // ── derived state ──
   const isGameOver = useMemo(() =>
@@ -1182,13 +1180,35 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const botCard = state.botDeck[state.currentRound];
     if (!playerCard || !botCard) return null;
     const roundNumber = state.currentRound + 1;
-    const activeEffects = state.activeEffects.filter(e => isEffectActive(e, roundNumber));
+    const activeEffects = state.abilitiesEnabled
+      ? state.activeEffects.filter(e => isEffectActive(e, roundNumber))
+      : [];
     const playerEffects = activeEffects.filter(e => e.targetSide === 'player' || e.targetSide === 'all');
     const botEffects = activeEffects.filter(e => e.targetSide === 'bot' || e.targetSide === 'all');
+
+    // Mirror the exact same resolution order as PLAY_ROUND:
+    // 1. absoluteDominance (highest priority — overrides everything)
+    const absoluteDominanceEffect = activeEffects
+      .filter(e => e.kind === 'absoluteDominance')
+      .filter(e => { const d = e.data as { appliesToRound?: number } | undefined; return !d?.appliesToRound || d.appliesToRound === roundNumber; })
+      .sort((a, b) => b.priority - a.priority)[0];
+
+    // 2. turinForcedLoss
     const turinForcedLoss = isTurinForcedLoss(state.currentRound, state.totalRounds, state.playerDeck);
+
+    // 3. forcedOutcome (Popularity / Sniping / Skip)
+    const forcedOutcomeEffect = activeEffects
+      .filter(e => e.kind === 'forcedOutcome')
+      .filter(e => { const d = e.data as { appliesToRound?: number } | undefined; return !d?.appliesToRound || d.appliesToRound === roundNumber; })
+      .sort((a, b) => b.priority - a.priority || b.createdAtRound - a.createdAtRound)[0];
+
     let winner: Side | 'draw';
-    if (turinForcedLoss) {
+    if (absoluteDominanceEffect) {
+      winner = absoluteDominanceEffect.sourceSide;
+    } else if (turinForcedLoss) {
       winner = 'bot';
+    } else if (forcedOutcomeEffect) {
+      winner = forcedOutcomeEffect.sourceSide;
     } else {
       const r = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
       winner = r.winner;

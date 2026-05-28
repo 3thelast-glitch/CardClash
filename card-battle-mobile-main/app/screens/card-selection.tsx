@@ -111,7 +111,17 @@ interface CardRound { card: Card; round: number | null; }
 // ───────────────────────────────────────────────────────────────────────
 export default function CardSelectionScreen() {
   const router = useRouter();
-  const { width, isLandscape, size } = useLandscapeLayout();
+  const { width, height, isLandscape, size } = useLandscapeLayout();
+
+  // Dynamic scaling parameters for the abilities modal in card selection:
+  const selModalH = height * 0.95 - 100;
+  const selCardH = Math.max(140, Math.min(240, selModalH));
+  const selCardW = Math.round(selCardH * (160 / 240));
+
+  const modalPadding = height < 400 ? 10 : 20;
+  const modalGap = height < 400 ? 8 : 12;
+  const modalHeaderMargin = height < 400 ? 8 : 16;
+
   const game = useGame();
   const { state, rarityWeights } = game;
 
@@ -343,14 +353,14 @@ export default function CardSelectionScreen() {
       {/* Modal: القدرات */}
       <Modal visible={isAbilitiesModalOpen} transparent animationType="fade" onRequestClose={() => setIsAbilitiesModalOpen(false)}>
         <TouchableOpacity style={styles.abilitiesModalOverlay} activeOpacity={1} onPress={() => setIsAbilitiesModalOpen(false)}>
-          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={styles.abilitiesModalContent}>
-            <View style={styles.abilitiesModalHeader}>
+          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[styles.abilitiesModalContent, { padding: modalPadding }]}>
+            <View style={[styles.abilitiesModalHeader, { marginBottom: modalHeaderMargin }]}>
               <Text style={styles.abilitiesModalTitle}>قدراتك لهذه الجلسة ⚡</Text>
               <TouchableOpacity onPress={() => setIsAbilitiesModalOpen(false)} style={{ padding: 4 }}>
                 <Text style={{ color: '#94a3b8', fontSize: 20 }}>✕</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 8, paddingVertical: 8 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: modalGap, paddingHorizontal: 8, paddingVertical: 8 }}>
               {assignedAbilities.length > 0 ? (
                 assignedAbilities.map((abilityType, index) => {
                   const data = resolveAbilityData(abilityType);
@@ -359,6 +369,7 @@ export default function CardSelectionScreen() {
                       key={index}
                       ability={{ id: index, nameEn: data.nameEn, nameAr: data.nameAr, description: data.description, icon: data.icon, rarity: data.rarity ?? 'Common', isActive: true }}
                       showActionButtons={false}
+                      style={{ width: selCardW, height: selCardH }}
                     />
                   );
                 })
