@@ -1,4 +1,5 @@
 import { randomBytes } from 'crypto';
+import { isValidInviteCode, normalizeInviteCode } from '../../lib/multiplayer/invites';
 
 export interface Player {
   id: string;
@@ -117,8 +118,12 @@ export class RoomManager {
     return roomId;
   }
 
-  createRoom(player: Player): Room {
-    const roomId = this.generateRoomId();
+  createRoom(player: Player, requestedInviteCode?: string): Room | null {
+    const roomId = requestedInviteCode
+      ? normalizeInviteCode(requestedInviteCode)
+      : this.generateRoomId();
+
+    if (!isValidInviteCode(roomId) || this.rooms.has(roomId)) return null;
     const now = new Date();
     const room: Room = {
       id: roomId,
