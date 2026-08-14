@@ -55,6 +55,7 @@ interface MultiplayerState {
   rankedProfile: RankedProfile;
   isRankedMatch: boolean;
   opponentRating: number | null;
+  lastError: string | null;
   matchmaking: {
     status: 'idle' | 'searching' | 'matched';
     position: number | null;
@@ -86,6 +87,7 @@ type MultiplayerAction =
   | { type: 'SET_RANK_PROFILE'; payload: RankedProfile }
   | { type: 'SET_MATCHMAKING_QUEUE'; payload: { position: number | null; searchRange: number | null } }
   | { type: 'SET_MATCH_FOUND'; payload: { roomId: string; isHost: boolean; opponentId: string; opponentName: string; opponentRating: number } }
+  | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'CLEAR_MATCHMAKING' }
   | { type: 'RESET' };
 
@@ -117,6 +119,7 @@ const initialState: MultiplayerState = {
   rankedProfile: DEFAULT_RANKED_PROFILE,
   isRankedMatch: false,
   opponentRating: null,
+  lastError: null,
   matchmaking: { status: 'idle', position: null, searchRange: null },
 };
 
@@ -125,7 +128,7 @@ const initialState: MultiplayerState = {
 function multiplayerReducer(state: MultiplayerState, action: MultiplayerAction): MultiplayerState {
   switch (action.type) {
     case 'SET_CONNECTED': return { ...state, isConnected: action.payload };
-    case 'SET_ROOM': return { ...state, roomId: action.payload.roomId, isHost: action.payload.isHost, status: 'waiting', matchmaking: { status: 'idle', position: null, searchRange: null } };
+    case 'SET_ROOM': return { ...state, roomId: action.payload.roomId, isHost: action.payload.isHost, status: 'waiting', lastError: null, matchmaking: { status: 'idle', position: null, searchRange: null } };
     case 'SET_OPPONENT': return { ...state, opponentId: action.payload.opponentId, opponentName: action.payload.opponentName };
     case 'SET_PLAYER_READY': return { ...state, isPlayerReady: action.payload };
     case 'SET_PLAYER_NAME': return { ...state, playerName: action.payload };
@@ -134,7 +137,7 @@ function multiplayerReducer(state: MultiplayerState, action: MultiplayerAction):
     case 'SET_PENDING_MATCH_SETTINGS': return { ...state, pendingMatchSettings: action.payload };
     case 'SET_OPPONENT_ARRANGEMENT_READY': return { ...state, opponentArrangementReady: true };
     case 'SET_RANK_PROFILE': return { ...state, rankedProfile: action.payload };
-    case 'SET_MATCHMAKING_QUEUE': return { ...state, matchmaking: { status: 'searching', position: action.payload.position, searchRange: action.payload.searchRange } };
+    case 'SET_MATCHMAKING_QUEUE': return { ...state, lastError: null, matchmaking: { status: 'searching', position: action.payload.position, searchRange: action.payload.searchRange } };
     case 'SET_MATCH_FOUND': return {
       ...state,
       roomId: action.payload.roomId,
@@ -144,9 +147,11 @@ function multiplayerReducer(state: MultiplayerState, action: MultiplayerAction):
       opponentRating: action.payload.opponentRating,
       isRankedMatch: true,
       status: 'waiting',
+      lastError: null,
       matchmaking: { status: 'matched', position: null, searchRange: null },
     };
     case 'CLEAR_MATCHMAKING': return { ...state, matchmaking: { status: 'idle', position: null, searchRange: null } };
+    case 'SET_ERROR': return { ...state, lastError: action.payload };
     case 'START_BATTLE': {
       const { totalRounds, p1Score, p2Score, isHost, p1Cards, p2Cards } = action.payload;
       return { ...state, status: 'playing', currentRound: 0, totalRounds, playerScore: isHost ? p1Score : p2Score, opponentScore: isHost ? p2Score : p1Score, playerCards: isHost ? p1Cards : p2Cards, opponentCards: isHost ? p2Cards : p1Cards, opponentRevealedThisRound: false, lastRoundResult: null, opponentArrangementReady: false };
@@ -179,7 +184,7 @@ interface MultiplayerContextType {
   wsClient: typeof mpClient | null;
   connect: () => Promise<void>;
   disconnect: () => void;
-  createRoom: (playerName: string) => void;
+  createRoom: (playerName: string, inviteCode?: string) => void;
   joinRoom: (roomId: string, playerName: string) => void;
   leaveRoom: () => void;
   setPlayerCards: (cards: Card[], rounds: number) => void;
@@ -343,8 +348,11 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
         dispatch({ type: 'SET_CONNECTED', payload: true });
         break;
       case 'PLAYER_LEFT':
+        console.warn('[Multiplayer]', type, payload);
+        break;
       case 'ERROR':
         console.warn('[Multiplayer]', type, payload);
+        dispatch({ type: 'SET_ERROR', payload: payload.error ?? payload.message ?? 'تعذر إتمام طلب اللعب الجماعي' });
         break;
     }
   }, []);
@@ -377,14 +385,16 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
 
   // ─── Actions ───────────────────────────────────────────────────────────────
 
-  const createRoom = useCallback((playerName: string) => {
+  const createRoom = useCallback((playerName: string, inviteCode?: string) => {
     dispatch({ type: 'SET_PLAYER_NAME', payload: playerName });
     dispatch({ type: 'SET_PLAYER_READY', payload: false });
-    send({ type: 'CREATE_ROOM', payload: { playerId: state.playerId, playerName } });
+    dispatch({ type: 'SET_ERROR', payload: null });
+    send({ type: 'CREATE_ROOM', payload: { playerId: state.playerId, playerName, inviteCode } });
   }, [state.playerId, send]);
 
   const joinRoom = useCallback((roomId: string, playerName: string) => {
     dispatch({ type: 'SET_PLAYER_NAME', payload: playerName });
+    dispatch({ type: 'SET_ERROR', payload: null });
     send({ type: 'JOIN_ROOM', payload: { roomId, playerId: state.playerId, playerName } });
   }, [state.playerId, send]);
 
