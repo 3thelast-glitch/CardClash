@@ -77,10 +77,22 @@ export class MultiplayerWebSocketServer {
   }
 
   // ─── Create Room ────────────────────────────────────────────────────────────────────────
-  private handleCreateRoom(ws: WebSocket, payload: { playerId: string; playerName: string }, setPlayerId: (id: string) => void) {
-    const { playerId, playerName } = payload;
+  private handleCreateRoom(ws: WebSocket, payload: { playerId: string; playerName: string; inviteCode?: string }, setPlayerId: (id: string) => void) {
+    const { playerId, playerName, inviteCode } = payload;
+    if (!playerId || !playerName) {
+      this.sendError(ws, 'playerId and playerName are required');
+      return;
+    }
+    if (roomManager.getPlayerRoom(playerId)) {
+      this.sendError(ws, 'Leave the current room before creating a new one');
+      return;
+    }
     const player: Player = { id: playerId, name: playerName, socketId: playerId, isReady: false };
-    const room = roomManager.createRoom(player);
+    const room = roomManager.createRoom(player, inviteCode);
+    if (!room) {
+      this.sendError(ws, inviteCode ? 'Invite code is invalid or already in use' : 'Unable to create room');
+      return;
+    }
     this.clients.set(playerId, ws);
     setPlayerId(playerId);
     this.send(ws, { type: 'ROOM_CREATED', payload: { roomId: room.id, playerId } });
@@ -146,6 +158,10 @@ export class MultiplayerWebSocketServer {
     }
 
     const room = roomManager.createRoom(match.host);
+    if (!room) {
+      this.sendError(ws, 'Unable to create ranked room');
+      return;
+    }
     roomManager.joinRoom(room.id, match.guest);
     const matchPayload = {
       roomId: room.id,
