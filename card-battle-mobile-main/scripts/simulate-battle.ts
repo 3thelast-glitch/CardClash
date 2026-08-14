@@ -8,7 +8,7 @@
  *   npx tsx scripts/simulate-battle.ts --list
  */
 
-import { allCards } from '../lib/game/cards-data-exports';
+import { ALL_CARDS as allCards } from '../lib/game/cards-data-exports';
 import {
   resolveBattle,
   buildRageState,
