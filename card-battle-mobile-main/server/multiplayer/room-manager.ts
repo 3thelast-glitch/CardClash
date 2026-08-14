@@ -5,6 +5,8 @@ export interface Player {
   name: string;
   socketId: string;
   isReady: boolean;
+  rating?: number;
+  tier?: string;
   cards?: any[];
   rounds?: number;
 }
