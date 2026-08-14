@@ -38,7 +38,7 @@ export function eloTier(rating: number): string {
   if (rating >= 2000) return '👑 Legend';
   if (rating >= 1600) return '💎 Diamond';
   if (rating >= 1300) return '🥇 Gold';
-  if (rating >= 1100) return '🥈 Silver';
-  if (rating >= 900)  return '🥉 Bronze';
+  if (rating >= 1200) return '🥈 Silver';
+  if (rating >= 1100) return '🥉 Bronze';
   return '⚔️ Iron';
 }
