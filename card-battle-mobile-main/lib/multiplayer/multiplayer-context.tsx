@@ -168,15 +168,24 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
   });
   const wsClientRef = useRef<typeof mpClient | null>(null);
   const graceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const unsubscribeMessageRef = useRef<(() => void) | null>(null);
+  const unsubscribeStatusRef = useRef<(() => void) | null>(null);
   const [pendingBattleStart, setPendingBattleStart] = React.useState<any>(null);
 
   const connect = useCallback(async () => {
     if (wsClientRef.current?.isConnected()) return;
-    
-    wsClientRef.current = mpClient;
-    wsClientRef.current.onAny(handleMessageWithBattle);
+
+    const client = mpClient;
+    unsubscribeMessageRef.current?.();
+    unsubscribeStatusRef.current?.();
+    unsubscribeMessageRef.current = client.onAny(handleMessageWithBattle);
+    unsubscribeStatusRef.current = client.onStatus((status) => {
+      dispatch({ type: 'SET_CONNECTED', payload: status === 'connected' });
+    });
+    wsClientRef.current = client;
+
     try {
-      await wsClientRef.current.connect();
+      await client.connect();
       dispatch({ type: 'SET_CONNECTED', payload: true });
     } catch {
       dispatch({ type: 'SET_CONNECTED', payload: false });
@@ -185,6 +194,10 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const disconnect = useCallback(() => {
+    unsubscribeMessageRef.current?.();
+    unsubscribeStatusRef.current?.();
+    unsubscribeMessageRef.current = null;
+    unsubscribeStatusRef.current = null;
     wsClientRef.current?.disconnect();
     wsClientRef.current = null;
     dispatch({ type: 'SET_CONNECTED', payload: false });
@@ -272,10 +285,6 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
     });
     setPendingBattleStart(null);
   }, [pendingBattleStart]);
-
-  useEffect(() => {
-    if (wsClientRef.current) wsClientRef.current.onAny(handleMessageWithBattle);
-  }, [handleMessageWithBattle]);
 
   useEffect(() => {
     return () => { disconnect(); if (graceTimerRef.current) clearInterval(graceTimerRef.current); };
