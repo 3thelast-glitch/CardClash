@@ -28,6 +28,11 @@ export type MPMessageType =
   | 'LEAVE_ROOM'
   | 'MATCH_SETTINGS_RECEIVED'
   | 'OPPONENT_ARRANGEMENT_READY'
+  | 'MATCHMAKING_QUEUED'
+  | 'MATCHMAKING_CANCELLED'
+  | 'MATCH_FOUND'
+  | 'QUEUE_MATCHMAKING'
+  | 'CANCEL_MATCHMAKING'
   | 'PING';
 
 export interface MPMessage<TPayload = any> {
@@ -242,6 +247,15 @@ export class MultiplayerClient {
     return this.send('CREATE_ROOM', { playerId, playerName });
   }
 
+  queueRankedMatch(playerId: string, playerName: string, rating: number): boolean {
+    this.pendingPlayerId = playerId;
+    return this.send('QUEUE_MATCHMAKING', { playerId, playerName, rating });
+  }
+
+  cancelMatchmaking(playerId: string): boolean {
+    return this.send('CANCEL_MATCHMAKING', { playerId });
+  }
+
   joinRoom(roomId: string, playerId: string, playerName: string): boolean {
     this.pendingPlayerId = playerId;
     return this.send('JOIN_ROOM', { roomId: roomId.trim().toUpperCase(), playerId, playerName });
@@ -335,6 +349,11 @@ export class MultiplayerClient {
     }
 
     if (message.type === 'ROOM_JOINED') {
+      const roomId = readString(message.payload, 'roomId');
+      if (roomId && this.pendingPlayerId) this.session = { roomId, playerId: this.pendingPlayerId };
+    }
+
+    if (message.type === 'MATCH_FOUND') {
       const roomId = readString(message.payload, 'roomId');
       if (roomId && this.pendingPlayerId) this.session = { roomId, playerId: this.pendingPlayerId };
     }
