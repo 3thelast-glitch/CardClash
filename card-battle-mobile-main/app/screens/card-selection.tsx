@@ -145,6 +145,8 @@ export default function CardSelectionScreen() {
   const mp = useSafeMultiplayer();
   const isMultiplayer = !!mp?.state?.roomId;
   const opponentArrangementReady = mp?.state?.opponentArrangementReady ?? false;
+  const isRankedMatch = mp?.state?.isRankedMatch ?? false;
+  const playerReady = mp?.state?.isPlayerReady ?? false;
 
   useEffect(() => {
     getDisabledAbilityIds().then(disabledIds => {
@@ -289,6 +291,20 @@ export default function CardSelectionScreen() {
           </View>
         </View>
 
+        {isMultiplayer && (
+          <View style={[styles.readyPanel, isRankedMatch && styles.rankedReadyPanel]}>
+            <View style={styles.readyPanelTitleRow}>
+              <Text style={styles.readyPanelTitle}>{isRankedMatch ? '⚔️ تجهيز مباراة تنافسية' : '🎴 تجهيز مباراة جماعية'}</Text>
+              {isRankedMatch && <Text style={styles.readyPanelRank}>ELO {mp?.state?.rankedProfile?.rating ?? 1000}</Text>}
+            </View>
+            <View style={styles.readyStepsRow}>
+              <ReadyStep label="رتّب بطاقاتك" done={allAssigned} />
+              <ReadyStep label="تأكيد تشكيلتك" done={playerReady} />
+              <ReadyStep label="جاهزية الخصم" done={opponentArrangementReady} />
+            </View>
+          </View>
+        )}
+
         <FlatList
           data={cardRounds}
           renderItem={renderCardItem}
@@ -305,7 +321,12 @@ export default function CardSelectionScreen() {
           {isMultiplayer && waitingForOpponent && !opponentArrangementReady && (
             <View style={styles.waitingBanner}>
               <ActivityIndicator size="small" color="#d4af37" />
-              <Text style={styles.waitingBannerText}>أرسلت كروتك — انتظار الخصم ليرتّب كروته...</Text>
+              <Text style={styles.waitingBannerText}>تم تثبيت تشكيلتك — انتظار الخصم ليؤكد بطاقاته...</Text>
+            </View>
+          )}
+          {isMultiplayer && waitingForOpponent && opponentArrangementReady && (
+            <View style={[styles.waitingBanner, styles.allReadyBanner]}>
+              <Text style={styles.waitingBannerText}>✓ تم تأكيد التشكيلتين — جارٍ افتتاح المعركة</Text>
             </View>
           )}
           <ProButton
@@ -384,6 +405,15 @@ export default function CardSelectionScreen() {
   );
 }
 
+function ReadyStep({ label, done }: { label: string; done: boolean }) {
+  return (
+    <View style={styles.readyStep}>
+      <View style={[styles.readyDot, done && styles.readyDotDone]}><Text style={styles.readyDotText}>{done ? '✓' : '•'}</Text></View>
+      <Text style={[styles.readyStepText, done && styles.readyStepTextDone]}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   bgWrapper: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 },
   container: { flex: 1, zIndex: 1 },
@@ -403,6 +433,18 @@ const styles = StyleSheet.create({
   abilitiesBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   shuffleBtn: { width: 36, height: 36, borderRadius: RADIUS.md, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   shuffleBtnText: { fontSize: 18 },
+  readyPanel: { marginHorizontal: SPACE.md, marginTop: SPACE.sm, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, backgroundColor: 'rgba(59,130,246,0.08)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.28)', borderRadius: RADIUS.md, gap: SPACE.xs },
+  rankedReadyPanel: { backgroundColor: 'rgba(212,175,55,0.08)', borderColor: 'rgba(212,175,55,0.36)' },
+  readyPanelTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  readyPanelTitle: { color: '#e2e8f0', fontSize: 12, fontWeight: '800' },
+  readyPanelRank: { color: '#d4af37', fontSize: 11, fontWeight: '800' },
+  readyStepsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  readyStep: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  readyDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(148,163,184,0.2)', alignItems: 'center', justifyContent: 'center' },
+  readyDotDone: { backgroundColor: 'rgba(74,222,128,0.25)' },
+  readyDotText: { color: '#94a3b8', fontSize: 11, fontWeight: '800' },
+  readyStepText: { color: '#94a3b8', fontSize: 10 },
+  readyStepTextDone: { color: '#4ade80' },
   grid: { flex: 1 },
   gridContent: { paddingVertical: SPACE.md },
   columnWrapper: { gap: SPACE.md, marginBottom: SPACE.md },
@@ -416,6 +458,7 @@ const styles = StyleSheet.create({
   bottomBar: { padding: SPACE.md, backgroundColor: 'rgba(5,5,10,0.9)', borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.2)', alignItems: 'center', gap: SPACE.sm },
   waitingBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   waitingBannerText: { color: '#d4af37', fontSize: 12, fontWeight: '700' },
+  allReadyBanner: { backgroundColor: 'rgba(74,222,128,0.08)', borderColor: 'rgba(74,222,128,0.30)' },
   focusModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
   focusModalContentRow: { flexDirection: 'row', alignItems: 'center', gap: 24, backgroundColor: 'rgba(10,10,20,0.97)', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
   focusModalLeftCol: { gap: 10 },
