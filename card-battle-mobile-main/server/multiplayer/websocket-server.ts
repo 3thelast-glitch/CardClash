@@ -1,6 +1,7 @@
 import { Server as HTTPServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { roomManager, Player, Room, RoundResult } from './room-manager';
+import { MatchmakingManager, normalizeRating, tierForRating } from './matchmaking-manager';
 
 export interface GameMessage {
   type: string;
@@ -11,6 +12,7 @@ export class MultiplayerWebSocketServer {
   private wss: WebSocketServer;
   private clients: Map<string, WebSocket> = new Map();
   private reconnectTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private matchmaking = new MatchmakingManager();
 
   // تتبع من ضغط زر "ابدأ المعركة" لكل لاعب
   private arrangementReady: Map<string, Set<string>> = new Map(); // roomId → Set<playerId>
@@ -61,6 +63,8 @@ export class MultiplayerWebSocketServer {
       case 'JOIN_ROOM':          this.handleJoinRoom(ws, payload, setPlayerId); break;
       case 'RECONNECT':          this.handleReconnect(ws, payload, setPlayerId); break;
       case 'LEAVE_ROOM':         this.handleLeaveRoom(payload.playerId); break;
+      case 'QUEUE_MATCHMAKING':  this.handleQueueMatchmaking(ws, payload, setPlayerId); break;
+      case 'CANCEL_MATCHMAKING': this.handleCancelMatchmaking(ws, payload.playerId); break;
       case 'SET_CARDS':          this.handleSetCards(payload); break;
       case 'PLAYER_READY':       this.handlePlayerReady(payload); break;
       case 'REVEAL_CARD':        this.handleRevealCard(payload); break;
@@ -98,6 +102,68 @@ export class MultiplayerWebSocketServer {
     console.log(`[Multiplayer] ${playerName} joined room: ${roomId}`);
   }
 
+  // ─── Ranked Matchmaking ─────────────────────────────────────────────────────────────────
+  private handleQueueMatchmaking(
+    ws: WebSocket,
+    payload: { playerId: string; playerName: string; rating?: number },
+    setPlayerId: (id: string) => void,
+  ) {
+    const { playerId, playerName } = payload;
+    if (!playerId || !playerName) {
+      this.sendError(ws, 'playerId and playerName are required');
+      return;
+    }
+    if (roomManager.getPlayerRoom(playerId)) {
+      this.sendError(ws, 'Leave the current room before joining matchmaking');
+      return;
+    }
+
+    const rating = normalizeRating(payload.rating);
+    const player: Player & { rating: number; tier: string } = {
+      id: playerId,
+      name: playerName,
+      socketId: playerId,
+      isReady: false,
+      rating,
+      tier: tierForRating(rating),
+    };
+
+    this.clients.set(playerId, ws);
+    setPlayerId(playerId);
+    const match = this.matchmaking.enqueue(player);
+
+    if (!match) {
+      this.send(ws, {
+        type: 'MATCHMAKING_QUEUED',
+        payload: {
+          rating,
+          tier: player.tier,
+          position: this.matchmaking.getQueuePosition(playerId),
+          searchRange: this.matchmaking.getSearchRange(playerId),
+        },
+      });
+      return;
+    }
+
+    const room = roomManager.createRoom(match.host);
+    roomManager.joinRoom(room.id, match.guest);
+    const matchPayload = {
+      roomId: room.id,
+      ranked: true,
+      ratingDifference: match.ratingDifference,
+      player1: room.player1,
+      player2: room.player2,
+    };
+    this.sendToPlayer(match.host.id, { type: 'MATCH_FOUND', payload: matchPayload });
+    this.sendToPlayer(match.guest.id, { type: 'MATCH_FOUND', payload: matchPayload });
+    console.log(`[Multiplayer] Ranked match found: ${room.id} (${match.ratingDifference} rating gap)`);
+  }
+
+  private handleCancelMatchmaking(ws: WebSocket, playerId: string) {
+    const removed = this.matchmaking.cancel(playerId);
+    this.send(ws, { type: 'MATCHMAKING_CANCELLED', payload: { playerId, removed } });
+  }
+
   // ─── Reconnect ──────────────────────────────────────────────────────────────────────────
   private handleReconnect(ws: WebSocket, payload: { playerId: string; roomId: string }, setPlayerId: (id: string) => void) {
     const { playerId, roomId } = payload;
@@ -127,6 +193,7 @@ export class MultiplayerWebSocketServer {
 
   // ─── Leave Room ────────────────────────────────────────────────────────────────────────
   private handleLeaveRoom(playerId: string) {
+    this.matchmaking.cancel(playerId);
     const room = roomManager.leaveRoom(playerId);
     if (room) {
       const other = room.player1 || room.player2;
@@ -258,6 +325,7 @@ export class MultiplayerWebSocketServer {
 
   // ─── Disconnect ──────────────────────────────────────────────────────────────────────────
   private handlePlayerDisconnect(playerId: string) {
+    this.matchmaking.cancel(playerId);
     const room = roomManager.getPlayerRoom(playerId);
     if (!room) return;
     const other = room.player1?.id === playerId ? room.player2 : room.player1;
