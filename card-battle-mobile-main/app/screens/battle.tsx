@@ -48,7 +48,7 @@ import { BattleResultOverlay } from '@/components/game/BattleResultOverlay';
 import { useBattleLayout } from '@/utils/layout';
 import { useOrientationTransition } from '@/utils/orientation-transition';
 import { useGame } from '@/lib/game/game-context';
-import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass, AbilityType, ELEMENT_MULTIPLIER } from '@/lib/game/types';
+import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass, AbilityType, ELEMENT_MULTIPLIER, RoundResult } from '@/lib/game/types';
 import { getElementAdvantage, applyElementalReactions } from '@/lib/game/cards-data-exports';
 import { getAbilityNameAr, getAbilityNameOnly, getAbilityDescription } from '@/lib/game/ability-names';
 import { AbilityCard } from '@/components/game/ability-card';
@@ -74,6 +74,8 @@ import { useSettings, BATTLE_TIMINGS } from '@/lib/game/hooks/useSettings';
 // 🔥 Rage Mode
 import { shouldTriggerRage, applyRageToCard, buildRageTriggerEvent, buildRageState } from '@/lib/game/rage-engine';
 import { RageModeOverlay } from '@/components/game/rage-mode-overlay';
+import { RoundInsightPanel } from '@/components/game/RoundInsightPanel';
+import { buildRoundEventLog, getActiveEffectPreview } from '@/lib/game/round-insights';
 
 type BattlePhase = 'selection' | 'action' | 'combat' | 'result' | 'waiting';
 
@@ -365,7 +367,7 @@ export default function BattleScreen() {
   const [showResult, setShowResult] = useState(false);
   const [showPlayerEffect, setShowPlayerEffect] = useState(false);
   const [showBotEffect, setShowBotEffect] = useState(false);
-  const [roundHistory, setRoundHistory] = useState<any[]>([]);
+  const [roundHistory, setRoundHistory] = useState<RoundResult[]>([]);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isAbilitiesModalOpen, setIsAbilitiesModalOpen] = useState(false);
   const [showPredictionModal, setShowPredictionModal] = useState(false);
@@ -684,7 +686,7 @@ export default function BattleScreen() {
 
       setRoundHistory(prev => {
         if (prev.some(h => h.round === lastRoundResult.round)) return prev;
-        return [...prev, { round: lastRoundResult.round, playerCard: lastRoundResult.playerCard, botCard: lastRoundResult.botCard, winner: lastRoundResult.winner }];
+        return [...prev, lastRoundResult];
       });
 
       if (settings.showDamageNumbers) {
@@ -744,6 +746,21 @@ export default function BattleScreen() {
     return expectedRoundResult?.winner ?? 'draw';
   }, [phase, lastRoundResult, expectedRoundResult]);
 
+
+  const previewInsights = useMemo(() => {
+    if (!expectedRoundResult || phase !== 'action') return [];
+    const roundNumber = state.currentRound + 1;
+    return [
+      ...getActiveEffectPreview(state.activeEffects, 'player', roundNumber),
+      ...getActiveEffectPreview(state.activeEffects, 'bot', roundNumber),
+      ...buildRoundEventLog(expectedRoundResult),
+    ];
+  }, [expectedRoundResult, phase, state.activeEffects, state.currentRound]);
+
+  const lastRoundInsights = useMemo(
+    () => (lastRoundResult ? buildRoundEventLog(lastRoundResult) : []),
+    [lastRoundResult],
+  );
 
   // حد الصحة ثابت خلال المباراة ويزداد فقط عند اكتساب صحة تتجاوز الحد السابق.
   const maxScore = Math.max(state.totalRounds, state.playerMaxHealth, state.botMaxHealth);
@@ -884,6 +901,14 @@ export default function BattleScreen() {
                 <Text style={[S.vsText, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
               </Animated.View>
 
+              {phase === 'action' && expectedRoundResult && (
+                <RoundInsightPanel
+                  testID="round-preview"
+                  title="🔎 معاينة الجولة"
+                  insights={previewInsights}
+                />
+              )}
+
               {phase === 'result' && lastRoundResult && (
                 <Animated.View style={[S.resultChip, resultStyle]}>
                   <Text style={[
@@ -897,6 +922,14 @@ export default function BattleScreen() {
                       : '🤝 تعادل'}
                   </Text>
                 </Animated.View>
+              )}
+
+              {phase === 'result' && lastRoundResult && (
+                <RoundInsightPanel
+                  testID="round-event-log"
+                  title={`📝 أحداث الجولة ${lastRoundResult.round}`}
+                  insights={lastRoundInsights}
+                />
               )}
 
               {phase === 'action' && (
@@ -991,12 +1024,11 @@ export default function BattleScreen() {
               {roundHistory.length === 0 ? (
                 <Text style={{ color: '#94a3b8', textAlign: 'center', padding: 16 }}>لا توجد جولات مكتملة بعد</Text>
               ) : roundHistory.map((h, i) => (
-                <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
-                  <Text style={{ color: '#cbd5e1', fontSize: 12 }}>ج{h.round}: {h.playerCard.nameAr ?? h.playerCard.name}</Text>
-                  <Text style={{ color: '#cbd5e1', fontSize: 12 }}>vs {h.botCard.nameAr ?? h.botCard.name}</Text>
-                  <Text style={{ color: h.winner === 'player' ? '#4ade80' : h.winner === 'bot' ? '#f87171' : '#fbbf24', fontSize: 12 }}>
-                    {h.winner === 'player' ? '✓' : h.winner === 'bot' ? '✗' : '='}
+                <View key={i} style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                  <Text style={{ color: '#e2e8f0', fontSize: 12, textAlign: 'right', marginBottom: 5 }}>
+                    ج{h.round}: {h.playerCard.nameAr ?? h.playerCard.name} ضد {h.botCard.nameAr ?? h.botCard.name}
                   </Text>
+                  <RoundInsightPanel title="تفاصيل الجولة" insights={buildRoundEventLog(h)} />
                 </View>
               ))}
             </ScrollView>

@@ -1262,29 +1262,35 @@ export function GameProvider({ children }: { children: ReactNode }) {
       .filter(e => { const d = e.data as { appliesToRound?: number } | undefined; return !d?.appliesToRound || d.appliesToRound === roundNumber; })
       .sort((a, b) => b.priority - a.priority || b.createdAtRound - a.createdAtRound)[0];
 
+    const emptyPreview = {
+      playerDamage: 0,
+      botDamage: 0,
+      playerBaseDamage: 0,
+      botBaseDamage: 0,
+      playerElementAdvantage: 'neutral' as ElementAdvantage,
+      botElementAdvantage: 'neutral' as ElementAdvantage,
+      playerHealthDelta: 0,
+      botHealthDelta: 0,
+    };
+    let preview: Omit<RoundResult, 'round' | 'playerCard' | 'botCard' | 'winner'> = emptyPreview;
     let winner: Side | 'draw';
     if (absoluteDominanceEffect) {
       winner = absoluteDominanceEffect.sourceSide;
     } else if (turinForcedLoss) {
       winner = 'bot';
     } else if (forcedOutcomeEffect) {
-      winner = forcedOutcomeEffect.sourceSide;
+      const forcedData = forcedOutcomeEffect.data as { outcome?: 'draw' } | undefined;
+      winner = forcedData?.outcome === 'draw' ? 'draw' : forcedOutcomeEffect.sourceSide;
     } else {
-      const r = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
-      winner = r.winner;
+      const battlePreview = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
+      preview = battlePreview;
+      winner = battlePreview.winner;
     }
     return {
       round: roundNumber,
       playerCard,
       botCard,
-      playerDamage: 0,
-      botDamage: 0,
-      playerBaseDamage: 0,
-      botBaseDamage: 0,
-      playerElementAdvantage: 'neutral',
-      botElementAdvantage: 'neutral',
-      playerHealthDelta: 0,
-      botHealthDelta: 0,
+      ...preview,
       winner,
     };
   }, [state.playerDeck, state.botDeck, state.currentRound, state.activeEffects, state.abilitiesEnabled, state.totalRounds]);
