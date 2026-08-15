@@ -116,6 +116,7 @@ export default function RootLayout() {
             <QueryClientProvider client={queryClient}>
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="screens/splash" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="screens/how-to-play" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/game-mode" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/rounds-config" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/leaderboard" options={{ animation: 'slide_from_right' }} />

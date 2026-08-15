@@ -168,6 +168,21 @@ export default function SplashScreen() {
         </View>
       </FadeIn>
 
+      <FadeIn delay={460}>
+        <TouchableOpacity
+          style={styles.guideBtn}
+          onPress={() => router.push('/screens/how-to-play' as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.guideBtnIcon}>📖</Text>
+          <View style={styles.guideBtnTextWrap}>
+            <Text style={styles.guideBtnTitle}>كيف تلعب؟</Text>
+            <Text style={styles.guideBtnSub}>دليل مبسط للقواعد والعناصر والقدرات</Text>
+          </View>
+          <Text style={styles.guideBtnArrow}>←</Text>
+        </TouchableOpacity>
+      </FadeIn>
+
       <Text style={styles.version}>Card Clash v2.0</Text>
     </ScrollView>
   );
@@ -343,6 +358,17 @@ const styles = StyleSheet.create({
   },
   navIcon: { fontSize: 22 },
   navLabel: { color: COLOR.gold, fontSize: FONT.xs },
+  guideBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
+    paddingHorizontal: SPACE.lg, paddingVertical: SPACE.md,
+    backgroundColor: 'rgba(167,139,250,0.09)', borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
+  },
+  guideBtnIcon: { fontSize: 24 },
+  guideBtnTextWrap: { flex: 1, gap: 2 },
+  guideBtnTitle: { color: '#c4b5fd', fontSize: FONT.base, letterSpacing: 0.3 },
+  guideBtnSub: { color: '#64748b', fontSize: FONT.xs },
+  guideBtnArrow: { color: '#a78bfa', fontSize: 20 },
 
   version: {
     color: 'rgba(255,255,255,0.12)',
