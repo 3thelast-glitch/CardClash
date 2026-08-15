@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { decideBotAbility, getBotCards } from '../bot-ai';
+import { buildBotAbilityData, decideBotAbility, getBotCards, predictPlayerMove } from '../bot-ai';
+import { gameReducer } from '../game-context';
 import { ALL_CARDS } from '../cards-data-exports';
-import type { GameState } from '../types';
+import type { Card, GameState, RoundResult } from '../types';
 
 describe('Bot AI System', () => {
   describe('getBotCards', () => {
@@ -105,6 +106,162 @@ describe('Bot AI System', () => {
       const botCards = getBotCards(count, 2, playerDeck);
 
       expect(botCards).toHaveLength(count);
+    });
+  });
+
+  describe('توقع حركة اللاعب', () => {
+    it('يرجّح آخر النماذج المرئية للمستوى الصعب فقط', () => {
+      const card = ALL_CARDS[0];
+      const water = { ...card, id: 'water', element: 'water' as const, cardClass: 'healer' as const };
+      const results = [card, water, water].map((playerCard, index) => ({
+        round: index + 1,
+        playerCard,
+        botCard: card,
+        playerDamage: 0,
+        botDamage: 0,
+        playerBaseDamage: 0,
+        botBaseDamage: 0,
+        playerElementAdvantage: 'neutral' as const,
+        botElementAdvantage: 'neutral' as const,
+        playerHealthDelta: 0,
+        botHealthDelta: 0,
+        winner: 'draw' as const,
+      })) as RoundResult[];
+      const state: GameState = {
+        playerDeck: [card],
+        botDeck: [card],
+        currentRound: 3,
+        totalRounds: 5,
+        playerScore: 2,
+        botScore: 2,
+        playerMaxHealth: 5,
+        botMaxHealth: 5,
+        roundResults: results,
+        difficulty: 3,
+        abilitiesEnabled: true,
+        activeEffects: [],
+        playerAbilities: [],
+        botAbilities: [],
+        usedAbilities: [],
+      };
+      const prediction = predictPlayerMove(state, 3);
+
+      expect(prediction.element).toBe('water');
+      expect(prediction.cardClass).toBe('healer');
+      expect(prediction.sampleCount).toBe(3);
+      expect(prediction.confidence).toBeGreaterThan(0.5);
+      expect(predictPlayerMove(state, 2).sampleCount).toBe(0);
+    });
+
+    it('يوجه بيانات القدرة نحو حركة اللاعب المتوقعة', () => {
+      const card = ALL_CARDS[0];
+      const predictedWater = { ...card, element: 'water' as const, cardClass: 'healer' as const };
+      const state: GameState = {
+        playerDeck: [card],
+        botDeck: [card],
+        currentRound: 3,
+        totalRounds: 5,
+        playerScore: 2,
+        botScore: 2,
+        playerMaxHealth: 5,
+        botMaxHealth: 5,
+        roundResults: Array.from({ length: 3 }, (_, index) => ({
+          round: index + 1,
+          playerCard: predictedWater,
+          botCard: card,
+          playerDamage: 0,
+          botDamage: 0,
+          playerBaseDamage: 0,
+          botBaseDamage: 0,
+          playerElementAdvantage: 'neutral' as const,
+          botElementAdvantage: 'neutral' as const,
+          playerHealthDelta: 0,
+          botHealthDelta: 0,
+          winner: 'draw' as const,
+        })),
+        difficulty: 3,
+        abilitiesEnabled: true,
+        activeEffects: [],
+        playerAbilities: [],
+        botAbilities: [],
+        usedAbilities: [],
+      },
+      addElement = buildBotAbilityData('AddElement', state, card),
+      propaganda = buildBotAbilityData('Propaganda', state, card);
+
+      expect(['earth', 'lightning']).toContain(addElement.element);
+      expect(propaganda.targetClass).toBe('healer');
+    });
+  });
+
+  describe('الحالات الحرجة', () => {
+    it('يحافظ على التعادل في الجولة الأخيرة ولا يختار قدرة مستقبلية', () => {
+      const card = ALL_CARDS[0];
+      const state: GameState = {
+        playerDeck: [card, card, card, card, card],
+        botDeck: [card, card, card, card, card],
+        currentRound: 4,
+        totalRounds: 5,
+        playerScore: 3,
+        botScore: 3,
+        playerMaxHealth: 5,
+        botMaxHealth: 5,
+        roundResults: [],
+        difficulty: 3,
+        abilitiesEnabled: true,
+        activeEffects: [],
+        playerAbilities: [],
+        botAbilities: [
+          { type: 'Sniping', used: false },
+          { type: 'Popularity', used: false },
+          { type: 'Protection', used: false },
+        ],
+        usedAbilities: [],
+      };
+
+      const decision = decideBotAbility(state.botAbilities, card, state, 3);
+
+      expect(decision.mode).toBe('balanced');
+      expect(decision.abilityType).not.toBe('Sniping');
+      expect(decision.abilityType).not.toBe('Popularity');
+    });
+
+    it('يحسم الجولة الأخيرة المتعادلة دون تغيير النتيجة النهائية', () => {
+      const card: Card = {
+        id: 'tie-player',
+        name: 'Tie Player',
+        nameAr: 'تعادل لاعب',
+        attack: 10,
+        defense: 10,
+        race: 'human',
+        cardClass: 'warrior',
+        element: 'fire',
+        stars: 3,
+      };
+      const botCard = { ...card, id: 'tie-bot' };
+      const state: GameState = {
+        playerDeck: [card],
+        botDeck: [botCard],
+        currentRound: 0,
+        totalRounds: 1,
+        playerScore: 3,
+        botScore: 3,
+        playerMaxHealth: 3,
+        botMaxHealth: 3,
+        roundResults: [],
+        difficulty: 3,
+        abilitiesEnabled: true,
+        activeEffects: [],
+        playerAbilities: [],
+        botAbilities: [],
+        usedAbilities: [],
+      };
+      const resolved = gameReducer(state, { type: 'PLAY_ROUND' });
+
+      expect(resolved.roundResults).toHaveLength(1);
+      expect(resolved.roundResults[0].winner).toBe('draw');
+      expect(resolved.playerScore).toBe(3);
+      expect(resolved.botScore).toBe(3);
     });
   });
 

@@ -10,7 +10,7 @@
  *  5  أسطوري   — كل ما سبق + ذاكرة شاملة + mode أسرع + يحتفظ بأقوى قدرة للنهاية + عشوائية كروت (3؉)
  */
 
-import { Card, GameState, AbilityType, AbilityState, RoundResult, Element, CardClass } from './types';
+import { Card, GameState, AbilityType, AbilityState, RoundResult, Element, CardClass, Race } from './types';
 import { ALL_CARDS, getElementAdvantage } from './cards-data-exports';
 import type { DifficultyLevel } from '@/app/screens/difficulty';
 
@@ -42,7 +42,17 @@ export interface BotDecision {
   score: number;
   breakdown: UtilityBreakdown;
   abilityData?: Record<string, unknown>;
+  prediction?: PlayerMovePrediction;
 }
+
+export interface PlayerMovePrediction {
+  element: Element | null;
+  cardClass: CardClass | null;
+  race: Race | null;
+  confidence: number;
+  sampleCount: number;
+}
+
 
 // ──────────────────────────────── Weights ────────────────────────────────
 type WeightMap = Record<keyof UtilityBreakdown, number>;
@@ -108,6 +118,34 @@ export function resetBotMemory(): void {
     playerWinStreak: 0, playerUsedAbilities: [],
     playerFavoredElements: {}, botLossStreak: 0,
     totalRoundsPlayed: 0, strongestBotAbility: null,
+  };
+}
+
+function weightedMode<T extends string>(values: T[], weights: number[]): { value: T | null; confidence: number } {
+  if (!values.length) return { value: null, confidence: 0 };
+  const totals = new Map<T, number>();
+  values.forEach((value, index) => totals.set(value, (totals.get(value) ?? 0) + weights[index]));
+  const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+  const totalWeight = ranked.reduce((sum, [, weight]) => sum + weight, 0);
+  return { value: ranked[0]?.[0] ?? null, confidence: totalWeight ? (ranked[0]?.[1] ?? 0) / totalWeight : 0 };
+}
+
+/** يتنبأ بفئة الحركة من آخر خمس بطاقات مرئية فقط، ولا يقرأ الرزمة المستقبلية. */
+export function predictPlayerMove(gameState: GameState, difficulty: DifficultyLevel = 3): PlayerMovePrediction {
+  if (difficulty < 3) return { element: null, cardClass: null, race: null, confidence: 0, sampleCount: 0 };
+  const recent = gameState.roundResults.slice(-5);
+  const weights = recent.map((_, index) => index + 1);
+  const element = weightedMode(recent.map(result => result.playerCard.element), weights);
+  const cardClass = weightedMode(recent.map(result => result.playerCard.cardClass), weights);
+  const race = weightedMode(recent.map(result => result.playerCard.race), weights);
+  const confidence = Math.min(0.95, Math.max(element.confidence, cardClass.confidence, race.confidence)
+    * Math.min(1, recent.length / 3));
+  return {
+    element: element.value,
+    cardClass: cardClass.value,
+    race: race.value,
+    confidence,
+    sampleCount: recent.length,
   };
 }
 
@@ -270,7 +308,11 @@ export function buildBotAbilityData(
     return { roundIndex: weakestBotIdx };
   }
 
+  const prediction = predictPlayerMove(gameState, gameState.difficulty as DifficultyLevel);
+
   if (abilityType === 'Propaganda') {
+    const predictedClass = prediction.cardClass;
+    if (predictedClass) return { selection: predictedClass, targetClass: predictedClass };
     const classCounts: Record<string, number> = {};
     for (const r of roundResults) {
       classCounts[r.playerCard.cardClass] = (classCounts[r.playerCard.cardClass] ?? 0) + 1;
@@ -283,8 +325,9 @@ export function buildBotAbilityData(
 
   if (abilityType === 'AddElement') {
     const allElements: Element[] = ['fire', 'water', 'earth', 'lightning', 'wind'];
+    const targetElement = prediction.element ?? playerCard.element;
     const strongEl = allElements.find(
-      e => getElementAdvantage(e, playerCard.element) === 'strong'
+      e => getElementAdvantage(e, targetElement) === 'strong'
     ) ?? 'fire';
     return { element: strongEl };
   }
@@ -382,11 +425,13 @@ export function decideBotAbility(
   const abilityData = finalUse && bestAbility
     ? buildBotAbilityData(bestAbility, gameState, playerCard)
     : undefined;
+  const prediction = predictPlayerMove(gameState, difficulty);
 
   return {
     useAbility: finalUse,
     abilityType: finalUse ? bestAbility : undefined,
     abilityData,
+    prediction,
     mode,
     score: bestAbilityScore,
     breakdown: noAbilityBreakdown,
