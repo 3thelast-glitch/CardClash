@@ -179,11 +179,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           : (state.botDeck && state.botDeck.length > 0)
             ? state.botDeck
             : getBotCards(deckWithPassives.length, state.difficulty as DifficultyLevel ?? 2);
+      const botDeckWithPassives = resolvedBotDeck.map(applyOnSpawnPassive);
 
       return {
         ...state,
         playerDeck: deckWithPassives,
-        botDeck: resolvedBotDeck,
+        botDeck: botDeckWithPassives,
         totalRounds: deckWithPassives.length,
         currentRound: 0,
         playerScore: deckWithPassives.length,
@@ -262,11 +263,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       let updatedBotCard = botCard;
       if (winner === 'bot') {
-        updatedBotCard = { ...botCard, winState: 'win' };
+        updatedBotCard = { ...applyPostBattlePassive(botCard, 'win'), winState: 'win' };
       } else if (winner === 'player') {
-        updatedBotCard = { ...botCard, winState: 'lose' };
+        updatedBotCard = { ...applyPostBattlePassive(botCard, 'lose'), winState: 'lose' };
       } else {
-        updatedBotCard = { ...botCard, winState: 'draw' };
+        updatedBotCard = { ...applyPostBattlePassive(botCard, 'draw'), winState: 'draw' };
       }
 
       const updatedPlayerDeck = state.playerDeck.map((c, i) => i === state.currentRound ? updatedPlayerCard : c);

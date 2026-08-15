@@ -43,40 +43,54 @@ export function applySpecialAbilityModifications(
 ) {
   const ownId = ownCard.id;
 
-  // 1. Ainz Ooal Gown (ainz_ooal_gown) / Death Note / Ryuk: cancels defender defense
+  // 1. Ainz Ooal Gown: يلغي دفاع الخصم.
   if (ownId === 'ainz_ooal_gown' && oppStats) {
     oppStats.defense = 0;
   }
-  if (opponentCard?.id === 'ainz_ooal_gown') {
+  if (!oppStats && opponentCard?.id === 'ainz_ooal_gown') {
     ownStats.defense = 0;
   }
 
-  // 2. Gojo (satoru_gojo): Infinity (defense = 99)
+  // 2. Gojo: اللانهاية تجعل الدفاع 99 لهذه الجولة.
   if (ownId === 'satoru_gojo') {
     ownStats.defense = 99;
   }
 
-  // 3. Sukuna (ryomen_sukuna): Curses / high attack boost (+6)
+  // 3. Sukuna: دفعة هجوم ثابتة.
   if (ownId === 'ryomen_sukuna') {
     ownStats.attack += 6;
   }
 
-  // 4. Makima (makima): control opponent (steal 4 attack)
+  // 4. Makima: تكسب 4 هجوم وتخفض هجوم الخصم 4، من دون نزول تحت الصفر.
   if (ownId === 'makima') {
     ownStats.attack += 4;
     if (oppStats) {
       oppStats.attack = Math.max(0, oppStats.attack - 4);
     }
   }
-  if (opponentCard?.id === 'makima') {
+  if (!oppStats && opponentCard?.id === 'makima') {
     ownStats.attack = Math.max(0, ownStats.attack - 4);
   }
 
-  // 5. Kaido (kaido): +4 defense and +2 attack
+  // 5. Kaido: التعزيز الحالي للإحصاءات (+4 دفاع، +2 هجوم).
   if (ownId === 'kaido') {
     ownStats.defense += 4;
     ownStats.attack += 2;
   }
+}
+
+/**
+ * يطبق قدرات الشخصيات الإحصائية على طرفي الجولة قبل حساب الضرر.
+ * ترتيب الاستدعاء ثابت لضمان تماثل المنطق للاعب والبوت.
+ */
+export function applyCombatCharacterSpecials(
+  playerCard: Card,
+  botCard: Card,
+  playerStats: { attack: number; defense: number },
+  botStats: { attack: number; defense: number },
+) {
+  applySpecialAbilityModifications(playerCard, botCard, playerStats, botStats);
+  applySpecialAbilityModifications(botCard, playerCard, botStats, playerStats);
 }
 
 /**

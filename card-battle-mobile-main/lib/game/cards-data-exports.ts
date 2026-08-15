@@ -26,7 +26,7 @@ import {
   ELEMENT_MULTIPLIER,
 } from './types';
 import { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive } from './rage-engine';
-import { applySpecialAbilityModifications } from './ui-helpers';
+import { applyCombatCharacterSpecials } from './ui-helpers';
 
 import { getRarityFromStars } from './card-rarity';
 
@@ -193,7 +193,7 @@ export function determineRoundWinner(
   const b = { attack: botCard.attack,    defense: botCard.defense,    hp: botCard.hp,    element: botCard.element };
 
   // Apply card special abilities (Ainz, Gojo, Sukuna, Makima, Kaido)
-  applySpecialAbilityModifications(playerCard, botCard, p, b);
+  applyCombatCharacterSpecials(playerCard, botCard, p, b);
 
   applyElementalReactions(p, b);
   applyElementalReactions(b, p);

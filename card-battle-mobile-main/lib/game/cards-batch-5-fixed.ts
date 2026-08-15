@@ -207,7 +207,7 @@ export const CARDS_BATCH_5: Card[] = [
         stars: 5,
         gender: 'male',
         universe: 'One Piece',
-        specialAbility: 'لا يمكن هزيمته بضربة واحدة',
+        specialAbility: 'قوة التنين — +2 هجوم و+4 دفاع هذه الجولة',
         animationPreset: 'lightning',
         tags: ['crown'],
     },

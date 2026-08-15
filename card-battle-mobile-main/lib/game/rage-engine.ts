@@ -148,7 +148,9 @@ export function isTurinForcedLoss(
  */
 export function applyOnSpawnPassive(card: Card): Card {
   if (
-    (card as any).nameEn === 'Tsunade' ||
+    card.id === 'tsunade' ||
+    card.nameEn === 'Tsunade' ||
+    card.name === 'Tsunade' ||
     card.nameAr === 'تسونادي'
   ) {
     return {
@@ -173,26 +175,34 @@ export function resolveSpecialAbility(
   attacker: Card,
   defender: Card,
 ): BattleResult | null {
-  const defTags: string[] = (
-    (defender as any).tags ?? []
-  ).map((t: string) => t.toLowerCase());
+  const defenderTags = (defender.tags ?? []).map((tag) => tag.toLowerCase());
+  const attackerName = (attacker.nameEn ?? attacker.name ?? '').toLowerCase();
 
-  const attackerName = ((attacker as any).nameEn ?? '').toLowerCase();
+  const isMihawk = attacker.id === 'dracule_mihawk'
+    || attackerName === 'dracule mihawk'
+    || attacker.nameAr === 'دراكول ميهوك';
+  const isGehrman = attacker.id === 'gehrman'
+    || attackerName.startsWith('gehrman')
+    || attacker.nameAr.startsWith('غيرمان');
+  const isSanji = attacker.id === 'sanji'
+    || attackerName === 'sanji'
+    || attacker.nameAr === 'سانجي';
 
-  if (
-    (attackerName === 'dracule mihawk' || attacker.nameAr === 'دراكيول ميهوك') &&
-    (defTags.includes('swordsman') || defTags.includes('sword'))
-  ) return 'win';
+  const defenderIsSwordsman = defender.cardClass === 'swordsman'
+    || defenderTags.includes('swordsman')
+    || defenderTags.includes('sword');
+  const defenderIsMonster = defender.race === 'monster'
+    || defenderTags.includes('monster')
+    || defenderTags.includes('beast')
+    || defenderTags.includes('وحش');
+  const defenderIsFemale = defender.gender === 'female'
+    || defenderTags.includes('female')
+    || defenderTags.includes('woman')
+    || defenderTags.includes('أنثى');
 
-  if (
-    (attackerName === 'gehrman' || attacker.nameAr === 'غيرمان') &&
-    (defTags.includes('monster') || defTags.includes('beast') || defTags.includes('وحش'))
-  ) return 'win';
-
-  if (
-    (attackerName === 'sanji' || attacker.nameAr === 'سانجي') &&
-    (defTags.includes('female') || defTags.includes('woman') || defTags.includes('أنثى'))
-  ) return 'lose';
+  if (isMihawk && defenderIsSwordsman) return 'win';
+  if (isGehrman && defenderIsMonster) return 'win';
+  if (isSanji && defenderIsFemale) return 'lose';
 
   return null;
 }
@@ -209,7 +219,9 @@ export function applyPostBattlePassive(
 ): Card {
   if (
     (
-      (card as any).nameEn === 'Sakura Haruno' ||
+      card.id === 'sakura_haruno' ||
+      card.nameEn === 'Sakura Haruno' ||
+      card.name === 'Sakura Haruno' ||
       card.nameAr === 'ساكورا هارونو'
     ) &&
     result === 'win'
