@@ -9,6 +9,7 @@ import { useSettings } from '@/lib/game/hooks/useSettings';
 import { useOrientationTransition } from '@/utils/orientation-transition';
 import { TrainingArena } from '@/components/game/training-arena';
 import { GuideMechanicsDemo } from '@/components/game/guide-mechanics-demo';
+import { GuideSketchBoard } from '@/components/game/guide-sketch-board';
 import { COLOR, FONT, RADIUS, SPACE } from '@/components/ui/design-tokens';
 
 const ELEMENTS = [
@@ -115,6 +116,9 @@ export default function HowToPlayScreen() {
 
           <SectionTitle eyebrow="شاهدها خطوة بخطوة" title="رسوم توضيحية قصيرة" text="اختر الآلية التي تريد فهمها، ثم شاهد الخطوات أو أعد تشغيلها متى شئت." />
           <GuideMechanicsDemo />
+
+          <SectionTitle eyebrow="خلاصة مرسومة" title="سكتشات تساعدك على التذكر" text="احفظ هذه الخرائط البصرية السريعة لتتخذ قرارك داخل الجولة بثقة." />
+          <GuideSketchBoard />
 
           <SectionTitle eyebrow="خمس قوى" title="نظام العناصر" text="ميزة العنصر تمنح ×1.25 للهجوم، وضعف العنصر يطبّق ×0.75." />
           <Animated.View layout={layoutTransition} style={[s.elementGrid, isLandscape && s.elementGridLandscape]}>
