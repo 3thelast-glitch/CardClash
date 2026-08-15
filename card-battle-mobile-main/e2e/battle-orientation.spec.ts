@@ -89,3 +89,47 @@ test('الشاشة الرئيسية والإعدادات لا تكتسبان ت�
     await assertNoHorizontalOverflow(page);
   }
 });
+
+
+test('صفحة التعليمات تعمل في الوضعين وتعرض الأدلة بلا قص', async ({ page }) => {
+  const viewports = [
+    { width: 390, height: 844, name: 'عمودي' },
+    { width: 1024, height: 768, name: 'أفقي' },
+  ];
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    // تحميل التطبيق أولاً يجعل مترجم Expo يجهز حزمة المسار قبل فتح صفحة الدليل مباشرةً.
+    await page.goto('/screens/splash');
+    await expect(page.getByTestId('how-to-play-link')).toBeVisible();
+    await page.goto('/screens/how-to-play');
+
+    await expect(page.getByTestId('how-to-play-screen')).toBeVisible();
+    await expect(page.getByText('افهم المواجهة. خطّط بذكاء. وانتصر.')).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+
+    await expect(page.getByTestId('training-arena')).toBeAttached();
+    // تعيد بطاقات التدريب الرسم بعد تحميل بيانات البطاقات من التخزين؛ ننتظر الاستقرار ثم نلتقط العنصر من جديد.
+    await page.waitForTimeout(350);
+    const trainingArena = page.getByTestId('training-arena');
+    await trainingArena.scrollIntoViewIfNeeded();
+    await expectInsideViewport(page, trainingArena);
+    await expect(page.getByTestId('training-run-button')).toBeVisible();
+    await page.getByTestId('training-run-button').click();
+    await expect(page.getByText(/تفوقت بطاقة اللاعب|تفوقت بطاقة الخصم|تعادل الضرر/)).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+
+    const visualDemo = page.getByTestId('guide-mechanics-demo');
+    await visualDemo.scrollIntoViewIfNeeded();
+    await expectInsideViewport(page, visualDemo);
+    await page.getByTestId('replay-guide-animation').click();
+
+    const sketches = page.getByTestId('guide-sketch-board');
+    await sketches.scrollIntoViewIfNeeded();
+    await expectInsideViewport(page, sketches);
+    await expect(page.getByText('سكتش الجولة')).toBeVisible();
+    await expect(page.getByText('سكتش العناصر')).toBeVisible();
+    await expect(page.getByText('سكتش القدرات')).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+  }
+});

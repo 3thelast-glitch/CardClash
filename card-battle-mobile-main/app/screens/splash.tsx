@@ -170,6 +170,7 @@ export default function SplashScreen() {
 
       <FadeIn delay={460}>
         <TouchableOpacity
+          testID="how-to-play-link"
           style={styles.guideBtn}
           onPress={() => router.push('/screens/how-to-play' as any)}
           activeOpacity={0.8}
