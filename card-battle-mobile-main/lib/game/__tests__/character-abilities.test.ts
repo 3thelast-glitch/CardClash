@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CHARACTER_ABILITY_DEFINITIONS, getCharacterAbility } from '../character-abilities';
 import { determineRoundWinner } from '../cards-data-exports';
 import { gameReducer } from '../game-context';
 import {
@@ -28,6 +29,8 @@ const makeState = (playerCard: Card, botCard: Card, overrides: Partial<GameState
   totalRounds: 1,
   playerScore: 1,
   botScore: 1,
+  playerMaxHealth: 1,
+  botMaxHealth: 1,
   roundResults: [],
   difficulty: 2,
   abilitiesEnabled: false,
@@ -36,6 +39,20 @@ const makeState = (playerCard: Card, botCard: Card, overrides: Partial<GameState
   botAbilities: [],
   usedAbilities: [],
   ...overrides,
+});
+
+describe('سجل قدرات الشخصيات المنظم', () => {
+  it('يعرّف القدرات العشر الحالية مع نص عربي وسلوك قابل للتنفيذ', () => {
+    expect(Object.keys(CHARACTER_ABILITY_DEFINITIONS)).toHaveLength(10);
+    expect(CHARACTER_ABILITY_DEFINITIONS.tsunade_medical_ninjutsu.roundStartHealthBonus).toBe(2);
+    expect(CHARACTER_ABILITY_DEFINITIONS.gojo_infinity.statModifiers?.defenseOverride).toBe(99);
+  });
+
+  it('يدعم تعريف قدرة منظمة لبطاقة مستقبلية من دون الاعتماد على معرّفها', () => {
+    const futureCard = makeCard('future-character', { characterAbilityId: 'sukuna_curse_king' });
+
+    expect(getCharacterAbility(futureCard)?.statModifiers?.attackBonus).toBe(6);
+  });
 });
 
 describe('تدقيق قدرات الشخصيات: الحسم الفوري', () => {

@@ -24,6 +24,8 @@ const initialState: GameState = {
   totalRounds: 0,
   playerScore: 0,
   botScore: 0,
+  playerMaxHealth: 0,
+  botMaxHealth: 0,
   roundResults: [],
   difficulty: 2,
   abilitiesEnabled: true,
@@ -194,6 +196,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         currentRound: 0,
         playerScore: deckWithPassives.length,
         botScore:    deckWithPassives.length,
+        playerMaxHealth: deckWithPassives.length,
+        botMaxHealth: botDeckWithPassives.length,
         roundResults: [],
         activeEffects: turinEffects,
         playerAbilities: state.abilitiesEnabled
@@ -240,18 +244,28 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const turinForcedLoss = isTurinForcedLoss(state.currentRound, state.totalRounds, state.playerDeck);
 
-      let result: { winner: Side | 'draw'; playerDamage: number; botDamage: number; playerBaseDamage: number; botBaseDamage: number; playerElementAdvantage: ElementAdvantage; botElementAdvantage: ElementAdvantage };
+      let result: {
+        winner: Side | 'draw';
+        playerDamage: number;
+        botDamage: number;
+        playerBaseDamage: number;
+        botBaseDamage: number;
+        playerElementAdvantage: ElementAdvantage;
+        botElementAdvantage: ElementAdvantage;
+        playerHealthDelta: number;
+        botHealthDelta: number;
+      };
 
       if (absoluteDominanceEffect) {
         // السيطرة المطلقة — أعلى أولوية، تتجاوز حتى تورين والنتائج المضمونة
-        result = { winner: absoluteDominanceEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
+        result = { winner: absoluteDominanceEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
       } else if (turinForcedLoss) {
-        result = { winner: 'bot', playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
+        result = { winner: 'bot', playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
       } else if (forcedOutcomeEffect) {
         const forcedData = forcedOutcomeEffect.data as { outcome?: 'draw' } | undefined;
-        result = { winner: forcedData?.outcome === 'draw' ? 'draw' : forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
+        result = { winner: forcedData?.outcome === 'draw' ? 'draw' : forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
       } else if (starAdvantageEffect) {
-        result = { winner: starAdvantageEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
+        result = { winner: starAdvantageEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
       } else {
         result = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
       }
@@ -278,22 +292,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const updatedPlayerDeck = state.playerDeck.map((c, i) => i === state.currentRound ? updatedPlayerCard : c);
       const updatedBotDeck = state.botDeck.map((c, i) => i === state.currentRound ? updatedBotCard : c);
 
-      const roundResult: RoundResult = {
-        round: state.currentRound + 1,
-        playerCard: updatedPlayerCard,
-        botCard: updatedBotCard,
-        playerDamage: result.playerDamage, botDamage: result.botDamage,
-        playerBaseDamage: result.playerBaseDamage, botBaseDamage: result.botBaseDamage,
-        playerElementAdvantage: result.playerElementAdvantage,
-        botElementAdvantage:    result.botElementAdvantage,
-        winner: result.winner,
-      };
-
       const hasDoublePoints = activeEffects.some(e => e.kind === 'doublePoints');
       const pointsMultiplier = hasDoublePoints ? 2 : 1;
 
-      let playerHpDelta = 0;
-      let botHpDelta    = 0;
+      let playerHpDelta = result.playerHealthDelta;
+      let botHpDelta    = result.botHealthDelta;
       if (result.winner === 'player') botHpDelta    -= pointsMultiplier;
       else if (result.winner === 'bot') playerHpDelta -= pointsMultiplier;
 
@@ -504,13 +507,34 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ? getPostBattleMatchHealthBonus(botCard, 'win')
         : 0;
 
+      const playerRoundHealthDelta = playerHpDelta + playerSpawnHealthBonus + playerPostBattleHealthBonus;
+      const botRoundHealthDelta = botHpDelta + botSpawnHealthBonus + botPostBattleHealthBonus;
+      const nextPlayerScore = Math.max(0, state.playerScore + playerRoundHealthDelta);
+      const nextBotScore = Math.max(0, state.botScore + botRoundHealthDelta);
+      const roundResult: RoundResult = {
+        round: state.currentRound + 1,
+        playerCard: updatedPlayerCard,
+        botCard: updatedBotCard,
+        playerDamage: result.playerDamage,
+        botDamage: result.botDamage,
+        playerBaseDamage: result.playerBaseDamage,
+        botBaseDamage: result.botBaseDamage,
+        playerElementAdvantage: result.playerElementAdvantage,
+        botElementAdvantage: result.botElementAdvantage,
+        playerHealthDelta: playerRoundHealthDelta,
+        botHealthDelta: botRoundHealthDelta,
+        winner: result.winner,
+      };
+
       return {
         ...state,
         playerDeck: updatedPlayerDeck,
         botDeck: updatedBotDeck,
         // لا نضع سقفاً أعلى: العلاج الفائز في الجولة الأولى يحتفظ بزيادته فوق الصحة الابتدائية.
-        playerScore: Math.max(0, state.playerScore + playerHpDelta + playerSpawnHealthBonus + playerPostBattleHealthBonus),
-        botScore:    Math.max(0, state.botScore    + botHpDelta    + botSpawnHealthBonus    + botPostBattleHealthBonus),
+        playerScore: nextPlayerScore,
+        botScore: nextBotScore,
+        playerMaxHealth: Math.max(state.playerMaxHealth, nextPlayerScore),
+        botMaxHealth: Math.max(state.botMaxHealth, nextBotScore),
         roundResults: [...state.roundResults, roundResult],
         activeEffects: nextEffects,
         usedAbilities: [],
@@ -1000,19 +1024,29 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           const rewindCount = Math.min(3, state.roundResults.length);
           if (rewindCount > 0) {
             const rewindedResults = state.roundResults.slice(0, -rewindCount);
-            // حساب النتيجة الجديدة بعد الإرجاع
+            // نعيد بناء الصحة من دلتا كل جولة كي لا تضيع العلاجات أو الآثار الخاصة.
             let newPlayerScore = state.playerDeck.length;
-            let newBotScore = state.playerDeck.length;
+            let newBotScore = state.botDeck.length;
+            let newPlayerMaxHealth = newPlayerScore;
+            let newBotMaxHealth = newBotScore;
             for (const rr of rewindedResults) {
-              if (rr.winner === 'player') newBotScore -= 1;
-              else if (rr.winner === 'bot') newPlayerScore -= 1;
+              const playerDelta = rr.playerHealthDelta
+                ?? (rr.winner === 'bot' ? -1 : 0);
+              const botDelta = rr.botHealthDelta
+                ?? (rr.winner === 'player' ? -1 : 0);
+              newPlayerScore = Math.max(0, newPlayerScore + playerDelta);
+              newBotScore = Math.max(0, newBotScore + botDelta);
+              newPlayerMaxHealth = Math.max(newPlayerMaxHealth, newPlayerScore);
+              newBotMaxHealth = Math.max(newBotMaxHealth, newBotScore);
             }
             nextState = {
               ...nextState,
               currentRound: Math.max(0, state.currentRound - rewindCount),
               roundResults: rewindedResults,
-              playerScore: Math.max(0, newPlayerScore),
-              botScore: Math.max(0, newBotScore),
+              playerScore: newPlayerScore,
+              botScore: newBotScore,
+              playerMaxHealth: newPlayerMaxHealth,
+              botMaxHealth: newBotMaxHealth,
             };
           }
           break;
@@ -1249,6 +1283,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       botBaseDamage: 0,
       playerElementAdvantage: 'neutral',
       botElementAdvantage: 'neutral',
+      playerHealthDelta: 0,
+      botHealthDelta: 0,
       winner,
     };
   }, [state.playerDeck, state.botDeck, state.currentRound, state.activeEffects, state.abilitiesEnabled, state.totalRounds]);

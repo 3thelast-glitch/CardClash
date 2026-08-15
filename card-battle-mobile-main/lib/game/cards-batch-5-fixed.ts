@@ -208,6 +208,7 @@ export const CARDS_BATCH_5: Card[] = [
         gender: 'male',
         universe: 'One Piece',
         specialAbility: 'قوة التنين — +2 هجوم و+4 دفاع هذه الجولة',
+        characterAbilityId: 'kaido_dragon_strength',
         animationPreset: 'lightning',
         tags: ['crown'],
     },

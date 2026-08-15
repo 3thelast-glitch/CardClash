@@ -550,6 +550,8 @@ export const CARDS_BATCH_8: Card[] = [
         stars: 5,
         gender: 'male',
         universe: 'Bloodborne',
+        specialAbility: 'صياد الوحوش — فوز مضمون أمام الوحوش',
+        characterAbilityId: 'gehrman_monster_hunter',
         animationPreset: 'wind',
         tags: ['crown'],
     },

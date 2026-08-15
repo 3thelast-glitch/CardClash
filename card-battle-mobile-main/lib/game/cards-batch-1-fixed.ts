@@ -21,6 +21,8 @@ export const CARDS_BATCH_1: Card[] = [
         race: 'human', cardClass: 'swordsman', element: 'fire',
         tags: ["sword"],
         rarity: 'epic', stars: 4,
+        specialAbility: 'شهامة سانجي — يخسر أمام الشخصيات الأنثوية',
+        characterAbilityId: 'sanji_chivalry',
         animationPreset: 'fire',
     },
     {
@@ -165,6 +167,8 @@ export const CARDS_BATCH_1: Card[] = [
         race: 'human', cardClass: 'swordsman', element: 'earth',
         tags: ["sword", "crown"],
         rarity: 'legendary', stars: 5,
+        specialAbility: 'تفوق السياف — فوز مضمون أمام السيافين',
+        characterAbilityId: 'mihawk_swordsman_mastery',
         animationPreset: 'default',
     },
     {
@@ -196,6 +200,8 @@ export const CARDS_BATCH_1: Card[] = [
         race: 'human', cardClass: 'healer', element: 'earth',
         tags: ["magic"],
         rarity: 'rare', stars: 3,
+        specialAbility: 'شفاء النصر — +1 صحة عند الفوز',
+        characterAbilityId: 'sakura_victory_heal',
         animationPreset: 'default',
     },
     {
@@ -227,6 +233,8 @@ export const CARDS_BATCH_1: Card[] = [
         race: 'human', cardClass: 'healer', element: 'earth',
         tags: ["magic"],
         rarity: 'epic', stars: 4,
+        specialAbility: 'طب تسونادي — +2 صحة عند دخول الجولة',
+        characterAbilityId: 'tsunade_medical_ninjutsu',
         animationPreset: 'default',
     },
     {

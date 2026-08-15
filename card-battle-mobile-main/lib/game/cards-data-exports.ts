@@ -144,6 +144,8 @@ interface RoundWinnerResult {
   botBaseDamage: number;
   playerElementAdvantage: ElementAdvantage;
   botElementAdvantage: ElementAdvantage;
+  playerHealthDelta: number;
+  botHealthDelta: number;
 }
 
 export function determineRoundWinner(
@@ -173,6 +175,8 @@ export function determineRoundWinner(
       botBaseDamage: 0,
       playerElementAdvantage: playerAdv,
       botElementAdvantage: botAdv,
+      playerHealthDelta: 0,
+      botHealthDelta: 0,
     };
   }
 
@@ -185,6 +189,8 @@ export function determineRoundWinner(
       botBaseDamage: 0,
       playerElementAdvantage: playerAdv,
       botElementAdvantage: botAdv,
+      playerHealthDelta: 0,
+      botHealthDelta: 0,
     };
   }
 
@@ -236,6 +242,10 @@ export function determineRoundWinner(
     return { atk, def };
   };
 
+  // تسجل تفاعلات الماء/الأرض علاجاً فعلياً للمباراة، وليس للنسخة المؤقتة فقط.
+  const playerHealthDelta = Math.max(0, (p.hp ?? 0) - (playerCard.hp ?? 0));
+  const botHealthDelta = Math.max(0, (b.hp ?? 0) - (botCard.hp ?? 0));
+
   const pStats = applySideEffects(p.attack, p.defense, playerEffects, playerCard.cardClass, playerShield);
   const bStats = applySideEffects(b.attack, b.defense, botEffects, botCard.cardClass, botShield);
 
@@ -261,5 +271,7 @@ export function determineRoundWinner(
     botBaseDamage,
     playerElementAdvantage: playerAdv,
     botElementAdvantage:    botAdv,
+    playerHealthDelta,
+    botHealthDelta,
   };
 }

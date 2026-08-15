@@ -1,4 +1,5 @@
 import { Effect, Side, Card } from './types';
+import { getCharacterAbility } from './character-abilities';
 
 export type PredictionSelections = Record<number, 'win' | 'loss'>;
 
@@ -41,41 +42,29 @@ export function applySpecialAbilityModifications(
   ownStats: { attack: number; defense: number },
   oppStats?: { attack: number; defense: number }
 ) {
-  const ownId = ownCard.id;
+  const ownModifiers = getCharacterAbility(ownCard)?.statModifiers;
+  const opponentModifiers = opponentCard
+    ? getCharacterAbility(opponentCard)?.statModifiers
+    : undefined;
 
-  // 1. Ainz Ooal Gown: يلغي دفاع الخصم.
-  if (ownId === 'ainz_ooal_gown' && oppStats) {
+  if (ownModifiers?.cancelOpponentDefense && oppStats) {
     oppStats.defense = 0;
   }
-  if (!oppStats && opponentCard?.id === 'ainz_ooal_gown') {
+  if (!oppStats && opponentModifiers?.cancelOpponentDefense) {
     ownStats.defense = 0;
   }
 
-  // 2. Gojo: اللانهاية تجعل الدفاع 99 لهذه الجولة.
-  if (ownId === 'satoru_gojo') {
-    ownStats.defense = 99;
+  if (ownModifiers?.defenseOverride !== undefined) {
+    ownStats.defense = ownModifiers.defenseOverride;
   }
+  ownStats.attack += ownModifiers?.attackBonus ?? 0;
+  ownStats.defense += ownModifiers?.defenseBonus ?? 0;
 
-  // 3. Sukuna: دفعة هجوم ثابتة.
-  if (ownId === 'ryomen_sukuna') {
-    ownStats.attack += 6;
+  if (ownModifiers?.opponentAttackPenalty && oppStats) {
+    oppStats.attack = Math.max(0, oppStats.attack - ownModifiers.opponentAttackPenalty);
   }
-
-  // 4. Makima: تكسب 4 هجوم وتخفض هجوم الخصم 4، من دون نزول تحت الصفر.
-  if (ownId === 'makima') {
-    ownStats.attack += 4;
-    if (oppStats) {
-      oppStats.attack = Math.max(0, oppStats.attack - 4);
-    }
-  }
-  if (!oppStats && opponentCard?.id === 'makima') {
-    ownStats.attack = Math.max(0, ownStats.attack - 4);
-  }
-
-  // 5. Kaido: التعزيز الحالي للإحصاءات (+4 دفاع، +2 هجوم).
-  if (ownId === 'kaido') {
-    ownStats.defense += 4;
-    ownStats.attack += 2;
+  if (!oppStats && opponentModifiers?.opponentAttackPenalty) {
+    ownStats.attack = Math.max(0, ownStats.attack - opponentModifiers.opponentAttackPenalty);
   }
 }
 

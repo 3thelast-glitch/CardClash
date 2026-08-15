@@ -32,6 +32,8 @@ const makeRoundResult = (
   botBaseDamage: 2,
   playerElementAdvantage: 'neutral',
   botElementAdvantage: 'neutral',
+  playerHealthDelta: 0,
+  botHealthDelta: 0,
   winner,
 });
 
@@ -75,6 +77,8 @@ const makeState = (ability: AbilityType, overrides: Partial<GameState> = {}): Ga
     totalRounds: 5,
     playerScore: 5,
     botScore: 5,
+    playerMaxHealth: 5,
+    botMaxHealth: 5,
     roundResults: [makeRoundResult()],
     difficulty: 2,
     abilitiesEnabled: true,

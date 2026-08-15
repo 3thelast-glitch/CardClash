@@ -3,6 +3,7 @@
  * منطق تفعيل وضع الغضب + القدرات الخاصة بالبطاقات أثناء المعركة
  */
 import type { Card, RageModeData } from './types';
+import { getCharacterAbility, matchesCharacterAbilityTarget } from './character-abilities';
 
 // ─────────────────────────────────────────────
 // RAGE STATE
@@ -142,21 +143,9 @@ export function isTurinForcedLoss(
 
 // ── On-spawn passives ──────────────────────────
 
-const isTsunade = (card: Card) =>
-  card.id === 'tsunade'
-  || card.nameEn === 'Tsunade'
-  || card.name === 'Tsunade'
-  || card.nameAr === 'تسونادي';
-
-const isSakura = (card: Card) =>
-  card.id === 'sakura_haruno'
-  || card.nameEn === 'Sakura Haruno'
-  || card.name === 'Sakura Haruno'
-  || card.nameAr === 'ساكورا هارونو';
-
-/** تمنح Tsunade صحة مباراة إضافية عند بداية المعركة، من دون سقف للزيادة. */
+/** يمنح سجل القدرة صحة مباراة عند دخول البطاقة الجولة، من دون سقف للزيادة. */
 export function getOnSpawnMatchHealthBonus(card: Card): number {
-  return isTsunade(card) ? 2 : 0;
+  return getCharacterAbility(card)?.roundStartHealthBonus ?? 0;
 }
 
 /**
@@ -169,7 +158,7 @@ export function applyOnSpawnPassive(card: Card): Card {
 
   return {
     ...card,
-    hp: ((card as any).hp ?? (card as any).health ?? 0) + healthBonus,
+    hp: (card.hp ?? 0) + healthBonus,
   };
 }
 
@@ -187,46 +176,20 @@ export function resolveSpecialAbility(
   attacker: Card,
   defender: Card,
 ): BattleResult | null {
-  const defenderTags = (defender.tags ?? []).map((tag) => tag.toLowerCase());
-  const attackerName = (attacker.nameEn ?? attacker.name ?? '').toLowerCase();
+  const matchup = getCharacterAbility(attacker)?.matchup;
+  if (!matchup || !matchesCharacterAbilityTarget(defender, matchup.target)) return null;
 
-  const isMihawk = attacker.id === 'dracule_mihawk'
-    || attackerName === 'dracule mihawk'
-    || attacker.nameAr === 'دراكول ميهوك';
-  const isGehrman = attacker.id === 'gehrman'
-    || attackerName.startsWith('gehrman')
-    || attacker.nameAr.startsWith('غيرمان');
-  const isSanji = attacker.id === 'sanji'
-    || attackerName === 'sanji'
-    || attacker.nameAr === 'سانجي';
-
-  const defenderIsSwordsman = defender.cardClass === 'swordsman'
-    || defenderTags.includes('swordsman')
-    || defenderTags.includes('sword');
-  const defenderIsMonster = defender.race === 'monster'
-    || defenderTags.includes('monster')
-    || defenderTags.includes('beast')
-    || defenderTags.includes('وحش');
-  const defenderIsFemale = defender.gender === 'female'
-    || defenderTags.includes('female')
-    || defenderTags.includes('woman')
-    || defenderTags.includes('أنثى');
-
-  if (isMihawk && defenderIsSwordsman) return 'win';
-  if (isGehrman && defenderIsMonster) return 'win';
-  if (isSanji && defenderIsFemale) return 'lose';
-
-  return null;
+  return matchup.outcome;
 }
 
 // ── Post-battle passives ───────────────────────
 
-/** تمنح Sakura صحة مباراة إضافية بعد الفوز، حتى إن كانت الصحة عند حدها الابتدائي. */
+/** تمنح القدرة صحة مباراة إضافية بعد الفوز، حتى إن كانت الصحة عند حدها الابتدائي. */
 export function getPostBattleMatchHealthBonus(
   card: Card,
   result: BattleResult,
 ): number {
-  return isSakura(card) && result === 'win' ? 1 : 0;
+  return result === 'win' ? (getCharacterAbility(card)?.winHealthBonus ?? 0) : 0;
 }
 
 /**
@@ -242,7 +205,7 @@ export function applyPostBattlePassive(
 
   return {
     ...card,
-    hp: ((card as any).hp ?? (card as any).health ?? 0) + healthBonus,
+    hp: (card.hp ?? 0) + healthBonus,
   };
 }
 

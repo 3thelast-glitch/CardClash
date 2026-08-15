@@ -79,7 +79,7 @@ export default function BattleResultsScreen() {
   const playerHp    = state.playerScore;
   const botHp       = state.botScore;
   const totalRounds = state.totalRounds;
-  const displayedMaxHp = Math.max(totalRounds, playerHp, botHp);
+  const displayedMaxHp = Math.max(totalRounds, state.playerMaxHealth, state.botMaxHealth);
 
   const playerLostByHp = playerHp <= 0 && botHp > 0;
   const botLostByHp   = botHp   <= 0 && playerHp > 0;

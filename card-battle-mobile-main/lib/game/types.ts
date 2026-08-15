@@ -44,6 +44,19 @@ export interface LocalizedString {
 /** Per-card animation preset key */
 export type CardAnimationPreset = 'default' | 'fire' | 'lightning' | 'shadow' | 'holy' | 'wind' | 'water' | 'earth';
 
+/** معرف قدرة الشخصية المدمجة، مستقل عن بطاقات القدرات اليدوية. */
+export type CharacterAbilityId =
+  | 'mihawk_swordsman_mastery'
+  | 'gehrman_monster_hunter'
+  | 'sanji_chivalry'
+  | 'tsunade_medical_ninjutsu'
+  | 'sakura_victory_heal'
+  | 'ainz_death_king'
+  | 'gojo_infinity'
+  | 'sukuna_curse_king'
+  | 'makima_control'
+  | 'kaido_dragon_strength';
+
 /** جنس الكارت */
 export type Gender = 'male' | 'female' | 'unknown';
 
@@ -79,6 +92,8 @@ export interface Card {
   rarity?: CardRarity;
   stars?: number;
   specialAbility?: string;
+  /** تعريف منظم لقدرة الشخصية؛ النص المعروض يبقى في specialAbility. */
+  characterAbilityId?: CharacterAbilityId;
   cardEffects?: CardEffect[];
   animationPreset?: CardAnimationPreset;
   ability?: AbilityType;
@@ -212,6 +227,9 @@ export interface GameState {
   totalRounds: number;
   playerScore: number;
   botScore: number;
+  /** أعلى صحة وصلت إليها كل جهة في المباراة؛ لا تتغير مع الضرر العادي. */
+  playerMaxHealth: number;
+  botMaxHealth: number;
   roundResults: RoundResult[];
   difficulty: 1 | 2 | 3 | 4 | 5;
   abilitiesEnabled: boolean;
@@ -236,6 +254,9 @@ export interface RoundResult {
   botBaseDamage: number;
   playerElementAdvantage: ElementAdvantage;
   botElementAdvantage: ElementAdvantage;
+  /** التغير النهائي في صحة المباراة بعد الحسم والعلاج والآثار النشطة. */
+  playerHealthDelta: number;
+  botHealthDelta: number;
   winner: 'player' | 'bot' | 'draw';
 }
 
