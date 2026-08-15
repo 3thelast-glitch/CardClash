@@ -18,6 +18,9 @@ import { GameProvider } from "@/lib/game/game-context";
 import { MultiplayerProvider } from "@/lib/multiplayer/multiplayer-context";
 import { LanMultiplayerProvider } from "@/lib/lan/lan-context";
 import { DeveloperBuildBadge } from "@/components/game/developer-build-badge";
+import { UpdateAvailableModal } from "@/components/game/update-available-modal";
+import { useGithubUpdate } from "@/lib/releases/use-github-update";
+import { AndroidLaunchSplash } from "@/components/game/android-launch-splash";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -33,6 +36,8 @@ const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
 
 export default function RootLayout() {
+  const { update, dismissUpdate } = useGithubUpdate();
+  const [showAndroidLaunchSplash, setShowAndroidLaunchSplash] = useState(Platform.OS === 'android');
   const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;
   const initialFrame = initialWindowMetrics?.frame ?? DEFAULT_WEB_FRAME;
 
@@ -129,6 +134,8 @@ export default function RootLayout() {
               </Stack>
               <StatusBar style="auto" />
               <DeveloperBuildBadge />
+              <UpdateAvailableModal update={update} onDismiss={dismissUpdate} />
+              {showAndroidLaunchSplash && <AndroidLaunchSplash onComplete={() => setShowAndroidLaunchSplash(false)} />}
             </QueryClientProvider>
           </trpc.Provider>
           </LanMultiplayerProvider>
