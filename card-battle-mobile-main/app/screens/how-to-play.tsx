@@ -8,6 +8,7 @@ import { LuxuryBackground } from '@/components/game/luxury-background';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 import { useOrientationTransition } from '@/utils/orientation-transition';
 import { TrainingArena } from '@/components/game/training-arena';
+import { GuideMechanicsDemo } from '@/components/game/guide-mechanics-demo';
 import { COLOR, FONT, RADIUS, SPACE } from '@/components/ui/design-tokens';
 
 const ELEMENTS = [
@@ -111,6 +112,9 @@ export default function HowToPlayScreen() {
 
           <SectionTitle eyebrow="جرّب القاعدة بنفسك" title="ساحة التدريب" text="اختر بطاقتين واضغط تحليل النتيجة؛ لن تُسجّل هذه التجربة ضمن نتائجك أو إحصاءاتك." />
           <TrainingArena />
+
+          <SectionTitle eyebrow="شاهدها خطوة بخطوة" title="رسوم توضيحية قصيرة" text="اختر الآلية التي تريد فهمها، ثم شاهد الخطوات أو أعد تشغيلها متى شئت." />
+          <GuideMechanicsDemo />
 
           <SectionTitle eyebrow="خمس قوى" title="نظام العناصر" text="ميزة العنصر تمنح ×1.25 للهجوم، وضعف العنصر يطبّق ×0.75." />
           <Animated.View layout={layoutTransition} style={[s.elementGrid, isLandscape && s.elementGridLandscape]}>
