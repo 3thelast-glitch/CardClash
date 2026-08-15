@@ -16,8 +16,7 @@ import Animated, {
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { ElementEffect } from '@/components/game/element-effect';
-import { RotateHintScreen } from '@/components/game/RotateHintScreen';
-import { useLandscapeLayout, CARD_WIDTH_FACTOR } from '@/utils/layout';
+import { useBattleLayout } from '@/utils/layout';
 import { mpClient, MPMessage } from '@/lib/multiplayer/websocket-client';
 import { useGame } from '@/lib/game/game-context';
 import { COLOR, SPACE, RADIUS, FONT, SHADOW } from '@/components/ui/design-tokens';
@@ -32,7 +31,17 @@ type MPBattlePhase =
 export default function MultiplayerBattleScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width, height, isLandscape, size } = useLandscapeLayout();
+  const {
+    cardWidth,
+    cardHeight,
+    arenaPadding,
+    arenaGap,
+    centerWidth,
+    actionButtonWidth,
+    actionButtonHeight,
+    hudPadding,
+    isCompact,
+  } = useBattleLayout();
   const params = useLocalSearchParams<{
     roomId: string;
     playerId: string;
@@ -42,9 +51,6 @@ export default function MultiplayerBattleScreen() {
 
   const { currentPlayerCard } = useGame();
 
-  const maxH = height * 0.54;
-  const cardWidth = Math.min(width * CARD_WIDTH_FACTOR[size] * 0.88, maxH / 1.5);
-  const cardHeight = cardWidth * 1.5;
 
   // ─── State ──────────────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<MPBattlePhase>('waiting_start');
@@ -179,7 +185,6 @@ export default function MultiplayerBattleScreen() {
     enterCards();
   }, [enterCards]);
 
-  if (!isLandscape) return <RotateHintScreen />;
 
   // ─── Game Over ───────────────────────────────────────────────────────────────
   if (phase === 'game_over' && gameOver) {
@@ -214,12 +219,12 @@ export default function MultiplayerBattleScreen() {
       <View style={S.bg}><LuxuryBackground /></View>
 
       {/* HUD */}
-      <View style={[S.hud, { paddingLeft: Math.max(insets.left, 8), paddingRight: Math.max(insets.right, 8) }]}>
+      <View style={[S.hud, { paddingLeft: Math.max(insets.left, hudPadding), paddingRight: Math.max(insets.right, hudPadding), height: isCompact ? 52 : 60 }]}>
         <View style={S.hudSide}>
           <Text style={[S.hudName, { color: '#4ade80' }]}>{params.playerName}</Text>
           <Text style={[S.hudScore, { color: '#4ade80' }]}>{myScore}</Text>
         </View>
-        <View style={S.hudCenter}>
+        <View style={[S.hudCenter, { width: centerWidth }]}>
           <Text style={S.hudRound}>جولة {currentRound + 1} / {totalRounds}</Text>
           {phase === 'waiting_start' && <Text style={S.waitText}>⌛ انتظار...</Text>}
         </View>
@@ -230,7 +235,7 @@ export default function MultiplayerBattleScreen() {
       </View>
 
       {/* Arena */}
-      <View style={[S.arena, { paddingLeft: Math.max(insets.left, 8), paddingRight: Math.max(insets.right, 8) }]}>
+      <View style={[S.arena, { paddingLeft: Math.max(insets.left, arenaPadding), paddingRight: Math.max(insets.right, arenaPadding), gap: arenaGap, paddingTop: isCompact ? 8 : SPACE.md }]}>
 
         {/* My Card */}
         <View style={S.panel}>
@@ -253,8 +258,8 @@ export default function MultiplayerBattleScreen() {
         </View>
 
         {/* Center */}
-        <View style={S.center}>
-          <Text style={S.vsIcon}>⚔️</Text>
+        <View style={[S.center, { width: centerWidth, gap: Math.max(6, arenaGap) }]}>
+          <Text style={[S.vsIcon, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
 
           {/* Result badge */}
           {phase === 'result' && lastResult && (
@@ -272,23 +277,23 @@ export default function MultiplayerBattleScreen() {
 
           {/* CTA */}
           {phase === 'selection' && (
-            <TouchableOpacity style={[S.btn, S.btnAttack]} onPress={handleReveal} activeOpacity={0.85}>
+            <TouchableOpacity style={[S.btn, S.btnAttack, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]} onPress={handleReveal} activeOpacity={0.85}>
               <Text style={S.btnIcon}>⚔️</Text>
               <Text style={S.btnText}>اكشف كرتك</Text>
             </TouchableOpacity>
           )}
           {phase === 'waiting_opponent' && (
-            <View style={[S.btn, S.btnWait]}>
+            <View style={[S.btn, S.btnWait, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]}>
               <Text style={S.btnText}>⌛ ننتظر الخصم...</Text>
             </View>
           )}
           {phase === 'result' && currentRound < totalRounds - 1 && (
-            <TouchableOpacity style={[S.btn, S.btnNext]} onPress={handleNext} activeOpacity={0.85}>
+            <TouchableOpacity style={[S.btn, S.btnNext, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]} onPress={handleNext} activeOpacity={0.85}>
               <Text style={S.btnText}>▶️ التالي</Text>
             </TouchableOpacity>
           )}
           {phase === 'result' && currentRound === totalRounds - 1 && (
-            <TouchableOpacity style={[S.btn, S.btnEndBattle]} onPress={handleEndMPBattle} activeOpacity={0.85}>
+            <TouchableOpacity style={[S.btn, S.btnEndBattle, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]} onPress={handleEndMPBattle} activeOpacity={0.85}>
               <Text style={S.btnText}>🏁 إنهاء المعركة</Text>
             </TouchableOpacity>
           )}
@@ -331,7 +336,7 @@ const S = StyleSheet.create({
   bg: { position: 'absolute', inset: 0 },
   hud: { height: 60, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(8,6,18,0.85)', borderBottomWidth: 1, borderBottomColor: 'rgba(228,165,42,0.18)', paddingHorizontal: SPACE.lg, gap: SPACE.sm },
   hudSide: { flex: 1, gap: 2 },
-  hudCenter: { width: 140, alignItems: 'center' },
+  hudCenter: { alignItems: 'center' },
   hudName: { fontSize: FONT.xs, letterSpacing: 0.4 },
   hudScore: { fontSize: FONT.xxl, fontVariant: ['tabular-nums'] } as any,
   hudRound: { color: '#e2e8f0', fontSize: FONT.sm },
@@ -341,18 +346,18 @@ const S = StyleSheet.create({
   panelLabel: { color: '#4ade80', fontSize: FONT.xs - 2, letterSpacing: 1 },
   emptyCard: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: RADIUS.lg, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   emptyCardText: { fontSize: 48, color: '#475569' },
-  center: { width: 148, alignItems: 'center', gap: SPACE.md, zIndex: 20 },
+  center: { alignItems: 'center', zIndex: 20 },
   vsIcon: { fontSize: 28 },
   resultBadge: { paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderRadius: RADIUS.pill, borderWidth: 1.5, alignItems: 'center' },
   resultText: { fontSize: FONT.base, letterSpacing: 0.5 },
-  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: SPACE.xl, borderWidth: 1.5 },
+  btn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, borderRadius: RADIUS.pill, paddingVertical: 7, paddingHorizontal: SPACE.sm, borderWidth: 1.5 },
   btnAttack: { backgroundColor: 'rgba(74,222,128,0.12)', borderColor: '#4ade80' },
   btnNext: { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: '#60a5fa' },
   btnEndBattle: { backgroundColor: 'rgba(228,165,42,0.12)', borderColor: COLOR.gold },
   btnWait: { backgroundColor: 'rgba(71,85,105,0.2)', borderColor: '#475569' },
   btnHome: { backgroundColor: 'rgba(228,165,42,0.12)', borderColor: COLOR.gold, marginTop: SPACE.lg },
   btnIcon: { fontSize: 16 },
-  btnText: { color: '#f1f5f9', fontSize: FONT.sm },
+  btnText: { color: '#f1f5f9', fontSize: FONT.sm, textAlign: 'center', flexShrink: 1 },
   disconnectBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(248,113,113,0.15)', padding: SPACE.md, alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(248,113,113,0.3)' },
   disconnectText: { color: '#f87171', fontSize: FONT.sm },
   gameOverBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.lg },

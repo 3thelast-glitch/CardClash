@@ -45,7 +45,7 @@ import { ElementEffect } from '@/components/game/element-effect';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { DamageNumber, DamageNumberVariant } from '@/components/game/damage-number';
 import { BattleResultOverlay } from '@/components/game/BattleResultOverlay';
-import { useLandscapeLayout, LAYOUT_PADDING, CARD_WIDTH_FACTOR } from '@/utils/layout';
+import { useBattleLayout } from '@/utils/layout';
 import { useGame } from '@/lib/game/game-context';
 import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass, AbilityType, ELEMENT_MULTIPLIER } from '@/lib/game/types';
 import { getElementAdvantage, applyElementalReactions } from '@/lib/game/cards-data-exports';
@@ -296,7 +296,7 @@ function ChoiceModal({
 }
 const cm = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
-  box: { width: 300, backgroundColor: 'rgba(12,18,36,0.98)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(228,165,42,0.3)', padding: SPACE.xl },
+  box: { width: '88%', maxWidth: 340, backgroundColor: 'rgba(12,18,36,0.98)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(228,165,42,0.3)', padding: SPACE.xl },
   title: { color: COLOR.gold, fontSize: FONT.base, textAlign: 'center', marginBottom: SPACE.lg },
   option: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: RADIUS.md, padding: SPACE.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   optionText: { color: '#f1f5f9', fontSize: FONT.sm, textAlign: 'center' },
@@ -308,7 +308,19 @@ const cm = StyleSheet.create({
 export default function BattleScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width, height, isLandscape, size } = useLandscapeLayout();
+  const {
+    width,
+    height,
+    arenaPadding,
+    arenaGap,
+    centerWidth,
+    actionButtonWidth,
+    actionButtonHeight,
+    cardWidth,
+    cardHeight,
+    hudPadding,
+    isCompact,
+  } = useBattleLayout();
 
   // Dynamic scaling parameters for the abilities modal:
   const modalAvailableH = height * 0.95 - 100; // safe area margin for modal padding, title, cancel button
@@ -333,12 +345,8 @@ export default function BattleScreen() {
     if (Platform.OS !== 'web' && settings.vibration) Haptics.notificationAsync(type);
   }, [settings.vibration]);
 
-  // ✅ Fix: الـ arena دائماً row بغض النظر عن وضع الشاشة
-  // cardWidth يحسب بناءً على أكبر بُعد (max) حتى تظهر الكروت بحجم مناسب
-  const longSide = Math.max(width, height);
-  const shortSide = Math.min(width, height);
-  const cardWidth = Math.min(longSide * CARD_WIDTH_FACTOR[size] * 0.88, (shortSide * 0.54) / 1.5);
-  const cardHeight = cardWidth * (320 / 220);
+  // تبقى الساحة في صف واحد، لكن عرض البطاقات والعمود الأوسط محسوبان من المساحة المتاحة فعلياً.
+  // يمنع ذلك تجاوز العرض في الشاشات العمودية والنوافذ الضيقة.
 
   const {
     state, playRound, isGameOver, currentPlayerCard, currentBotCard,
@@ -770,7 +778,7 @@ export default function BattleScreen() {
         <View style={[S.screen, { paddingLeft: Math.max(insets.left, 8), paddingRight: Math.max(insets.right, 8) }]}>
 
           {/* ══ TOP HUD ══ */}
-          <View style={S.topHud}>
+          <View style={[S.topHud, { paddingHorizontal: hudPadding }]}>
             <View style={S.hudSide}>
               <View style={[S.avatar, { borderColor: '#4ade80' }]}><Text style={{ fontSize: 18 }}>👤</Text></View>
               <View style={S.hudInfo}>
@@ -812,7 +820,7 @@ export default function BattleScreen() {
           )}
 
           {/* ══ ARENA — دائماً row بغض النظر عن portrait/landscape ══ */}
-          <View style={[S.arena, { flexDirection: 'row', paddingHorizontal: LAYOUT_PADDING[size] }]}>
+          <View style={[S.arena, { paddingHorizontal: arenaPadding, gap: arenaGap }]}>
 
             {/* PLAYER PANEL */}
             <View style={S.playerPanel}>
@@ -844,9 +852,9 @@ export default function BattleScreen() {
             </View>
 
             {/* CENTER PANEL */}
-            <View style={S.centerPanel}>
+            <View style={[S.centerPanel, { width: centerWidth, gap: Math.max(6, arenaGap) }]}>
               <Animated.View style={vsStyle}>
-                <Text style={S.vsText}>⚔️</Text>
+                <Text style={[S.vsText, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
               </Animated.View>
 
               {phase === 'result' && lastRoundResult && (
@@ -865,10 +873,10 @@ export default function BattleScreen() {
               )}
 
               {phase === 'action' && (
-                <View style={S.actionButtons}>
+                <View style={[S.actionButtons, { gap: Math.max(6, arenaGap) }]}>
                   {/* Ability button */}
                   <TouchableOpacity
-                    style={[S.abilityBtn, state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled]}
+                    style={[S.abilityBtn, { width: actionButtonWidth, height: actionButtonHeight }, state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled]}
                     onPress={() => setIsAbilitiesModalOpen(true)}
                     disabled={state.playerAbilities.every(a => a.used)}
                     activeOpacity={0.8}
@@ -877,13 +885,13 @@ export default function BattleScreen() {
                   </TouchableOpacity>
 
                   {/* Attack button */}
-                  <TouchableOpacity style={S.attackBtn} onPress={handleExecuteAttack} activeOpacity={0.85}>
+                  <TouchableOpacity style={[S.attackBtn, { width: actionButtonWidth, height: actionButtonHeight }]} onPress={handleExecuteAttack} activeOpacity={0.85}>
                     <Text style={S.attackBtnText}>⚔️ هجوم</Text>
                   </TouchableOpacity>
 
                   {canRageNow && (
                     <TouchableOpacity
-                      style={S.rageBtn}
+                      style={[S.rageBtn, { width: actionButtonWidth, height: actionButtonHeight }]}
                       onPress={() => {
                         const tempState = { activatedThisMatch: new Set(rageState.current.activatedThisMatch) };
                         const rageCard = applyRageToCard(currentPlayerCard!, tempState);
@@ -899,13 +907,13 @@ export default function BattleScreen() {
               )}
 
               {phase === 'result' && !isGameOver && (
-                <TouchableOpacity style={S.nextBtn} onPress={handleNextRound} activeOpacity={0.85}>
+                <TouchableOpacity style={[S.nextBtn, { width: actionButtonWidth, height: actionButtonHeight }]} onPress={handleNextRound} activeOpacity={0.85}>
                   <Text style={S.nextBtnText}>التالي ▶</Text>
                 </TouchableOpacity>
               )}
 
               {phase === 'result' && isGameOver && (
-                <TouchableOpacity style={S.endBattleBtn} onPress={handleEndBattle} activeOpacity={0.85}>
+                <TouchableOpacity style={[S.endBattleBtn, { width: actionButtonWidth, height: actionButtonHeight }]} onPress={handleEndBattle} activeOpacity={0.85}>
                   <Text style={S.endBattleBtnText}>إنهاء المعركة 🏁</Text>
                 </TouchableOpacity>
               )}

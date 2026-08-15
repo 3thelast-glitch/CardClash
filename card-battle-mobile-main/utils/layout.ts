@@ -1,141 +1,184 @@
 import { useWindowDimensions } from 'react-native';
 
 /**
- * Breakpoint sizes for landscape-responsive layouts.
- *
- * sm  – normal phones in landscape  (< 700px wide)
- * md  – S23 Ultra / wide phones     (700–899px wide)
- * lg  – tablets / very wide phones  (900–1199px wide)
- * xl  – large tablets / desktop     (≥ 1200px wide)
+ * Breakpoint sizes for grids, galleries and other width-led layouts.
+ * Unlike battle dimensions, these are based on available horizontal space.
  */
 export type LayoutSize = 'sm' | 'md' | 'lg' | 'xl';
 
 export interface LandscapeLayout {
-    width: number;
-    height: number;
-    isLandscape: boolean;
-    size: LayoutSize;
+  width: number;
+  height: number;
+  isLandscape: boolean;
+  size: LayoutSize;
 }
 
+export interface BattleLayout extends LandscapeLayout {
+  arenaPadding: number;
+  hudPadding: number;
+  arenaGap: number;
+  centerWidth: number;
+  actionButtonWidth: number;
+  actionButtonHeight: number;
+  cardWidth: number;
+  cardHeight: number;
+  isCompact: boolean;
+}
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+/** Card aspect ratio: height = width * CARD_ASPECT. */
+export const CARD_ASPECT = 320 / 220;
+
 /**
- * Single source of truth for landscape-responsive layout values.
- * Re-renders whenever the window dimensions change (e.g. device rotation).
+ * A responsive viewport snapshot. It recalculates after device rotation,
+ * browser resizing, tablet split-screen changes and desktop window resizing.
  */
 export const useLandscapeLayout = (): LandscapeLayout => {
-    const { width, height } = useWindowDimensions();
-    const isLandscape = width > height;
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width >= height;
+  const size: LayoutSize = (() => {
+    if (width >= 1200) return 'xl';
+    if (width >= 900) return 'lg';
+    if (width >= 700) return 'md';
+    return 'sm';
+  })();
 
-    const size: LayoutSize = (() => {
-        if (width >= 1200) return 'xl'; // large tablets / desktop
-        if (width >= 900) return 'lg'; // tablets / very wide phones
-        if (width >= 700) return 'md'; // S23 Ultra class
-        return 'sm';                    // normal phones
-    })();
-
-    return { width, height, isLandscape, size };
-};
-
-// ─── Shared responsive tokens ────────────────────────────────────────────────
-
-/** Horizontal padding per size breakpoint. */
-export const LAYOUT_PADDING: Record<LayoutSize, number> = {
-    sm: 12,
-    md: 16,
-    lg: 24,
-    xl: 32,
+  return { width, height, isLandscape, size };
 };
 
 /**
- * Card width as a fraction of total screen width.
- * Height = width * (320/220) → original aspect ratio.
+ * Builds the arena from the actual remaining width after the central command
+ * area and gutters. Both cards and the action column are therefore bounded by
+ * the viewport in portrait, landscape, tablet, desktop and split-screen use.
+ */
+export const useBattleLayout = (): BattleLayout => {
+  const layout = useLandscapeLayout();
+  const { width, height, isLandscape } = layout;
+  const shortSide = Math.min(width, height);
+  const isCompact = width < 430 || height < 430;
+
+  const arenaPadding = clamp(width * (isCompact ? 0.018 : 0.028), 8, 32);
+  const hudPadding = clamp(width * 0.024, 8, 32);
+  const arenaGap = clamp(shortSide * 0.022, 6, 16);
+  const centerMin = isCompact ? 68 : 82;
+  const centerMax = isLandscape ? 148 : 110;
+  const centerWidth = clamp(width * (isLandscape ? 0.15 : 0.23), centerMin, centerMax);
+  const availableCardWidth = Math.max(
+    72,
+    (width - arenaPadding * 2 - arenaGap * 2 - centerWidth) / 2,
+  );
+  const usableCardHeight = Math.max(
+    118,
+    height * (isLandscape ? (isCompact ? 0.5 : 0.58) : 0.4),
+  );
+  // نستخدم floor بدلاً من round حتى لا يسبب التقريب تجاوزاً بمقدار بكسل في الشاشات الضيقة.
+  const cardWidth = Math.floor(clamp(
+    Math.min(availableCardWidth, usableCardHeight / CARD_ASPECT),
+    72,
+    isLandscape ? 290 : 220,
+  ));
+  const cardHeight = Math.round(cardWidth * CARD_ASPECT);
+
+  return {
+    ...layout,
+    arenaPadding,
+    hudPadding,
+    arenaGap,
+    centerWidth,
+    actionButtonWidth: Math.round(clamp(centerWidth, 68, 128)),
+    actionButtonHeight: Math.round(clamp(height * 0.065, 34, 48)),
+    cardWidth,
+    cardHeight,
+    isCompact,
+  };
+};
+
+/** Horizontal padding per size breakpoint for lists and regular screens. */
+export const LAYOUT_PADDING: Record<LayoutSize, number> = {
+  sm: 12,
+  md: 16,
+  lg: 24,
+  xl: 32,
+};
+
+/**
+ * Legacy width factors retained for compatibility. Battle screens should use
+ * useBattleLayout(), which accounts for the command column and usable height.
  */
 export const CARD_WIDTH_FACTOR: Record<LayoutSize, number> = {
-    sm: 0.42,
-    md: 0.36,
-    lg: 0.30,
-    xl: 0.26,
+  sm: 0.42,
+  md: 0.36,
+  lg: 0.30,
+  xl: 0.26,
 };
 
 /** Card scale factor for EpicCardTemplate scale prop. */
 export const CARD_SCALE: Record<LayoutSize, number> = {
-    sm: 0.44,
-    md: 0.38,
-    lg: 0.32,
-    xl: 0.28,
+  sm: 0.44,
+  md: 0.38,
+  lg: 0.32,
+  xl: 0.28,
 };
 
-/** Number of grid columns for list/gallery screens. */
+/** Number of grid columns for list and gallery screens. */
 export const GRID_COLUMNS: Record<LayoutSize, number> = {
-    sm: 2,
-    md: 3,
-    lg: 4,
-    xl: 5,
+  sm: 2,
+  md: 3,
+  lg: 4,
+  xl: 5,
 };
 
-// ─── Card sizes per usage context ────────────────────────────────────────────
-
-/**
- * Card width (px) for the main grid / gallery view.
- * Designed to fit multiple cards side-by-side.
- */
+/** Preferred card widths; final values are constrained by the live viewport. */
 export const GALLERY_CARD_W: Record<LayoutSize, number> = {
-    sm: 130,
-    md: 150,
-    lg: 170,
-    xl: 200,
+  sm: 130,
+  md: 150,
+  lg: 170,
+  xl: 200,
 };
 
-/**
- * Card width (px) for modal / preview / focus contexts
- * (one card shown at a time, can be larger).
- */
+/** Preferred modal card widths; final values are constrained by the live viewport. */
 export const MODAL_CARD_W: Record<LayoutSize, number> = {
-    sm: 180,
-    md: 210,
-    lg: 240,
-    xl: 280,
+  sm: 180,
+  md: 210,
+  lg: 240,
+  xl: 280,
 };
 
-/** Card aspect ratio: height = width * CARD_ASPECT */
-export const CARD_ASPECT = 320 / 220; // ≈ 1.4545
-
 /**
- * Returns responsive { width, height } for a card given a base width map.
- * Usage:
- * const { cardW, cardH } = useCardSize('gallery');
+ * Returns dimensions that fit their grid cell or modal at the current viewport
+ * size, and updates automatically when the viewport changes.
  */
 export const useCardSize = (
-    context: 'gallery' | 'modal' | 'battle' | 'selection'
+  context: 'gallery' | 'modal' | 'battle' | 'selection',
 ): { cardW: number; cardH: number; size: LayoutSize } => {
-    const { width, height, size } = useLandscapeLayout();
+  const { width, height, size } = useLandscapeLayout();
+  const padding = LAYOUT_PADDING[size];
+  let cardW: number;
 
-    let cardW: number;
-
-    switch (context) {
-        case 'gallery':
-            cardW = GALLERY_CARD_W[size];
-            break;
-
-        case 'modal':
-            cardW = MODAL_CARD_W[size];
-            break;
-
-        case 'battle': {
-            // fit inside 55% of screen height, capped by CARD_WIDTH_FACTOR
-            const byHeight = (height * 0.55) / CARD_ASPECT;
-            const byWidth = width * CARD_WIDTH_FACTOR[size] * 0.9;
-            cardW = Math.min(byHeight, byWidth);
-            break;
-        }
-
-        case 'selection':
-            // slightly smaller than gallery so it fits inside grid cells
-            cardW = GALLERY_CARD_W[size];
-            break;
-
-        default:
-            cardW = GALLERY_CARD_W[size];
+  switch (context) {
+    case 'gallery':
+    case 'selection': {
+      const columns = GRID_COLUMNS[size];
+      const gridGap = 12;
+      const cellWidth = Math.max(92, (width - padding * 2 - gridGap * (columns - 1)) / columns);
+      cardW = Math.min(GALLERY_CARD_W[size], cellWidth);
+      break;
     }
+    case 'modal': {
+      const byWidth = Math.max(140, width * 0.72);
+      const byHeight = Math.max(140, (height * 0.62) / CARD_ASPECT);
+      cardW = Math.min(MODAL_CARD_W[size], byWidth, byHeight);
+      break;
+    }
+    case 'battle': {
+      const byHeight = (height * 0.55) / CARD_ASPECT;
+      const byWidth = width * CARD_WIDTH_FACTOR[size] * 0.9;
+      cardW = Math.min(byHeight, byWidth);
+      break;
+    }
+  }
 
-    return { cardW, cardH: Math.round(cardW * CARD_ASPECT), size };
+  const roundedWidth = Math.round(cardW);
+  return { cardW: roundedWidth, cardH: Math.round(roundedWidth * CARD_ASPECT), size };
 };
