@@ -16,6 +16,7 @@ import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { GameProvider } from "@/lib/game/game-context";
 import { MultiplayerProvider } from "@/lib/multiplayer/multiplayer-context";
+import { LanMultiplayerProvider } from "@/lib/lan/lan-context";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -100,6 +101,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <GameProvider>
         <MultiplayerProvider>
+          <LanMultiplayerProvider>
           <trpc.Provider client={trpcClient} queryClient={queryClient}>
             <QueryClientProvider client={queryClient}>
               <Stack screenOptions={{ headerShown: false }}>
@@ -115,6 +117,7 @@ export default function RootLayout() {
                 <Stack.Screen name="screens/multiplayer-waiting" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/multiplayer-battle" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/multiplayer-results" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="screens/local-lan" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/stats" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/collection" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/cards-gallery" options={{ animation: 'slide_from_right' }} />
@@ -126,6 +129,7 @@ export default function RootLayout() {
               <StatusBar style="auto" />
             </QueryClientProvider>
           </trpc.Provider>
+          </LanMultiplayerProvider>
         </MultiplayerProvider>
       </GameProvider>
     </GestureHandlerRootView>

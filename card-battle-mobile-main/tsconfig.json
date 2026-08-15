@@ -7,6 +7,11 @@
       "nativewind/types",
       "vitest/globals"
     ],
+    "moduleSuffixes": [
+      ".native",
+      ".web",
+      ""
+    ],
     "paths": {
       "@/*": [
         "./*"

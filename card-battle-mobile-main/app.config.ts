@@ -51,7 +51,9 @@ const config: ExpoConfig = {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
     "infoPlist": {
-      "ITSAppUsesNonExemptEncryption": false
+      "ITSAppUsesNonExemptEncryption": false,
+      "NSLocalNetworkUsageDescription": "يستخدم Card Battle الشبكة المحلية لاكتشاف غرف اللعب القريبة والاتصال بها عبر Wi‑Fi.",
+      "NSBonjourServices": ["_cardclash._tcp."]
     }
   },
   android: {
@@ -64,7 +66,13 @@ const config: ExpoConfig = {
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
-    permissions: ["POST_NOTIFICATIONS"],
+    permissions: [
+      "POST_NOTIFICATIONS",
+      "android.permission.INTERNET",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.ACCESS_WIFI_STATE",
+      "android.permission.CHANGE_WIFI_MULTICAST_STATE"
+    ],
     intentFilters: [
       {
         action: "VIEW",

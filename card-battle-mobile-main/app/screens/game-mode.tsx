@@ -28,6 +28,13 @@ const MODES = [
     route: '/screens/collection' as const,
     accentColor: '#4ADE80',
   },
+  {
+    icon: '📡',
+    title: 'لعب محلي Wi‑Fi',
+    subtitle: 'واجهة مباشرة داخل الشبكة',
+    route: '/screens/local-lan' as const,
+    accentColor: '#A78BFA',
+  },
 ];
 
 export default function GameModeScreen() {
