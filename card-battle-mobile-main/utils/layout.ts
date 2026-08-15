@@ -62,21 +62,23 @@ export const useBattleLayout = (): BattleLayout => {
   const hudPadding = clamp(width * 0.024, 8, 32);
   const arenaGap = clamp(shortSide * 0.022, 6, 16);
   const centerMin = isCompact ? 68 : 82;
-  const centerMax = isLandscape ? 148 : 110;
-  const centerWidth = clamp(width * (isLandscape ? 0.15 : 0.23), centerMin, centerMax);
-  const availableCardWidth = Math.max(
-    72,
-    (width - arenaPadding * 2 - arenaGap * 2 - centerWidth) / 2,
-  );
-  const usableCardHeight = Math.max(
-    118,
-    height * (isLandscape ? (isCompact ? 0.5 : 0.58) : 0.4),
-  );
+  const centerMax = isLandscape ? 148 : Math.min(300, width - arenaPadding * 2);
+  // في الوضع العمودي تصبح منطقة الأوامر شريطاً بين البطاقتين، وليس عموداً يزاحمها أفقياً.
+  const centerWidth = isLandscape
+    ? clamp(width * 0.15, centerMin, centerMax)
+    : Math.floor(clamp(width - arenaPadding * 2, 180, centerMax));
+  const availableCardWidth = isLandscape
+    ? Math.max(72, (width - arenaPadding * 2 - arenaGap * 2 - centerWidth) / 2)
+    : Math.max(72, width * (isCompact ? 0.46 : 0.52));
+  const portraitCommandHeight = clamp(height * 0.14, 92, 132);
+  const usableCardHeight = isLandscape
+    ? Math.max(118, height * (isCompact ? 0.5 : 0.58))
+    : Math.max(118, (height * 0.7 - portraitCommandHeight - arenaGap * 2) / 2);
   // نستخدم floor بدلاً من round حتى لا يسبب التقريب تجاوزاً بمقدار بكسل في الشاشات الضيقة.
   const cardWidth = Math.floor(clamp(
     Math.min(availableCardWidth, usableCardHeight / CARD_ASPECT),
     72,
-    isLandscape ? 290 : 220,
+    isLandscape ? 290 : 210,
   ));
   const cardHeight = Math.round(cardWidth * CARD_ASPECT);
 
@@ -86,7 +88,7 @@ export const useBattleLayout = (): BattleLayout => {
     hudPadding,
     arenaGap,
     centerWidth,
-    actionButtonWidth: Math.round(clamp(centerWidth, 68, 128)),
+    actionButtonWidth: Math.round(clamp(isLandscape ? centerWidth : centerWidth / 2 - arenaGap, 68, 128)),
     actionButtonHeight: Math.round(clamp(height * 0.065, 34, 48)),
     cardWidth,
     cardHeight,

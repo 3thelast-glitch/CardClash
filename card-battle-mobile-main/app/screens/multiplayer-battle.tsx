@@ -41,6 +41,7 @@ export default function MultiplayerBattleScreen() {
     actionButtonHeight,
     hudPadding,
     isCompact,
+    isLandscape,
   } = useBattleLayout();
   const params = useLocalSearchParams<{
     roomId: string;
@@ -224,7 +225,7 @@ export default function MultiplayerBattleScreen() {
           <Text style={[S.hudName, { color: '#4ade80' }]}>{params.playerName}</Text>
           <Text style={[S.hudScore, { color: '#4ade80' }]}>{myScore}</Text>
         </View>
-        <View style={[S.hudCenter, { width: centerWidth }]}>
+        <View style={[S.hudCenter, isLandscape ? { width: centerWidth } : S.hudCenterPortrait]}>
           <Text style={S.hudRound}>جولة {currentRound + 1} / {totalRounds}</Text>
           {phase === 'waiting_start' && <Text style={S.waitText}>⌛ انتظار...</Text>}
         </View>
@@ -235,10 +236,20 @@ export default function MultiplayerBattleScreen() {
       </View>
 
       {/* Arena */}
-      <View style={[S.arena, { paddingLeft: Math.max(insets.left, arenaPadding), paddingRight: Math.max(insets.right, arenaPadding), gap: arenaGap, paddingTop: isCompact ? 8 : SPACE.md }]}>
+      <View style={[
+        S.arena,
+        {
+          paddingLeft: Math.max(insets.left, arenaPadding),
+          paddingRight: Math.max(insets.right, arenaPadding),
+          paddingTop: isCompact ? 8 : SPACE.md,
+          paddingBottom: isLandscape ? 0 : Math.max(4, arenaGap / 2),
+          gap: arenaGap,
+          flexDirection: isLandscape ? 'row' : 'column',
+        },
+      ]}>
 
         {/* My Card */}
-        <View style={S.panel}>
+        <View style={[S.panel, !isLandscape && S.panelPortrait]}>
           <Text style={S.panelLabel}>{params.playerName}</Text>
           {myCard ? (
             <Animated.View style={myStyle}>
@@ -258,7 +269,11 @@ export default function MultiplayerBattleScreen() {
         </View>
 
         {/* Center */}
-        <View style={[S.center, { width: centerWidth, gap: Math.max(6, arenaGap) }]}>
+        <View style={[
+          S.center,
+          !isLandscape && S.centerPortrait,
+          { width: centerWidth, gap: Math.max(6, arenaGap) },
+        ]}>
           <Text style={[S.vsIcon, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
 
           {/* Result badge */}
@@ -300,7 +315,7 @@ export default function MultiplayerBattleScreen() {
         </View>
 
         {/* Opponent Card */}
-        <View style={S.panel}>
+        <View style={[S.panel, !isLandscape && S.panelPortrait]}>
           <Text style={[S.panelLabel, { color: '#f87171' }]}>{params.opponentName}</Text>
           {oppCard ? (
             <Animated.View style={oppStyle}>
@@ -337,16 +352,19 @@ const S = StyleSheet.create({
   hud: { height: 60, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(8,6,18,0.85)', borderBottomWidth: 1, borderBottomColor: 'rgba(228,165,42,0.18)', paddingHorizontal: SPACE.lg, gap: SPACE.sm },
   hudSide: { flex: 1, gap: 2 },
   hudCenter: { alignItems: 'center' },
+  hudCenterPortrait: { flex: 0.75 },
   hudName: { fontSize: FONT.xs, letterSpacing: 0.4 },
   hudScore: { fontSize: FONT.xxl, fontVariant: ['tabular-nums'] } as any,
   hudRound: { color: '#e2e8f0', fontSize: FONT.sm },
   waitText: { color: '#fbbf24', fontSize: FONT.xs },
   arena: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACE.lg, paddingTop: SPACE.md, gap: SPACE.sm },
   panel: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,26,10,0.4)', borderWidth: 1, borderColor: 'rgba(74,222,128,0.2)', borderRadius: RADIUS.lg, paddingVertical: SPACE.lg, height: '100%', gap: SPACE.sm },
+  panelPortrait: { height: undefined, minHeight: 0, paddingVertical: SPACE.sm },
   panelLabel: { color: '#4ade80', fontSize: FONT.xs - 2, letterSpacing: 1 },
   emptyCard: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: RADIUS.lg, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   emptyCardText: { fontSize: 48, color: '#475569' },
   center: { alignItems: 'center', zIndex: 20 },
+  centerPortrait: { minHeight: 76 },
   vsIcon: { fontSize: 28 },
   resultBadge: { paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderRadius: RADIUS.pill, borderWidth: 1.5, alignItems: 'center' },
   resultText: { fontSize: FONT.base, letterSpacing: 0.5 },

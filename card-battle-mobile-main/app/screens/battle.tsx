@@ -320,6 +320,7 @@ export default function BattleScreen() {
     cardHeight,
     hudPadding,
     isCompact,
+    isLandscape,
   } = useBattleLayout();
 
   // Dynamic scaling parameters for the abilities modal:
@@ -819,11 +820,19 @@ export default function BattleScreen() {
             </View>
           )}
 
-          {/* ══ ARENA — دائماً row بغض النظر عن portrait/landscape ══ */}
-          <View style={[S.arena, { paddingHorizontal: arenaPadding, gap: arenaGap }]}>
+          {/* ══ ARENA — صف واسع أفقياً وعمود متوازن عمودياً ══ */}
+          <View style={[
+            S.arena,
+            {
+              paddingHorizontal: arenaPadding,
+              paddingVertical: isLandscape ? 0 : Math.max(4, arenaGap / 2),
+              gap: arenaGap,
+              flexDirection: isLandscape ? 'row' : 'column',
+            },
+          ]}>
 
             {/* PLAYER PANEL */}
-            <View style={S.playerPanel}>
+            <View style={[S.playerPanel, !isLandscape && S.panelPortrait]}>
               <Text style={S.panelLabel}>لاعب</Text>
               <Animated.View style={playerStyle}>
                 <LuxuryCharacterCardAnimated
@@ -852,7 +861,14 @@ export default function BattleScreen() {
             </View>
 
             {/* CENTER PANEL */}
-            <View style={[S.centerPanel, { width: centerWidth, gap: Math.max(6, arenaGap) }]}>
+            <View style={[
+              S.centerPanel,
+              !isLandscape && S.centerPanelPortrait,
+              {
+                width: centerWidth,
+                gap: Math.max(6, arenaGap),
+              },
+            ]}>
               <Animated.View style={vsStyle}>
                 <Text style={[S.vsText, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
               </Animated.View>
@@ -873,7 +889,11 @@ export default function BattleScreen() {
               )}
 
               {phase === 'action' && (
-                <View style={[S.actionButtons, { gap: Math.max(6, arenaGap) }]}>
+                <View style={[
+                  S.actionButtons,
+                  !isLandscape && S.actionButtonsPortrait,
+                  { gap: Math.max(6, arenaGap) },
+                ]}>
                   {/* Ability button */}
                   <TouchableOpacity
                     style={[S.abilityBtn, { width: actionButtonWidth, height: actionButtonHeight }, state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled]}
@@ -920,7 +940,7 @@ export default function BattleScreen() {
             </View>
 
             {/* BOT PANEL */}
-            <View style={S.botPanel}>
+            <View style={[S.botPanel, !isLandscape && S.panelPortrait]}>
               <Text style={[S.panelLabel, { textAlign: 'right' }]}>بوت</Text>
               <Animated.View style={botStyle}>
                 <LuxuryCharacterCardAnimated
@@ -1108,7 +1128,10 @@ const S = StyleSheet.create({
   arena: { flex: 1, gap: SPACE.sm },
   playerPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
   botPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
+  // الوضع العمودي يوزع البطاقات فوق وتحت شريط الأوامر.
+  panelPortrait: { minHeight: 0 },
   centerPanel: { width: 120, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
+  centerPanelPortrait: { minHeight: 76 },
   panelLabel: { color: '#64748b', fontSize: FONT.xs, letterSpacing: 0.5 },
 
   vsText: { fontSize: 28, opacity: 0.85 },
@@ -1119,6 +1142,7 @@ const S = StyleSheet.create({
   resultDraw: { color: '#fbbf24' },
 
   actionButtons: { gap: SPACE.sm, alignItems: 'center', width: '100%' },
+  actionButtonsPortrait: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
   abilityBtn: { 
     width: 110, 
     height: 44, 
