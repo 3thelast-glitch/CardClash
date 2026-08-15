@@ -17,8 +17,10 @@ import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { ElementEffect } from '@/components/game/element-effect';
 import { useBattleLayout } from '@/utils/layout';
+import { useOrientationTransition } from '@/utils/orientation-transition';
 import { mpClient, MPMessage } from '@/lib/multiplayer/websocket-client';
 import { useGame } from '@/lib/game/game-context';
+import { useSettings } from '@/lib/game/hooks/useSettings';
 import { COLOR, SPACE, RADIUS, FONT, SHADOW } from '@/components/ui/design-tokens';
 
 type MPBattlePhase =
@@ -43,6 +45,11 @@ export default function MultiplayerBattleScreen() {
     isCompact,
     isLandscape,
   } = useBattleLayout();
+  const { settings } = useSettings();
+  const { animatedStyle: orientationStyle, layoutTransition } = useOrientationTransition(
+    isLandscape,
+    settings.animationsEnabled,
+  );
   const params = useLocalSearchParams<{
     roomId: string;
     playerId: string;
@@ -236,20 +243,25 @@ export default function MultiplayerBattleScreen() {
       </View>
 
       {/* Arena */}
-      <View style={[
-        S.arena,
-        {
-          paddingLeft: Math.max(insets.left, arenaPadding),
-          paddingRight: Math.max(insets.right, arenaPadding),
-          paddingTop: isCompact ? 8 : SPACE.md,
-          paddingBottom: isLandscape ? 0 : Math.max(4, arenaGap / 2),
-          gap: arenaGap,
-          flexDirection: isLandscape ? 'row' : 'column',
-        },
-      ]}>
+      <Animated.View
+        testID="multiplayer-battle-arena"
+        layout={layoutTransition}
+        style={[
+          S.arena,
+          orientationStyle,
+          {
+            paddingLeft: Math.max(insets.left, arenaPadding),
+            paddingRight: Math.max(insets.right, arenaPadding),
+            paddingTop: isCompact ? 8 : SPACE.md,
+            paddingBottom: isLandscape ? 0 : Math.max(4, arenaGap / 2),
+            gap: arenaGap,
+            flexDirection: isLandscape ? 'row' : 'column',
+          },
+        ]}
+      >
 
         {/* My Card */}
-        <View style={[S.panel, !isLandscape && S.panelPortrait]}>
+        <View testID="multiplayer-player-panel" style={[S.panel, !isLandscape && S.panelPortrait]}>
           <Text style={S.panelLabel}>{params.playerName}</Text>
           {myCard ? (
             <Animated.View style={myStyle}>
@@ -269,7 +281,7 @@ export default function MultiplayerBattleScreen() {
         </View>
 
         {/* Center */}
-        <View style={[
+        <View testID="multiplayer-command-panel" style={[
           S.center,
           !isLandscape && S.centerPortrait,
           { width: centerWidth, gap: Math.max(6, arenaGap) },
@@ -315,7 +327,7 @@ export default function MultiplayerBattleScreen() {
         </View>
 
         {/* Opponent Card */}
-        <View style={[S.panel, !isLandscape && S.panelPortrait]}>
+        <View testID="multiplayer-bot-panel" style={[S.panel, !isLandscape && S.panelPortrait]}>
           <Text style={[S.panelLabel, { color: '#f87171' }]}>{params.opponentName}</Text>
           {oppCard ? (
             <Animated.View style={oppStyle}>
@@ -334,7 +346,7 @@ export default function MultiplayerBattleScreen() {
             </View>
           )}
         </View>
-      </View>
+      </Animated.View>
 
       {/* Disconnect warning */}
       {disconnected && (

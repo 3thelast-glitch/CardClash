@@ -8,7 +8,6 @@ import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
-import { RotateHintScreen } from '@/components/game/RotateHintScreen';
 import { useGame } from '@/lib/game/game-context';
 import { useCards } from '@/lib/game/useCards';
 import { Card, AbilityType } from '@/lib/game/types';
@@ -218,8 +217,6 @@ export default function CardSelectionScreen() {
   };
 
   const allAssigned = cardRounds.every(cr => cr.round !== null);
-
-  if (!isLandscape) return <RotateHintScreen />;
 
   const startBtnLabel = () => {
     if (!allAssigned) return `${cardRounds.filter(c => c.round).length} / ${totalRounds} مُعيّنة`;

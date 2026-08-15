@@ -1,17 +1,19 @@
 import "@/global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import { Platform } from "react-native";
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, NotoKufiArabic_400Regular, NotoKufiArabic_600SemiBold, NotoKufiArabic_900Black } from '@expo-google-fonts/noto-kufi-arabic';
 import { RobotoCondensed_400Regular, RobotoCondensed_700Bold } from '@expo-google-fonts/roboto-condensed';
 
-SplashScreen.preventAutoHideAsync();
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync();
+}
 
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { GameProvider } from "@/lib/game/game-context";
@@ -58,7 +60,7 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded && Platform.OS !== 'web') {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
@@ -99,7 +101,9 @@ export default function RootLayout() {
     };
   }, [initialInsets, initialFrame]);
 
-  if (!fontsLoaded) {
+  // على الويب نعرض التطبيق فوراً بخط نظامي ثم تُستبدل الخطوط عندما تكتمل.
+  // هذا يمنع صفحة بيضاء في المتصفحات والاختبارات عند تأخر تحميل ملفات الخطوط.
+  if (!fontsLoaded && Platform.OS !== 'web') {
     return null;
   }
 

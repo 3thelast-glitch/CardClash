@@ -44,7 +44,8 @@ const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
   version: "1.0.0",
-  orientation: "landscape",
+  // يتيح تدوير الواجهة تلقائياً؛ كل شاشة تختار تخطيطها المناسب عبر useWindowDimensions.
+  orientation: "default",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
   userInterfaceStyle: "automatic",
@@ -99,7 +100,7 @@ const config: ExpoConfig = {
     [
       "expo-screen-orientation",
       {
-        initialOrientation: "LANDSCAPE",
+        initialOrientation: "DEFAULT",
       },
     ],
     [

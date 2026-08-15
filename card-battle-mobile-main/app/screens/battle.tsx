@@ -46,6 +46,7 @@ import { LuxuryBackground } from '@/components/game/luxury-background';
 import { DamageNumber, DamageNumberVariant } from '@/components/game/damage-number';
 import { BattleResultOverlay } from '@/components/game/BattleResultOverlay';
 import { useBattleLayout } from '@/utils/layout';
+import { useOrientationTransition } from '@/utils/orientation-transition';
 import { useGame } from '@/lib/game/game-context';
 import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass, AbilityType, ELEMENT_MULTIPLIER } from '@/lib/game/types';
 import { getElementAdvantage, applyElementalReactions } from '@/lib/game/cards-data-exports';
@@ -335,6 +336,10 @@ export default function BattleScreen() {
 
   // ✅ Step 1: تهيئة الـ hook — جاهز للربط في الخطوات القادمة
   const { settings } = useSettings();
+  const { animatedStyle: orientationStyle, layoutTransition } = useOrientationTransition(
+    isLandscape,
+    settings.animationsEnabled,
+  );
   const { showToast } = useEffectToast();
 
   // ✅ Step 2: helper يحترم إعداد الاهتزاز
@@ -821,18 +826,23 @@ export default function BattleScreen() {
           )}
 
           {/* ══ ARENA — صف واسع أفقياً وعمود متوازن عمودياً ══ */}
-          <View style={[
-            S.arena,
-            {
-              paddingHorizontal: arenaPadding,
-              paddingVertical: isLandscape ? 0 : Math.max(4, arenaGap / 2),
-              gap: arenaGap,
-              flexDirection: isLandscape ? 'row' : 'column',
-            },
-          ]}>
+          <Animated.View
+            testID="battle-arena"
+            layout={layoutTransition}
+            style={[
+              S.arena,
+              orientationStyle,
+              {
+                paddingHorizontal: arenaPadding,
+                paddingVertical: isLandscape ? 0 : Math.max(4, arenaGap / 2),
+                gap: arenaGap,
+                flexDirection: isLandscape ? 'row' : 'column',
+              },
+            ]}
+          >
 
             {/* PLAYER PANEL */}
-            <View style={[S.playerPanel, !isLandscape && S.panelPortrait]}>
+            <View testID="battle-player-panel" style={[S.playerPanel, !isLandscape && S.panelPortrait]}>
               <Text style={S.panelLabel}>لاعب</Text>
               <Animated.View style={playerStyle}>
                 <LuxuryCharacterCardAnimated
@@ -861,7 +871,7 @@ export default function BattleScreen() {
             </View>
 
             {/* CENTER PANEL */}
-            <View style={[
+            <View testID="battle-command-panel" style={[
               S.centerPanel,
               !isLandscape && S.centerPanelPortrait,
               {
@@ -940,7 +950,7 @@ export default function BattleScreen() {
             </View>
 
             {/* BOT PANEL */}
-            <View style={[S.botPanel, !isLandscape && S.panelPortrait]}>
+            <View testID="battle-bot-panel" style={[S.botPanel, !isLandscape && S.panelPortrait]}>
               <Text style={[S.panelLabel, { textAlign: 'right' }]}>بوت</Text>
               <Animated.View style={botStyle}>
                 <LuxuryCharacterCardAnimated
@@ -967,7 +977,7 @@ export default function BattleScreen() {
               />
               <ActiveEffectsBar effects={state.activeEffects} side="bot" />
             </View>
-          </View>
+          </Animated.View>
         </View>
       </SafeAreaView>
 
