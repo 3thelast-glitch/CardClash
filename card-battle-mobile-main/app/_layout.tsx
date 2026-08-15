@@ -17,6 +17,7 @@ import { ThemeProvider } from "@/lib/theme-provider";
 import { GameProvider } from "@/lib/game/game-context";
 import { MultiplayerProvider } from "@/lib/multiplayer/multiplayer-context";
 import { LanMultiplayerProvider } from "@/lib/lan/lan-context";
+import { DeveloperBuildBadge } from "@/components/game/developer-build-badge";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -127,6 +128,7 @@ export default function RootLayout() {
                 <Stack.Screen name="oauth/callback" />
               </Stack>
               <StatusBar style="auto" />
+              <DeveloperBuildBadge />
             </QueryClientProvider>
           </trpc.Provider>
           </LanMultiplayerProvider>

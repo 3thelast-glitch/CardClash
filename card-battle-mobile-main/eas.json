@@ -1,0 +1,26 @@
+{
+  "cli": {
+    "version": ">= 18.0.0"
+  },
+  "build": {
+    "player": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "player"
+      }
+    },
+    "developer": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "developer"
+      }
+    }
+  }
+}
