@@ -15,11 +15,11 @@ import Animated, {
     withTiming,
     withDelay,
     withSequence,
-    runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { ANIM_DURATION } from '@/constants/animationConfig';
+import { useSettings } from '@/lib/game/hooks/useSettings';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,6 +77,7 @@ export function BattleResultOverlay({
     onHome,
 }: BattleResultOverlayProps) {
     const { width, height } = useWindowDimensions();
+    const { settings } = useSettings();
 
     // The strict 30% height banner
     const bannerHeight = height * 0.3;
@@ -92,39 +93,35 @@ export function BattleResultOverlay({
 
     useEffect(() => {
         if (visible && winner) {
-            // Fade in and scale up the overlay wrapper
-            opacity.value = withTiming(1, { duration: ANIM_DURATION.CINEMATIC });
-            scale.value = withSpring(1, { damping: 20, stiffness: 200 });
+            if (settings.animationsEnabled) {
+                opacity.value = withTiming(1, { duration: ANIM_DURATION.CINEMATIC });
+                scale.value = withSpring(1, { damping: 20, stiffness: 200 });
+                iconScale.value = withDelay(
+                    150,
+                    withSequence(
+                        withSpring(1.3, { damping: 8, stiffness: 300 }),
+                        withSpring(1.0, { damping: 12, stiffness: 200 })
+                    )
+                );
+                textOpacity.value = withDelay(300, withTiming(1, { duration: 300 }));
+            } else {
+                opacity.value = 1;
+                scale.value = 1;
+                iconScale.value = 1;
+                textOpacity.value = 1;
+            }
 
-            // Spring pop icon
-            iconScale.value = withDelay(
-                150,
-                withSequence(
-                    withSpring(1.3, { damping: 8, stiffness: 300 }),
-                    withSpring(1.0, { damping: 12, stiffness: 200 })
-                )
-            );
-
-            // Fade text after icon
-            textOpacity.value = withDelay(300, withTiming(1, { duration: 300 }));
-
-            // Haptics
-            if (Platform.OS !== 'web') {
-                if (winner === 'player') {
-                    runOnJS(triggerHaptic)('success');
-                } else if (winner === 'bot') {
-                    runOnJS(triggerHaptic)('error');
-                } else {
-                    runOnJS(triggerHaptic)('warning');
-                }
+            if (settings.vibration && Platform.OS !== 'web') {
+                triggerHaptic(winner === 'player' ? 'success' : winner === 'bot' ? 'error' : 'warning');
             }
         } else {
-            opacity.value = withTiming(0, { duration: 200 });
-            scale.value = withTiming(0.9, { duration: 200 });
+            const duration = settings.animationsEnabled ? 200 : 0;
+            opacity.value = withTiming(0, { duration });
+            scale.value = withTiming(0.9, { duration });
             iconScale.value = 0;
             textOpacity.value = 0;
         }
-    }, [visible, winner]);
+    }, [visible, winner, settings.animationsEnabled, settings.vibration]);
 
     const containerStyle = useAnimatedStyle(() => ({
         opacity: opacity.value,
@@ -210,7 +207,7 @@ export function BattleResultOverlay({
                     <Animated.View style={[styles.actionsContainer, textStyle]}>
                         <View style={[styles.finalActionsRow, { gap: 12 * scaleFactor }]}>
                             <Pressable
-                                style={[styles.actionBtn, styles.homeBtn, { paddingVertical: 12 * scaleFactor }]}
+                                style={({ pressed }) => [styles.actionBtn, styles.homeBtn, { paddingVertical: 12 * scaleFactor }, pressed && styles.actionPressed]}
                                 onPress={onHome}
                                 accessibilityRole="button"
                             >
@@ -218,7 +215,7 @@ export function BattleResultOverlay({
                             </Pressable>
 
                             <Pressable
-                                style={[styles.actionBtn, styles.playAgainBtn, { backgroundColor: cfg.color, paddingVertical: 12 * scaleFactor }]}
+                                style={({ pressed }) => [styles.actionBtn, styles.playAgainBtn, { backgroundColor: cfg.color, paddingVertical: 12 * scaleFactor }, pressed && styles.actionPressed]}
                                 onPress={onPlayAgain}
                                 accessibilityRole="button"
                             >
@@ -339,6 +336,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         width: '100%',
         justifyContent: 'center',
+    },
+    actionPressed: {
+        opacity: 0.78,
+        transform: [{ scale: 0.97 }],
     },
     actionBtn: {
         flex: 1,

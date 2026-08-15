@@ -11,9 +11,9 @@ import { View, StyleSheet } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import Animated, {
   useSharedValue, useAnimatedStyle,
-  withTiming, withDelay, withSpring, withSequence,
-  runOnJS,
+  withTiming, withDelay, withSpring,
 } from 'react-native-reanimated';
+import { useSettings } from '@/lib/game/hooks/useSettings';
 
 export type ToastKind = 'buff' | 'debuff' | 'seal' | 'info' | 'win' | 'loss' | 'draw';
 
@@ -64,27 +64,39 @@ export function EffectToast() {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(-24);
   const scale = useSharedValue(0.88);
+  const progress = useSharedValue(0);
+  const { settings } = useSettings();
 
   const dismiss = useCallback(() => {
-    opacity.value = withTiming(0, { duration: 280 });
-    translateY.value = withTiming(-20, { duration: 280 });
-    scale.value = withTiming(0.9, { duration: 280 });
-    setTimeout(() => setCurrent(null), 300);
-  }, []);
+    const duration = settings.animationsEnabled ? 280 : 0;
+    opacity.value = withTiming(0, { duration });
+    translateY.value = withTiming(-20, { duration });
+    scale.value = withTiming(0.9, { duration });
+    progress.value = withTiming(0, { duration: 120 });
+    setTimeout(() => setCurrent(null), settings.animationsEnabled ? 300 : 0);
+  }, [settings.animationsEnabled]);
 
   const show = useCallback((payload: ToastPayload) => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    const duration = payload.duration ?? 2200;
     // reset instantly
     opacity.value = 0;
     translateY.value = -28;
     scale.value = 0.85;
+    progress.value = 1;
     setCurrent({ ...payload, id: ++counter.current });
-    // animate in
-    opacity.value = withDelay(60, withSpring(1, { damping: 14 }));
-    translateY.value = withDelay(60, withSpring(0, { damping: 12 }));
-    scale.value = withDelay(60, withSpring(1, { damping: 12 }));
-    timerRef.current = setTimeout(dismiss, payload.duration ?? 2200);
-  }, [dismiss]);
+    if (settings.animationsEnabled) {
+      opacity.value = withDelay(60, withSpring(1, { damping: 14 }));
+      translateY.value = withDelay(60, withSpring(0, { damping: 12 }));
+      scale.value = withDelay(60, withSpring(1, { damping: 12 }));
+      progress.value = withTiming(0, { duration });
+    } else {
+      opacity.value = 1;
+      translateY.value = 0;
+      scale.value = 1;
+    }
+    timerRef.current = setTimeout(dismiss, duration);
+  }, [dismiss, settings.animationsEnabled]);
 
   useEffect(() => {
     listeners.push(show);
@@ -100,6 +112,10 @@ export function EffectToast() {
       { translateY: translateY.value },
       { scale: scale.value },
     ],
+  }));
+
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${progress.value * 100}%` as `${number}%`,
   }));
 
   if (!current) return null;
@@ -122,7 +138,7 @@ export function EffectToast() {
       </View>
       {/* progress bar */}
       <View style={T.progressTrack}>
-        <Animated.View style={[T.progressFill, { backgroundColor: meta.color }]} />
+        <Animated.View style={[T.progressFill, { backgroundColor: meta.color }, progressStyle]} />
       </View>
     </Animated.View>
   );

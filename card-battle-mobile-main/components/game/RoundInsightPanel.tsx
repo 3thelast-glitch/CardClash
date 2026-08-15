@@ -19,13 +19,21 @@ const toneColor: Record<RoundInsightTone, string> = {
 export function RoundInsightPanel({ title, insights, testID }: RoundInsightPanelProps) {
   if (insights.length === 0) return null;
 
+  const accessibilityLabel = [title, ...insights.slice(0, 4).map((insight) => insight.text)].join('، ');
+
   return (
-    <View testID={testID} style={styles.panel}>
+    <View
+      testID={testID}
+      style={styles.panel}
+      accessible
+      accessibilityLabel={accessibilityLabel}
+      accessibilityLiveRegion="polite"
+    >
       <Text style={styles.title}>{title}</Text>
       {insights.slice(0, 4).map((insight) => (
         <View key={insight.id} style={styles.row}>
           <View style={[styles.dot, { backgroundColor: toneColor[insight.tone] }]} />
-          <Text style={[styles.text, { color: toneColor[insight.tone] }]} numberOfLines={1}>
+          <Text style={[styles.text, { color: toneColor[insight.tone] }]} numberOfLines={2}>
             {insight.text}
           </Text>
         </View>
