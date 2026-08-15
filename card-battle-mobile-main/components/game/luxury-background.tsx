@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, View, Dimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,8 +9,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { COLOR } from '../ui/design-tokens';
-
-const { width: SW, height: SH } = Dimensions.get('window');
+import { useSettings } from '@/lib/game/hooks/useSettings';
 
 // Floating orb — soft ambient glow
 function FloatingOrb({
@@ -19,17 +18,24 @@ function FloatingOrb({
   size,
   color,
   delay,
+  enabled,
 }: {
   x: number;
   y: number;
   size: number;
   color: string;
   delay: number;
+  enabled: boolean;
 }) {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(0);
 
   useEffect(() => {
+    if (!enabled) {
+      opacity.value = 0;
+      translateY.value = 0;
+      return;
+    }
     opacity.value = withRepeat(
       withSequence(
         withTiming(0, { duration: delay }),
@@ -47,7 +53,7 @@ function FloatingOrb({
       -1,
       false
     );
-  }, []);
+  }, [delay, enabled]);
 
   const style = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -73,19 +79,21 @@ function FloatingOrb({
   );
 }
 
-const ORBS = [
-  { x: 0.05 * SW, y: 0.1 * SH, size: 180, color: '#6B21A8', delay: 0 },
-  { x: 0.7 * SW, y: 0.05 * SH, size: 220, color: '#1D4ED8', delay: 400 },
-  { x: 0.4 * SW, y: 0.6 * SH, size: 260, color: '#7C3AED', delay: 800 },
-  { x: 0.82 * SW, y: 0.72 * SH, size: 160, color: '#B45309', delay: 200 },
-  { x: 0.1 * SW, y: 0.78 * SH, size: 140, color: '#065F46', delay: 600 },
-];
-
 interface LuxuryBackgroundProps {
   children?: React.ReactNode;
 }
 
 export function LuxuryBackground({ children }: LuxuryBackgroundProps) {
+  const { width, height } = useWindowDimensions();
+  const { settings } = useSettings();
+  const orbs = [
+    { x: 0.05 * width, y: 0.1 * height, size: 180, color: '#6B21A8', delay: 0 },
+    { x: 0.7 * width, y: 0.05 * height, size: 220, color: '#1D4ED8', delay: 400 },
+    { x: 0.4 * width, y: 0.6 * height, size: 260, color: '#7C3AED', delay: 800 },
+    { x: 0.82 * width, y: 0.72 * height, size: 160, color: '#B45309', delay: 200 },
+    { x: 0.1 * width, y: 0.78 * height, size: 140, color: '#065F46', delay: 600 },
+  ];
+
   return (
     <View style={styles.root}>
       {/* Deep background */}
@@ -95,8 +103,8 @@ export function LuxuryBackground({ children }: LuxuryBackgroundProps) {
       <View style={styles.gridOverlay} pointerEvents="none" />
 
       {/* Ambient orbs */}
-      {ORBS.map((orb, i) => (
-        <FloatingOrb key={i} {...orb} />
+      {settings.animationsEnabled && orbs.map((orb, i) => (
+        <FloatingOrb key={i} {...orb} enabled={settings.animationsEnabled} />
       ))}
 
       {/* Top gold vignette accent */}

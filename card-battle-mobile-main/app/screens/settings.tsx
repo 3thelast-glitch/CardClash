@@ -13,39 +13,19 @@ import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { ArrowLeft, Volume2, Music, Smartphone, Sparkles, Zap, Lightbulb, Globe, RotateCcw, Trash2 } from 'lucide-react-native';
 import { CARD_EDITS_KEY } from '@/app/screens/cards-gallery';
+import {
+  DEFAULT_SETTINGS,
+  loadSettings,
+  saveSettings,
+  type GameSettings,
+} from '@/lib/game/settings-store';
 
-export const GAME_SETTINGS_KEY = 'game_settings_v1';
-
-export type GameSettings = {
-  soundEnabled: boolean;
-  musicEnabled: boolean;
-  animationsEnabled: boolean;
-  language: 'ar' | 'en';
-  showAbilityHints: boolean;
-  showDamageNumbers: boolean;
-  vibration: boolean;
-};
-
-const DEFAULT_SETTINGS: GameSettings = {
-  soundEnabled: true,
-  musicEnabled: true,
-  animationsEnabled: true,
-  language: 'ar',
-  showAbilityHints: true,
-  showDamageNumbers: true,
-  vibration: true,
-};
-
-export async function loadSettings(): Promise<GameSettings> {
-  try {
-    const raw = await AsyncStorage.getItem(GAME_SETTINGS_KEY);
-    if (!raw) return { ...DEFAULT_SETTINGS };
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
-  } catch { return { ...DEFAULT_SETTINGS }; }
-}
-export async function saveSettings(s: GameSettings): Promise<void> {
-  await AsyncStorage.setItem(GAME_SETTINGS_KEY, JSON.stringify(s));
-}
+export {
+  GAME_SETTINGS_KEY,
+  loadSettings,
+  saveSettings,
+  type GameSettings,
+} from '@/lib/game/settings-store';
 
 // ───────────────────────────────────────────────────────────────────
 type IconBadgeProps = { colors: [string, string]; icon: React.ReactNode };

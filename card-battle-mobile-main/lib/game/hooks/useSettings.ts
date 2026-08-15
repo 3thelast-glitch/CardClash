@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
-import { loadSettings, GameSettings } from '@/app/screens/settings';
+import {
+  DEFAULT_SETTINGS,
+  loadSettings,
+  subscribeSettings,
+  type GameSettings,
+} from '@/lib/game/settings-store';
 
 /**
  * useSettings
@@ -8,22 +13,26 @@ import { loadSettings, GameSettings } from '@/app/screens/settings';
  *   const { settings, loaded } = useSettings();
  */
 export function useSettings(): { settings: GameSettings; loaded: boolean } {
-  const [settings, setSettings] = useState<GameSettings>({
-    soundEnabled: true,
-    musicEnabled: true,
-    animationsEnabled: true,
-    language: 'ar',
-    showAbilityHints: true,
-    showDamageNumbers: true,
-    vibration: true,
-  });
+  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    loadSettings().then(s => {
-      setSettings(s);
-      setLoaded(true);
+    let active = true;
+    const unsubscribe = subscribeSettings((nextSettings) => {
+      if (active) setSettings(nextSettings);
     });
+
+    loadSettings().then((nextSettings) => {
+      if (active) {
+        setSettings(nextSettings);
+        setLoaded(true);
+      }
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   return { settings, loaded };

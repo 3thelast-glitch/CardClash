@@ -9,8 +9,8 @@
     ],
     "moduleSuffixes": [
       ".native",
-      ".web",
-      ""
+      "",
+      ".web"
     ],
     "paths": {
       "@/*": [

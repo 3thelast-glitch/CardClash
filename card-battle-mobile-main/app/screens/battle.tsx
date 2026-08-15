@@ -350,7 +350,7 @@ export default function BattleScreen() {
 
   const {
     state, playRound, isGameOver, currentPlayerCard, currentBotCard,
-    lastRoundResult, expectedRoundResult, useAbility,
+    lastRoundResult, expectedRoundResult, useAbility: activateAbility,
     resetGame, nextRound, startBattle, setPlayerDeck, syncDecks,
   } = useGame();
 
@@ -484,9 +484,9 @@ export default function BattleScreen() {
     );
 
     if (decision.useAbility && decision.abilityType) {
-      useAbility(decision.abilityType, decision.abilityData ?? {}, false);
+      activateAbility(decision.abilityType, decision.abilityData ?? {}, false);
     }
-  }, [currentPlayerCard, state, useAbility]);
+  }, [currentPlayerCard, state, activateAbility]);
 
   // 🔥 Rage Mode: تحديث الكرت الحالي في الملعب قبل الهجوم
   const handleRageActivate = useCallback((rageCard: any) => {
@@ -548,17 +548,17 @@ export default function BattleScreen() {
   }, [hapticImpact]);
 
   const handleConfirmPrediction = useCallback(() => {
-    useAbility(predictionAbilityType, { predictions: predictionSelections });
+    activateAbility(predictionAbilityType, { predictions: predictionSelections });
     setShowPredictionModal(false); setPredictionSelections({});
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-  }, [predictionAbilityType, predictionSelections, useAbility, hapticImpact]);
+  }, [predictionAbilityType, predictionSelections, activateAbility, hapticImpact]);
 
   const handleConfirmPopularity = useCallback(() => {
     if (selectedPopularityRound === null) return;
-    useAbility(popularityAbilityType, { round: selectedPopularityRound });
+    activateAbility(popularityAbilityType, { round: selectedPopularityRound });
     setShowPopularityModal(false); setSelectedPopularityRound(null);
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-  }, [popularityAbilityType, selectedPopularityRound, useAbility, hapticImpact]);
+  }, [popularityAbilityType, selectedPopularityRound, activateAbility, hapticImpact]);
 
   // ── Choice modal handlers ────────────────────────────────────────────────
   const openChoiceModal = useCallback((abilityType: string) => {
@@ -626,20 +626,20 @@ export default function BattleScreen() {
 
     const roundIndexAbilities = ['Dilemma', 'Disaster', 'Recall', 'Revive', 'Arise', 'Merge'];
     if (roundIndexAbilities.includes(abilityType)) {
-      useAbility(abilityType as any, { roundIndex: Number(value) });
+      activateAbility(abilityType as any, { roundIndex: Number(value) });
     } else if (abilityType === 'SwapClass') {
-      useAbility(abilityType as any, { myClass: value, oppClass: value });
+      activateAbility(abilityType as any, { myClass: value, oppClass: value });
     } else if (abilityType === 'Sniping') {
-      useAbility(abilityType as any, { round: Number(value) });
+      activateAbility(abilityType as any, { round: Number(value) });
     } else if (abilityType === 'Subhan') {
-      useAbility(abilityType as any, { guessedAttack: Number(value) });
+      activateAbility(abilityType as any, { guessedAttack: Number(value) });
     } else {
-      useAbility(abilityType as any, { selection: value, targetClass: value, element: value });
+      activateAbility(abilityType as any, { selection: value, targetClass: value, element: value });
     }
 
     setIsAbilitiesModalOpen(false);
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-  }, [choiceModal, useAbility, hapticImpact]);
+  }, [choiceModal, activateAbility, hapticImpact]);
 
   // ── تحديث ذاكرة البوت بعد كل جولة ──────────────────────────────────────
   useEffect(() => {
@@ -1018,7 +1018,7 @@ export default function BattleScreen() {
                         setShowPopularityModal(true);
                         setIsAbilitiesModalOpen(false);
                       } else {
-                        useAbility(ab.type, {});
+                        activateAbility(ab.type, {});
                         setIsAbilitiesModalOpen(false);
                         hapticImpact(Haptics.ImpactFeedbackStyle.Light);
                       }

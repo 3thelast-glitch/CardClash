@@ -16,6 +16,7 @@ import Animated, {
 import { Svg, Circle, Line, Ellipse, Path, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { Card, CardRarity, Element, ELEMENT_EMOJI, ELEMENT_COLORS, Race, RACE_EMOJI, CardClass, CLASS_EMOJI } from '@/lib/game/types';
 import { getCardImage } from '../../lib/game/get-card-image';
+import { useSettings } from '@/lib/game/hooks/useSettings';
 
 const BASE_W = 220;
 const BASE_H = 320;
@@ -318,11 +319,13 @@ const DarkSmokeEffect = () => {
         s3.value = withDelay(1400, withRepeat(withTiming(1, { duration: 2400, easing: Easing.out(Easing.ease) }), -1, false));
         return () => { cancelAnimation(s1); cancelAnimation(s2); cancelAnimation(s3); };
     }, []);
-    const mk = (sv: any, fx: number, fy: number, tx: number, sc: number) => useAnimatedStyle(() => ({
+    const useSmokeStyle = (sv: any, fx: number, fy: number, tx: number, sc: number) => useAnimatedStyle(() => ({
         opacity: interpolate(sv.value, [0, 0.2, 0.7, 1], [0, 0.55, 0.3, 0]),
         transform: [{ translateX: fx + (tx - fx) * sv.value }, { translateY: fy + (-60 * sv.value) }, { scale: interpolate(sv.value, [0, 1], [sc * 0.6, sc * 1.8]) }],
     }));
-    const a1 = mk(s1, 30, 280, 10, 0.9), a2 = mk(s2, 160, 260, 185, 1.1), a3 = mk(s3, 90, 300, 70, 0.7);
+    const a1 = useSmokeStyle(s1, 30, 280, 10, 0.9);
+    const a2 = useSmokeStyle(s2, 160, 260, 185, 1.1);
+    const a3 = useSmokeStyle(s3, 90, 300, 70, 0.7);
     return (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
             {[a1, a2, a3].map((st, i) => (
@@ -419,12 +422,12 @@ const AbilityBanner = ({ text, rarity, theme, sc }: { text: string; rarity: Card
 // ─────────────────────────────────────────────
 // CardMedia
 // ─────────────────────────────────────────────
-const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imgStyle, playAudio }: {
+const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imgStyle, playAudio, shouldAnimate }: {
     cardImage: ReturnType<typeof getCardImage>; videoAsset?: any; customUri?: string;
-    isCustomImage: boolean; imgStyle: object; playAudio: boolean;
+    isCustomImage: boolean; imgStyle: object; playAudio: boolean; shouldAnimate: boolean;
 }) => {
-    if (videoAsset) return <Video source={videoAsset} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay isLooping isMuted={!playAudio} volume={1.0} useNativeControls={false} />;
-    if (customUri && isVideoUri(customUri)) return <Video source={{ uri: customUri }} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay isLooping isMuted={!playAudio} volume={1.0} useNativeControls={false} />;
+    if (videoAsset) return <Video source={videoAsset} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!playAudio || !shouldAnimate} volume={1.0} useNativeControls={false} />;
+    if (customUri && isVideoUri(customUri)) return <Video source={{ uri: customUri }} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!playAudio || !shouldAnimate} volume={1.0} useNativeControls={false} />;
     const uri: string | undefined = cardImage && typeof cardImage === 'object' && 'uri' in cardImage ? (cardImage as any).uri : undefined;
     const animated = uri ? isAnimatedUri(uri) : false;
     const source = animated ? { uri, headers: {} } : (cardImage as any);
@@ -438,6 +441,9 @@ export function LuxuryCharacterCardAnimated({
     card, style, imageOffsetY = 0, fitInsideBorder = false, isOpenedView = false,
     effectiveAttack, effectiveDefense, playAudio = false, winnerState,
 }: Props) {
+    const { settings } = useSettings();
+    // هذا الخيار يوقف الحركات المستمرة والفيديو المتكرر، وهي أعلى عناصر البطاقة كلفة على الأجهزة الضعيفة.
+    const enableVisualEffects = settings.animationsEnabled;
     const rarity: CardRarity = card.rarity ?? 'common';
     const theme = RARITY_THEMES[rarity] ?? RARITY_THEMES.common;
     const hasAbility = !!card.specialAbility;
@@ -507,22 +513,25 @@ export function LuxuryCharacterCardAnimated({
             styles.cardContainer,
             {
                 width: cardW, height: cardH, borderRadius: Math.round(14 * sc), borderColor: themeBorder, borderWidth: theme.borderWidth,
-                shadowColor: theme.shadowColor, shadowOpacity: theme.shadowOpacity, shadowRadius: theme.shadowRadius, elevation: theme.elevation
+                shadowColor: theme.shadowColor,
+                shadowOpacity: enableVisualEffects ? theme.shadowOpacity : Math.min(theme.shadowOpacity, 0.2),
+                shadowRadius: enableVisualEffects ? theme.shadowRadius : 3,
+                elevation: enableVisualEffects ? theme.elevation : 1
             },
             rarity === 'special' && styles.specialCardBase,
             style,
         ]}>
-            {isLegendary && <LegendaryGlowBorder color={themeColor} />}
-            {rarity === 'special' && <SpecialBreathingBorder />}
-            {rarity === 'epic' && <GlowRing color={themeColor} />}
+            {enableVisualEffects && isLegendary && <LegendaryGlowBorder color={themeColor} />}
+            {enableVisualEffects && rarity === 'special' && <SpecialBreathingBorder />}
+            {enableVisualEffects && rarity === 'epic' && <GlowRing color={themeColor} />}
 
             <View style={[styles.cardInner, { borderRadius: Math.round(12 * sc) }]}>
                 <LinearGradient colors={theme.bgColors} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
                 {rarity === 'special' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 1 }]} pointerEvents="none" />}
-                {(hasImage || hasVideo) && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imgStyle={imgStyle} playAudio={playAudio} />}
+                {(hasImage || hasVideo) && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imgStyle={imgStyle} playAudio={playAudio} shouldAnimate={enableVisualEffects} />}
 
                 <View style={styles.contentLayer}>
-                    {theme.hasFoil && <RarityShimmer cardW={cardW} foilDuration={theme.foilDuration} color={themeColor} />}
+                    {enableVisualEffects && theme.hasFoil && <RarityShimmer cardW={cardW} foilDuration={theme.foilDuration} color={themeColor} />}
                     <View style={[styles.innerBorder, { borderColor: themeBorder + '55', borderRadius: Math.round(9 * sc) }]} pointerEvents="none" />
                     {(hasImage || hasVideo) && (
                         <LinearGradient colors={bottomGradient} style={styles.gradientOverlay} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} pointerEvents="none" />
@@ -533,10 +542,10 @@ export function LuxuryCharacterCardAnimated({
                             <Text style={styles.noImageText}>لا توجد صورة</Text>
                         </View>
                     )}
-                    {isLegendary && theme.hasParticles && <LegendaryParticles color={themeColor} />}
-                    {theme.hasSideVines && <SideVines color={themeColor} />}
-                    {(theme as any).hasDarkSmoke && <DarkSmokeEffect />}
-                    {theme.hasFiligree && (
+                    {enableVisualEffects && isLegendary && theme.hasParticles && <LegendaryParticles color={themeColor} />}
+                    {enableVisualEffects && theme.hasSideVines && <SideVines color={themeColor} />}
+                    {enableVisualEffects && (theme as any).hasDarkSmoke && <DarkSmokeEffect />}
+                    {enableVisualEffects && theme.hasFiligree && (
                         <>
                             <ElvenCorner position="tl" color={themeColor} rich={rarity === 'legendary' || rarity === 'special'} scale={sc} />
                             <ElvenCorner position="tr" color={themeColor} rich={rarity === 'legendary' || rarity === 'special'} scale={sc} />
