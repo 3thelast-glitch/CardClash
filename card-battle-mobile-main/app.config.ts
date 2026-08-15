@@ -25,17 +25,19 @@ const bundleId =
 // e.g., "space.manus.my.app.t20240115103045" -> "manus20240115103045"
 const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
 const schemeFromBundleId = `manus${timestamp}`;
+const buildVariant = process.env.APP_VARIANT === "developer" ? "developer" : "player";
+const isDeveloperBuild = buildVariant === "developer";
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "Card Battle",
-  appSlug: "card-battle-game",
+  appName: isDeveloperBuild ? "Card Clash Dev" : "Card Clash",
+  appSlug: isDeveloperBuild ? "card-battle-game-dev" : "card-battle-game",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
   logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663159908892/lnuwxezKgOJcmZls.png",
-  scheme: schemeFromBundleId,
+  scheme: isDeveloperBuild ? `${schemeFromBundleId}dev` : schemeFromBundleId,
   iosBundleId: bundleId,
-  androidPackage: bundleId,
+  androidPackage: isDeveloperBuild ? `${bundleId}.dev` : bundleId,
 };
 
 const config: ExpoConfig = {
@@ -138,6 +140,10 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
+  },
+  extra: {
+    buildVariant,
+    diagnosticsEnabled: isDeveloperBuild,
   },
 };
 
