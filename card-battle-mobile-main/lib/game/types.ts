@@ -177,6 +177,9 @@ export type EffectKind =
   | 'takeIt'
   | 'deprivation'
   | 'pool'
+  | 'doubleDebuffs'
+  | 'doublePoints'
+  | 'elementalMastery'
   | 'turinPenalty' // ✅ Turin: جولات الخسارة الإجبارية
   | 'absoluteDominance'
   | 'phantomBlade';

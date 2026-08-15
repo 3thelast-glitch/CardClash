@@ -142,7 +142,7 @@ type GameAction =
   | { type: 'SYNC_DECKS'; payload: { playerDeck: Card[]; botDeck: Card[] } };
 
 // ─────────────────────────────────────────────────────────────────────────────────
-function gameReducer(state: GameState, action: GameAction): GameState {
+export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
 
     case 'SET_PLAYER_DECK':
@@ -227,6 +227,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         .filter(e => { const d = e.data as { appliesToRound?: number } | undefined; return !d?.appliesToRound || d.appliesToRound === roundNumber; })
         .sort((a, b) => b.priority - a.priority || b.createdAtRound - a.createdAtRound)[0];
 
+      const starAdvantageEffect = activeEffects
+        .filter(e => e.kind === 'starAdvantage')
+        .filter(e => { const d = e.data as { appliesToRound?: number } | undefined; return !d?.appliesToRound || d.appliesToRound === roundNumber; })
+        .sort((a, b) => b.priority - a.priority || b.createdAtRound - a.createdAtRound)[0];
+
       const turinForcedLoss = isTurinForcedLoss(state.currentRound, state.totalRounds, state.playerDeck);
 
       let result: { winner: Side | 'draw'; playerDamage: number; botDamage: number; playerBaseDamage: number; botBaseDamage: number; playerElementAdvantage: ElementAdvantage; botElementAdvantage: ElementAdvantage };
@@ -237,7 +242,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       } else if (turinForcedLoss) {
         result = { winner: 'bot', playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
       } else if (forcedOutcomeEffect) {
-        result = { winner: forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
+        const forcedData = forcedOutcomeEffect.data as { outcome?: 'draw' } | undefined;
+        result = { winner: forcedData?.outcome === 'draw' ? 'draw' : forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
+      } else if (starAdvantageEffect) {
+        result = { winner: starAdvantageEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage };
       } else {
         result = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
       }
@@ -275,7 +283,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         winner: result.winner,
       };
 
-      const hasDoublePoints = activeEffects.some(e => e.kind === 'doublePoints' as any);
+      const hasDoublePoints = activeEffects.some(e => e.kind === 'doublePoints');
       const pointsMultiplier = hasDoublePoints ? 2 : 1;
 
       let playerHpDelta = 0;
@@ -445,17 +453,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               if (opponentSide === 'bot')    botHpDelta    = 0;
               effectsToRemove.add(effect.id); break;
             }
-            case 'doubleDebuffs' as any: {
+            case 'doubleDebuffs': {
               const opponentSide = getOppositeSide(effect.sourceSide);
               activeEffects.filter(e => e.kind === 'statModifier' && e.targetSide === opponentSide && (e.data as any)?.amount < 0).forEach(ne => {
                 effectsToReplace.set(ne.id, { ...ne, data: { ...(ne.data as object), amount: (ne.data as any).amount * 2 } });
               });
               effectsToRemove.add(effect.id); break;
             }
-            case 'doublePoints' as any: {
+            case 'doublePoints': {
               effectsToRemove.add(effect.id); break;
             }
-            case 'elementalMastery' as any: {
+            case 'elementalMastery': {
               effectsToRemove.add(effect.id); break;
             }
             case 'absoluteDominance': {
@@ -536,7 +544,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         case 'Compensation': { nextEffects = [...nextEffects, { id: makeEffectId('Compensation', side, roundNumber), kind: 'compensationBuff', sourceSide: side, targetSide: side, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.rewards, data: {} }]; break; }
         case 'Weakening': { nextEffects = [...nextEffects, { id: makeEffectId('Weakening', side, roundNumber), kind: 'weakeningDebuff', sourceSide: side, targetSide: opponentSide, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.rewards, data: {} }]; break; }
         case 'Misdirection': {
-          nextEffects = [...nextEffects, { id: makeEffectId('Misdirection', side, roundNumber), kind: 'doubleDebuffs' as any, sourceSide: side, targetSide: opponentSide, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.rewards, data: {} }];
+          nextEffects = [...nextEffects, { id: makeEffectId('Misdirection', side, roundNumber), kind: 'doubleDebuffs', sourceSide: side, targetSide: opponentSide, createdAtRound: roundNumber, expiresAtRound: roundNumber, charges: 1, priority: EFFECT_PRIORITY.rewards, data: {} }];
           break;
         }
         case 'StealAbility': {
@@ -930,7 +938,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         case 'DoublePoints': {
           nextEffects = [...nextEffects, {
             id: makeEffectId('DoublePoints', side, roundNumber),
-            kind: 'doublePoints' as any,
+            kind: 'doublePoints',
             sourceSide: side,
             targetSide: 'all',
             createdAtRound: roundNumber,
@@ -944,7 +952,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         case 'ElementalMastery': {
           nextEffects = [...nextEffects, {
             id: makeEffectId('ElementalMastery', side, roundNumber),
-            kind: 'elementalMastery' as any,
+            kind: 'elementalMastery',
             sourceSide: side,
             targetSide: side,
             createdAtRound: roundNumber,
@@ -1013,7 +1021,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         default: break;
       }
 
-      const updatedAbilities = (isPlayer ? state.playerAbilities : state.botAbilities).map((a, i) =>
+      const abilityOwnerList = isPlayer ? nextState.playerAbilities : nextState.botAbilities;
+      const updatedAbilities = abilityOwnerList.map((a, i) =>
         i === abilityIndex ? { ...a, used: true } : a
       );
 

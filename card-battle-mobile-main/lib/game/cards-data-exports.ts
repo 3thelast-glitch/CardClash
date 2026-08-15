@@ -153,8 +153,8 @@ export function determineRoundWinner(
   botEffects: Effect[] = [],
   _abilitiesEnabled = true,
 ): RoundWinnerResult {
-  const playerHasMastery = playerEffects.some(e => e.kind === 'elementalMastery' as any);
-  const botHasMastery = botEffects.some(e => e.kind === 'elementalMastery' as any);
+  const playerHasMastery = playerEffects.some(e => e.kind === 'elementalMastery');
+  const botHasMastery = botEffects.some(e => e.kind === 'elementalMastery');
 
   const playerAdv = playerHasMastery ? 'strong' : getElementAdvantage(playerCard.element, botCard.element);
   const botAdv    = botHasMastery ? 'strong' : getElementAdvantage(botCard.element,    playerCard.element);
