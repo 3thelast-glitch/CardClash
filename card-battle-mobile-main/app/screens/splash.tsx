@@ -12,6 +12,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
+import { useSettings } from '@/lib/game/hooks/useSettings';
+import { useOrientationTransition } from '@/utils/orientation-transition';
 import { loadStats } from '@/lib/stats/storage';
 import { PlayerStats } from '@/lib/stats/types';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
@@ -29,16 +31,20 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 }
 
 // ─── Pulsing CTA ─────────────────────────────────────────────────────────────
-function PulsingPlay({ onPress, label }: { onPress: () => void; label: string }) {
+function PulsingPlay({ onPress, label, enabled }: { onPress: () => void; label: string; enabled: boolean }) {
   const scale = useSharedValue(1);
   useEffect(() => {
+    if (!enabled) {
+      scale.value = 1;
+      return;
+    }
     scale.value = withRepeat(
       withSequence(
         withTiming(1.03, { duration: 850, easing: Easing.inOut(Easing.sin) }),
         withTiming(1.00, { duration: 850, easing: Easing.inOut(Easing.sin) })
       ), -1, false
     );
-  }, []);
+  }, [enabled]);
   const s = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <Animated.View style={[s, { width: '100%' }]}>
@@ -75,6 +81,11 @@ export default function SplashScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+  const { settings } = useSettings();
+  const { animatedStyle: orientationStyle, layoutTransition } = useOrientationTransition(
+    isLandscape,
+    settings.animationsEnabled,
+  );
 
   const [stats, setStats] = useState<PlayerStats | null>(null);
   useEffect(() => { loadStats().then(setStats); }, []);
@@ -127,6 +138,7 @@ export default function SplashScreen() {
         <PulsingPlay
           onPress={() => router.push('/screens/game-mode' as any)}
           label="ابدأ المواجهة"
+          enabled={settings.animationsEnabled}
         />
       </FadeIn>
 
@@ -163,17 +175,27 @@ export default function SplashScreen() {
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
-        {isLandscape ? (
-          <View style={styles.landscapeRoot}>
-            <View style={styles.landscapeLeft}>{heroPanel}</View>
-            <View style={styles.landscapeRight}>{content}</View>
-          </View>
-        ) : (
-          <View style={styles.portraitRoot}>
+        <Animated.View
+          layout={layoutTransition}
+          style={[
+            styles.orientationRoot,
+            isLandscape ? styles.landscapeRoot : styles.portraitRoot,
+            orientationStyle,
+          ]}
+        >
+          <Animated.View
+            layout={layoutTransition}
+            style={isLandscape ? styles.heroSlotLandscape : styles.heroSlotPortrait}
+          >
             {heroPanel}
-            <View style={{ flex: 1 }}>{content}</View>
-          </View>
-        )}
+          </Animated.View>
+          <Animated.View
+            layout={layoutTransition}
+            style={isLandscape ? styles.contentSlotLandscape : styles.contentSlotPortrait}
+          >
+            {content}
+          </Animated.View>
+        </Animated.View>
       </LuxuryBackground>
     </ScreenContainer>
   );
@@ -181,8 +203,10 @@ export default function SplashScreen() {
 
 const styles = StyleSheet.create({
   // ─ Layout
-  landscapeRoot: { flex: 1, flexDirection: 'row' },
-  landscapeLeft: {
+  orientationRoot: { flex: 1 },
+  landscapeRoot: { flexDirection: 'row' },
+  portraitRoot: { flexDirection: 'column', paddingHorizontal: SPACE.lg },
+  heroSlotLandscape: {
     width: '36%',
     alignItems: 'center',
     justifyContent: 'center',
@@ -190,8 +214,9 @@ const styles = StyleSheet.create({
     borderRightColor: 'rgba(228,165,42,0.12)',
     paddingHorizontal: SPACE.xl,
   },
-  landscapeRight: { flex: 1, paddingHorizontal: SPACE.xl },
-  portraitRoot: { flex: 1, paddingHorizontal: SPACE.lg },
+  heroSlotPortrait: { paddingTop: SPACE.md },
+  contentSlotLandscape: { flex: 1, paddingHorizontal: SPACE.xl },
+  contentSlotPortrait: { flex: 1 },
   scrollContent: {
     gap: SPACE.lg,
     paddingBottom: SPACE.xxl + SPACE.xl,

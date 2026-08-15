@@ -8,11 +8,13 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { ArrowLeft, Volume2, Music, Smartphone, Sparkles, Zap, Lightbulb, Globe, RotateCcw, Trash2 } from 'lucide-react-native';
 import { CARD_EDITS_KEY } from '@/app/screens/cards-gallery';
+import { useOrientationTransition } from '@/utils/orientation-transition';
 import {
   DEFAULT_SETTINGS,
   loadSettings,
@@ -255,6 +257,11 @@ export default function SettingsScreen() {
     showSaved();
   };
 
+  const { animatedStyle: orientationStyle, layoutTransition } = useOrientationTransition(
+    isLandscape,
+    settings.animationsEnabled,
+  );
+
   if (!loaded) return null;
 
   const soundSection = (
@@ -366,7 +373,8 @@ export default function SettingsScreen() {
         <Text style={s.toastTxt}>✔️ تم الحفظ</Text>
       </RNAnimated.View>
 
-      <RNAnimated.View style={[s.headerWrap, { opacity: headerOpacity, transform: [{ translateY: headerTranslate }] }]}>
+      <Animated.View layout={layoutTransition} style={[s.contentRoot, orientationStyle]}>
+      <RNAnimated.View style={[s.headerWrap, isLandscape && s.headerWrapLandscape, { opacity: headerOpacity, transform: [{ translateY: headerTranslate }] }]}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.7}>
           <ArrowLeft size={16} color="#fff" />
           <Text style={s.backTxt}>رجوع</Text>
@@ -382,6 +390,7 @@ export default function SettingsScreen() {
         </View>
       </RNAnimated.View>
 
+      <Animated.View layout={layoutTransition} style={s.body}>
       {isLandscape ? (
         <View style={s.landscapeRoot}>
           <ScrollView style={s.col} contentContainerStyle={s.colContent} showsVerticalScrollIndicator={false}>
@@ -404,6 +413,8 @@ export default function SettingsScreen() {
           <Text style={s.version}>Card Clash v2.0</Text>
         </ScrollView>
       )}
+      </Animated.View>
+      </Animated.View>
 
       {confirmReset && (
         <ConfirmModal
@@ -428,11 +439,14 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 10, borderRadius: 30,
   },
   toastTxt: { color: '#34d399', fontWeight: '800', fontSize: 13 },
+  contentRoot: { flex: 1 },
+  body: { flex: 1 },
   headerWrap: {
     zIndex: 10, paddingTop: 14, paddingHorizontal: 16, paddingBottom: 12,
     flexDirection: 'row', alignItems: 'center', gap: 16,
     borderBottomWidth: 1, borderBottomColor: 'rgba(212,175,55,0.12)',
   },
+  headerWrapLandscape: { paddingTop: 8, paddingBottom: 8 },
   backBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 7,
@@ -447,7 +461,7 @@ const s = StyleSheet.create({
   subtitle:       { color: '#64748b', fontSize: 11, marginTop: 1 },
   scroll:         { flex: 1, zIndex: 1 },
   scrollContent:  { paddingHorizontal: 14, paddingBottom: 60, paddingTop: 14, gap: 8 },
-  landscapeRoot:  { flex: 1, flexDirection: 'row', zIndex: 1 },
+  landscapeRoot:  { flex: 1, flexDirection: 'row', zIndex: 1, paddingHorizontal: 6 },
   col:            { flex: 1 },
   colContent:     { paddingHorizontal: 14, paddingBottom: 40, paddingTop: 14, gap: 8 },
   colDivider:     { width: 1, backgroundColor: 'rgba(212,175,55,0.1)', marginVertical: 14 },
