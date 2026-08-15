@@ -1,4 +1,5 @@
 import { getCharacterAbility, matchesCharacterAbilityTarget } from './character-abilities';
+import { getAbilityNameOnly } from './ability-names';
 import type { Effect, RoundResult, Side } from './types';
 
 export type RoundInsightTone = 'positive' | 'negative' | 'neutral' | 'accent';
@@ -100,6 +101,13 @@ export function buildRoundEventLog(result: RoundResult): RoundInsight[] {
   }
   if (result.botElementAdvantage === 'strong') {
     events.push({ id: 'bot-element', text: 'أفضلية عنصرية للبوت في هذه الجولة', tone: 'negative' });
+  }
+  if (result.botAbilityUsed) {
+    events.push({
+      id: 'bot-ability',
+      text: `البوت استخدم قدرة: ${getAbilityNameOnly(result.botAbilityUsed)}`,
+      tone: 'negative',
+    });
   }
 
   const playerHealth = formatHealthDelta('player', result.playerHealthDelta);

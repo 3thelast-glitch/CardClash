@@ -237,6 +237,8 @@ export interface GameState {
   playerAbilities: AbilityState[];
   botAbilities: AbilityState[];
   usedAbilities: AbilityType[];
+  /** تُسجل مؤقتاً حتى تُربط قدرة البوت بنتيجة الجولة الحالية. */
+  botAbilityUsedThisRound?: AbilityType;
 }
 
 export interface AbilityState {
@@ -257,6 +259,8 @@ export interface RoundResult {
   /** التغير النهائي في صحة المباراة بعد الحسم والعلاج والآثار النشطة. */
   playerHealthDelta: number;
   botHealthDelta: number;
+  /** قدرة البوت التي فُعّلت قبل حسم هذه الجولة إن وُجدت. */
+  botAbilityUsed?: AbilityType;
   winner: 'player' | 'bot' | 'draw';
 }
 

@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { getBotCards } from '../bot-ai';
+import { describe, expect, it, vi } from 'vitest';
+import { decideBotAbility, getBotCards } from '../bot-ai';
 import { ALL_CARDS } from '../cards-data-exports';
+import type { GameState } from '../types';
 
 describe('Bot AI System', () => {
   describe('getBotCards', () => {
@@ -104,6 +105,37 @@ describe('Bot AI System', () => {
       const botCards = getBotCards(count, 2, playerDeck);
 
       expect(botCards).toHaveLength(count);
+    });
+  });
+
+  describe('استخدام القدرات', () => {
+    it('يسمح للسهل والمتوسط باستخدام قدرة في موقف خسارة واضح', () => {
+      const card = ALL_CARDS[0];
+      const gameState: GameState = {
+        playerDeck: [card],
+        botDeck: [card],
+        currentRound: 0,
+        totalRounds: 5,
+        playerScore: 2,
+        botScore: 0,
+        playerMaxHealth: 5,
+        botMaxHealth: 5,
+        roundResults: [],
+        difficulty: 1,
+        abilitiesEnabled: true,
+        activeEffects: [],
+        playerAbilities: [],
+        botAbilities: [{ type: 'DoubleOrNothing', used: false }],
+        usedAbilities: [],
+      };
+
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      try {
+        expect(decideBotAbility(gameState.botAbilities, card, gameState, 1).useAbility).toBe(true);
+        expect(decideBotAbility(gameState.botAbilities, card, gameState, 2).useAbility).toBe(true);
+      } finally {
+        vi.restoreAllMocks();
+      }
     });
   });
 });

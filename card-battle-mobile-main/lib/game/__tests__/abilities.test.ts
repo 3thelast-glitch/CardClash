@@ -467,3 +467,23 @@ describe('قدرة Turin التلقائية', () => {
     expect(resolved.playerScore).toBe(3);
   });
 });
+
+
+describe('استخدام البوت للقدرات قبل الهجوم', () => {
+  it('يسجل قدرة البوت المفعلة في نتيجة الجولة', () => {
+    const state = makeState('Protection', {
+      abilitiesEnabled: true,
+      botAbilities: [{ type: 'Protection', used: false }],
+    });
+
+    const afterAbility = gameReducer(state, {
+      type: 'USE_ABILITY',
+      payload: { abilityType: 'Protection', isPlayer: false },
+    });
+    expect(afterAbility.botAbilityUsedThisRound).toBe('Protection');
+
+    const afterRound = gameReducer(afterAbility, { type: 'PLAY_ROUND' });
+    expect(afterRound.roundResults.at(-1)?.botAbilityUsed).toBe('Protection');
+    expect(afterRound.botAbilityUsedThisRound).toBeUndefined();
+  });
+});

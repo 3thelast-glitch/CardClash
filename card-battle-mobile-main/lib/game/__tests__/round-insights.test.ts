@@ -39,6 +39,9 @@ describe('سجل أحداث الجولة والمعاينة', () => {
     expect(texts).toContain('أفضلية عنصرية لك في هذه الجولة');
     expect(texts).toContain('أنت اكتسب 6 صحة');
     expect(texts).toContain('طب تسونادي: +2 صحة عند دخول الجولة');
+
+    const botTexts = buildRoundEventLog(makeResult({ botAbilityUsed: 'Protection' })).map((event) => event.text);
+    expect(botTexts.some((text) => text.startsWith('البوت استخدم قدرة:'))).toBe(true);
   });
 
   it('يعرض أثر Sakura الصحي بعد الفوز ضمن سجل الجولة', () => {

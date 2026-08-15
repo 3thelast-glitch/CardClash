@@ -3,7 +3,7 @@
  *
  * فروق حقيقية بين المستويات الخمسة:
  *
- *  1  سهل      — عشوائي تماماً، لا قدرات
+ *  1  سهل      — عشوائي تماماً، قدرات نادرة وعشوائية
  *  2  متوسط    — أفضل نصف الكروت، قدرات عشوائية خفيفة
  *  3  صعب      — نفس الكروت لكن يحسب التوقيت + threshold أعلى + noise أقل
  *  4  خيالي    — Utility AI كامل + ذاكرة عناصر + عشوائية كروت خفيفة (5؉)
@@ -345,7 +345,7 @@ export function decideBotAbility(
 
   const available = botAbilities.filter(a => !a.used);
 
-  if (available.length === 0 || difficulty <= 1) {
+  if (available.length === 0) {
     return { useAbility: false, mode, score: noAbilityScore, breakdown: noAbilityBreakdown };
   }
 
@@ -464,7 +464,7 @@ export function getBotCards(
 // ──────────────────────────────── Strategy label ────────────────────────────────
 export function getBotStrategyDescription(difficulty: DifficultyLevel): string {
   switch (difficulty) {
-    case 1: return 'البوت يختار عشوائياً بدون استراتيجية';
+    case 1: return 'البوت يختار عشوائياً وقد يستخدم قدرة نادرة';
     case 2: return 'البوت يختار من أفضل نصف الكروت ويستخدم القدرات بعشوائية';
     case 3: return 'البوت يختار من أقوى الكروت ويوقّت قدراته بذكاء';
     case 4: return 'البوت يتذكر أنماطك، يحسب منفعة كل قرار، ويحتفظ بأقوى قدرة للنهاية';

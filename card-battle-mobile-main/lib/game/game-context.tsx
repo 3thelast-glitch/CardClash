@@ -523,6 +523,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         botElementAdvantage: result.botElementAdvantage,
         playerHealthDelta: playerRoundHealthDelta,
         botHealthDelta: botRoundHealthDelta,
+        botAbilityUsed: state.botAbilityUsedThisRound,
         winner: result.winner,
       };
 
@@ -538,6 +539,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         roundResults: [...state.roundResults, roundResult],
         activeEffects: nextEffects,
         usedAbilities: [],
+        botAbilityUsedThisRound: undefined,
       };
     }
 
@@ -1082,6 +1084,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         activeEffects: nextEffects,
         ...(isPlayer ? { playerAbilities: updatedAbilities } : { botAbilities: updatedAbilities }),
         usedAbilities: [...state.usedAbilities, abilityType],
+        ...(isPlayer ? {} : { botAbilityUsedThisRound: abilityType }),
       };
     }
 

@@ -482,7 +482,8 @@ export default function BattleScreen() {
   const runBotAbility = useCallback(() => {
     if (!currentPlayerCard) return;
     const difficulty = (state.difficulty ?? 3) as DifficultyLevel;
-    if (difficulty <= 2) return;
+    // السهل فقط لا يستخدم القدرات؛ بقية المستويات تتصرف مثل اللاعب قبل الهجوم.
+    if (difficulty <= 1) return;
 
     const decision = decideBotAbility(
       state.botAbilities,
