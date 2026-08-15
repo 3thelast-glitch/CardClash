@@ -142,23 +142,35 @@ export function isTurinForcedLoss(
 
 // ── On-spawn passives ──────────────────────────
 
+const isTsunade = (card: Card) =>
+  card.id === 'tsunade'
+  || card.nameEn === 'Tsunade'
+  || card.name === 'Tsunade'
+  || card.nameAr === 'تسونادي';
+
+const isSakura = (card: Card) =>
+  card.id === 'sakura_haruno'
+  || card.nameEn === 'Sakura Haruno'
+  || card.name === 'Sakura Haruno'
+  || card.nameAr === 'ساكورا هارونو';
+
+/** تمنح Tsunade صحة مباراة إضافية عند بداية المعركة، من دون سقف للزيادة. */
+export function getOnSpawnMatchHealthBonus(card: Card): number {
+  return isTsunade(card) ? 2 : 0;
+}
+
 /**
  * Apply when a card enters the field.
  * - Tsunade → +2 HP on spawn
  */
 export function applyOnSpawnPassive(card: Card): Card {
-  if (
-    card.id === 'tsunade' ||
-    card.nameEn === 'Tsunade' ||
-    card.name === 'Tsunade' ||
-    card.nameAr === 'تسونادي'
-  ) {
-    return {
-      ...card,
-      hp: ((card as any).hp ?? (card as any).health ?? 0) + 2,
-    };
-  }
-  return card;
+  const healthBonus = getOnSpawnMatchHealthBonus(card);
+  if (healthBonus === 0) return card;
+
+  return {
+    ...card,
+    hp: ((card as any).hp ?? (card as any).health ?? 0) + healthBonus,
+  };
 }
 
 // ── Combat special abilities ───────────────────
@@ -209,6 +221,14 @@ export function resolveSpecialAbility(
 
 // ── Post-battle passives ───────────────────────
 
+/** تمنح Sakura صحة مباراة إضافية بعد الفوز، حتى إن كانت الصحة عند حدها الابتدائي. */
+export function getPostBattleMatchHealthBonus(
+  card: Card,
+  result: BattleResult,
+): number {
+  return isSakura(card) && result === 'win' ? 1 : 0;
+}
+
 /**
  * Apply after combat resolves.
  * - Sakura Haruno → +1 HP on win only
@@ -217,21 +237,13 @@ export function applyPostBattlePassive(
   card: Card,
   result: BattleResult,
 ): Card {
-  if (
-    (
-      card.id === 'sakura_haruno' ||
-      card.nameEn === 'Sakura Haruno' ||
-      card.name === 'Sakura Haruno' ||
-      card.nameAr === 'ساكورا هارونو'
-    ) &&
-    result === 'win'
-  ) {
-    return {
-      ...card,
-      hp: ((card as any).hp ?? (card as any).health ?? 0) + 1,
-    };
-  }
-  return card;
+  const healthBonus = getPostBattleMatchHealthBonus(card, result);
+  if (healthBonus === 0) return card;
+
+  return {
+    ...card,
+    hp: ((card as any).hp ?? (card as any).health ?? 0) + healthBonus,
+  };
 }
 
 // ─────────────────────────────────────────────

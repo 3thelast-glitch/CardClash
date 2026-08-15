@@ -745,7 +745,8 @@ export default function BattleScreen() {
   }, [phase, lastRoundResult, expectedRoundResult]);
 
 
-  const maxScore = state.totalRounds;
+  // قد تمنح قدرات مثل Tsunade وSakura صحة فوق الحد الابتدائي للجولات.
+  const maxScore = Math.max(state.totalRounds, state.playerScore, state.botScore);
 
   const isExpectedLoss = expectedRoundResult?.winner === 'bot';
   const canRageNow = isExpectedLoss && !!currentPlayerCard && shouldTriggerRage(currentPlayerCard, rageState.current);

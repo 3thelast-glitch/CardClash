@@ -5,7 +5,12 @@ import { getRandomAbilities } from './abilities';
 import type { DifficultyLevel } from './difficulty-types';
 import { determineRoundWinner } from './cards-data-exports';
 import { getBotCards } from './bot-ai';
-import { applyOnSpawnPassive, applyPostBattlePassive } from './rage-engine';
+import {
+  applyOnSpawnPassive,
+  applyPostBattlePassive,
+  getOnSpawnMatchHealthBonus,
+  getPostBattleMatchHealthBonus,
+} from './rage-engine';
 import { useEffectToast } from '../../components/game/EffectToast';
 import { useAbilityActivationOverlay } from '../../components/game/AbilityActivationOverlay';
 import { ABILITY_DETAILS, CATEGORY_CONFIG } from './ability-details';
@@ -489,12 +494,23 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       nextEffects = nextEffects.filter(e => !isEffectExpired(e, roundNumber));
       if (!state.abilitiesEnabled) nextEffects = [];
 
+      // قدرة الظهور تتفعل عندما تدخل البطاقة لهذه الجولة، حتى في الجولة الأولى.
+      const playerSpawnHealthBonus = getOnSpawnMatchHealthBonus(playerCard);
+      const botSpawnHealthBonus = getOnSpawnMatchHealthBonus(botCard);
+      const playerPostBattleHealthBonus = winner === 'player'
+        ? getPostBattleMatchHealthBonus(playerCard, 'win')
+        : 0;
+      const botPostBattleHealthBonus = winner === 'bot'
+        ? getPostBattleMatchHealthBonus(botCard, 'win')
+        : 0;
+
       return {
         ...state,
         playerDeck: updatedPlayerDeck,
         botDeck: updatedBotDeck,
-        playerScore: Math.max(0, state.playerScore + playerHpDelta),
-        botScore:    Math.max(0, state.botScore    + botHpDelta),
+        // لا نضع سقفاً أعلى: العلاج الفائز في الجولة الأولى يحتفظ بزيادته فوق الصحة الابتدائية.
+        playerScore: Math.max(0, state.playerScore + playerHpDelta + playerSpawnHealthBonus + playerPostBattleHealthBonus),
+        botScore:    Math.max(0, state.botScore    + botHpDelta    + botSpawnHealthBonus    + botPostBattleHealthBonus),
         roundResults: [...state.roundResults, roundResult],
         activeEffects: nextEffects,
         usedAbilities: [],

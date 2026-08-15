@@ -79,6 +79,7 @@ export default function BattleResultsScreen() {
   const playerHp    = state.playerScore;
   const botHp       = state.botScore;
   const totalRounds = state.totalRounds;
+  const displayedMaxHp = Math.max(totalRounds, playerHp, botHp);
 
   const playerLostByHp = playerHp <= 0 && botHp > 0;
   const botLostByHp   = botHp   <= 0 && playerHp > 0;
@@ -148,8 +149,8 @@ export default function BattleResultsScreen() {
 
             {/* ── شريطي صحة ── */}
             <View style={styles.hpSection}>
-              <HpBar current={playerHp} max={totalRounds} color={COLOR.green} label="أنت ♥" />
-              <HpBar current={botHp}    max={totalRounds} color={COLOR.red}   label="البوت ♥" />
+              <HpBar current={playerHp} max={displayedMaxHp} color={COLOR.green} label="أنت ♥" />
+              <HpBar current={botHp}    max={displayedMaxHp} color={COLOR.red}   label="البوت ♥" />
             </View>
           </View>
 

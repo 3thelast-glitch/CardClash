@@ -130,6 +130,12 @@ describe('تدقيق قدرات الشخصيات: الآثار السلبية', 
 
     expect(started.playerDeck[0].hp).toBe(2);
     expect(started.botDeck[0].hp).toBe(2);
+    expect(started.playerScore).toBe(1);
+    expect(started.botScore).toBe(1);
+
+    const resolved = gameReducer(started, { type: 'PLAY_ROUND' });
+    expect(resolved.playerScore).toBe(3);
+    expect(resolved.botScore).toBe(3);
   });
 
   it('يعطي Sakura نقطة HP عند الفوز من أي جهة', () => {
@@ -147,5 +153,6 @@ describe('تدقيق قدرات الشخصيات: الآثار السلبية', 
     const resolved = gameReducer(makeState(player, botSakura), { type: 'PLAY_ROUND' });
 
     expect(resolved.botDeck[0].hp).toBe(1);
+    expect(resolved.botScore).toBe(2);
   });
 });
