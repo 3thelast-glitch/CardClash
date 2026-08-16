@@ -380,7 +380,7 @@ export default function SettingsScreen() {
           <Text style={s.backTxt}>رجوع</Text>
         </TouchableOpacity>
         <View style={s.headerCenter}>
-          <LinearGradient colors={['#d4af37', '#f59e0b']} style={s.headerIconWrap} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <LinearGradient colors={['#39E6D0', '#0E7490']} style={s.headerIconWrap} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <Text style={s.headerIcon}>⚙️</Text>
           </LinearGradient>
           <View>
@@ -429,42 +429,42 @@ export default function SettingsScreen() {
 }
 
 // ───────────────────────────────── Styles
-const GOLD = '#d4af37';
+const GOLD = '#39E6D0';
 
 const s = StyleSheet.create({
   bg: { position: 'absolute', inset: 0, zIndex: 0 } as any,
   toast: {
     position: 'absolute', bottom: 32, alignSelf: 'center', zIndex: 100,
-    backgroundColor: 'rgba(52,211,153,0.18)', borderWidth: 1, borderColor: '#34d39966',
+    backgroundColor: 'rgba(57,230,208,0.16)', borderWidth: 1, borderColor: '#39E6D066',
     paddingHorizontal: 20, paddingVertical: 10, borderRadius: 30,
   },
-  toastTxt: { color: '#34d399', fontWeight: '800', fontSize: 13 },
+  toastTxt: { color: '#9CFFF2', fontWeight: '800', fontSize: 13 },
   contentRoot: { flex: 1 },
   body: { flex: 1 },
   headerWrap: {
     zIndex: 10, paddingTop: 14, paddingHorizontal: 16, paddingBottom: 12,
     flexDirection: 'row', alignItems: 'center', gap: 16,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(212,175,55,0.12)',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(57,230,208,0.16)',
   },
   headerWrapLandscape: { paddingTop: 8, paddingBottom: 8 },
   backBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 7,
-    backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(57,230,208,0.07)', borderRadius: 10,
+    borderWidth: 1, borderColor: 'rgba(57,230,208,0.18)',
   },
-  backTxt:        { color: '#fff', fontSize: 12, fontWeight: '700' },
+  backTxt:        { color: '#EAFBF7', fontSize: 12, fontWeight: '700' },
   headerCenter:   { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerIconWrap: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   headerIcon:     { fontSize: 22 },
   title:          { color: GOLD, fontSize: 20, fontWeight: '800', letterSpacing: 0.4 },
-  subtitle:       { color: '#64748b', fontSize: 11, marginTop: 1 },
+  subtitle:       { color: 'rgba(203,221,221,0.58)', fontSize: 11, marginTop: 1 },
   scroll:         { flex: 1, zIndex: 1 },
   scrollContent:  { paddingHorizontal: 14, paddingBottom: 60, paddingTop: 14, gap: 8 },
   landscapeRoot:  { flex: 1, flexDirection: 'row', zIndex: 1, paddingHorizontal: 6 },
   col:            { flex: 1 },
   colContent:     { paddingHorizontal: 14, paddingBottom: 40, paddingTop: 14, gap: 8 },
-  colDivider:     { width: 1, backgroundColor: 'rgba(212,175,55,0.1)', marginVertical: 14 },
+  colDivider:     { width: 1, backgroundColor: 'rgba(57,230,208,0.12)', marginVertical: 14 },
   version:        { color: 'rgba(255,255,255,0.12)', fontSize: 10, textAlign: 'center', paddingVertical: 6 },
 });
 
@@ -474,15 +474,15 @@ const ib = StyleSheet.create({
 const tr = StyleSheet.create({
   wrap:  { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, gap: 12 },
   texts: { flex: 1 },
-  title: { color: '#e2e8f0', fontSize: 14, fontWeight: '700' },
-  sub:   { color: '#475569', fontSize: 11, marginTop: 2 },
-  sep:   { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginHorizontal: 14 },
+  title: { color: '#EAFBF7', fontSize: 14, fontWeight: '700' },
+  sub:   { color: 'rgba(203,221,221,0.52)', fontSize: 11, marginTop: 2 },
+  sep:   { height: 1, backgroundColor: 'rgba(57,230,208,0.10)', marginHorizontal: 14 },
 });
 const sc = StyleSheet.create({
   wrap:     { paddingHorizontal: 14, paddingVertical: 14, gap: 12 },
   top:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title:    { color: '#e2e8f0', fontSize: 14, fontWeight: '700' },
-  row:      { flexDirection: 'row', borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
+  title:    { color: '#EAFBF7', fontSize: 14, fontWeight: '700' },
+  row:      { flexDirection: 'row', borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(57,230,208,0.14)' },
   seg:      { flex: 1 },
   first:    { borderRightWidth: 0 },
   last:     { borderLeftWidth: 0 },
@@ -497,28 +497,28 @@ const sl = StyleSheet.create({
 });
 const cd = StyleSheet.create({
   wrap: {
-    backgroundColor: 'rgba(8,8,18,0.92)',
+    backgroundColor: 'rgba(7,20,27,0.94)',
     borderRadius: 18, borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.18)',
+    borderColor: 'rgba(57,230,208,0.20)',
     overflow: 'hidden',
   },
 });
 const dr = StyleSheet.create({
   wrap:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14, gap: 12 },
-  iconWrap: { width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' },
+  iconWrap: { width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(203,221,221,0.07)', alignItems: 'center', justifyContent: 'center' },
   texts:    { flex: 1 },
   title:    { color: '#fca5a5', fontSize: 13, fontWeight: '700' },
-  sub:      { color: '#475569', fontSize: 11, marginTop: 2 },
+  sub:      { color: 'rgba(203,221,221,0.52)', fontSize: 11, marginTop: 2 },
   arrow:    { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  arrowTxt: { color: '#475569', fontSize: 20, lineHeight: 24 },
+  arrowTxt: { color: 'rgba(203,221,221,0.52)', fontSize: 20, lineHeight: 24 },
   sep:      { height: 1, backgroundColor: 'rgba(239,68,68,0.12)', marginHorizontal: 14 },
 });
 const cm = StyleSheet.create({
-  overlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  box:        { backgroundColor: '#0a0a14', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)', padding: 28, width: '100%', maxWidth: 380, alignItems: 'center', gap: 10 },
+  overlay:    { flex: 1, backgroundColor: 'rgba(2,8,12,0.9)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  box:        { backgroundColor: '#07141B', borderRadius: 18, borderWidth: 1, borderColor: 'rgba(251,113,133,0.38)', padding: 28, width: '100%', maxWidth: 380, alignItems: 'center', gap: 10 },
   emoji:      { fontSize: 40 },
-  title:      { color: '#f1f5f9', fontSize: 17, fontWeight: '800', textAlign: 'center' },
-  body:       { color: '#64748b', fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  title:      { color: '#EAFBF7', fontSize: 17, fontWeight: '800', textAlign: 'center' },
+  body:       { color: 'rgba(203,221,221,0.64)', fontSize: 13, textAlign: 'center', lineHeight: 20 },
   row:        { flexDirection: 'row', gap: 10, width: '100%', marginTop: 6 },
   cancelBtn:  { flex: 1, paddingVertical: 13, borderRadius: 14, borderWidth: 1, borderColor: '#334155', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
   cancelTxt:  { color: '#94a3b8', fontWeight: '700', fontSize: 13 },

@@ -87,11 +87,11 @@ export function LuxuryBackground({ children }: LuxuryBackgroundProps) {
   const { width, height } = useWindowDimensions();
   const { settings } = useSettings();
   const orbs = [
-    { x: 0.05 * width, y: 0.1 * height, size: 180, color: '#6B21A8', delay: 0 },
-    { x: 0.7 * width, y: 0.05 * height, size: 220, color: '#1D4ED8', delay: 400 },
-    { x: 0.4 * width, y: 0.6 * height, size: 260, color: '#7C3AED', delay: 800 },
-    { x: 0.82 * width, y: 0.72 * height, size: 160, color: '#B45309', delay: 200 },
-    { x: 0.1 * width, y: 0.78 * height, size: 140, color: '#065F46', delay: 600 },
+    { x: 0.04 * width, y: 0.08 * height, size: 190, color: '#075E61', delay: 0 },
+    { x: 0.72 * width, y: 0.04 * height, size: 220, color: '#0E7490', delay: 400 },
+    { x: 0.36 * width, y: 0.62 * height, size: 250, color: '#0F766E', delay: 800 },
+    { x: 0.84 * width, y: 0.72 * height, size: 150, color: '#8A651C', delay: 200 },
+    { x: 0.08 * width, y: 0.8 * height, size: 140, color: '#164E63', delay: 600 },
   ];
 
   return (
@@ -99,7 +99,7 @@ export function LuxuryBackground({ children }: LuxuryBackgroundProps) {
       {/* Deep background */}
       <View style={styles.bg} />
 
-      {/* Grid lines — subtle purple grid */}
+      {/* Vault grid — deliberately understated behind functional UI */}
       <View style={styles.gridOverlay} pointerEvents="none" />
 
       {/* Ambient orbs */}
@@ -107,7 +107,7 @@ export function LuxuryBackground({ children }: LuxuryBackgroundProps) {
         <FloatingOrb key={i} {...orb} enabled={settings.animationsEnabled} />
       ))}
 
-      {/* Top gold vignette accent */}
+      {/* Top cyan vignette accent */}
       <View style={styles.topAccent} pointerEvents="none" />
 
       {/* Content */}
@@ -139,8 +139,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: '#E4A52A',
-    shadowColor: '#E4A52A',
+    backgroundColor: COLOR.gold,
+    shadowColor: COLOR.gold,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 8,

@@ -12,8 +12,8 @@ interface RoundInsightPanelProps {
 const toneColor: Record<RoundInsightTone, string> = {
   positive: '#4ade80',
   negative: '#f87171',
-  neutral: '#cbd5e1',
-  accent: '#facc15',
+  neutral: '#B8D6D6',
+  accent: '#39E6D0',
 };
 
 export function RoundInsightPanel({ title, insights, testID }: RoundInsightPanelProps) {
@@ -45,16 +45,16 @@ export function RoundInsightPanel({ title, insights, testID }: RoundInsightPanel
 const styles = StyleSheet.create({
   panel: {
     width: '100%',
-    backgroundColor: 'rgba(10, 15, 30, 0.72)',
+    backgroundColor: 'rgba(5, 18, 24, 0.82)',
     borderWidth: 1,
-    borderColor: 'rgba(250, 204, 21, 0.25)',
-    borderRadius: 10,
+    borderColor: 'rgba(57, 230, 208, 0.22)',
+    borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 4,
   },
   title: {
-    color: '#f8fafc',
+    color: '#EAFBF7',
     fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',

@@ -33,8 +33,8 @@ export interface ToastPayload {
 const KIND_META: Record<ToastKind, { emoji: string; color: string; bg: string }> = {
   buff: { emoji: '⬆️', color: '#4ade80', bg: 'rgba(74,222,128,0.12)' },
   debuff: { emoji: '⬇️', color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
-  seal: { emoji: '🔒', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
-  info: { emoji: 'ℹ️', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
+  seal: { emoji: '🔒', color: '#F4C96A', bg: 'rgba(244,201,106,0.12)' },
+  info: { emoji: 'ℹ️', color: '#39E6D0', bg: 'rgba(57,230,208,0.12)' },
   win: { emoji: '🏆', color: '#4ade80', bg: 'rgba(74,222,128,0.14)' },
   loss: { emoji: '💀', color: '#f87171', bg: 'rgba(248,113,113,0.14)' },
   draw: { emoji: '🤝', color: '#fbbf24', bg: 'rgba(251,191,36,0.14)' },
@@ -89,9 +89,9 @@ export function EffectToast() {
     progress.value = 1;
     setCurrent({ ...payload, id: ++counter.current });
     if (settings.animationsEnabled) {
-      opacity.value = withDelay(60, withSpring(1, { damping: 14 }));
-      translateY.value = withDelay(60, withSpring(0, { damping: 12 }));
-      scale.value = withDelay(60, withSpring(1, { damping: 12 }));
+      opacity.value = withDelay(40, withTiming(1, { duration: 180 }));
+      translateY.value = withDelay(40, withTiming(0, { duration: 180 }));
+      scale.value = withDelay(40, withTiming(1, { duration: 180 }));
       progress.value = withTiming(0, { duration });
     } else {
       opacity.value = 1;
@@ -134,7 +134,7 @@ export function EffectToast() {
     >
       <LinearGradient
         pointerEvents="none"
-        colors={[meta.bg, 'rgba(5,10,22,0.97)']}
+        colors={[meta.bg, 'rgba(5,18,24,0.97)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -163,7 +163,7 @@ const T = StyleSheet.create({
     position: 'absolute',
     top: '30%',
     alignSelf: 'center',
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: 18,
     paddingVertical: 12,
@@ -183,11 +183,11 @@ const T = StyleSheet.create({
   emoji: { fontSize: 22 },
   textWrap: { flex: 1, gap: 2 },
   title: { fontSize: 15, fontWeight: '800', letterSpacing: 0.3, textAlign: 'right', writingDirection: 'rtl' },
-  sub: { fontSize: 11, color: '#cbd5e1', textAlign: 'right', writingDirection: 'rtl' },
+  sub: { fontSize: 11, color: 'rgba(226,247,242,0.74)', textAlign: 'right', writingDirection: 'rtl' },
   progressTrack: {
     marginTop: 8,
     height: 4,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(203,221,221,0.14)',
     borderRadius: 2,
     overflow: 'hidden',
   },

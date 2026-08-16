@@ -46,16 +46,16 @@ const OUTCOME_CONFIG: Record<RoundOutcome, {
     player: {
         icon: '🎉',
         titleAr: 'فوز اللاعب',
-        color: '#FFD700', // Gold/Amber
-        shadowColor: '#FFD700',
-        bgColor: 'rgba(212,175,55,0.15)',
+        color: '#39E6D0',
+        shadowColor: '#39E6D0',
+        bgColor: 'rgba(57,230,208,0.14)',
     },
     bot: {
         icon: '💀',
         titleAr: 'فوز البوت',
-        color: '#FF003C', // Crimson/Dark Red
-        shadowColor: '#FF003C',
-        bgColor: 'rgba(255,0,60,0.15)',
+        color: '#FB7185',
+        shadowColor: '#FB7185',
+        bgColor: 'rgba(251,113,133,0.14)',
     },
     draw: {
         icon: '🤝',
@@ -159,7 +159,7 @@ export function BattleResultOverlay({
             ]}>
                 <LinearGradient
                     pointerEvents="none"
-                    colors={[cfg.bgColor, 'rgba(5,10,22,0.98)']}
+                    colors={[cfg.bgColor, 'rgba(5,15,20,0.98)']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={StyleSheet.absoluteFill}
@@ -190,12 +190,12 @@ export function BattleResultOverlay({
                     {/* Points stats */}
                     {(playerScore !== undefined || botScore !== undefined) && (
                         <View style={{ alignItems: 'center', marginTop: 10 * scaleFactor }}>
-                            <Text style={{ color: '#cbd5e1', fontSize: 13 * scaleFactor, letterSpacing: 1.5, marginBottom: 8 * scaleFactor, fontWeight: 'bold', writingDirection: 'rtl' }}>النقاط النهائية</Text>
-                            <Animated.View style={[styles.statsRow, textStyle, { paddingVertical: 8 * scaleFactor, paddingHorizontal: 16 * scaleFactor, gap: 16 * scaleFactor, backgroundColor: 'rgba(2,6,15,0.72)', borderColor: cfg.color + '33', borderRadius: 12 }]}>
+                            <Text style={{ color: 'rgba(226,247,242,0.78)', fontSize: 13 * scaleFactor, letterSpacing: 1.5, marginBottom: 8 * scaleFactor, fontWeight: 'bold', writingDirection: 'rtl' }}>النقاط النهائية</Text>
+                            <Animated.View style={[styles.statsRow, textStyle, { paddingVertical: 8 * scaleFactor, paddingHorizontal: 16 * scaleFactor, gap: 16 * scaleFactor, backgroundColor: 'rgba(3,13,18,0.78)', borderColor: cfg.color + '44', borderRadius: 12 }]}>
                                 {playerScore !== undefined && (
                                     <View style={[styles.statItem, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
                                         <Text style={[styles.statLabel, { fontSize: 14 * scaleFactor }]}>أنت</Text>
-                                        <Text style={[styles.statValue, { color: '#fbbf24', fontSize: 26 * scaleFactor, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 2 }]}>{playerScore}</Text>
+                                        <Text style={[styles.statValue, { color: cfg.color, fontSize: 26 * scaleFactor, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 2 }]}>{playerScore}</Text>
                                         <Text style={{ fontSize: 18 * scaleFactor }}>⭐</Text>
                                     </View>
                                 )}
@@ -203,7 +203,7 @@ export function BattleResultOverlay({
                                 {botScore !== undefined && (
                                     <View style={[styles.statItem, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
                                         <Text style={{ fontSize: 18 * scaleFactor }}>⭐</Text>
-                                        <Text style={[styles.statValue, { color: '#fbbf24', fontSize: 26 * scaleFactor, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 2 }]}>{botScore}</Text>
+                                        <Text style={[styles.statValue, { color: cfg.color, fontSize: 26 * scaleFactor, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 2 }]}>{botScore}</Text>
                                         <Text style={[styles.statLabel, { fontSize: 14 * scaleFactor }]}>البوت</Text>
                                     </View>
                                 )}
@@ -252,7 +252,7 @@ function triggerHaptic(type: 'success' | 'error' | 'warning') {
 const styles = StyleSheet.create({
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.85)',
+        backgroundColor: 'rgba(2,8,12,0.88)',
         zIndex: 1000,
         justifyContent: 'center',
         alignItems: 'center',
@@ -261,10 +261,10 @@ const styles = StyleSheet.create({
     card: {
         width: '90%',
         maxWidth: 400,
-        borderRadius: 24,
+        borderRadius: 18,
         overflow: 'hidden',
         borderWidth: 2,
-        backgroundColor: 'rgba(15,15,15,0.95)',
+        backgroundColor: 'rgba(7,20,27,0.96)',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.8,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: 'rgba(3,13,18,0.76)',
         borderRadius: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
         gap: 2,
     },
     statLabel: {
-        color: '#9ca3af',
+        color: 'rgba(226,247,242,0.68)',
         fontWeight: '600',
     },
     statValue: {
@@ -367,12 +367,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     homeBtn: {
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(203,221,221,0.09)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.24)',
+        borderColor: 'rgba(57,230,208,0.28)',
     },
     homeBtnText: {
-        color: '#fff',
+        color: '#EAFBF7',
         fontWeight: 'bold',
     },
     playAgainBtn: {
@@ -382,8 +382,7 @@ const styles = StyleSheet.create({
         elevation: 8,
     },
     playAgainBtnText: {
-        color: '#1a1a1a',
+        color: '#062126',
         fontWeight: 'bold',
     },
 });
-

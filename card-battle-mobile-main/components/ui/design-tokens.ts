@@ -5,29 +5,29 @@
 
 // ── Colors ────────────────────────────────────────────────────────────────────
 export const COLOR = {
-    // Primary Palette
-    bgDeep: '#1A0D1A',      // Dark Purple (Main Background)
-    bgArena: '#240716',     // Deep Maroon (Battle arena background)
-    bgCard: 'rgba(26,13,26,0.95)', // Card surface
-    gold: '#E4A52A',        // Gold Primary (Buttons, borders, stars)
-    goldAccent: '#FFD700',  // Bright Gold (Glow, selected)
-    goldDim: 'rgba(228,165,42,0.35)', // Dimmed border
-    goldFill: 'rgba(228,165,42,0.15)',// Soft fill
-    textPrimary: '#F7F7F7', // Off-White Text
-    textMuted: 'rgba(247,247,247,0.55)', // Muted Text
+    // Primary Palette — Card Clash vault: dark ink + cyan energy + restrained gold
+    bgDeep: '#061017',      // Ink background for every screen
+    bgArena: '#07141B',     // Arena surface, distinct but not purple
+    bgCard: 'rgba(9,25,32,0.96)', // Elevated archive panel
+    gold: '#39E6D0',        // Primary action / active border (legacy token name retained)
+    goldAccent: '#9CFFF2',  // Bright active glow
+    goldDim: 'rgba(57,230,208,0.32)', // Subtle cyan border
+    goldFill: 'rgba(57,230,208,0.12)',// Soft cyan fill
+    textPrimary: '#F2F7F1', // Warm readable white
+    textMuted: 'rgba(203,221,221,0.62)', // Muted but accessible text
 
     // Elements
     fire: '#FF4500',        // High attack
     water: '#1E90FF',       // High defense
     earth: '#228B22',       // High HP
-    light: '#FFD700',       // Balanced
+    light: '#F4C96A',       // Balanced / legendary accent
     lightning: '#8A2BE2',   // Speed
     ice: '#00CED1',         // Control
 
     // Status Colors
-    green: '#32CD32',       // Full life, Win
-    amber: '#FF8C00',       // Warning, Medium
-    red: '#FF4040',         // Danger, Defeat
+    green: '#4ADE80',       // Full life, Win
+    amber: '#F4C96A',       // Warning, Medium
+    red: '#FB7185',         // Danger, Defeat
     gray: '#666666',        // Disabled, locked
     white: '#FFFFFF',
 } as const;
@@ -82,7 +82,7 @@ export const SHADOW = {
         elevation: 6,
     },
     gold: {
-        shadowColor: COLOR.gold,
+        shadowColor: '#0B948C',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.5,
         shadowRadius: 12,
@@ -100,6 +100,6 @@ export const GLASS_PANEL = {
     backgroundColor: COLOR.bgCard,
     borderRadius: RADIUS.md, // 12px everywhere
     borderWidth: 1,
-    borderColor: 'rgba(228,165,42,0.25)',
+    borderColor: 'rgba(57,230,208,0.22)',
     ...SHADOW.card,
 } as const;

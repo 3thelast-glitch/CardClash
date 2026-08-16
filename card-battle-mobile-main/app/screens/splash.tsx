@@ -69,7 +69,13 @@ function StatPill({ num, label, color }: { num: string | number; label: string; 
 // ─── Nav button ───────────────────────────────────────────────────────────────
 function NavBtn({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.navBtn} onPress={onPress} activeOpacity={0.75}>
+    <TouchableOpacity
+      style={styles.navBtn}
+      onPress={onPress}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
       <Text style={styles.navIcon}>{icon}</Text>
       <Text style={styles.navLabel}>{label}</Text>
     </TouchableOpacity>
@@ -241,13 +247,13 @@ const styles = StyleSheet.create({
 
   // ─ Hero
   heroPanel: { alignItems: 'center', gap: SPACE.sm },
-  logoIcon: { fontSize: 56 },
+  logoIcon: { fontSize: 56, textShadowColor: 'rgba(57,230,208,0.38)', textShadowRadius: 16 },
   logoTitle: {
     fontSize: FONT.hero,
-    color: COLOR.gold,
+    color: COLOR.goldAccent,
     letterSpacing: 2,
     textAlign: 'center',
-    textShadowColor: 'rgba(228,165,42,0.5)',
+    textShadowColor: 'rgba(57,230,208,0.42)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 16,
   },
@@ -261,12 +267,12 @@ const styles = StyleSheet.create({
     marginTop: SPACE.xs,
     paddingHorizontal: SPACE.lg,
     paddingVertical: SPACE.xs,
-    backgroundColor: 'rgba(251,146,60,0.15)',
+    backgroundColor: 'rgba(244,201,106,0.12)',
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: 'rgba(251,146,60,0.4)',
+    borderColor: 'rgba(244,201,106,0.44)',
   },
-  streakText: { color: '#fb923c', fontSize: FONT.sm },
+  streakText: { color: COLOR.amber, fontSize: FONT.sm },
 
   // ─ Panel
   panel: {
@@ -308,7 +314,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnIcon: { fontSize: 22 },
   primaryBtnText: {
-    color: '#1A0D1A',
+    color: '#062126',
     fontSize: FONT.xl,
     letterSpacing: 0.5,
   },
@@ -318,26 +324,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.md,
-    backgroundColor: 'rgba(96,165,250,0.08)',
+    backgroundColor: 'rgba(14,116,144,0.14)',
     borderRadius: RADIUS.lg,
     borderWidth: 1.5,
-    borderColor: 'rgba(96,165,250,0.35)',
+    borderColor: 'rgba(56,189,248,0.36)',
     paddingVertical: SPACE.lg,
     paddingHorizontal: SPACE.xl,
   },
   multiplayerBtnIcon: { fontSize: 26 },
   multiplayerBtnTextWrap: { flex: 1, gap: 2 },
   multiplayerBtnTitle: {
-    color: '#93c5fd',
+    color: '#A5F3FC',
     fontSize: FONT.base,
     letterSpacing: 0.3,
   },
   multiplayerBtnSub: {
-    color: '#475569',
+    color: 'rgba(203,221,221,0.58)',
     fontSize: FONT.xs,
   },
   multiplayerArrow: {
-    color: '#60a5fa',
+    color: '#67E8F9',
     fontSize: 28,
     lineHeight: 32,
   },
@@ -351,25 +357,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     paddingVertical: SPACE.md,
-    backgroundColor: 'rgba(228,165,42,0.08)',
+    backgroundColor: 'rgba(57,230,208,0.08)',
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: 'rgba(228,165,42,0.25)',
+    borderColor: 'rgba(57,230,208,0.24)',
     gap: SPACE.xs,
   },
   navIcon: { fontSize: 22 },
-  navLabel: { color: COLOR.gold, fontSize: FONT.xs },
+  navLabel: { color: '#BFFAF2', fontSize: FONT.xs },
   guideBtn: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
     paddingHorizontal: SPACE.lg, paddingVertical: SPACE.md,
-    backgroundColor: 'rgba(167,139,250,0.09)', borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
+    backgroundColor: 'rgba(20,184,166,0.08)', borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: 'rgba(45,212,191,0.28)',
   },
   guideBtnIcon: { fontSize: 24 },
   guideBtnTextWrap: { flex: 1, gap: 2 },
-  guideBtnTitle: { color: '#c4b5fd', fontSize: FONT.base, letterSpacing: 0.3 },
-  guideBtnSub: { color: '#64748b', fontSize: FONT.xs },
-  guideBtnArrow: { color: '#a78bfa', fontSize: 20 },
+  guideBtnTitle: { color: '#99F6E4', fontSize: FONT.base, letterSpacing: 0.3 },
+  guideBtnSub: { color: 'rgba(203,221,221,0.58)', fontSize: FONT.xs },
+  guideBtnArrow: { color: '#5EEAD4', fontSize: 20 },
 
   version: {
     color: 'rgba(255,255,255,0.12)',

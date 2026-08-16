@@ -181,10 +181,10 @@ function RoundBar({ current, total }: { current: number; total: number }) {
   );
 }
 const rb = StyleSheet.create({
-  track: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'visible', position: 'relative' },
+  track: { height: 6, borderRadius: 3, backgroundColor: 'rgba(203,221,221,0.10)', overflow: 'visible', position: 'relative' },
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: COLOR.gold, borderRadius: 3 },
-  tick: { position: 'absolute', top: -2, width: 2, height: 10, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 1, marginLeft: -1 },
-  tickDone: { backgroundColor: 'rgba(228,165,42,0.6)' },
+  tick: { position: 'absolute', top: -2, width: 2, height: 10, backgroundColor: 'rgba(203,221,221,0.18)', borderRadius: 1, marginLeft: -1 },
+  tickDone: { backgroundColor: 'rgba(57,230,208,0.68)' },
 });
 
 // ─── Score bar ─────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ function ScoreBar({ score, maxScore, color, reverse = false }: { score: number; 
   );
 }
 const sb = StyleSheet.create({
-  track: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
+  track: { height: 8, borderRadius: 4, backgroundColor: 'rgba(203,221,221,0.11)', overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 4, position: 'absolute', left: 0 },
   fillRight: { left: undefined, right: 0 },
 });
@@ -296,11 +296,11 @@ function ChoiceModal({
   );
 }
 const cm = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
-  box: { width: '88%', maxWidth: 340, backgroundColor: 'rgba(12,18,36,0.98)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(228,165,42,0.3)', padding: SPACE.xl },
+  overlay: { flex: 1, backgroundColor: 'rgba(2,8,12,0.86)', justifyContent: 'center', alignItems: 'center' },
+  box: { width: '88%', maxWidth: 340, backgroundColor: 'rgba(7,20,27,0.98)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(57,230,208,0.28)', padding: SPACE.xl },
   title: { color: COLOR.gold, fontSize: FONT.base, textAlign: 'center', marginBottom: SPACE.lg },
-  option: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: RADIUS.md, padding: SPACE.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  optionText: { color: '#f1f5f9', fontSize: FONT.sm, textAlign: 'center' },
+  option: { backgroundColor: 'rgba(57,230,208,0.06)', borderRadius: RADIUS.md, padding: SPACE.md, borderWidth: 1, borderColor: 'rgba(57,230,208,0.16)' },
+  optionText: { color: COLOR.textPrimary, fontSize: FONT.sm, textAlign: 'center' },
   cancel: { marginTop: SPACE.lg, alignItems: 'center', padding: SPACE.sm },
   cancelText: { color: '#f87171', fontSize: FONT.sm },
 });
@@ -1139,7 +1139,7 @@ export default function BattleScreen() {
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 const S = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#080d1a' },
+  root: { flex: 1, backgroundColor: COLOR.bgDeep },
   bgWrap: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
   normalRoot: { flex: 1 },
   flashOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: '#fff', zIndex: 99, pointerEvents: 'none' },
@@ -1147,22 +1147,22 @@ const S = StyleSheet.create({
   loadWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadText: { color: COLOR.gold, fontSize: FONT.lg },
 
-  topHud: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACE.lg, paddingBottom: SPACE.sm, gap: SPACE.sm },
+  topHud: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, gap: SPACE.sm, backgroundColor: 'rgba(7,20,27,0.78)', borderBottomWidth: 1, borderBottomColor: 'rgba(57,230,208,0.14)' },
   hudSide: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   hudSideRight: { flexDirection: 'row-reverse' },
-  avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, backgroundColor: 'rgba(7,20,27,0.88)', alignItems: 'center', justifyContent: 'center' },
   hudInfo: { flex: 1, gap: 3 },
   hudName: { fontSize: FONT.xs, fontWeight: '700', letterSpacing: 0.5 },
   hudScore: { fontSize: FONT.xl, fontWeight: '900', minWidth: 28, textAlign: 'center', fontVariant: ['tabular-nums'] } as any,
   hudCenter: { flex: 1.2, alignItems: 'center', gap: 3 },
   hudRound: { color: COLOR.gold, fontSize: FONT.xs, fontWeight: '700', letterSpacing: 0.4 },
-  historyBtn: { paddingHorizontal: SPACE.sm, paddingVertical: 2, borderRadius: RADIUS.sm, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  historyBtnText: { color: '#94a3b8', fontSize: FONT.xs - 1 },
+  historyBtn: { paddingHorizontal: SPACE.sm, paddingVertical: 2, borderRadius: RADIUS.sm, backgroundColor: 'rgba(57,230,208,0.08)', borderWidth: 1, borderColor: 'rgba(57,230,208,0.20)' },
+  historyBtnText: { color: '#BFFAF2', fontSize: FONT.xs - 1 },
 
-  effectsBar: { flexDirection: 'row', paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xs, gap: SPACE.sm },
+  effectsBar: { flexDirection: 'row', paddingHorizontal: SPACE.lg, paddingVertical: SPACE.xs, gap: SPACE.sm, backgroundColor: 'rgba(5,15,20,0.56)' },
   effectsBarSide: { flex: 1 },
-  effectsBarDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
-  effectsBarLabel: { color: '#64748b', fontSize: 9, letterSpacing: 0.3 },
+  effectsBarDivider: { width: 1, backgroundColor: 'rgba(57,230,208,0.13)' },
+  effectsBarLabel: { color: 'rgba(203,221,221,0.64)', fontSize: 9, letterSpacing: 0.3 },
 
   arena: { flex: 1, gap: SPACE.sm },
   playerPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
@@ -1171,10 +1171,10 @@ const S = StyleSheet.create({
   panelPortrait: { minHeight: 0 },
   centerPanel: { width: 120, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
   centerPanelPortrait: { minHeight: 76 },
-  panelLabel: { color: '#64748b', fontSize: FONT.xs, letterSpacing: 0.5 },
+  panelLabel: { color: 'rgba(191,250,242,0.72)', fontSize: FONT.xs, letterSpacing: 0.5 },
 
   vsText: { fontSize: 28, opacity: 0.85 },
-  resultChip: { backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: RADIUS.lg, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  resultChip: { backgroundColor: 'rgba(5,15,20,0.88)', borderRadius: RADIUS.lg, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderWidth: 1, borderColor: 'rgba(57,230,208,0.22)' },
   resultText: { fontSize: FONT.sm, fontWeight: '700', textAlign: 'center' },
   resultWin: { color: '#4ade80' },
   resultLose: { color: '#f87171' },
@@ -1187,32 +1187,32 @@ const S = StyleSheet.create({
     height: 44, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    backgroundColor: 'rgba(139,92,246,0.18)', 
+    backgroundColor: 'rgba(57,230,208,0.14)',
     borderRadius: RADIUS.md, 
     borderWidth: 1.5, 
-    borderColor: 'rgba(139,92,246,0.5)',
-    shadowColor: '#8b5cf6',
+    borderColor: 'rgba(57,230,208,0.54)',
+    shadowColor: COLOR.gold,
     shadowOpacity: 0.15,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
   abilityBtnDisabled: { opacity: 0.35 },
-  abilityBtnText: { color: '#c4b5fd', fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  abilityBtnText: { color: '#BFFAF2', fontSize: 13, fontWeight: '700', textAlign: 'center' },
   attackBtn: { 
     width: 110, 
     height: 44, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    backgroundColor: 'rgba(239,68,68,0.18)', 
+    backgroundColor: 'rgba(251,113,133,0.16)',
     borderRadius: RADIUS.md, 
     borderWidth: 1.5, 
-    borderColor: 'rgba(239,68,68,0.6)',
-    shadowColor: '#ef4444',
+    borderColor: 'rgba(251,113,133,0.62)',
+    shadowColor: '#FB7185',
     shadowOpacity: 0.15,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
-  attackBtnText: { color: '#fca5a5', fontSize: 13, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },
+  attackBtnText: { color: '#FFE4E6', fontSize: 13, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },
   rageBtn: { 
     width: 110, 
     height: 44, 
@@ -1233,10 +1233,10 @@ const S = StyleSheet.create({
     height: 44, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    backgroundColor: 'rgba(228,165,42,0.18)', 
+    backgroundColor: 'rgba(57,230,208,0.16)',
     borderRadius: RADIUS.md, 
     borderWidth: 1.5, 
-    borderColor: 'rgba(228,165,42,0.5)',
+    borderColor: 'rgba(57,230,208,0.52)',
     shadowColor: COLOR.gold,
     shadowOpacity: 0.15,
     shadowRadius: 6,
@@ -1248,7 +1248,7 @@ const S = StyleSheet.create({
     height: 44, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    backgroundColor: 'rgba(228,165,42,0.25)', 
+    backgroundColor: 'rgba(57,230,208,0.22)',
     borderRadius: RADIUS.md, 
     borderWidth: 1.5, 
     borderColor: COLOR.gold,
@@ -1262,10 +1262,10 @@ const S = StyleSheet.create({
     width: '90%',
     maxWidth: 620,
     maxHeight: '90%',
-    backgroundColor: 'rgba(10,16,32,0.96)',
+    backgroundColor: 'rgba(7,20,27,0.98)',
     borderRadius: 24,
     borderWidth: 1.5,
-    borderColor: 'rgba(228,165,42,0.3)',
+    borderColor: 'rgba(57,230,208,0.30)',
     padding: 16,
     alignSelf: 'center',
     justifyContent: 'center',
