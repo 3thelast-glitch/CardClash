@@ -22,7 +22,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'env -u CI EXPO_NO_TELEMETRY=1 npx expo start --web --port 8081 --non-interactive',
+    command: 'env -u CI EXPO_NO_TELEMETRY=1 npx expo start --web --port 8081',
     url: 'http://127.0.0.1:8081',
     timeout: 180_000,
     reuseExistingServer: !process.env.CI,

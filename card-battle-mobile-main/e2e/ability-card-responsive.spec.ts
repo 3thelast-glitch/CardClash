@@ -3,7 +3,10 @@ import { test, expect } from '@playwright/test';
 const viewports = [
   { name: 'هاتف صغير عمودي', width: 320, height: 568 },
   { name: 'هاتف قياسي عمودي', width: 375, height: 667 },
+  { name: 'هاتف حديث عمودي', width: 393, height: 852 },
+  { name: 'هاتف كبير عمودي', width: 430, height: 932 },
   { name: 'هاتف أفقي', width: 667, height: 375 },
+  { name: 'هاتف حديث أفقي', width: 932, height: 430 },
   { name: 'جهاز لوحي عمودي', width: 768, height: 1024 },
   { name: 'جهاز لوحي أفقي', width: 1024, height: 768 },
 ];

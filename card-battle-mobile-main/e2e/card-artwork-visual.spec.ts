@@ -3,14 +3,17 @@ import { test, expect } from '@playwright/test';
 const viewports = [
   { id: 'phone-small-portrait', name: 'هاتف صغير عمودي', width: 320, height: 568 },
   { id: 'phone-portrait', name: 'هاتف قياسي عمودي', width: 375, height: 667 },
+  { id: 'phone-modern-portrait', name: 'هاتف حديث عمودي', width: 393, height: 852 },
+  { id: 'phone-large-portrait', name: 'هاتف كبير عمودي', width: 430, height: 932 },
   { id: 'phone-landscape', name: 'هاتف أفقي', width: 667, height: 375 },
+  { id: 'phone-modern-landscape', name: 'هاتف حديث أفقي', width: 932, height: 430 },
   { id: 'tablet-portrait', name: 'جهاز لوحي عمودي', width: 768, height: 1024 },
   { id: 'tablet-landscape', name: 'جهاز لوحي أفقي', width: 1024, height: 768 },
 ];
 
-test.describe('المقارنة البصرية لأبعاد صور كروت القدرات', () => {
+test.describe('المقارنة البصرية لتوافق كروت القدرات', () => {
   for (const viewport of viewports) {
-    test(`يحافظ على احتواء الصور في ${viewport.name}`, async ({ page }, testInfo) => {
+    test(`يحافظ على ملء الصور وتوافق الكرت في ${viewport.name}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.goto('/screens/abilities', { waitUntil: 'domcontentloaded' });
       await expect(page.getByText('القدرات', { exact: true })).toBeVisible({ timeout: 30_000 });
@@ -66,7 +69,7 @@ test.describe('المقارنة البصرية لأبعاد صور كروت ال
       for (const image of measurement.images) {
         expect(image.left, `${viewport.name}: قص من اليسار`).toBeGreaterThanOrEqual(-2);
         expect(image.right, `${viewport.name}: قص من اليمين`).toBeLessThanOrEqual(viewport.width + 2);
-        expect(['contain', 'scale-down']).toContain(image.objectFit);
+        expect(['cover', 'contain', 'scale-down']).toContain(image.objectFit);
       }
     });
   }
