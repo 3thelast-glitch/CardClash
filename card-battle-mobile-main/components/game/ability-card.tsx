@@ -60,6 +60,7 @@ export const ABILITY_IMAGES: Record<string, any> = {
     'Merge_Art': require('../../assets/abilities/Merge_Art.png'),
     'Misdirection_Art': require('../../assets/abilities/Misdirection_Art.png'),
     'Penetration_Art': require('../../assets/abilities/Penetration_Art.png'),
+    'Popularity_Art': require('../../assets/abilities/Popularity_Art.png'),
     'Pool_Art': require('../../assets/abilities/Pool_Art.png'),
     'Propaganda_Art': require('../../assets/abilities/Propaganda_Art.png'),
     'Protection_Art': require('../../assets/abilities/Protection_Art.png'),
