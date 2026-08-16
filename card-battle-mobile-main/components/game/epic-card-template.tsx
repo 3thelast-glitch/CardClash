@@ -224,8 +224,8 @@ export function EpicCardTemplate({
                     <Image
                         source={imageSrc}
                         style={s.art}
-                        contentFit="cover"
-                        contentPosition="top"
+                        contentFit="contain"
+                        contentPosition="center"
                         cachePolicy="memory-disk"
                         transition={200}
                     />
@@ -292,7 +292,7 @@ export function EpicCardTemplate({
 
 const s = StyleSheet.create({
     shell: { flex: 1, borderRadius: 14, overflow: 'hidden', position: 'relative', backgroundColor: '#0a0a0f' },
-    art: { ...StyleSheet.absoluteFillObject },
+    art: { ...StyleSheet.absoluteFillObject, backgroundColor: '#0a0a0f' },
     badge: {
         position: 'absolute', top: 0, left: 0, zIndex: 15,
         backgroundColor: 'rgba(20, 20, 20, 0.9)',

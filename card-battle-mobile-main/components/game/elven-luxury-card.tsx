@@ -202,7 +202,8 @@ export function ElvenLuxuryCard({
                 <Image
                     source={imageSrc}
                     style={styles.cardArt}
-                    contentFit="cover"
+                    contentFit="contain"
+                    contentPosition="center"
                     cachePolicy="memory-disk"
                     transition={200}
                 />
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
         position: 'relative', alignItems: 'center',
     },
     darkBase: { ...StyleSheet.absoluteFillObject, backgroundColor: '#0a0a14' },
-    cardArt: { ...StyleSheet.absoluteFillObject, opacity: 0.85 },
+    cardArt: { ...StyleSheet.absoluteFillObject, opacity: 0.85, backgroundColor: '#0a0a14' },
     artOverlay: {
         position: 'absolute', bottom: 0, left: 0, right: 0,
         height: '55%', backgroundColor: 'transparent', borderTopWidth: 0,

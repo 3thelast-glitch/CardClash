@@ -236,9 +236,9 @@ export function AbilityActivationOverlay() {
           <View style={[S.artworkSection, { flex: artworkFlex }]}>
             <ImageBackground
               source={imageSource}
-              style={StyleSheet.absoluteFill}
+              style={[StyleSheet.absoluteFill, S.artworkImageFrame]}
               imageStyle={S.artImage}
-              resizeMode="cover"
+              resizeMode="contain"
             >
               <View style={[StyleSheet.absoluteFill, S.blackOverlay]} />
               <LinearGradient
@@ -439,6 +439,7 @@ const S = StyleSheet.create({
     elevation: 24,
     flexDirection: 'column',
   },
+  artworkImageFrame: { backgroundColor: '#0b1324', alignItems: 'center', justifyContent: 'center' },
   artworkSection: {
     flex: 1.1,
     position: 'relative',
