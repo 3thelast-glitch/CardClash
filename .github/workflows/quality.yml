@@ -19,6 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    defaults:
+      run:
+        working-directory: card-battle-mobile-main
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,6 +37,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: card-battle-mobile-main/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -58,6 +63,6 @@ jobs:
         with:
           name: playwright-report
           path: |
-            playwright-report/
-            test-results/
+            card-battle-mobile-main/playwright-report/
+            card-battle-mobile-main/test-results/
           if-no-files-found: ignore
