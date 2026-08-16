@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, Image, TouchableOpacity, ScrollView,
+    View, Text, StyleSheet, Image, TouchableOpacity,
 } from 'react-native';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -239,10 +239,11 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
             ]}>
                 {/* Section 1: Artwork (Top portion) */}
                 <View style={[styles.artworkSection, { flex: artworkFlex }]}>
-                    <Image
-                        source={imageSource}
-                        style={[StyleSheet.absoluteFillObject, styles.artworkImage]}
-                        resizeMode="contain"
+                                            <Image
+                            source={imageSource}
+                            style={[StyleSheet.absoluteFillObject, styles.artworkImage]}
+                            resizeMode="cover"
+
                         accessibilityLabel={`${ability.nameAr} artwork`}
                     />
                     <View style={[StyleSheet.absoluteFillObject, styles.blackOverlay]} />
@@ -311,7 +312,8 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
                         flex: infoFlex,
                     }
                 ]}>
-                    <Text style={[styles.nameEn, { fontSize: nameEnSize }]} numberOfLines={1}>{ability.nameEn}</Text>
+                                            <Text style={styles.archiveLabel}>CARD CLASH / ABILITY ARCHIVE</Text>
+
                     <View style={[styles.namePlate, { borderColor: theme.primary + '35', backgroundColor: theme.primary + '0D' }]}>
                         <Text style={[styles.nameAr, { textShadowColor: theme.glow, fontSize: nameArSize }]} numberOfLines={1}>
                             {ability.nameAr}
@@ -319,11 +321,7 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
                     </View>
                     <View style={[styles.divider, { backgroundColor: theme.primary + '66', marginVertical: dividerMargin }]} />
                     
-                    <ScrollView 
-                        style={styles.descriptionScroll} 
-                        contentContainerStyle={styles.descriptionScrollContent}
-                        nestedScrollEnabled
-                    >
+                    <View style={styles.descriptionScroll}>
                         <Text style={[styles.description, { fontSize: descSize, lineHeight: descLineHeight }]}>
                             {ability.description}
                         </Text>
@@ -332,7 +330,7 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
                                 {warningText}
                             </Text>
                         ) : null}
-                    </ScrollView>
+                    </View>
                 </View>
 
                 {/* Section 3: Bottom Bar (Bottom portion) */}
@@ -393,7 +391,7 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
 const styles = StyleSheet.create({
     outerShell:        { width: CARD_W, height: CARD_H, shadowOffset: { width: 0, height: 6 }, elevation: 18 },
     cardContainer:     { flex: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: '#090d16', flexDirection: 'column' },
-    artworkSection:    { flex: 1.1, position: 'relative', overflow: 'hidden', backgroundColor: '#0b1324' },
+    artworkSection:    { ...StyleSheet.absoluteFillObject, zIndex: 0, position: 'absolute', overflow: 'hidden', backgroundColor: '#0b1324' },
     artworkImage:      { width: '100%', height: '100%', backgroundColor: '#0b1324' },
     blackOverlay:      { backgroundColor: 'rgba(0,0,0,0.22)' },
     legendaryEdgeGlow: { ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 12, elevation: 5 },
@@ -415,7 +413,8 @@ const styles = StyleSheet.create({
     rarityBadge:       { position: 'absolute', top: 10, right: 10, zIndex: 20, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 1 },
     rarityText:        { fontSize: 7, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
     
-    infoSection:       { flex: 1, backgroundColor: 'rgba(5,10,22,0.97)', paddingVertical: 8, paddingHorizontal: 12, alignItems: 'center', borderTopWidth: 1 },
+    infoSection:       { position: 'absolute', left: 0, right: 0, bottom: 38, zIndex: 12, backgroundColor: 'rgba(5,10,22,0.16)', paddingVertical: 8, paddingHorizontal: 12, alignItems: 'center', borderTopWidth: 0 },
+    archiveLabel:       { color: 'rgba(94,234,212,0.9)', fontSize: 7, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', textAlign: 'center', marginBottom: 3, textShadowColor: '#000', textShadowRadius: 5 },
     nameEn:            { color: '#e2e8f0', fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center', opacity: 0.9 },
     namePlate:         { minWidth: '72%', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 7, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     nameAr:            { color: '#FFF4B8', fontWeight: '900', textAlign: 'center', marginTop: 1, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 7, letterSpacing: 0.5, writingDirection: 'rtl' },
@@ -426,7 +425,7 @@ const styles = StyleSheet.create({
     description:       { color: '#f1f5f9', fontSize: 9.5, fontWeight: '600', textAlign: 'center', lineHeight: 13, writingDirection: 'rtl', textAlignVertical: 'center' },
     descriptionWarning:{ color: '#fda4af', fontSize: 8.5, fontWeight: '700', textAlign: 'center', lineHeight: 12, marginTop: 4, writingDirection: 'rtl', textAlignVertical: 'center' },
     
-    bottomBar:         { height: 38, flexDirection: 'row', alignItems: 'center', backgroundColor: '#060a12', borderTopWidth: 1, paddingHorizontal: 10, gap: 6 },
+    bottomBar:         { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 13, height: 38, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(6,10,18,0.28)', borderTopWidth: 0, paddingHorizontal: 10, gap: 6 },
     iconCircle:        { width: 22, height: 22, borderRadius: 11, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     starRow:           { flex: 1, flexDirection: 'row', gap: 1.5 },
     star:              { fontSize: 8 },

@@ -9,11 +9,11 @@ function readComponent(relativePath: string): string {
 }
 
 describe('card artwork fit policy', () => {
-  it('keeps ability artwork fully contained in the main and activation cards', () => {
+  it('keeps the main ability artwork filling the card while activation art stays contained', () => {
     const abilityCard = readComponent('components/game/ability-card.tsx');
     const activationOverlay = readComponent('components/game/AbilityActivationOverlay.tsx');
 
-    expect(abilityCard).toMatch(/resizeMode="contain"/);
+    expect(abilityCard).toMatch(/resizeMode="cover"/);
     expect(activationOverlay).toMatch(/resizeMode="contain"/);
     expect(abilityCard).not.toMatch(/ImageBackground[\s\S]{0,240}resizeMode="cover"/);
     expect(activationOverlay).not.toMatch(/ImageBackground[\s\S]{0,240}resizeMode="cover"/);
