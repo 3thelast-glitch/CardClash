@@ -57,6 +57,9 @@ jobs:
       - name: Responsive Web E2E
         run: pnpm test:ui -- e2e/ability-card-responsive.spec.ts
 
+      - name: Visual Card Artwork E2E
+        run: pnpm test:ui -- e2e/card-artwork-visual.spec.ts
+
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
