@@ -202,7 +202,7 @@ export function ElvenLuxuryCard({
                 <Image
                     source={imageSrc}
                     style={styles.cardArt}
-                    contentFit="contain"
+                    contentFit="cover"
                     contentPosition="center"
                     cachePolicy="memory-disk"
                     transition={200}

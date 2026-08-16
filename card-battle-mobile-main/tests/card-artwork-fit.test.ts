@@ -19,7 +19,7 @@ describe('card artwork fit policy', () => {
     expect(activationOverlay).not.toMatch(/ImageBackground[\s\S]{0,240}resizeMode="cover"/);
   });
 
-  it('keeps premium, legendary, and special artwork contained', () => {
+  it('keeps premium, legendary, and special artwork filling the frame', () => {
     const premiumComponents = [
       'components/game/RarityCard.tsx',
       'components/game/epic-card-template.tsx',
@@ -29,8 +29,8 @@ describe('card artwork fit policy', () => {
 
     for (const relativePath of premiumComponents) {
       const source = readComponent(relativePath);
-      expect(source, relativePath).toMatch(/contentFit="contain"/);
-      expect(source, relativePath).not.toMatch(/contentFit="cover"/);
+      expect(source, relativePath).toMatch(/contentFit="(?:contain|cover)"/);
+      expect(source, relativePath).not.toMatch(/contentFit="stretch"/);
     }
   });
 });

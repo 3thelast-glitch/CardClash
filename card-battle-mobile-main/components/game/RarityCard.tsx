@@ -577,7 +577,7 @@ export function RarityCard({
                             <Image
                                 source={cardImage}
                                 style={styles.art}
-                                contentFit="contain"
+                                contentFit="cover"
                                 cachePolicy="memory-disk"
                                 transition={200}
                             />

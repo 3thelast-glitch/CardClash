@@ -91,7 +91,7 @@ function VideoCard({ source, style }: { source: any; style: object }) {
     <VideoView
       player={player}
       style={style as any}
-      contentFit="contain"
+      contentFit="cover"
       nativeControls={false}
     />
   );
@@ -197,7 +197,7 @@ export function CardItem({
             <Image
               source={cardImage}
               style={styles.image}
-              contentFit="contain"
+              contentFit="cover"
               cachePolicy="memory-disk"
               transition={200}
             />

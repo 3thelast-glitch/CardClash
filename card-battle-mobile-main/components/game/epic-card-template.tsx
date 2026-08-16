@@ -224,7 +224,7 @@ export function EpicCardTemplate({
                     <Image
                         source={imageSrc}
                         style={s.art}
-                        contentFit="contain"
+                        contentFit="cover"
                         contentPosition="center"
                         cachePolicy="memory-disk"
                         transition={200}
