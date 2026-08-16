@@ -423,16 +423,32 @@ const AbilityBanner = ({ text, rarity, theme, sc }: { text: string; rarity: Card
 // ─────────────────────────────────────────────
 // CardMedia
 // ─────────────────────────────────────────────
-const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imgStyle, playAudio, shouldAnimate }: {
+// These transparent character cut-outs are much narrower than the card canvas.
+// Contain preserves the full silhouette instead of cropping heads, weapons, or feet.
+const CARD_IMAGE_FIT_OVERRIDES: Record<string, 'cover' | 'contain'> = {
+    ay_raikage: 'contain',
+    bam: 'contain',
+    trunks: 'contain',
+    nelliel_tu: 'contain',
+    emlyn_white: 'contain',
+    riza_hawkeye: 'contain',
+    leafa: 'contain',
+    ebisu: 'contain',
+    ino_yamanaka: 'contain',
+    yosaku: 'contain',
+    yonji: 'contain',
+};
+
+const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, imgStyle, playAudio, shouldAnimate }: {
     cardImage: ReturnType<typeof getCardImage>; videoAsset?: any; customUri?: string;
-    isCustomImage: boolean; imgStyle: object; playAudio: boolean; shouldAnimate: boolean;
+    isCustomImage: boolean; imageFit: 'cover' | 'contain'; imgStyle: object; playAudio: boolean; shouldAnimate: boolean;
 }) => {
     if (videoAsset) return <Video source={videoAsset} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!playAudio || !shouldAnimate} volume={1.0} useNativeControls={false} />;
     if (customUri && isVideoUri(customUri)) return <Video source={{ uri: customUri }} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!playAudio || !shouldAnimate} volume={1.0} useNativeControls={false} />;
     const uri: string | undefined = cardImage && typeof cardImage === 'object' && 'uri' in cardImage ? (cardImage as any).uri : undefined;
     const animated = uri ? isAnimatedUri(uri) : false;
     const source = animated ? { uri, headers: {} } : (cardImage as any);
-    return <Image source={source} style={imgStyle as any} resizeMode={isCustomImage ? 'contain' : 'cover'} />;
+    return <Image source={source} style={imgStyle as any} resizeMode={isCustomImage ? 'contain' : imageFit} />;
 };
 
 // ─────────────────────────────────────────────
@@ -477,6 +493,7 @@ export function LuxuryCharacterCardAnimated({
     const hasVideo = !!videoAsset || !!(customUri && isVideoUri(customUri));
     const hasImage = !!cardImage || !!customUri;
     const isCustomImage = !!customUri;
+    const imageFit = CARD_IMAGE_FIT_OVERRIDES[card.id] ?? 'cover';
 
     const statFs = Math.max(11, 14 * sc);
 
@@ -529,7 +546,7 @@ export function LuxuryCharacterCardAnimated({
             <View style={[styles.cardInner, { borderRadius: Math.round(12 * sc) }]}>
                 <LinearGradient colors={theme.bgColors} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
                 {rarity === 'special' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 1 }]} pointerEvents="none" />}
-                {(hasImage || hasVideo) && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imgStyle={imgStyle} playAudio={playAudio} shouldAnimate={enableVisualEffects} />}
+                {(hasImage || hasVideo) && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imageFit={imageFit} imgStyle={imgStyle} playAudio={playAudio} shouldAnimate={enableVisualEffects} />}
 
                 <View style={styles.contentLayer}>
                     {enableVisualEffects && theme.hasFoil && <RarityShimmer cardW={cardW} foilDuration={theme.foilDuration} color={themeColor} />}

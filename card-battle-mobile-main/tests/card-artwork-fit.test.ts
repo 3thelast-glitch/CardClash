@@ -19,6 +19,20 @@ describe('card artwork fit policy', () => {
     expect(activationOverlay).not.toMatch(/resizeMode="stretch"/);
   });
 
+  it('preserves full silhouettes for the character cards with narrow transparent artwork', () => {
+    const characterCard = readComponent('components/game/luxury-character-card-animated.tsx');
+    const affectedIds = [
+      'ay_raikage', 'bam', 'trunks', 'nelliel_tu', 'emlyn_white', 'riza_hawkeye',
+      'leafa', 'ebisu', 'ino_yamanaka', 'yosaku', 'yonji',
+    ];
+
+    expect(characterCard).toMatch(/CARD_IMAGE_FIT_OVERRIDES/);
+    for (const id of affectedIds) {
+      expect(characterCard, id).toMatch(new RegExp(`${id}: ['\"]contain['\"]`));
+    }
+    expect(characterCard).toMatch(/resizeMode=\{isCustomImage \? 'contain' : imageFit\}/);
+  });
+
   it('keeps premium, legendary, and special artwork filling the frame', () => {
     const premiumComponents = [
       'components/game/RarityCard.tsx',
