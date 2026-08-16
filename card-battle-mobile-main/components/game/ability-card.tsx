@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, ImageBackground, TouchableOpacity, ScrollView,
+    View, Text, StyleSheet, Image, TouchableOpacity, ScrollView,
 } from 'react-native';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -238,24 +238,23 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
             ]}>
                 {/* Section 1: Artwork (Top portion) */}
                 <View style={[styles.artworkSection, { flex: artworkFlex }]}>
-                    <ImageBackground
+                    <Image
                         source={imageSource}
-                        style={[StyleSheet.absoluteFill, styles.artworkImageFrame]}
-                        imageStyle={styles.artImage}
+                        style={[StyleSheet.absoluteFillObject, styles.artworkImage]}
                         resizeMode="contain"
-                    >
-                        <View style={[StyleSheet.absoluteFill, styles.blackOverlay]} />
-                        <LinearGradient
-                            pointerEvents="none"
-                            colors={['rgba(4,8,18,0.08)', 'rgba(4,8,18,0.02)', 'rgba(4,8,18,0.82)']}
-                            locations={[0, 0.48, 1]}
-                            style={StyleSheet.absoluteFill}
-                        />
-                        {isLegendaryOrSpecial && <View style={[
-                            styles.legendaryEdgeGlow,
-                            { borderColor: theme.primary + '44' },
-                        ]} />}
-                    </ImageBackground>
+                        accessibilityLabel={`${ability.nameAr} artwork`}
+                    />
+                    <View style={[StyleSheet.absoluteFillObject, styles.blackOverlay]} />
+                    <LinearGradient
+                        pointerEvents="none"
+                        colors={['rgba(4,8,18,0.08)', 'rgba(4,8,18,0.02)', 'rgba(4,8,18,0.82)']}
+                        locations={[0, 0.48, 1]}
+                        style={StyleSheet.absoluteFillObject}
+                    />
+                    {isLegendaryOrSpecial && <View style={[
+                        styles.legendaryEdgeGlow,
+                        { borderColor: theme.primary + '44' },
+                    ]} />}
 
                     {/* Shimmer sweep */}
                     {theme.shimmer && <ShimmerSweep color={theme.primary} cardWidth={actualWidth} />}
@@ -394,8 +393,7 @@ const styles = StyleSheet.create({
     outerShell:        { width: CARD_W, height: CARD_H, shadowOffset: { width: 0, height: 6 }, elevation: 18 },
     cardContainer:     { flex: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: '#090d16', flexDirection: 'column' },
     artworkSection:    { flex: 1.1, position: 'relative', overflow: 'hidden', backgroundColor: '#0b1324' },
-    artworkImageFrame: { backgroundColor: '#0b1324', alignItems: 'center', justifyContent: 'center' },
-    artImage:          { borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+    artworkImage:      { width: '100%', height: '100%', backgroundColor: '#0b1324' },
     blackOverlay:      { backgroundColor: 'rgba(0,0,0,0.22)' },
     legendaryEdgeGlow: { ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 12, elevation: 5 },
     shimmerStreak:     { position: 'absolute', top: 0, bottom: 0, width: 28, backgroundColor: 'rgba(255,255,255,0.04)', borderLeftWidth: 1, borderRightWidth: 1, transform: [{ skewX: '-18deg' }] },
