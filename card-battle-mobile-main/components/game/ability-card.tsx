@@ -238,7 +238,12 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
             ]}>
                 {/* Section 1: Artwork (Top portion) */}
                 <View style={[styles.artworkSection, { flex: artworkFlex }]}>
-                    <ImageBackground source={imageSource} style={StyleSheet.absoluteFill} imageStyle={styles.artImage} resizeMode="cover">
+                    <ImageBackground
+                        source={imageSource}
+                        style={[StyleSheet.absoluteFill, styles.artworkImageFrame]}
+                        imageStyle={styles.artImage}
+                        resizeMode="contain"
+                    >
                         <View style={[StyleSheet.absoluteFill, styles.blackOverlay]} />
                         <LinearGradient
                             pointerEvents="none"
@@ -388,7 +393,8 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
 const styles = StyleSheet.create({
     outerShell:        { width: CARD_W, height: CARD_H, shadowOffset: { width: 0, height: 6 }, elevation: 18 },
     cardContainer:     { flex: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: '#090d16', flexDirection: 'column' },
-    artworkSection:    { flex: 1.1, position: 'relative', overflow: 'hidden', backgroundColor: '#000' },
+    artworkSection:    { flex: 1.1, position: 'relative', overflow: 'hidden', backgroundColor: '#0b1324' },
+    artworkImageFrame: { backgroundColor: '#0b1324', alignItems: 'center', justifyContent: 'center' },
     artImage:          { borderTopLeftRadius: 18, borderTopRightRadius: 18 },
     blackOverlay:      { backgroundColor: 'rgba(0,0,0,0.22)' },
     legendaryEdgeGlow: { ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 12, elevation: 5 },
