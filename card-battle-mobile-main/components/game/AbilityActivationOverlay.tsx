@@ -238,7 +238,7 @@ export function AbilityActivationOverlay() {
               source={imageSource}
               style={[StyleSheet.absoluteFill, S.artworkImageFrame]}
               imageStyle={S.artImage}
-              resizeMode="contain"
+              resizeMode="cover"
             >
               <View style={[StyleSheet.absoluteFill, S.blackOverlay]} />
               <LinearGradient
@@ -441,8 +441,9 @@ const S = StyleSheet.create({
   },
   artworkImageFrame: { backgroundColor: '#0b1324', alignItems: 'center', justifyContent: 'center' },
   artworkSection: {
-    flex: 1.1,
-    position: 'relative',
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+    position: 'absolute',
     overflow: 'hidden',
     backgroundColor: '#000',
   },
@@ -511,12 +512,16 @@ const S = StyleSheet.create({
 
   // Info section
   infoSection: {
-    flex: 1,
-    backgroundColor: 'rgba(5,10,22,0.97)',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 36,
+    zIndex: 12,
+    backgroundColor: 'rgba(5,10,22,0.18)',
     paddingVertical: 8,
     paddingHorizontal: 12,
     alignItems: 'center',
-    borderTopWidth: 1,
+    borderTopWidth: 0,
   },
 
   // Trigger badge
@@ -631,6 +636,11 @@ const S = StyleSheet.create({
 
   // Bottom bar
   bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 13,
     height: 36,
     flexDirection: 'row',
     alignItems: 'center',

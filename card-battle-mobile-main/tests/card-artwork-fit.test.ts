@@ -14,9 +14,9 @@ describe('card artwork fit policy', () => {
     const activationOverlay = readComponent('components/game/AbilityActivationOverlay.tsx');
 
     expect(abilityCard).toMatch(/resizeMode="cover"/);
-    expect(activationOverlay).toMatch(/resizeMode="contain"/);
+    expect(activationOverlay).toMatch(/resizeMode="cover"/);
     expect(abilityCard).not.toMatch(/ImageBackground[\s\S]{0,240}resizeMode="cover"/);
-    expect(activationOverlay).not.toMatch(/ImageBackground[\s\S]{0,240}resizeMode="cover"/);
+    expect(activationOverlay).not.toMatch(/resizeMode="stretch"/);
   });
 
   it('keeps premium, legendary, and special artwork filling the frame', () => {
