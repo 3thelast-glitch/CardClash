@@ -20,14 +20,13 @@ import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { useGame } from '@/lib/game/game-context';
+import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
 import type { RarityWeights, RarityKey } from '@/lib/game/game-context';
 
-// Multiplayer — آمن حتى لو الـ provider غير موجود
-let useMultiplayer: (() => any) | null = null;
-try { useMultiplayer = require('@/lib/multiplayer/multiplayer-context').useMultiplayer; } catch {}
+// Multiplayer — آمن حتى لو الـ Provider غير موجود في سياق الاختبار.
 function useSafeMultiplayer() {
-  try { return useMultiplayer?.() ?? null; } catch { return null; }
+  try { return useMultiplayer(); } catch { return null; }
 }
 
 const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20];
@@ -131,7 +130,7 @@ export default function RoundsConfigScreen() {
     setAbilitiesEnabled(pendingMatchSettings.withAbilities);
     setRarityWeights(pendingMatchSettings.rarityWeights as RarityWeights);
     router.push('/screens/leaderboard' as any);
-  }, [pendingMatchSettings, isMultiplayer, isHost]);
+  }, [pendingMatchSettings, isMultiplayer, isHost, router, setAbilitiesEnabled, setRarityWeights, setTotalRounds]);
 
   const handleContinue = () => {
     setTotalRounds(rounds);

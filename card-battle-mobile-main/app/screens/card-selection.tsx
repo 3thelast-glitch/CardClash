@@ -24,12 +24,11 @@ import {
   GRID_COLUMNS,
   LAYOUT_PADDING,
 } from '@/utils/layout';
+import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
 
-// Multiplayer — آمن حتى لو الـ provider غير موجود
-let useMultiplayer: (() => any) | null = null;
-try { useMultiplayer = require('@/lib/multiplayer/multiplayer-context').useMultiplayer; } catch {}
+// Multiplayer — يبقى الاستدعاء آمناً إذا لم يكن Provider موجوداً في سياق الاختبار.
 function useSafeMultiplayer() {
-  try { return useMultiplayer?.() ?? null; } catch { return null; }
+  try { return useMultiplayer(); } catch { return null; }
 }
 
 // ── منطق الندرة ──────────────────────────────────────────────────────────────

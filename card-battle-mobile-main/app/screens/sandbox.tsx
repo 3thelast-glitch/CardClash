@@ -64,7 +64,7 @@ function RoundBar({ current, total }: { current: number; total: number }) {
   const filled = useSharedValue(0);
   useEffect(() => {
     filled.value = withTiming((current / total) * 100, { duration: 400 });
-  }, [current]);
+  }, [current, total, filled]);
   const barStyle = useAnimatedStyle(() => ({ width: `${filled.value}%` as any }));
   return (
     <View style={rb.track}>
@@ -94,7 +94,7 @@ function ScoreBar({ score, maxScore, color, reverse = false }: { score: number; 
   const filled = useSharedValue(0);
   useEffect(() => {
     filled.value = withSpring(maxScore > 0 ? (score / maxScore) * 100 : 0, { damping: 14 });
-  }, [score]);
+  }, [filled, maxScore, score]);
   const barStyle = useAnimatedStyle(() => ({ width: `${filled.value}%` as any }));
   return (
     <View style={[sb.track, reverse && { flexDirection: 'row-reverse' }]}>

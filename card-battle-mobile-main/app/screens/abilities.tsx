@@ -35,29 +35,22 @@ export default function AbilitiesScreen() {
   const [saveText,    setSaveText]    = useState('حفظ التعديلات');
   const [saving,      setSaving]      = useState(false);
   const [disabledIds, setDisabledIds] = useState<Set<number>>(new Set());
-  const [loaded,      setLoaded]      = useState(false);
 
   useEffect(() => {
     let isActive = true;
-    const fallbackTimer = setTimeout(() => {
-      if (isActive) setLoaded(true);
-    }, 1200);
 
+    // لا نؤخر عرض الشبكة على التخزين: البيانات ثابتة ويمكن عرضها فوراً.
+    // تُدمج تفضيلات التعطيل لاحقاً عندما يكون التخزين متاحاً.
     void getDisabledAbilityIds()
       .then(ids => {
         if (isActive) setDisabledIds(ids);
       })
       .catch(() => {
         if (isActive) setDisabledIds(new Set());
-      })
-      .finally(() => {
-        clearTimeout(fallbackTimer);
-        if (isActive) setLoaded(true);
       });
 
     return () => {
       isActive = false;
-      clearTimeout(fallbackTimer);
     };
   }, []);
 
@@ -116,17 +109,6 @@ export default function AbilitiesScreen() {
       },
     } as any);
   }, [router]);
-
-  if (!loaded) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator color="#f97316" size="large" />
-          <Text style={styles.loadingText}>جارٍ تحميل القدرات…</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   const activeConfig = FILTER_CONFIG[filter];
   const addBtnColor  = filter === 'All' ? '#6366f1' : activeConfig.activeColor;
@@ -264,7 +246,6 @@ export default function AbilitiesScreen() {
 
 const styles = StyleSheet.create({
   safeArea:       { flex: 1, backgroundColor: '#020617' },
-  loadingText:    { marginTop: 12, color: '#cbd5e1', fontSize: 13, fontWeight: '700', writingDirection: 'rtl' },
   backBtn:        { position: 'absolute', top: 24, left: 0, zIndex: 50, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(30,41,59,0.8)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   backText:       { color: '#fff', fontSize: 14, fontWeight: '700' },
   titleContainer: { marginTop: 72, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
