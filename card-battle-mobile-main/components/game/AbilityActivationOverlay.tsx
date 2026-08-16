@@ -12,6 +12,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, ImageBackground, useWindowDimensions, ScrollView } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withTiming, withDelay, withSpring, withSequence,
@@ -74,7 +75,7 @@ function ShimmerSweep({ color, cardWidth }: { color: string; cardWidth: number }
         withTiming(-cardWidth, { duration: 0 }),
       ), -1,
     );
-  }, [cardWidth]);
+  }, [cardWidth, translateX]);
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
   return (
     <Animated.View style={[StyleSheet.absoluteFill, style, { overflow: 'hidden', zIndex: 8 }]}>
@@ -89,7 +90,7 @@ function CornerOrnament({ color, size = 8 }: { color: string; size?: number }) {
 }
 
 // ─── Hook (listener pattern — same as EffectToast) ──────────────────────────
-const listeners: Array<(p: AbilityCardPayload) => void> = [];
+const listeners: ((p: AbilityCardPayload) => void)[] = [];
 
 export function useAbilityActivationOverlay() {
   const showAbilityCard = useCallback((payload: AbilityCardPayload) => {
@@ -103,7 +104,7 @@ export function AbilityActivationOverlay() {
   const [current, setCurrent] = React.useState<(AbilityCardPayload & { id: number }) | null>(null);
   const counter = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { width: screenW, height: screenH } = useWindowDimensions();
+  const { height: screenH } = useWindowDimensions();
 
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.65);
@@ -116,7 +117,7 @@ export function AbilityActivationOverlay() {
     scale.value = withTiming(0.7, { duration: 320 });
     overlayOpacity.value = withTiming(0, { duration: 320 });
     setTimeout(() => setCurrent(null), 350);
-  }, []);
+  }, [opacity, overlayOpacity, scale]);
 
   const show = useCallback((payload: AbilityCardPayload) => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -134,7 +135,7 @@ export function AbilityActivationOverlay() {
     const dur = payload.duration ?? 3200;
     progressWidth.value = withTiming(0, { duration: dur, easing: Easing.linear });
     timerRef.current = setTimeout(dismiss, dur);
-  }, [dismiss]);
+  }, [dismiss, opacity, overlayOpacity, progressWidth, scale]);
 
   useEffect(() => {
     listeners.push(show);
@@ -240,6 +241,12 @@ export function AbilityActivationOverlay() {
               resizeMode="cover"
             >
               <View style={[StyleSheet.absoluteFill, S.blackOverlay]} />
+              <LinearGradient
+                pointerEvents="none"
+                colors={['rgba(4,8,18,0.08)', 'rgba(4,8,18,0.02)', 'rgba(4,8,18,0.84)']}
+                locations={[0, 0.48, 1]}
+                style={StyleSheet.absoluteFill}
+              />
             </ImageBackground>
 
             {/* Shimmer */}
@@ -309,12 +316,14 @@ export function AbilityActivationOverlay() {
             </View>
 
             {/* Arabic name */}
-            <Text
-              style={[S.nameAr, { textShadowColor: theme.glow, fontSize: nameArSize }]}
-              numberOfLines={1}
-            >
-              {abilityName}
-            </Text>
+            <View style={[S.namePlate, { borderColor: theme.primary + '35', backgroundColor: theme.primary + '0D' }]}>
+              <Text
+                style={[S.nameAr, { textShadowColor: theme.glow, fontSize: nameArSize }]}
+                numberOfLines={1}
+              >
+                {abilityName}
+              </Text>
+            </View>
 
             {/* English name */}
             <Text style={[S.nameEn, { fontSize: nameEnSize }]} numberOfLines={1}>
@@ -441,7 +450,7 @@ const S = StyleSheet.create({
     borderTopRightRadius: 18,
   },
   blackOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.40)',
+    backgroundColor: 'rgba(0,0,0,0.22)',
   },
   shimmerStreak: {
     position: 'absolute',
@@ -502,7 +511,7 @@ const S = StyleSheet.create({
   // Info section
   infoSection: {
     flex: 1,
-    backgroundColor: 'rgba(10,15,30,0.92)',
+    backgroundColor: 'rgba(5,10,22,0.97)',
     paddingVertical: 8,
     paddingHorizontal: 12,
     alignItems: 'center',
@@ -523,17 +532,27 @@ const S = StyleSheet.create({
   },
 
   // Names
+  namePlate: {
+    minWidth: '72%',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 7,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   nameAr: {
-    color: '#FFD700',
+    color: '#FFF4B8',
     fontWeight: '900',
     fontSize: 14,
     textAlign: 'center',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
+    textShadowRadius: 7,
     letterSpacing: 0.5,
+    writingDirection: 'rtl',
   },
   nameEn: {
-    color: '#cbd5e1',
+    color: '#e2e8f0',
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1,
@@ -562,12 +581,13 @@ const S = StyleSheet.create({
 
   // Effect text
   effectText: {
-    color: 'rgba(226,232,240,0.9)',
+    color: '#f1f5f9',
     fontSize: 9.5,
-    fontWeight: '500',
+    fontWeight: '600',
     textAlign: 'center',
     lineHeight: 13,
     writingDirection: 'rtl',
+    textAlignVertical: 'center',
   },
 
   // Duration row

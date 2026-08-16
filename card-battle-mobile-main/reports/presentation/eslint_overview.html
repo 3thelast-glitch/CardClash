@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Kufi Arabic', sans-serif; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background-color: #07111f;
+            color: #f8fafc;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: 1fr 200px;
+            border: 1px solid rgba(248, 250, 252, 0.2);
+            overflow: hidden;
+        }
+        .visual-zone {
+            grid-column: 1 / 8;
+            grid-row: 1 / 3;
+            border-left: 1px solid rgba(248, 250, 252, 0.2);
+            padding: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .visual-zone img {
+            width: 100%;
+            max-height: 600px;
+            object-fit: contain;
+        }
+        .text-zone {
+            grid-column: 8 / 13;
+            grid-row: 1 / 2;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 16px;
+        }
+        .point {
+            font-weight: 300;
+            font-size: 22px;
+            line-height: 1.5;
+            color: rgba(248, 250, 252, 0.9);
+            display: flex;
+            align-items: center;
+        }
+        .point strong {
+            color: #38bdf8;
+            font-weight: 700;
+            font-size: 28px;
+            margin-left: 12px;
+            min-width: 40px;
+        }
+        .quote {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(56, 189, 248, 0.1);
+            border-right: 4px solid #38bdf8;
+            font-weight: 700;
+            font-size: 20px;
+            color: #38bdf8;
+            line-height: 1.6;
+        }
+        .title-zone {
+            grid-column: 8 / 13;
+            grid-row: 2 / 3;
+            padding: 40px;
+            border-top: 1px solid rgba(248, 250, 252, 0.2);
+            display: flex;
+            align-items: flex-end;
+        }
+        .slide-title {
+            font-weight: 700;
+            font-size: 42px;
+            line-height: 1.2;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="visual-zone">
+            <img src="/home/ubuntu/card-battle-mobile-main/card-battle-mobile-main/reports/ability-audit-assets/eslint-by-rule.png" alt="ESLint Warnings Chart">
+        </div>
+        <div class="text-zone">
+            <div class="point"><strong>57</strong> متغيراً أو استيراداً غير مستخدم — 42.2%</div>
+            <div class="point"><strong>55</strong> اعتماد Hook ناقص — 40.7%</div>
+            <div class="point"><strong>17</strong> تحذيراً لترتيب الاستيرادات — 12.6%</div>
+            <div class="point"><strong>6</strong> تحذيرات تنسيق بسيطة أخرى</div>
+
+            <div class="quote">
+                82.9% من الدين التقني محصور في المتغيرات غير المستخدمة واعتمادات Hooks.
+            </div>
+        </div>
+        <div class="title-zone">
+            <h2 class="slide-title">تحذيرات ESLint: 135، بلا أخطاء حاجبة</h2>
+        </div>
+    </div>
+</body>
+</html>

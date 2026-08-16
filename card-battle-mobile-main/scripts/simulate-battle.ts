@@ -10,7 +10,6 @@
 
 import { ALL_CARDS as allCards } from '../lib/game/cards-data-exports';
 import {
-  resolveBattle,
   buildRageState,
   shouldTriggerRage,
   applyRageToCard,

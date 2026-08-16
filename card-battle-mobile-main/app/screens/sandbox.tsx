@@ -11,11 +11,11 @@
  *  - HistoryModal يعرض كل جولة بكرتيها ونتيجتها
  *  - إعادة الجولة / جولة جديدة / إعادة الجلسة
  */
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, TouchableOpacity, StyleSheet,
   Modal, ScrollView, FlatList, TextInput,
-  Image, Alert,
+  Image,
 } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useRouter } from 'expo-router';
@@ -27,10 +27,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
-import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
+import { COLOR, SPACE, RADIUS, FONT, SHADOW } from '@/components/ui/design-tokens';
 import { ALL_CARDS, determineRoundWinner } from '@/lib/game/cards-data-exports';
 import {
-  Card, AbilityType, Element, CardClass,
+  Card, AbilityType, Element,
   ELEMENT_EMOJI, ELEMENT_COLORS,
 } from '@/lib/game/types';
 import { getCardImage } from '@/lib/game/get-card-image';

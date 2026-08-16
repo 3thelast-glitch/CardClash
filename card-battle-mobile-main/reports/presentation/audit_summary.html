@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Kufi Arabic', sans-serif; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background-color: #07111f;
+            color: #f8fafc;
+            display: grid;
+            grid-template-rows: 1fr 200px;
+            border: 1px solid rgba(248, 250, 252, 0.2);
+            overflow: hidden;
+        }
+        .metrics-zone {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-bottom: 1px solid rgba(248, 250, 252, 0.2);
+        }
+        .metric-block {
+            padding: 60px 40px;
+            border-left: 1px solid rgba(248, 250, 252, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .metric-block:first-child {
+            border-left: none;
+        }
+        .metric-number {
+            font-weight: 700;
+            font-size: 80px;
+            color: #38bdf8;
+            line-height: 1;
+            margin-bottom: 20px;
+        }
+        .metric-text {
+            font-weight: 300;
+            font-size: 24px;
+            line-height: 1.5;
+            color: rgba(248, 250, 252, 0.8);
+        }
+        .title-zone {
+            padding: 40px 60px;
+            display: flex;
+            align-items: flex-end;
+            position: relative;
+        }
+        .title-zone::before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            right: 60px;
+            width: 40px;
+            height: 4px;
+            background-color: #38bdf8;
+        }
+        .slide-title {
+            font-weight: 700;
+            font-size: 56px;
+            line-height: 1.1;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="metrics-zone">
+            <div class="metric-block">
+                <div class="metric-number">54</div>
+                <div class="metric-text">قدرة معلنة تمت مراجعتها آلياً بالكامل.</div>
+            </div>
+            <div class="metric-block">
+                <div class="metric-number">77</div>
+                <div class="metric-text">اختباراً متخصصاً لسلوك القدرات وتأثيراتها.</div>
+            </div>
+            <div class="metric-block">
+                <div class="metric-number">139</div>
+                <div class="metric-text">اختبار مشروع ناجح، مع اختبار واحد متخطى.</div>
+            </div>
+            <div class="metric-block">
+                <div class="metric-number">0</div>
+                <div class="metric-text">أخطاء حاجبة في فحص TypeScript و ESLint.</div>
+            </div>
+        </div>
+        <div class="title-zone">
+            <h2 class="slide-title">تدقيق مكتمل بلا أخطاء حاجبة</h2>
+        </div>
+    </div>
+</body>
+</html>

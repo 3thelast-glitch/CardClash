@@ -7,8 +7,9 @@
  *   showToast({ title: 'تعزيز الدفاع +1', target: 'player', kind: 'buff' });
  */
 import React, { useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withTiming, withDelay, withSpring,
@@ -46,7 +47,7 @@ const TARGET_LABEL: Record<string, string> = {
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
-const listeners: Array<(p: ToastPayload) => void> = [];
+const listeners: ((p: ToastPayload) => void)[] = [];
 
 export function useEffectToast() {
   const showToast = useCallback((payload: ToastPayload) => {
@@ -66,6 +67,8 @@ export function EffectToast() {
   const scale = useSharedValue(0.88);
   const progress = useSharedValue(0);
   const { settings } = useSettings();
+  const { width: screenWidth } = useWindowDimensions();
+  const horizontalInset = screenWidth < 390 ? 12 : Math.max(16, Math.min(80, screenWidth * 0.2));
 
   const dismiss = useCallback(() => {
     const duration = settings.animationsEnabled ? 280 : 0;
@@ -74,7 +77,7 @@ export function EffectToast() {
     scale.value = withTiming(0.9, { duration });
     progress.value = withTiming(0, { duration: 120 });
     setTimeout(() => setCurrent(null), settings.animationsEnabled ? 300 : 0);
-  }, [settings.animationsEnabled]);
+  }, [opacity, progress, scale, settings.animationsEnabled, translateY]);
 
   const show = useCallback((payload: ToastPayload) => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -96,7 +99,7 @@ export function EffectToast() {
       scale.value = 1;
     }
     timerRef.current = setTimeout(dismiss, duration);
-  }, [dismiss, settings.animationsEnabled]);
+  }, [dismiss, opacity, progress, scale, settings.animationsEnabled, translateY]);
 
   useEffect(() => {
     listeners.push(show);
@@ -124,7 +127,18 @@ export function EffectToast() {
   const targetLabel = current.target ? TARGET_LABEL[current.target] : null;
 
   return (
-    <Animated.View style={[T.wrap, { borderColor: meta.color + '44', backgroundColor: meta.bg }, containerStyle]} pointerEvents="none">
+    <Animated.View
+      style={[T.wrap, { left: horizontalInset, right: horizontalInset, borderColor: meta.color + '66' }, containerStyle]}
+      pointerEvents="none"
+      accessibilityLiveRegion="polite"
+    >
+      <LinearGradient
+        pointerEvents="none"
+        colors={[meta.bg, 'rgba(5,10,22,0.97)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={T.row}>
         <Text style={T.emoji}>{meta.emoji}</Text>
         <View style={T.textWrap}>
@@ -149,12 +163,15 @@ const T = StyleSheet.create({
     position: 'absolute',
     top: '30%',
     alignSelf: 'center',
-    left: '20%',
-    right: '20%',
     borderRadius: 14,
     borderWidth: 1,
     paddingHorizontal: 18,
     paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 10,
     zIndex: 999,
     overflow: 'hidden',
   },
@@ -165,12 +182,12 @@ const T = StyleSheet.create({
   },
   emoji: { fontSize: 22 },
   textWrap: { flex: 1, gap: 2 },
-  title: { fontSize: 15, letterSpacing: 0.3 },
-  sub: { fontSize: 11, color: '#94a3b8' },
+  title: { fontSize: 15, fontWeight: '800', letterSpacing: 0.3, textAlign: 'right', writingDirection: 'rtl' },
+  sub: { fontSize: 11, color: '#cbd5e1', textAlign: 'right', writingDirection: 'rtl' },
   progressTrack: {
     marginTop: 8,
-    height: 3,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -178,6 +195,6 @@ const T = StyleSheet.create({
     height: '100%',
     width: '100%',
     borderRadius: 2,
-    opacity: 0.6,
+    opacity: 0.85,
   },
 });

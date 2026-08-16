@@ -1,0 +1,124 @@
+{
+  "project_info": {
+    "title": "Card Clash",
+    "created": 1786803464.46,
+    "last_updated": 1786803667.596,
+    "total_slides": 11
+  },
+  "slides": [
+    {
+      "id": "cover",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "audit_summary",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "test_coverage",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "ability_families",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "fixes_found",
+      "state": "edited",
+      "pageNum": 5
+    },
+    {
+      "id": "types_and_ui",
+      "state": "edited",
+      "pageNum": 6
+    },
+    {
+      "id": "eslint_overview",
+      "state": "edited",
+      "pageNum": 7
+    },
+    {
+      "id": "eslint_hotspots",
+      "state": "edited",
+      "pageNum": 8
+    },
+    {
+      "id": "remediation_plan",
+      "state": "edited",
+      "pageNum": 9
+    },
+    {
+      "id": "hook_warnings",
+      "state": "edited",
+      "pageNum": 10
+    },
+    {
+      "id": "next_steps",
+      "state": "edited",
+      "pageNum": 11
+    }
+  ],
+  "outline": [
+    {
+      "id": "cover",
+      "title": "Card Clash",
+      "summary": "تدقيق القدرات الـ54 وخطة رفع جودة الكود: نتائج الاختبارات، الإصلاحات، وتحذيرات ESLint",
+      "image_plan": "/home/ubuntu/upload/search_images/LwM0Z9mD7GeY.jpg - Dark fantasy card back template fitting for a card game presentation cover slide"
+    },
+    {
+      "id": "audit_summary",
+      "title": "تدقيق مكتمل بلا أخطاء حاجبة",
+      "summary": "ملخص لنتائج فحص 54 قدرة مع 77 اختباراً مخصصاً، و139 اختبار مشروع، مع اجتياز فحص TypeScript."
+    },
+    {
+      "id": "test_coverage",
+      "title": "التغطية تربط كل قدرة بسلوك قابل للتحقق",
+      "summary": "تفاصيل اختبار تفعيل 53 قدرة يدوية وقدرة Turin التلقائية عبر الجولات الفورية واللاحقة."
+    },
+    {
+      "id": "ability_families",
+      "title": "ست عائلات تقود منطق القدرات",
+      "summary": "تصنيف القدرات إلى ست مجموعات: تعديل البطاقات، حسم الجولة، النقاط، الإحصاءات، الآثار، والتحكم."
+    },
+    {
+      "id": "fixes_found",
+      "title": "الاختبارات كشفت ثلاث مشكلات حقيقية",
+      "summary": "شرح الإصلاحات المطبقة على قدرات Skip وStarSuperiority وStealAbility."
+    },
+    {
+      "id": "types_and_ui",
+      "title": "سلامة الأنواع وواجهة الأثر أصبحت أوضح",
+      "summary": "توثيق تسجيل أنواع الآثار الجديدة وإضافتها إلى شريط الحالة وواجهة المستخدم."
+    },
+    {
+      "id": "eslint_overview",
+      "title": "تحذيرات ESLint: 135، بلا أخطاء حاجبة",
+      "summary": "تحليل 135 تحذيراً وتوزيعها بين المتغيرات غير المستخدمة واعتمادات Hooks وترتيب الاستيراد.",
+      "image_plan": "/home/ubuntu/card-battle-mobile-main/card-battle-mobile-main/reports/ability-audit-assets/eslint-by-rule.png - Bar chart showing ESLint warnings by rule (Unused variables 57, Hook dependencies 55, etc.), perfectly matching Slide 6 data"
+    },
+    {
+      "id": "eslint_hotspots",
+      "title": "خمس مناطق تستحق المعالجة أولاً",
+      "summary": "تحديد الملفات الأكثر احتواءً على التحذيرات، مثل شاشة المعركة ومكونات البطاقات الفاخرة."
+    },
+    {
+      "id": "remediation_plan",
+      "title": "معالجة التحذيرات على أربع دفعات",
+      "summary": "خطة من أربع مراحل لمعالجة التحذيرات بدءاً من التنسيق الآمن وصولاً إلى الوقاية في CI."
+    },
+    {
+      "id": "hook_warnings",
+      "title": "لا تعالج تحذيرات Hooks آلياً بلا اختبار",
+      "summary": "توصيات محددة للتعامل الحذر مع اعتمادات useEffect، خاصة في الرسوم المتحركة لـ Reanimated."
+    },
+    {
+      "id": "next_steps",
+      "title": "حالة الجودة والخطوة التالية",
+      "summary": "خلاصة تؤكد استقرار منطق القدرات وتوجه الأولوية نحو خفض تحذيرات ESLint تدريجياً."
+    }
+  ]
+}

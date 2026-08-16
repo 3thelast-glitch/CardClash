@@ -1,6 +1,6 @@
 import { Server as HTTPServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { roomManager, Player, Room, RoundResult } from './room-manager';
+import { roomManager, Player, Room } from './room-manager';
 import { MatchmakingManager, normalizeRating, tierForRating } from './matchmaking-manager';
 
 export interface GameMessage {
@@ -30,7 +30,7 @@ export class MultiplayerWebSocketServer {
         try {
           const message: GameMessage = JSON.parse(data.toString());
           this.handleMessage(ws, message, (id) => { playerId = id; });
-        } catch (error) {
+        } catch {
           this.sendError(ws, 'Invalid message format');
         }
       });

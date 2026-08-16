@@ -5,14 +5,14 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
   StyleSheet, Alert, Platform, KeyboardAvoidingView,
-  Clipboard, Image, Dimensions,
+  Clipboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { saveCustomCard, generateCardCode } from '@/lib/game/custom-cards-store';
 import { saveImage } from '@/lib/game/image-storage';
-import { Card, CardRarity, Race, CardClass, Element, Tag, Gender, ELEMENT_EMOJI, ELEMENT_COLORS, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI, GENDER_COLORS } from '@/lib/game/types';
+import { Card, CardRarity, Race, CardClass, Element, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI, GENDER_COLORS } from '@/lib/game/types';
 import { CARD_EDITS_KEY } from '@/app/screens/cards-gallery';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { getRarityFromStars } from '@/lib/game/card-rarity';

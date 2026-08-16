@@ -35,11 +35,7 @@ import {
     Svg,
     Circle,
     Path,
-    Defs,
-    LinearGradient as SvgLinearGradient,
-    Stop,
     Line,
-    Polygon,
     Ellipse,
     G,
 } from 'react-native-svg';
@@ -47,7 +43,6 @@ import type { Card } from '@/lib/game/types';
 import type { CardRarityName, CardEffectType } from '@/types/card.types';
 import {
     CARD_GRADIENTS,
-    CARD_BORDERS,
     CARD_GLOWS,
     CARD_BADGE_COLORS,
     CARD_SHADOWS,
@@ -266,7 +261,7 @@ function HoloFoilSweep({
             -1,
             false
         );
-    }, [cardWidth, duration]);
+    }, [cardWidth, duration, sweepX]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: sweepX.value }],
@@ -392,7 +387,7 @@ function BreathingBorder({
             -1,
             true
         );
-    }, [rarity]);
+    }, [pulse, rarity]);
 
     const [colorFrom, colorTo, shadowCol] = rarity === 'special'
         ? ['#0e4a5e', '#67e8f9', '#06b6d4']
@@ -489,7 +484,7 @@ export function RarityCard({
             summon.reset();
             summon.play();
         }
-    }, [playEntrance, card.id]);
+    }, [card.id, playEntrance, summon]);
 
     const outerShadow: ViewStyle = {
         shadowColor: glowColor ?? '#000',
@@ -578,13 +573,21 @@ export function RarityCard({
                     )}
 
                     {hasImage ? (
-                        <Image
-                            source={cardImage}
-                            style={styles.art}
-                            contentFit="contain"
-                            cachePolicy="memory-disk"
-                            transition={200}
-                        />
+                        <>
+                            <Image
+                                source={cardImage}
+                                style={styles.art}
+                                contentFit="contain"
+                                cachePolicy="memory-disk"
+                                transition={200}
+                            />
+                            <LinearGradient
+                                pointerEvents="none"
+                                colors={['rgba(2,6,15,0)', 'rgba(2,6,15,0.12)', 'rgba(2,6,15,0.84)']}
+                                locations={[0, 0.48, 1]}
+                                style={styles.artReadabilityOverlay}
+                            />
+                        </>
                     ) : (
                         <>
                             <LinearGradient
@@ -633,9 +636,11 @@ export function RarityCard({
                                 <StatBadge icon="🛡️" value={card.defense} fs={dim.stat} />
                                 <StatBadge icon="❤️" value={card.hp ?? card.defense} fs={dim.stat} />
                             </View>
-                            <Text style={[styles.cardName, { fontSize: dim.name }]} numberOfLines={1}>
-                                {card.nameAr}
-                            </Text>
+                            <View style={[styles.cardNamePlate, { borderColor: baseBorderColor }]}>
+                                <Text style={[styles.cardName, { fontSize: dim.name }]} numberOfLines={1}>
+                                    {card.nameAr}
+                                </Text>
+                            </View>
                         </View>
                     )}
 
@@ -694,6 +699,7 @@ const styles = StyleSheet.create({
         transform: [{ rotate: '35deg' }],
     },
     art: { width: '100%', height: '76%', position: 'absolute', top: 0 },
+    artReadabilityOverlay: { position: 'absolute', top: 0, left: 0, right: 0, height: '78%', zIndex: 2 },
     artPlaceholder: { width: '100%', height: '76%', position: 'absolute', top: 0 },
     noImageBadge: {
         position: 'absolute', top: '18%', left: 0, right: 0,
@@ -718,10 +724,12 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0, left: 0, right: 0,
         paddingHorizontal: 8, paddingVertical: 6,
-        backgroundColor: 'rgba(0,0,0,0.82)',
+        backgroundColor: 'rgba(2,6,15,0.94)',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomLeftRadius: BORDER_R - 1,
         borderBottomRightRadius: BORDER_R - 1,
-        gap: 2,
+        gap: 3,
     },
     statsRow: {
         flexDirection: 'row',
@@ -752,7 +760,8 @@ const styles = StyleSheet.create({
     statValue: { fontWeight: '800', letterSpacing: 0.3 },
     attackText: { color: '#FFB830' },
     defenseText: { color: '#60A5FA' },
-    cardName: { color: '#e5e7eb', textAlign: 'center', fontWeight: '600', letterSpacing: 0.3 },
+    cardNamePlate: { alignSelf: 'center', maxWidth: '94%', paddingHorizontal: 7, paddingVertical: 1, borderRadius: 6, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.05)' },
+    cardName: { color: '#f8fafc', textAlign: 'center', fontWeight: '800', letterSpacing: 0.3, writingDirection: 'rtl' },
     effectColumn: { position: 'absolute', bottom: 56, right: 5, alignItems: 'center', gap: 2 },
     effectIcon: { fontSize: 10 },
     selectedOverlay: {

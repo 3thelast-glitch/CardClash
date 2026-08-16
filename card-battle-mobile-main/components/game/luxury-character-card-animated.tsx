@@ -12,9 +12,10 @@ import { Video, ResizeMode } from 'expo-av';
 import Animated, {
     useSharedValue, useAnimatedStyle, withRepeat, withTiming,
     withSequence, interpolate, Easing, withDelay, cancelAnimation,
+    type SharedValue,
 } from 'react-native-reanimated';
 import { Svg, Circle, Line, Ellipse, Path, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { Card, CardRarity, Element, ELEMENT_EMOJI, ELEMENT_COLORS, Race, RACE_EMOJI, CardClass, CLASS_EMOJI } from '@/lib/game/types';
+import { Card, CardRarity, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
 import { getCardImage } from '../../lib/game/get-card-image';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 
@@ -148,7 +149,7 @@ const LegendaryGlowBorder = ({ color }: { color: string }) => {
             ), -1, false
         );
         return () => cancelAnimation(glow);
-    }, []);
+    }, [glow]);
     const o = useAnimatedStyle(() => ({ opacity: interpolate(glow.value, [0, 1], [0.55, 1.0]), transform: [{ scale: interpolate(glow.value, [0, 1], [1.0, 1.008]) }] }));
     const i = useAnimatedStyle(() => ({ opacity: interpolate(glow.value, [0, 1], [0.25, 0.7]), transform: [{ scale: interpolate(glow.value, [0, 1], [1.004, 1.012]) }] }));
     return (
@@ -167,7 +168,7 @@ const RarityShimmer = ({ cardW, foilDuration, color }: { cardW: number; foilDura
     useEffect(() => {
         x.value = withRepeat(withTiming(cardW * 1.7, { duration: foilDuration, easing: Easing.inOut(Easing.quad) }), -1, false);
         return () => cancelAnimation(x);
-    }, [cardW, foilDuration]);
+    }, [x, cardW, foilDuration]);
     const animStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
     const r = parseInt(color.slice(1, 3), 16);
     const g = parseInt(color.slice(3, 5), 16);
@@ -203,7 +204,7 @@ const SingleParticle = ({ x, startY, delay, dur, color }: { x: number; startY: n
     useEffect(() => {
         p.value = withDelay(delay, withRepeat(withTiming(1, { duration: dur, easing: Easing.out(Easing.quad) }), -1, false));
         return () => cancelAnimation(p);
-    }, []);
+    }, [p, delay, dur]);
     const style = useAnimatedStyle(() => ({
         opacity: interpolate(p.value, [0, 0.15, 0.75, 1], [0, 0.9, 0.6, 0]),
         transform: [{ translateX: x + Math.sin(p.value * Math.PI * 2) * 6 }, { translateY: startY - p.value * 85 }, { scale: interpolate(p.value, [0, 0.3, 1], [0.4, 1.0, 0.6]) }],
@@ -318,8 +319,8 @@ const DarkSmokeEffect = () => {
         s2.value = withDelay(800, withRepeat(withTiming(1, { duration: 2800, easing: Easing.out(Easing.quad) }), -1, false));
         s3.value = withDelay(1400, withRepeat(withTiming(1, { duration: 2400, easing: Easing.out(Easing.ease) }), -1, false));
         return () => { cancelAnimation(s1); cancelAnimation(s2); cancelAnimation(s3); };
-    }, []);
-    const useSmokeStyle = (sv: any, fx: number, fy: number, tx: number, sc: number) => useAnimatedStyle(() => ({
+    }, [s1, s2, s3]);
+    const useSmokeStyle = (sv: SharedValue<number>, fx: number, fy: number, tx: number, sc: number) => useAnimatedStyle(() => ({
         opacity: interpolate(sv.value, [0, 0.2, 0.7, 1], [0, 0.55, 0.3, 0]),
         transform: [{ translateX: fx + (tx - fx) * sv.value }, { translateY: fy + (-60 * sv.value) }, { scale: interpolate(sv.value, [0, 1], [sc * 0.6, sc * 1.8]) }],
     }));
@@ -349,13 +350,13 @@ const DarkSmokeEffect = () => {
 // ─────────────────────────────────────────────
 const SpecialBreathingBorder = () => {
     const p = useSharedValue(0);
-    useEffect(() => { p.value = withRepeat(withTiming(1, { duration: 3500, easing: Easing.inOut(Easing.quad) }), -1, true); return () => cancelAnimation(p); }, []);
+    useEffect(() => { p.value = withRepeat(withTiming(1, { duration: 3500, easing: Easing.inOut(Easing.quad) }), -1, true); return () => cancelAnimation(p); }, [p]);
     const s = useAnimatedStyle(() => ({ opacity: interpolate(p.value, [0, 1], [0.3, 0.9]), transform: [{ scale: interpolate(p.value, [0, 1], [0.997, 1.007]) }] }));
     return <Animated.View style={[styles.specialBreathingBorder, s]} pointerEvents="none" />;
 };
 const GlowRing = ({ color }: { color: string }) => {
     const op = useSharedValue(0.4);
-    useEffect(() => { op.value = withRepeat(withSequence(withTiming(1, { duration: 1800 }), withTiming(0.4, { duration: 1800 })), -1, false); return () => cancelAnimation(op); }, []);
+    useEffect(() => { op.value = withRepeat(withSequence(withTiming(1, { duration: 1800 }), withTiming(0.4, { duration: 1800 })), -1, false); return () => cancelAnimation(op); }, [op]);
     const s = useAnimatedStyle(() => ({ opacity: op.value }));
     return <Animated.View style={[styles.glowRing, { borderColor: color, shadowColor: color }, s]} pointerEvents="none" />;
 };

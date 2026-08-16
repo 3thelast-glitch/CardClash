@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Kufi Arabic', sans-serif; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background-color: #07111f;
+            color: #f8fafc;
+            display: grid;
+            grid-template-rows: 1fr 200px;
+            border: 1px solid rgba(248, 250, 252, 0.2);
+            overflow: hidden;
+        }
+        .fixes-zone {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            border-bottom: 1px solid rgba(248, 250, 252, 0.2);
+        }
+        .fix-block {
+            padding: 60px 40px;
+            border-left: 1px solid rgba(248, 250, 252, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .fix-block:last-child {
+            border-left: none;
+        }
+        .ability-name {
+            font-weight: 700;
+            font-size: 42px;
+            color: #38bdf8;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .fix-desc {
+            font-weight: 300;
+            font-size: 26px;
+            line-height: 1.6;
+            color: rgba(248, 250, 252, 0.9);
+        }
+        .highlight {
+            color: #f8fafc;
+            font-weight: 700;
+        }
+        .title-zone {
+            padding: 40px 60px;
+            display: flex;
+            align-items: flex-end;
+            position: relative;
+        }
+        .title-zone::before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            right: 60px;
+            width: 40px;
+            height: 4px;
+            background-color: #38bdf8;
+        }
+        .slide-title {
+            font-weight: 700;
+            font-size: 56px;
+            line-height: 1.1;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="fixes-zone">
+            <div class="fix-block">
+                <div class="ability-name">Skip</div>
+                <div class="fix-desc">كان يسجل فوزاً لصاحب الأثر؛ <span class="highlight">أصبح الآن تعادلاً كاملاً</span> بلا خسارة نقاط لأي من الطرفين.</div>
+            </div>
+            <div class="fix-block">
+                <div class="ability-name">StarSuperiority</div>
+                <div class="fix-desc">كان يغير النقاط فقط؛ <span class="highlight">أصبح يسجل الفائز وحالة البطاقات بدقة</span> في سجل الجولة.</div>
+            </div>
+            <div class="fix-block">
+                <div class="ability-name">StealAbility</div>
+                <div class="fix-desc">كانت تفقد القدرة المسروقة؛ <span class="highlight">أصبحت تحفظها وتعلّم مصدرها كمستخدم</span> لمنع التكرار.</div>
+            </div>
+        </div>
+        <div class="title-zone">
+            <h2 class="slide-title">الاختبارات كشفت ثلاث مشكلات حقيقية</h2>
+        </div>
+    </div>
+</body>
+</html>

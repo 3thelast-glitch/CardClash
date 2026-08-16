@@ -105,7 +105,6 @@ function checkAll() {
         const dir = path.join(__dirname, '..', 'assets', 'characters', f);
         if (!fs.existsSync(dir)) continue;
         const files = fs.readdirSync(dir);
-        const mappedKeys = maps[f];
         
         // Find actual required filenames
         const content = fs.readFileSync(path.join(dir, 'index.ts'), 'utf-8');

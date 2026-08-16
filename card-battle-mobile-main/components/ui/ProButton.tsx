@@ -15,7 +15,6 @@ import Animated, {
 } from "react-native-reanimated";
 import {
   COLOR,
-  RADIUS,
   SPACE,
   FONT,
   SHADOW,

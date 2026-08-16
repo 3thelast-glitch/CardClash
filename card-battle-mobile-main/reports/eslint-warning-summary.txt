@@ -1,0 +1,98 @@
+=== القواعد ===
+2 import/no-duplicates
+57 @typescript-eslint/no-unused-vars
+2 @typescript-eslint/no-require-imports
+2 @typescript-eslint/array-type
+17 import/first
+55 react-hooks/exhaustive-deps
+=== الملفات ===
+8 components/game/RarityCard.tsx
+2 app/screens/stats.tsx
+2 app/screens/settings.tsx
+3 app/screens/card-selection.tsx
+1 components/game/element-effect.tsx
+2 app/screens/game-mode.tsx
+3 components/game/explosion-effect.tsx
+6 app/screens/add-card.tsx
+2 components/game/damage-number.tsx
+3 app/screens/splash.tsx
+2 components/game/elven-luxury-card.tsx
+1 components/ui/ProButton.tsx
+18 app/screens/battle.tsx
+4 components/game/BattleResultOverlay.tsx
+2 components/game/ability-card.tsx
+10 app/screens/sandbox.tsx
+2 components/game/BattleHUD.tsx
+17 app/_layout.tsx
+3 app/screens/rounds-config.tsx
+1 components/game/rage-mode-overlay.tsx
+5 components/game/EffectToast.tsx
+5 app/screens/multiplayer-battle.tsx
+10 components/game/luxury-character-card-animated.tsx
+4 app/screens/multiplayer-results.tsx
+2 app/screens/battle-results.tsx
+3 components/game/health-bar.tsx
+3 app/screens/cards-gallery.tsx
+1 components/game/luxury-background.tsx
+1 components/game/card-item.tsx
+5 components/game/AbilityActivationOverlay.tsx
+3 app/screens/multiplayer-waiting.tsx
+1 components/game/epic-card-template.tsx
+=== القاعدة × الملف ===
+2 react-hooks/exhaustive-deps components/game/ability-card.tsx
+6 react-hooks/exhaustive-deps app/screens/sandbox.tsx
+1 @typescript-eslint/no-unused-vars app/screens/rounds-config.tsx
+1 @typescript-eslint/no-unused-vars app/screens/multiplayer-waiting.tsx
+1 react-hooks/exhaustive-deps components/game/BattleHUD.tsx
+1 react-hooks/exhaustive-deps app/screens/rounds-config.tsx
+1 react-hooks/exhaustive-deps components/game/rage-mode-overlay.tsx
+1 @typescript-eslint/no-require-imports app/screens/card-selection.tsx
+2 react-hooks/exhaustive-deps components/game/EffectToast.tsx
+2 react-hooks/exhaustive-deps app/screens/multiplayer-battle.tsx
+1 @typescript-eslint/no-unused-vars components/ui/ProButton.tsx
+6 react-hooks/exhaustive-deps components/game/luxury-character-card-animated.tsx
+5 @typescript-eslint/no-unused-vars components/game/RarityCard.tsx
+1 @typescript-eslint/array-type components/game/AbilityActivationOverlay.tsx
+1 react-hooks/exhaustive-deps app/screens/multiplayer-results.tsx
+1 react-hooks/exhaustive-deps app/screens/battle-results.tsx
+1 @typescript-eslint/no-unused-vars components/game/AbilityActivationOverlay.tsx
+1 @typescript-eslint/no-unused-vars components/game/damage-number.tsx
+1 @typescript-eslint/no-unused-vars app/screens/battle-results.tsx
+1 react-hooks/exhaustive-deps components/game/health-bar.tsx
+1 @typescript-eslint/no-unused-vars components/game/BattleResultOverlay.tsx
+3 @typescript-eslint/no-unused-vars app/screens/multiplayer-results.tsx
+1 react-hooks/exhaustive-deps app/screens/cards-gallery.tsx
+2 @typescript-eslint/no-unused-vars components/game/health-bar.tsx
+1 react-hooks/exhaustive-deps components/game/luxury-background.tsx
+1 @typescript-eslint/array-type components/game/EffectToast.tsx
+2 @typescript-eslint/no-unused-vars app/screens/game-mode.tsx
+17 import/first app/_layout.tsx
+1 react-hooks/exhaustive-deps components/game/card-item.tsx
+1 @typescript-eslint/no-require-imports app/screens/rounds-config.tsx
+3 react-hooks/exhaustive-deps components/game/AbilityActivationOverlay.tsx
+2 react-hooks/exhaustive-deps app/screens/multiplayer-waiting.tsx
+1 react-hooks/exhaustive-deps components/game/epic-card-template.tsx
+1 @typescript-eslint/no-unused-vars app/screens/card-selection.tsx
+3 react-hooks/exhaustive-deps components/game/RarityCard.tsx
+2 @typescript-eslint/no-unused-vars app/screens/stats.tsx
+2 react-hooks/exhaustive-deps app/screens/settings.tsx
+1 react-hooks/exhaustive-deps app/screens/card-selection.tsx
+2 @typescript-eslint/no-unused-vars components/game/explosion-effect.tsx
+2 @typescript-eslint/no-unused-vars app/screens/cards-gallery.tsx
+5 @typescript-eslint/no-unused-vars app/screens/add-card.tsx
+1 react-hooks/exhaustive-deps components/game/element-effect.tsx
+1 react-hooks/exhaustive-deps components/game/explosion-effect.tsx
+11 @typescript-eslint/no-unused-vars app/screens/battle.tsx
+1 @typescript-eslint/no-unused-vars app/screens/splash.tsx
+4 @typescript-eslint/no-unused-vars app/screens/sandbox.tsx
+1 react-hooks/exhaustive-deps app/screens/add-card.tsx
+1 react-hooks/exhaustive-deps components/game/damage-number.tsx
+1 @typescript-eslint/no-unused-vars components/game/BattleHUD.tsx
+2 react-hooks/exhaustive-deps app/screens/splash.tsx
+2 react-hooks/exhaustive-deps components/game/elven-luxury-card.tsx
+3 @typescript-eslint/no-unused-vars app/screens/multiplayer-battle.tsx
+2 @typescript-eslint/no-unused-vars components/game/EffectToast.tsx
+2 import/no-duplicates components/game/BattleResultOverlay.tsx
+7 react-hooks/exhaustive-deps app/screens/battle.tsx
+4 @typescript-eslint/no-unused-vars components/game/luxury-character-card-animated.tsx
+1 react-hooks/exhaustive-deps components/game/BattleResultOverlay.tsx

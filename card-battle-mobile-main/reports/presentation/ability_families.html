@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Kufi Arabic', sans-serif; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background-color: #07111f;
+            color: #f8fafc;
+            display: grid;
+            grid-template-rows: 1fr 200px;
+            border: 1px solid rgba(248, 250, 252, 0.2);
+            overflow: hidden;
+        }
+        .grid-zone {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            border-bottom: 1px solid rgba(248, 250, 252, 0.2);
+        }
+        .family-block {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-left: 1px solid rgba(248, 250, 252, 0.2);
+            border-bottom: 1px solid rgba(248, 250, 252, 0.2);
+        }
+        /* Remove left border for the last column in RTL (which is the 3rd visual column) */
+        .family-block:nth-child(3n) {
+            border-left: none;
+        }
+        /* Remove bottom border for the last row */
+        .family-block:nth-child(n+4) {
+            border-bottom: none;
+        }
+        .family-title {
+            font-weight: 700;
+            font-size: 32px;
+            color: #38bdf8;
+            margin-bottom: 16px;
+        }
+        .family-text {
+            font-weight: 300;
+            font-size: 22px;
+            line-height: 1.6;
+            color: rgba(248, 250, 252, 0.9);
+            direction: ltr;
+            text-align: right;
+        }
+        .title-zone {
+            padding: 40px 60px;
+            display: flex;
+            align-items: flex-end;
+            position: relative;
+        }
+        .title-zone::before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            right: 60px;
+            width: 40px;
+            height: 4px;
+            background-color: #38bdf8;
+        }
+        .slide-title {
+            font-weight: 700;
+            font-size: 56px;
+            line-height: 1.1;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="grid-zone">
+            <div class="family-block">
+                <div class="family-title">تعديل البطاقات</div>
+                <div class="family-text">Recall, Arise, Revive, Merge, InfinityLoop</div>
+            </div>
+            <div class="family-block">
+                <div class="family-title">حسم الجولة</div>
+                <div class="family-text">Skip, StarSuperiority, AbsoluteDominance, Trap</div>
+            </div>
+            <div class="family-block">
+                <div class="family-title">النقاط والمكافآت</div>
+                <div class="family-text">DoublePoints, Lifesteal, Reinforcement, Revenge</div>
+            </div>
+            <div class="family-block">
+                <div class="family-title">الإحصاءات والعناصر</div>
+                <div class="family-text">Reduction, Eclipse, PhantomBlade, ElementalMastery</div>
+            </div>
+            <div class="family-block">
+                <div class="family-title">إدارة الآثار</div>
+                <div class="family-text">Wipe, Purge, Conversion, Misdirection</div>
+            </div>
+            <div class="family-block">
+                <div class="family-title">التحكم بالقدرات</div>
+                <div class="family-text">Seal, CancelAbility, StealAbility</div>
+            </div>
+        </div>
+        <div class="title-zone">
+            <h2 class="slide-title">ست عائلات تقود منطق القدرات</h2>
+        </div>
+    </div>
+</body>
+</html>

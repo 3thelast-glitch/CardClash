@@ -5,17 +5,15 @@ import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
-import { useGame } from '@/lib/game/game-context';
 
 // ── الملفات الجديدة ───────────────────────────────────────
-import { recordMpMatch, getMpStats, MultiplayerStats } from '@/lib/stats/mp-stats';
+import { recordMpMatch, MultiplayerStats } from '@/lib/stats/mp-stats';
 import { addMatchRecord } from '@/lib/stats/history';
-import { eloDelta, eloTier } from '@/lib/stats/elo';
+import { eloTier } from '@/lib/stats/elo';
 
 export default function MultiplayerResultsScreen() {
   const router = useRouter();
   const { state: mpState, leaveRoom } = useMultiplayer();
-  const { state: gameState } = useGame();
 
   const [stats, setStats]       = useState<MultiplayerStats | null>(null);
   const [deltaElo, setDeltaElo] = useState<number>(0);

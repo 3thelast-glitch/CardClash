@@ -2,7 +2,7 @@ import {
   Brain, RotateCcw, Shield, XCircle, Divide, Lock, ArrowDownLeft, HeartCrack, Skull, TrendingUp,
   UserPlus, ShieldPlus, Eraser, Zap, ArrowRightLeft, LifeBuoy, AlertTriangle, Crosshair, Combine, HeartPulse, ChevronsUp, ArrowDownRight, Eye, Replace,
   Droplet, Flame, Users, Shuffle, Magnet, RefreshCw, Layers, Ban, Coins, GitCompare, Megaphone, Sparkles, Target, Waves, ShieldCheck, Wand2, SkipForward,
-  Star, Moon, XOctagon, ArrowUpCircle, Repeat, Send, Bomb, PlusCircle, Globe, Ghost,
+  Star, Moon, XOctagon, ArrowUpCircle, Repeat, Send, Bomb, PlusCircle, Globe,
   Swords, Infinity, Crown,
 } from 'lucide-react-native';
 

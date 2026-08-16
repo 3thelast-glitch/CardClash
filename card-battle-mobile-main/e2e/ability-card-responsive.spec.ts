@@ -1,0 +1,48 @@
+import { test, expect } from '@playwright/test';
+
+const viewports = [
+  { name: 'هاتف صغير عمودي', width: 320, height: 568 },
+  { name: 'هاتف قياسي عمودي', width: 375, height: 667 },
+  { name: 'هاتف أفقي', width: 667, height: 375 },
+  { name: 'جهاز لوحي عمودي', width: 768, height: 1024 },
+  { name: 'جهاز لوحي أفقي', width: 1024, height: 768 },
+];
+
+for (const viewport of viewports) {
+  test(`كروت القدرات تستجيب في ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto('/screens/abilities');
+
+    await expect(page.getByText('القدرات', { exact: true })).toBeVisible({ timeout: 20_000 });
+
+    const layout = await page.evaluate(() => {
+      const body = document.body;
+      const root = document.documentElement;
+      const cardImages = Array.from(document.querySelectorAll('img')).filter((img) => {
+        const rect = img.getBoundingClientRect();
+        return rect.width > 100 && rect.height > 100;
+      });
+      const cardRects = cardImages.map((img) => {
+        const rect = img.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height };
+      });
+      return {
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        scrollWidth: Math.max(body.scrollWidth, root.scrollWidth),
+        scrollHeight: Math.max(body.scrollHeight, root.scrollHeight),
+        cardRects,
+      };
+    });
+
+    expect(layout.scrollWidth, `${viewport.name}: تم العثور على تمرير أفقي`).toBeLessThanOrEqual(layout.viewportWidth + 2);
+    expect(layout.cardRects.length, `${viewport.name}: لم تظهر صور كروت كبيرة`).toBeGreaterThan(0);
+
+    for (const rect of layout.cardRects) {
+      expect(rect.left, `${viewport.name}: قص من الجهة اليسرى`).toBeGreaterThanOrEqual(-2);
+      expect(rect.right, `${viewport.name}: قص من الجهة اليمنى`).toBeLessThanOrEqual(layout.viewportWidth + 2);
+      expect(rect.width, `${viewport.name}: عرض الكرت غير صالح`).toBeGreaterThan(100);
+      expect(rect.height, `${viewport.name}: ارتفاع الكرت غير صالح`).toBeGreaterThan(100);
+    }
+  });
+}

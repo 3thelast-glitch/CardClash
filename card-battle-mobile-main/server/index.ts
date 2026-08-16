@@ -51,7 +51,7 @@ const httpServer = http.createServer((req, res) => {
 
 // ─── WebSocket Multiplayer Server ─────────────────────────────────────────────
 
-const { wsServer } = initializeMultiplayer(httpServer);
+initializeMultiplayer(httpServer);
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 

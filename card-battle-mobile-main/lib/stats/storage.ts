@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PlayerStats, DEFAULT_STATS, MatchHistory, ElementStats } from './types';
+import { PlayerStats, DEFAULT_STATS, MatchHistory } from './types';
 
 const STATS_KEY = '@card_battle_stats';
 

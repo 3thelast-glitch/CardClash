@@ -11,8 +11,6 @@ import Animated, {
   withSequence,
   withTiming,
   withSpring,
-  FadeIn,
-  FadeOut,
 } from 'react-native-reanimated';
 
 export function ExplosionEffect() {
@@ -28,7 +26,7 @@ export function ExplosionEffect() {
       withTiming(1, { duration: 100 }),
       withTiming(0, { duration: 500 })
     );
-  }, []);
+  }, [scale, opacity]);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],

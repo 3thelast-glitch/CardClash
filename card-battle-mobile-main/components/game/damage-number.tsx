@@ -5,7 +5,7 @@
  * Red for damage, green for healing, gold for critical.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import Animated, {
     useSharedValue,

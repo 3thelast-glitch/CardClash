@@ -40,7 +40,7 @@ function PulsingDot({ connected }: { connected: boolean }) {
 
 export default function MultiplayerWaitingScreen() {
   const router = useRouter();
-  const { state, setPlayerReady, leaveRoom } = useMultiplayer();
+  const { state, leaveRoom } = useMultiplayer();
 
   // When opponent joins + status becomes 'playing' → go to card selection
   useEffect(() => {

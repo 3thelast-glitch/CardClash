@@ -12,8 +12,8 @@ import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-
 import { RotateHintScreen } from '@/components/game/RotateHintScreen';
 import { ALL_CARDS } from '@/lib/game/cards-data-exports';
 import {
-  Card, CardRarity, CardClass, Element, Race, Tag, Gender, RageModeData,
-  ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI, GENDER_COLORS,
+  Card, CardRarity, CardClass, Element, Race, Tag, RageModeData,
+  ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI,
 } from '@/lib/game/types';
 import { getRarityConfig, getRarityFromStars } from '@/lib/game/card-rarity';
 import { useLandscapeLayout, useCardSize, LAYOUT_PADDING } from '@/utils/layout';

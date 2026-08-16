@@ -6,7 +6,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculateElo, DEFAULT_ELO, MatchResult } from './elo';
 
 const MP_STATS_KEY = 'mp_stats';
-const ELO_KEY      = 'mp_elo';
 
 export interface MultiplayerStats {
   onlineWins:   number;

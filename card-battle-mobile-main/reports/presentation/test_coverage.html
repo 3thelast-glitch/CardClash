@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Kufi Arabic', sans-serif; }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background-color: #07111f;
+            color: #f8fafc;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            border: 1px solid rgba(248, 250, 252, 0.2);
+            overflow: hidden;
+        }
+        .text-zone {
+            grid-column: 1 / 8;
+            display: grid;
+            grid-template-rows: 1fr 200px;
+            border-left: 1px solid rgba(248, 250, 252, 0.2);
+        }
+        .content-block {
+            padding: 36px; /* reduced from 60 to lower vertical space */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 20px; /* reduced gap between points */
+        }
+        .point {
+            font-weight: 300;
+            font-size: 26px;
+            line-height: 1.6;
+            color: rgba(248, 250, 252, 0.9);
+            padding-right: 24px;
+            border-right: 3px solid #38bdf8;
+        }
+        .title-block {
+            padding: 40px 36px; /* keep top padding 40px, reduce horizontal space */
+            border-top: 1px solid rgba(248, 250, 252, 0.2);
+            display: flex;
+            align-items: flex-end;
+        }
+        .slide-title {
+            font-weight: 700;
+            font-size: 48px;
+            line-height: 1.2;
+        }
+        .visual-zone {
+            grid-column: 8 / 13;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 36px; /* reduced from 60 to lower vertical space */
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.05) 0%, transparent 100%);
+        }
+        .big-stat {
+            font-weight: 700;
+            font-size: 160px;
+            color: #38bdf8;
+            line-height: 1;
+        }
+        .stat-label {
+            font-weight: 300;
+            font-size: 32px;
+            color: rgba(248, 250, 252, 0.6);
+            margin-top: 20px;
+            text-align: center;
+        }
+        .stat-plus {
+            font-size: 60px;
+            color: #f8fafc;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="text-zone">
+            <div class="content-block">
+                <div class="point">تفعيل <strong>53 قدرة يدوية</strong> والتأكد من استهلاكها مرة واحدة في حالة اللعب.</div>
+                <div class="point">اختبار عقوبة <strong>Turin</strong> التلقائية: خسارة نصف الجولات الأولى إجبارياً.</div>
+                <div class="point">تغطية شاملة لتغيير البطاقات، النقاط، الإحصاءات، والتحكم المطلق بالنتائج.</div>
+                <div class="point">التحقق من الآثار الفورية والمؤجلة عبر الجولات اللاحقة لضمان استمرار الأثر.</div>
+            </div>
+            <div class="title-block">
+                <h2 class="slide-title">التغطية تربط كل قدرة بسلوك قابل للتحقق</h2>
+            </div>
+        </div>
+        <div class="visual-zone">
+            <div class="big-stat">53</div>
+            <div class="stat-label">قدرة يدوية</div>
+            <div class="stat-plus">+</div>
+            <div class="big-stat">1</div>
+            <div class="stat-label">قدرة تلقائية</div>
+        </div>
+    </div>
+</body>
+</html>

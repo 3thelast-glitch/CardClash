@@ -2,7 +2,7 @@
  * MultiplayerBattleScreen
  * معركة أونلاين — لاعب ضد لاعب عبر WebSocket
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
@@ -19,9 +19,8 @@ import { ElementEffect } from '@/components/game/element-effect';
 import { useBattleLayout } from '@/utils/layout';
 import { useOrientationTransition } from '@/utils/orientation-transition';
 import { mpClient, MPMessage } from '@/lib/multiplayer/websocket-client';
-import { useGame } from '@/lib/game/game-context';
 import { useSettings } from '@/lib/game/hooks/useSettings';
-import { COLOR, SPACE, RADIUS, FONT, SHADOW } from '@/components/ui/design-tokens';
+import { COLOR, SPACE, RADIUS, FONT } from '@/components/ui/design-tokens';
 
 type MPBattlePhase =
   | 'waiting_start'     // ننتظر BATTLE_START
@@ -56,8 +55,6 @@ export default function MultiplayerBattleScreen() {
     playerName: string;
     opponentName: string;
   }>();
-
-  const { currentPlayerCard } = useGame();
 
 
   // ─── State ──────────────────────────────────────────────────────────────────

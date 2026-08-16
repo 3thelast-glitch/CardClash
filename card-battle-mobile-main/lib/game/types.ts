@@ -165,6 +165,33 @@ export type AbilityType =
 
 export type Side = 'player' | 'bot';
 
+/** أسماء الإحصاءات التي يمكن لتأثير القدرة تعديلها. */
+export type EffectStat = 'attack' | 'defense' | 'all_stats';
+
+/** البيانات الاختيارية المشتركة التي تحملها القدرة أو التأثير. */
+export interface AbilityData {
+  amount?: number;
+  penaltyHp?: number;
+  rewardHp?: number;
+  appliesToRound?: number;
+  lossCount?: number;
+  penaltyRound?: number;
+  rounds?: number;
+  totalPenalty?: number;
+  double?: boolean;
+  element?: Element;
+  guessedAttack?: number;
+  multiplier?: number | boolean;
+  outcome?: 'player' | 'bot' | 'draw' | 'win' | 'loss';
+  predictions?: Record<number, 'player' | 'bot' | 'draw' | 'win' | 'loss'>;
+  round?: number;
+  roundIndex?: number;
+  selection?: CardClass | string;
+  stat?: EffectStat;
+  targetClass?: CardClass | string;
+  abilityType?: AbilityType;
+}
+
 export type EffectKind =
   | 'prediction'
   | 'protection'
@@ -208,7 +235,12 @@ export interface Effect {
   expiresAtRound?: number;
   charges?: number;
   priority: number;
-  data?: Record<string, unknown>;
+  data?: AbilityData;
+}
+
+/** تأثير الجولة بعد ربطه ببيانات قدرة typed بدلاً من Record أو any. */
+export interface RoundEffect extends Omit<Effect, 'data'> {
+  data?: AbilityData;
 }
 
 export interface ActiveEffect {

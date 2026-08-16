@@ -3,6 +3,7 @@ import {
     View, Text, StyleSheet, ImageBackground, TouchableOpacity, ScrollView,
 } from 'react-native';
 import { ThemedText } from '@/components/ui/ThemedText';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as LucideIcons from 'lucide-react-native';
 import Animated, {
     useSharedValue, useAnimatedStyle,
@@ -125,7 +126,7 @@ function ShimmerSweep({ color, cardWidth }: { color: string; cardWidth: number }
                 withTiming(-cardWidth, { duration: 0 }),
             ), -1,
         );
-    }, [cardWidth]);
+    }, [cardWidth, translateX]);
     const style = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
     return (
         <Animated.View style={[StyleSheet.absoluteFill, style, { overflow: 'hidden', zIndex: 8 }]}>
@@ -175,7 +176,7 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
                 withTiming(base, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
             ), -1, true,
         );
-    }, [localRarity]);
+    }, [localRarity, glowOpacity]);
 
     const animatedGlow = useAnimatedStyle(() => ({ shadowOpacity: glowOpacity.value }));
 
@@ -192,7 +193,7 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
     const iconCircleSize = Math.max(16, Math.round(22 * scaleFactor));
     const iconSize = Math.max(8, Math.round(12 * scaleFactor));
     const nameEnSize = Math.max(7, Math.round(10 * scaleFactor));
-    const nameArSize = Math.max(9, Math.round(Math.min(theme.titleSize, 15) * scaleFactor));
+    const nameArSize = Math.max(10, Math.round(Math.min(theme.titleSize + 1, 16) * scaleFactor));
     const dividerMargin = Math.max(2, Math.round(6 * scaleFactor));
     const descSize = Math.max(8, Math.round(9.5 * scaleFactor));
     const descLineHeight = Math.round(descSize * 1.35);
@@ -239,6 +240,12 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
                 <View style={[styles.artworkSection, { flex: artworkFlex }]}>
                     <ImageBackground source={imageSource} style={StyleSheet.absoluteFill} imageStyle={styles.artImage} resizeMode="cover">
                         <View style={[StyleSheet.absoluteFill, styles.blackOverlay]} />
+                        <LinearGradient
+                            pointerEvents="none"
+                            colors={['rgba(4,8,18,0.08)', 'rgba(4,8,18,0.02)', 'rgba(4,8,18,0.82)']}
+                            locations={[0, 0.48, 1]}
+                            style={StyleSheet.absoluteFill}
+                        />
                         {isLegendaryOrSpecial && <View style={[
                             styles.legendaryEdgeGlow,
                             { borderColor: theme.primary + '44' },
@@ -300,10 +307,12 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
                     }
                 ]}>
                     <Text style={[styles.nameEn, { fontSize: nameEnSize }]} numberOfLines={1}>{ability.nameEn}</Text>
-                    <Text style={[styles.nameAr, { textShadowColor: theme.glow, fontSize: nameArSize }]} numberOfLines={1}>
-                        {ability.nameAr}
-                    </Text>
-                    <View style={[styles.divider, { backgroundColor: theme.primary + '44', marginVertical: dividerMargin }]} />
+                    <View style={[styles.namePlate, { borderColor: theme.primary + '35', backgroundColor: theme.primary + '0D' }]}>
+                        <Text style={[styles.nameAr, { textShadowColor: theme.glow, fontSize: nameArSize }]} numberOfLines={1}>
+                            {ability.nameAr}
+                        </Text>
+                    </View>
+                    <View style={[styles.divider, { backgroundColor: theme.primary + '66', marginVertical: dividerMargin }]} />
                     
                     <ScrollView 
                         style={styles.descriptionScroll} 
@@ -381,7 +390,7 @@ const styles = StyleSheet.create({
     cardContainer:     { flex: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: '#090d16', flexDirection: 'column' },
     artworkSection:    { flex: 1.1, position: 'relative', overflow: 'hidden', backgroundColor: '#000' },
     artImage:          { borderTopLeftRadius: 18, borderTopRightRadius: 18 },
-    blackOverlay:      { backgroundColor: 'rgba(0,0,0,0.40)' },
+    blackOverlay:      { backgroundColor: 'rgba(0,0,0,0.22)' },
     legendaryEdgeGlow: { ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 12, elevation: 5 },
     shimmerStreak:     { position: 'absolute', top: 0, bottom: 0, width: 28, backgroundColor: 'rgba(255,255,255,0.04)', borderLeftWidth: 1, borderRightWidth: 1, transform: [{ skewX: '-18deg' }] },
     
@@ -401,15 +410,16 @@ const styles = StyleSheet.create({
     rarityBadge:       { position: 'absolute', top: 10, right: 10, zIndex: 20, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 1 },
     rarityText:        { fontSize: 7, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
     
-    infoSection:       { flex: 1, backgroundColor: 'rgba(10,15,30,0.92)', paddingVertical: 8, paddingHorizontal: 12, alignItems: 'center', borderTopWidth: 1 },
-    nameEn:            { color: '#cbd5e1', fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center', opacity: 0.8 },
-    nameAr:            { color: '#FFD700', fontWeight: '900', textAlign: 'center', marginTop: 1, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 6, letterSpacing: 0.5 },
+    infoSection:       { flex: 1, backgroundColor: 'rgba(5,10,22,0.97)', paddingVertical: 8, paddingHorizontal: 12, alignItems: 'center', borderTopWidth: 1 },
+    nameEn:            { color: '#e2e8f0', fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', textAlign: 'center', opacity: 0.9 },
+    namePlate:         { minWidth: '72%', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 7, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    nameAr:            { color: '#FFF4B8', fontWeight: '900', textAlign: 'center', marginTop: 1, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 7, letterSpacing: 0.5, writingDirection: 'rtl' },
     divider:           { width: 24, height: 1, borderRadius: 0.5, marginVertical: 6 },
     
     descriptionScroll: { flex: 1, width: '100%' },
     descriptionScrollContent: { alignItems: 'center', paddingBottom: 4 },
-    description:       { color: 'rgba(226,232,240,0.9)', fontSize: 9.5, fontWeight: '500', textAlign: 'center', lineHeight: 13, writingDirection: 'rtl' },
-    descriptionWarning:{ color: '#f87171', fontSize: 8.5, fontWeight: '600', textAlign: 'center', lineHeight: 12, marginTop: 4, writingDirection: 'rtl' },
+    description:       { color: '#f1f5f9', fontSize: 9.5, fontWeight: '600', textAlign: 'center', lineHeight: 13, writingDirection: 'rtl', textAlignVertical: 'center' },
+    descriptionWarning:{ color: '#fda4af', fontSize: 8.5, fontWeight: '700', textAlign: 'center', lineHeight: 12, marginTop: 4, writingDirection: 'rtl', textAlignVertical: 'center' },
     
     bottomBar:         { height: 38, flexDirection: 'row', alignItems: 'center', backgroundColor: '#060a12', borderTopWidth: 1, paddingHorizontal: 10, gap: 6 },
     iconCircle:        { width: 22, height: 22, borderRadius: 11, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },

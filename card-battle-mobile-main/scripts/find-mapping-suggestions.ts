@@ -91,7 +91,6 @@ function check() {
     for (const card of missingCards) {
         const rarity = card.rarity;
         const keysInRarity = unmappedKeys[rarity] || [];
-        const keysInRage = unmappedKeys['rage'] || [];
         
         const matches: string[] = [];
         const idLower = card.id.toLowerCase();

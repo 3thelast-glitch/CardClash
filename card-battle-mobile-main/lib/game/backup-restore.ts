@@ -5,7 +5,7 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { openDB, saveImage, loadImage } from './image-storage';
+import { saveImage, loadImage } from './image-storage';
 import { CARD_EDITS_KEY, DELETED_CARDS_KEY } from '@/app/screens/cards-gallery';
 import { CUSTOM_CARDS_KEY } from './custom-cards-store';
 import { getRageOverrides, saveRageOverride } from './rage-store';

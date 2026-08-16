@@ -7,7 +7,8 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -17,7 +18,6 @@ import Animated, {
     withSequence,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
 import { ANIM_DURATION } from '@/constants/animationConfig';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 
@@ -76,11 +76,11 @@ export function BattleResultOverlay({
     onPlayAgain,
     onHome,
 }: BattleResultOverlayProps) {
-    const { width, height } = useWindowDimensions();
+    const { height } = useWindowDimensions();
     const { settings } = useSettings();
 
-    // The strict 30% height banner
-    const bannerHeight = height * 0.3;
+    // حد أدنى آمن يمنع تزاحم النتيجة والأزرار في العرض الأفقي القصير.
+    const bannerHeight = Math.min(height * 0.62, Math.max(156, height * 0.3));
 
     // Calculate a safer scale factor so that elements shrink gracefully inside the 30% block
     // We base it roughly on a standard 300px height for optimal proportion
@@ -121,7 +121,7 @@ export function BattleResultOverlay({
             iconScale.value = 0;
             textOpacity.value = 0;
         }
-    }, [visible, winner, settings.animationsEnabled, settings.vibration]);
+    }, [visible, winner, settings.animationsEnabled, settings.vibration, opacity, scale, iconScale, textOpacity]);
 
     const containerStyle = useAnimatedStyle(() => ({
         opacity: opacity.value,
@@ -157,6 +157,14 @@ export function BattleResultOverlay({
                 },
                 cardStyle
             ]}>
+                <LinearGradient
+                    pointerEvents="none"
+                    colors={[cfg.bgColor, 'rgba(5,10,22,0.98)']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                />
+                <View style={[styles.resultAccent, { backgroundColor: cfg.color }]} />
                 <View style={styles.internalContainer}>
 
                     {/* Header Row (Icon + Title) */}
@@ -182,8 +190,8 @@ export function BattleResultOverlay({
                     {/* Points stats */}
                     {(playerScore !== undefined || botScore !== undefined) && (
                         <View style={{ alignItems: 'center', marginTop: 10 * scaleFactor }}>
-                            <Text style={{ color: '#94a3b8', fontSize: 13 * scaleFactor, letterSpacing: 1.5, marginBottom: 8 * scaleFactor, fontWeight: 'bold' }}>النقاط النهائية</Text>
-                            <Animated.View style={[styles.statsRow, textStyle, { paddingVertical: 8 * scaleFactor, paddingHorizontal: 16 * scaleFactor, gap: 16 * scaleFactor, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 12 }]}>
+                            <Text style={{ color: '#cbd5e1', fontSize: 13 * scaleFactor, letterSpacing: 1.5, marginBottom: 8 * scaleFactor, fontWeight: 'bold', writingDirection: 'rtl' }}>النقاط النهائية</Text>
+                            <Animated.View style={[styles.statsRow, textStyle, { paddingVertical: 8 * scaleFactor, paddingHorizontal: 16 * scaleFactor, gap: 16 * scaleFactor, backgroundColor: 'rgba(2,6,15,0.72)', borderColor: cfg.color + '33', borderRadius: 12 }]}>
                                 {playerScore !== undefined && (
                                     <View style={[styles.statItem, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
                                         <Text style={[styles.statLabel, { fontSize: 14 * scaleFactor }]}>أنت</Text>
@@ -254,6 +262,7 @@ const styles = StyleSheet.create({
         width: '90%',
         maxWidth: 400,
         borderRadius: 24,
+        overflow: 'hidden',
         borderWidth: 2,
         backgroundColor: 'rgba(15,15,15,0.95)',
         shadowColor: '#000',
@@ -261,6 +270,15 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.8,
         shadowRadius: 20,
         elevation: 20,
+    },
+    resultAccent: {
+        position: 'absolute',
+        top: 0,
+        left: '18%',
+        right: '18%',
+        height: 2,
+        borderBottomLeftRadius: 2,
+        borderBottomRightRadius: 2,
     },
     internalContainer: {
         flex: 1,
@@ -285,6 +303,7 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 15, // Glowing effect
         textAlign: 'center',
+        writingDirection: 'rtl',
     },
     statsRow: {
         flexDirection: 'row',
@@ -348,9 +367,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     homeBtn: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(255,255,255,0.08)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: 'rgba(255,255,255,0.24)',
     },
     homeBtnText: {
         color: '#fff',

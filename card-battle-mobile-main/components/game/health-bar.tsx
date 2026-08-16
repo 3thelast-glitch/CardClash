@@ -12,11 +12,10 @@ import Animated, {
     useAnimatedStyle,
     withTiming,
     withSequence,
-    withSpring,
     interpolateColor,
     Easing,
 } from 'react-native-reanimated';
-import { ANIMATION_TIMINGS, HP_BAR_COLORS, hpBarColor } from '@/constants/game-config';
+import { ANIMATION_TIMINGS, HP_BAR_COLORS } from '@/constants/game-config';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +43,8 @@ export function HealthBar({
     showLabel = true,
 }: HealthBarProps) {
     const fraction = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
+    const statusColor = fraction <= 0.3 ? HP_BAR_COLORS.low : fraction <= 0.6 ? HP_BAR_COLORS.half : HP_BAR_COLORS.full;
+    const isCritical = fraction > 0 && fraction <= 0.3;
 
     // Animated fill width (0 → width)
     const fillWidth = useSharedValue(fraction * width);
@@ -69,7 +70,7 @@ export function HealthBar({
             withTiming(0.6, { duration: 80 }),
             withTiming(0, { duration: 300 })
         );
-    }, [current, fraction, width]);
+    }, [current, fraction, width, colorProgress, fillWidth, pulseOpacity]);
 
     const fillStyle = useAnimatedStyle(() => {
         const bg = interpolateColor(
@@ -91,10 +92,19 @@ export function HealthBar({
     return (
         <View style={[styles.container, { width }]}>
             {showLabel && label && (
-                <Text style={styles.label}>{label}</Text>
+                <Text style={[styles.label, { color: statusColor }]}>{label}</Text>
             )}
 
-            <View style={[styles.track, { width, height, borderRadius: height / 2 }]}>
+            <View
+                accessibilityRole="progressbar"
+                accessibilityLabel={`${label ?? 'الصحة'}: ${current} من ${max}`}
+                accessibilityValue={{ min: 0, max, now: current }}
+                style={[
+                    styles.track,
+                    { width, height, borderRadius: height / 2, borderColor: statusColor + '88' },
+                    isCritical && styles.criticalTrack,
+                ]}
+            >
                 {/* Fill bar */}
                 <Animated.View
                     style={[
@@ -132,9 +142,8 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     label: {
-        color: '#9ca3af',
         fontSize: 10,
-        fontWeight: '600',
+        fontWeight: '800',
         marginBottom: 3,
         letterSpacing: 0.5,
     },
@@ -142,6 +151,17 @@ const styles = StyleSheet.create({
         backgroundColor: HP_BAR_COLORS.empty,
         overflow: 'hidden',
         position: 'relative',
+        borderWidth: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.35,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    criticalTrack: {
+        shadowOpacity: 0.7,
+        shadowRadius: 6,
+        elevation: 4,
     },
     fill: {
         position: 'absolute',
@@ -155,8 +175,8 @@ const styles = StyleSheet.create({
     },
     hpText: {
         color: '#fff',
-        fontWeight: '800',
-        opacity: 0.9,
+        fontWeight: '900',
+        opacity: 0.96,
         textShadowColor: 'rgba(0,0,0,0.6)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 2,

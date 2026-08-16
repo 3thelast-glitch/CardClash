@@ -18,7 +18,7 @@ import Animated, {
     interpolateColor,
     Easing,
 } from 'react-native-reanimated';
-import { ANIM_DURATION, HP_COLORS, hpColor } from '@/constants/animationConfig';
+import { ANIM_DURATION, HP_COLORS } from '@/constants/animationConfig';
 
 // ─── HP Bar ───────────────────────────────────────────────────────────────────
 

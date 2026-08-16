@@ -278,7 +278,7 @@ export function buildBotAbilityData(
   gameState: GameState,
   playerCard: Card,
 ): Record<string, unknown> {
-  const { roundResults, botDeck, currentRound, totalRounds } = gameState;
+  const { roundResults, currentRound, totalRounds } = gameState;
 
   if (abilityType === 'Recall' || abilityType === 'Revive' || abilityType === 'Merge') {
     if (!roundResults.length) return {};

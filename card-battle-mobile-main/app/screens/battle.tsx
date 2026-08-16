@@ -27,7 +27,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   View, TouchableOpacity, StyleSheet, Platform,
   Modal, ScrollView,
-  useWindowDimensions, Alert,
+  Alert,
 } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -37,7 +37,6 @@ import Animated, {
   useSharedValue, useAnimatedStyle,
   withTiming, withDelay, withSpring, withSequence,
 } from 'react-native-reanimated';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { StatusBar } from 'expo-status-bar';
@@ -48,8 +47,7 @@ import { BattleResultOverlay } from '@/components/game/BattleResultOverlay';
 import { useBattleLayout } from '@/utils/layout';
 import { useOrientationTransition } from '@/utils/orientation-transition';
 import { useGame } from '@/lib/game/game-context';
-import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass, AbilityType, ELEMENT_MULTIPLIER, RoundResult } from '@/lib/game/types';
-import { getElementAdvantage, applyElementalReactions } from '@/lib/game/cards-data-exports';
+import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass, AbilityType, RoundResult } from '@/lib/game/types';
 import { getAbilityNameAr, getAbilityNameOnly, getAbilityDescription } from '@/lib/game/ability-names';
 import { AbilityCard } from '@/components/game/ability-card';
 import { abilities as ALL_ABILITIES } from '@/data/abilities';
@@ -63,7 +61,7 @@ import {
   getUpcomingPredictionRounds, isPredictionComplete,
   getEffectiveStats,
 } from '@/lib/game/ui-helpers';
-import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
+import { COLOR, SPACE, RADIUS, FONT } from '@/components/ui/design-tokens';
 import {
   decideBotAbility, updateBotMemory, resetBotMemory,
 } from '@/lib/game/bot-ai';
@@ -312,7 +310,6 @@ export default function BattleScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const {
-    width,
     height,
     arenaPadding,
     arenaGap,
@@ -379,7 +376,6 @@ export default function BattleScreen() {
   const [activeDamageNumbers, setActiveDamageNumbers] = useState<{ id: string; side: 'player' | 'bot'; value: number; variant: DamageNumberVariant }[]>([]);
   // 🔥 Rage Mode
   const [rageEvent, setRageEvent] = useState<ReturnType<typeof buildRageTriggerEvent> | null>(null);
-  const [rageScoreBonus, setRageScoreBonus] = useState(0);
   const rageState = useRef(buildRageState());
 
   // ── Choice modal state ──
@@ -388,7 +384,7 @@ export default function BattleScreen() {
     title: string;
     options: { value: string; label: string }[];
     abilityType: string;
-    extraData?: any;
+    extraData?: unknown;
   }>({ visible: false, title: '', options: [], abilityType: '' });
 
   // ── Transition Lock & Timers ──
@@ -770,7 +766,6 @@ export default function BattleScreen() {
   const canRageNow = isExpectedLoss && !!currentPlayerCard && shouldTriggerRage(currentPlayerCard, rageState.current);
 
   const CHOICE_ABILITIES = ['Propaganda', 'AddElement', 'SwapClass', 'Dilemma', 'Recall', 'Revive', 'Arise', 'Disaster', 'Merge', 'Sniping', 'Subhan'];
-  const DIRECT_ABILITIES = ['CancelAbility', 'Trap', 'DoubleOrNothing', 'Sacrifice', 'Pool', 'Skip', 'AbsoluteDominance', 'InfinityLoop', 'PhantomBlade'];
 
   if (!displayPlayerCard || !displayBotCard) {
     return (<View style={S.root}><View style={S.loadWrap}><Text style={S.loadText}>جاري تحميل الساحة...</Text></View></View>);

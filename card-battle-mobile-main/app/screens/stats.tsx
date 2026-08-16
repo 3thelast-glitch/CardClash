@@ -9,7 +9,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { loadStats, resetStats } from '@/lib/stats/storage';
 import { PlayerStats } from '@/lib/stats/types';
-import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
+import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL } from '@/components/ui/design-tokens';
 
 const ELEMENT_META: Record<string, { color: string; emoji: string; label: string }> = {
   fire: { color: '#ef4444', emoji: '🔥', label: 'نار' },
@@ -51,13 +51,10 @@ export default function StatsScreen() {
   const isLandscape = width > height;
 
   const [stats, setStats] = useState<PlayerStats | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => { load(); }, []);
   const load = async () => {
-    setLoading(true);
     setStats(await loadStats());
-    setLoading(false);
   };
 
   const handleReset = () => {

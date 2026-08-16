@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import {
-  View, TouchableOpacity, StyleSheet,
+  View, StyleSheet,
   ScrollView, useWindowDimensions,
 } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';

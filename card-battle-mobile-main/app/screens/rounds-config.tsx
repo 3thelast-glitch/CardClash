@@ -124,7 +124,6 @@ export default function RoundsConfigScreen() {
 
   const [rounds, setRounds] = React.useState(5);
   const [withAbility, setWithAbility] = React.useState(true); // ✅ مفعّلة افتراضياً
-  const [settingsSent, setSettingsSent] = React.useState(false);
 
   useEffect(() => {
     if (!isMultiplayer || isHost || !pendingMatchSettings) return;
@@ -139,7 +138,6 @@ export default function RoundsConfigScreen() {
     setAbilitiesEnabled(withAbility);
     if (isMultiplayer && isHost && mp?.sendMatchSettings) {
       mp.sendMatchSettings({ rounds, withAbilities: withAbility, rarityWeights });
-      setSettingsSent(true);
     }
     router.push('/screens/leaderboard' as any);
   };

@@ -11,10 +11,8 @@ import {
   getOnSpawnMatchHealthBonus,
   getPostBattleMatchHealthBonus,
 } from './rage-engine';
-import { useEffectToast } from '../../components/game/EffectToast';
 import { useAbilityActivationOverlay } from '../../components/game/AbilityActivationOverlay';
-import { ABILITY_DETAILS, CATEGORY_CONFIG } from './ability-details';
-import { getAbilityNameOnly } from './ability-names';
+import { ABILITY_DETAILS } from './ability-details';
 
 // ─────────────────────────────────────────────────────────────────────────────────
 const initialState: GameState = {
@@ -1150,7 +1148,6 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [rarityWeights, setRarityWeights] = useState<RarityWeights>(DEFAULT_RARITY_WEIGHTS);
-  const { showToast } = useEffectToast();
   const { showAbilityCard } = useAbilityActivationOverlay();
 
   useEffect(() => {

@@ -4,7 +4,7 @@ import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
-import { COLOR, SPACE, RADIUS, FONT, SHADOW, GLASS_PANEL, FONT_FAMILY } from '@/components/ui/design-tokens';
+import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL } from '@/components/ui/design-tokens';
 
 const MODES = [
   {

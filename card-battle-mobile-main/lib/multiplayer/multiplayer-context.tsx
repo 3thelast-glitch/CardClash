@@ -4,13 +4,6 @@ import { mpClient, MPMessage } from './websocket-client';
 import { Card } from '../game/types';
 import { DEFAULT_RANKED_PROFILE, loadRankedProfile, recordRankedResult, type RankedProfile } from './ranked-profile';
 
-// ── URL ───────────────────────────────────────────────────────────────────
-// يقرأ من .env — EXPO_PUBLIC_MP_SERVER_URL
-// نفس المتغير المستخدم في websocket-client.ts
-const SERVER_URL =
-  process.env.EXPO_PUBLIC_MP_SERVER_URL ??
-  'ws://localhost:3001/multiplayer';
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface RoundResult {

@@ -110,7 +110,7 @@ interface CardRound { card: Card; round: number | null; }
 // ───────────────────────────────────────────────────────────────────────
 export default function CardSelectionScreen() {
   const router = useRouter();
-  const { width, height, isLandscape, size } = useLandscapeLayout();
+  const { width, height, size } = useLandscapeLayout();
 
   // Dynamic scaling parameters for the abilities modal in card selection:
   const selModalH = height * 0.95 - 100;
@@ -164,7 +164,7 @@ export default function CardSelectionScreen() {
     if (mp?.state?.status === 'playing') {
       router.push('/screens/battle' as any);
     }
-  }, [mp?.state?.status, isMultiplayer]);
+  }, [mp?.state?.status, isMultiplayer, router]);
 
   const handleRoundSelect = (round: number) => {
     if (focusedCardIndex !== null) {
@@ -371,14 +371,26 @@ export default function CardSelectionScreen() {
       {/* Modal: القدرات */}
       <Modal visible={isAbilitiesModalOpen} transparent animationType="fade" onRequestClose={() => setIsAbilitiesModalOpen(false)}>
         <TouchableOpacity style={styles.abilitiesModalOverlay} activeOpacity={1} onPress={() => setIsAbilitiesModalOpen(false)}>
-          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[styles.abilitiesModalContent, { padding: modalPadding }]}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={e => e.stopPropagation()}
+            style={[styles.abilitiesModalContent, { padding: modalPadding, maxHeight: Math.max(260, height * 0.88) }]}
+          >
             <View style={[styles.abilitiesModalHeader, { marginBottom: modalHeaderMargin }]}>
-              <Text style={styles.abilitiesModalTitle}>قدراتك لهذه الجلسة ⚡</Text>
+              <Text style={styles.abilitiesModalTitle} numberOfLines={1}>قدراتك لهذه الجلسة ⚡</Text>
               <TouchableOpacity onPress={() => setIsAbilitiesModalOpen(false)} style={{ padding: 4 }}>
                 <Text style={{ color: '#94a3b8', fontSize: 20 }}>✕</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: modalGap, paddingHorizontal: 8, paddingVertical: 8 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="fast"
+              contentContainerStyle={[
+                styles.abilitiesModalRail,
+                { gap: modalGap, paddingHorizontal: Math.max(4, modalPadding / 2), paddingVertical: Math.max(6, modalPadding / 2) },
+              ]}
+            >
               {assignedAbilities.length > 0 ? (
                 assignedAbilities.map((abilityType, index) => {
                   const data = resolveAbilityData(abilityType);
@@ -467,8 +479,9 @@ const styles = StyleSheet.create({
   focusRoundText: { color: '#e2e8f0', fontSize: 14, fontWeight: '700' },
   focusRoundTextUsed: { color: '#f87171' },
   focusModalRightCol: { alignItems: 'center' },
-  abilitiesModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
-  abilitiesModalContent: { width: '90%', maxWidth: 700, backgroundColor: 'rgba(10,15,30,0.97)', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: 'rgba(51,65,85,0.8)' },
-  abilitiesModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  abilitiesModalTitle: { fontSize: 16, fontWeight: '800', color: '#f8fafc' },
+  abilitiesModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
+  abilitiesModalContent: { width: '90%', maxWidth: 700, backgroundColor: 'rgba(5,10,22,0.98)', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: 'rgba(168,85,247,0.38)', shadowColor: '#7c3aed', shadowOpacity: 0.3, shadowRadius: 20, shadowOffset: { width: 0, height: 0 }, elevation: 12 },
+  abilitiesModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(168,85,247,0.2)', gap: 12 },
+  abilitiesModalTitle: { flex: 1, fontSize: 16, fontWeight: '800', color: '#f8fafc', writingDirection: 'rtl', textAlign: 'right' },
+  abilitiesModalRail: { alignItems: 'center' },
 });
