@@ -2,32 +2,28 @@
  * useBattleSound
  * ─────────────────────────────────────────────────────────────────────────
  * Hook يُدير أصوات المعركة باستخدام expo-av.
- * - يحمّل الأصوات مسبقاً عند mount.
+ * - يحمّل الأصوات المحلية مسبقاً عند mount حتى تعمل دون اتصال.
  * - يحترم إعداد soundEnabled من GameSettings.
  * - يُنظّف (unload) الأصوات عند unmount تلقائياً.
- *
- * ⚠️ PLACEHOLDER: الأصوات مؤقتة من CDN مجاني (Freesound / Pixabay).
- *    استبدلها بملفات حقيقية في assets/sounds/ عند الجهوزية.
  *
  * الاستخدام:
  *   const sound = useBattleSound(settings.soundEnabled);
  *   sound.playAttack();
  */
 import { useEffect, useRef, useCallback } from 'react';
-import { Audio } from 'expo-av';
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 
-// ── Placeholder: أصوات مجانية مؤقتة من CDN ─────────────────────────────────
-// عند توفر ملفات حقيقية: غيّر القيم إلى require('@/assets/sounds/xxx.mp3')
-const SOUND_URIS: Record<string, string> = {
-  attack:    'https://cdn.pixabay.com/download/audio/2022/03/10/audio_8cb749fb02.mp3',   // sword hit
-  win:       'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3',   // victory fanfare
-  loss:      'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3',   // defeat
-  ability:   'https://cdn.pixabay.com/download/audio/2022/03/15/audio_8b55735bf2.mp3',   // magic spell
-  nextRound: 'https://cdn.pixabay.com/download/audio/2021/08/09/audio_dc80ad8b84.mp3',   // short chime
-  draw:      'https://cdn.pixabay.com/download/audio/2022/01/27/audio_d0ef1f0562.mp3',   // neutral tone
+// مؤثرات محلية مضمنة في التطبيق. تجنب روابط CDN المتغيرة أو المحجوبة على Android.
+const SOUND_FILES = {
+  attack: require('../../../assets/sounds/attack.mp3'),
+  win: require('../../../assets/sounds/win.mp3'),
+  loss: require('../../../assets/sounds/loss.mp3'),
+  ability: require('../../../assets/sounds/ability.mp3'),
+  nextRound: require('../../../assets/sounds/next-round.mp3'),
+  draw: require('../../../assets/sounds/draw.mp3'),
 };
 
-type SoundKey = keyof typeof SOUND_URIS;
+type SoundKey = keyof typeof SOUND_FILES;
 
 export function useBattleSound(enabled: boolean) {
   const sounds = useRef<Partial<Record<SoundKey, Audio.Sound>>>({});
@@ -43,23 +39,27 @@ export function useBattleSound(enabled: boolean) {
         await Audio.setAudioModeAsync({
           playsInSilentModeIOS: true,
           staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+          interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
         });
 
-        for (const [key, uri] of Object.entries(SOUND_URIS)) {
+        for (const key of Object.keys(SOUND_FILES) as SoundKey[]) {
           if (cancelled) break;
           try {
             const { sound } = await Audio.Sound.createAsync(
-              { uri },
-              { shouldPlay: false, volume: 0.7 }
+              SOUND_FILES[key],
+              { shouldPlay: false, volume: 0.72, progressUpdateIntervalMillis: 500 }
             );
-            sounds.current[key as SoundKey] = sound;
+            sounds.current[key] = sound;
           } catch {
-            // تجاهل خطأ صامت لكل صوت
+            // يستمر تحميل بقية المؤثرات حتى لو تعذر ملف منفرد.
           }
         }
-        if (!cancelled) loaded.current = true;
+        if (!cancelled) loaded.current = Object.keys(sounds.current).length > 0;
       } catch {
-        // expo-av غير متاح (web أو بيئة بدون صوت)
+        // يبقى اللعب صالحاً في بيئة لا تدعم الصوت.
       }
     };
 
@@ -78,6 +78,8 @@ export function useBattleSound(enabled: boolean) {
     try {
       const s = sounds.current[key];
       if (!s) return;
+      const status = await s.getStatusAsync();
+      if (status.isLoaded && status.isPlaying) await s.stopAsync();
       await s.setPositionAsync(0);
       await s.playAsync();
     } catch {
