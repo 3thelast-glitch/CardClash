@@ -874,6 +874,8 @@ export default function BattleScreen() {
                 <LuxuryCharacterCardAnimated
                   card={displayPlayerCard}
                   style={{ width: cardWidth, height: cardHeight }}
+                  isOpenedView
+                  playAudio={settings.soundEnabled}
                   effectiveAttack={playerEffective.attack}
                   effectiveDefense={playerEffective.defense}
                   winnerState={
