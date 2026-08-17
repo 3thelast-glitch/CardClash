@@ -87,12 +87,12 @@ export function useBattleSound(enabled: boolean) {
     }
   }, [enabled]);
 
-  return {
-    playAttack:    () => play('attack'),
-    playWin:       () => play('win'),
-    playLoss:      () => play('loss'),
-    playAbility:   () => play('ability'),
-    playNextRound: () => play('nextRound'),
-    playDraw:      () => play('draw'),
-  };
+  const playAttack = useCallback(() => { void play('attack'); }, [play]);
+  const playWin = useCallback(() => { void play('win'); }, [play]);
+  const playLoss = useCallback(() => { void play('loss'); }, [play]);
+  const playAbility = useCallback(() => { void play('ability'); }, [play]);
+  const playNextRound = useCallback(() => { void play('nextRound'); }, [play]);
+  const playDraw = useCallback(() => { void play('draw'); }, [play]);
+
+  return { playAttack, playWin, playLoss, playAbility, playNextRound, playDraw };
 }

@@ -69,6 +69,7 @@ import { getCardsWithEdits } from '@/lib/game/useCards';
 import type { DifficultyLevel } from '@/app/screens/difficulty';
 // ✅ Step 1: settings hook + timings
 import { useSettings, BATTLE_TIMINGS } from '@/lib/game/hooks/useSettings';
+import { useSFX } from '@/hooks/use-sfx';
 // 🔥 Rage Mode
 import { shouldTriggerRage, applyRageToCard, buildRageTriggerEvent, buildRageState } from '@/lib/game/rage-engine';
 import { RageModeOverlay } from '@/components/game/rage-mode-overlay';
@@ -335,6 +336,7 @@ export default function BattleScreen() {
 
   // ✅ Step 1: تهيئة الـ hook — جاهز للربط في الخطوات القادمة
   const { settings } = useSettings();
+  const { playAttack, playAbility, playDraw, playLoss, playNextRound, playWin } = useSFX(settings.soundEnabled);
   const { animatedStyle: orientationStyle, layoutTransition } = useOrientationTransition(
     isLandscape,
     settings.animationsEnabled,
@@ -490,8 +492,9 @@ export default function BattleScreen() {
 
     if (decision.useAbility && decision.abilityType) {
       activateAbility(decision.abilityType, decision.abilityData ?? {}, false);
+      playAbility();
     }
-  }, [currentPlayerCard, state, activateAbility]);
+  }, [currentPlayerCard, state, activateAbility, playAbility]);
 
   // 🔥 Rage Mode: تحديث الكرت الحالي في الملعب قبل الهجوم
   const handleRageActivate = useCallback((rageCard: any) => {
@@ -510,6 +513,7 @@ export default function BattleScreen() {
 
     try {
       hapticImpact(Haptics.ImpactFeedbackStyle.Heavy);
+      playAttack();
       flashAnim.value = withSequence(withTiming(0.35, { duration: 60 }), withTiming(0, { duration: 300 }));
       setPhase('combat');
       setShowPlayerEffect(true);
@@ -532,17 +536,18 @@ export default function BattleScreen() {
         isTransitioning.current = false;
       }, BATTLE_TIMINGS.combatDuration) as unknown as NodeJS.Timeout;
     }
-  }, [playRound, runBotAbility, hapticImpact]);
+  }, [playRound, runBotAbility, hapticImpact, playAttack]);
 
   const handleNextRound = useCallback(() => {
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
+    playNextRound();
     if (isGameOver) {
       router.push('/screens/battle-results' as any);
     } else {
       setPhase('selection');
       nextRound();
     }
-  }, [isGameOver, router, nextRound, hapticImpact]);
+  }, [isGameOver, router, nextRound, hapticImpact, playNextRound]);
 
   const handleEndBattle = useCallback(() => {
     hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
@@ -554,16 +559,18 @@ export default function BattleScreen() {
 
   const handleConfirmPrediction = useCallback(() => {
     activateAbility(predictionAbilityType, { predictions: predictionSelections });
+    playAbility();
     setShowPredictionModal(false); setPredictionSelections({});
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-  }, [predictionAbilityType, predictionSelections, activateAbility, hapticImpact]);
+  }, [predictionAbilityType, predictionSelections, activateAbility, hapticImpact, playAbility]);
 
   const handleConfirmPopularity = useCallback(() => {
     if (selectedPopularityRound === null) return;
     activateAbility(popularityAbilityType, { round: selectedPopularityRound });
+    playAbility();
     setShowPopularityModal(false); setSelectedPopularityRound(null);
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-  }, [popularityAbilityType, selectedPopularityRound, activateAbility, hapticImpact]);
+  }, [popularityAbilityType, selectedPopularityRound, activateAbility, hapticImpact, playAbility]);
 
   // ── Choice modal handlers ────────────────────────────────────────────────
   const openChoiceModal = useCallback((abilityType: string) => {
@@ -644,7 +651,8 @@ export default function BattleScreen() {
 
     setIsAbilitiesModalOpen(false);
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-  }, [choiceModal, activateAbility, hapticImpact]);
+    playAbility();
+  }, [choiceModal, activateAbility, hapticImpact, playAbility]);
 
   // ── تحديث ذاكرة البوت بعد كل جولة ──────────────────────────────────────
   useEffect(() => {
@@ -694,6 +702,10 @@ export default function BattleScreen() {
       console.error('Error processing round result:', error);
       isTransitioning.current = false;
     } finally {
+      if (lastRoundResult.winner === 'player') playWin();
+      else if (lastRoundResult.winner === 'bot') playLoss();
+      else playDraw();
+
       if (isGameOver) {
         if (lastRoundResult.winner === 'player') hapticNotification(Haptics.NotificationFeedbackType.Success);
         else if (lastRoundResult.winner === 'bot') hapticNotification(Haptics.NotificationFeedbackType.Error);
@@ -709,7 +721,7 @@ export default function BattleScreen() {
         }, BATTLE_TIMINGS.autoNextRound) as unknown as NodeJS.Timeout;
       }
     }
-  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers]);
+  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers, playDraw, playLoss, playWin]);
 
   const spawnDmg = useCallback((side: 'player' | 'bot', value: number, variant: DamageNumberVariant) => {
     const id = `${Date.now()}-${Math.random()}`;
