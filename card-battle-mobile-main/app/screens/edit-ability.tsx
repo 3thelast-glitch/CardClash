@@ -4,8 +4,8 @@
  */
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, ScrollView, TouchableOpacity,
-  StyleSheet, Alert, Platform, KeyboardAvoidingView, Image,
+    View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, Alert, Platform, KeyboardAvoidingView, Image, Clipboard,
+
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,6 +13,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Save, Check } from 'lucide-react-native';
 import * as LucideIcons from 'lucide-react-native';
 import { Rarity } from '@/data/abilities';
+import { ALL_ABILITIES } from '@/lib/game/abilities';
+import { generateCustomAbilityCode, saveCustomAbility, type CustomAbilityJson } from '@/lib/game/custom-content-store';
 
 // ─── Rarity config ───
 const RARITIES: { id: Rarity; labelAr: string; color: string }[] = [
@@ -25,6 +27,11 @@ const RARITIES: { id: Rarity; labelAr: string; color: string }[] = [
 
 const RARITY_STARS: Record<Rarity, number> = {
   Common: 1, Rare: 2, Epic: 3, Legendary: 4, Special: 4,
+};
+
+const RUNTIME_ABILITY_LABELS: Partial<Record<string, string>> = {
+  LogicalEncounter: 'مصادفة منطقية', Recall: 'استدعاء', Protection: 'حماية', Reduction: 'تقليص',
+  Shield: 'درع', Explosion: 'انفجار', DoublePoints: 'مضاعفة النقاط', AbsoluteDominance: 'سيطرة مطلقة',
 };
 
 // ─── Ability icons ───
@@ -184,6 +191,8 @@ export default function EditAbilityScreen() {
   const [iconKey,     setIconKey]     = useState('Zap');
   const [mediaUri,    setMediaUri]    = useState<string | null>(null);
   const [iconsOpen,   setIconsOpen]   = useState(false);
+  const [runtimeType, setRuntimeType] = useState<string>(params.runtimeType ?? 'LogicalEncounter');
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
   const isEditing = !!params.abilityId;
   const sel       = RARITIES.find(r => r.id === rarity)!;
@@ -194,17 +203,58 @@ export default function EditAbilityScreen() {
     if (res) setMediaUri(res.uri);
   };
 
-  const handleSave = () => {
-    if (!nameAr.trim() && !nameEn.trim()) {
-      Alert.alert('تنبيه', 'أدخل اسم القدرة على الأقل.');
+  const handleSave = async () => {
+    if (!nameAr.trim() || !nameEn.trim() || !description.trim()) {
+      Alert.alert('تنبيه', 'أدخل الاسم العربي والإنجليزي ووصف القدرة.');
       return;
     }
-    Alert.alert(
-      isEditing ? 'تم التعديل ✅' : 'تم الحفظ ✅',
-      `"${nameAr || nameEn}" — ${sel.labelAr}`,
-    );
-    navigation.goBack();
+    const ability: CustomAbilityJson = {
+      id: String(params.abilityId || nameEn.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')),
+      nameEn: nameEn.trim(),
+      nameAr: nameAr.trim(),
+      description: description.trim(),
+      descriptionWarning: warning.trim() || undefined,
+      rarity,
+      iconKey,
+      runtimeType: runtimeType as CustomAbilityJson['runtimeType'],
+      isActive: true,
+      imageUrl: mediaUri ?? undefined,
+    };
+    try {
+      await saveCustomAbility(ability);
+      setGeneratedCode(generateCustomAbilityCode(ability));
+    } catch {
+      Alert.alert('تعذر الحفظ', 'راجع بيانات القدرة ونوع التنفيذ المختار.');
+    }
   };
+
+  const copyCode = () => {
+    if (!generatedCode) return;
+    Clipboard.setString(generatedCode);
+    Alert.alert('تم النسخ', 'تم نسخ كود TypeScript.');
+  };
+
+  if (generatedCode) {
+    return (
+      <SafeAreaView style={S.root}>
+        <LinearGradient colors={['#060610', '#0f172a']} style={StyleSheet.absoluteFill} />
+        <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 60 }}>
+          <Text style={S.pageTitle}>✅ تم حفظ القدرة</Text>
+          <Text style={S.subtitle}>ستظهر في مكتبة القدرات بعد إعادة فتح الشاشة.</Text>
+          <View style={S.codeBox}><Text style={S.codeTxt} selectable>{generatedCode}</Text></View>
+          <TouchableOpacity style={[S.saveBtn, { backgroundColor: sel.color }]} onPress={copyCode}>
+            <Text style={S.saveBtnTxt}>📋 نسخ كود TypeScript</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={S.outlineBtn} onPress={() => setGeneratedCode(null)}>
+            <Text style={S.outlineTxt}>➕ إضافة قدرة أخرى</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={S.outlineBtn} onPress={() => navigation.goBack()}>
+            <Text style={S.outlineTxt}>← رجوع إلى مكتبة القدرات</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={S.root}>
@@ -280,6 +330,13 @@ export default function EditAbilityScreen() {
             <Text style={S.secLabel}>القدرة الخاصة (اختياري)</Text>
             <TextInput style={[S.input, S.multiline, { borderColor: sel.color + '33' }]} placeholder="اكتب وصف القدرة..." placeholderTextColor="#444" multiline value={description} onChangeText={setDescription} textAlign="right" />
 
+            <Text style={S.secLabel}>⚙️ آلية التنفيذ داخل اللعبة</Text>
+            <View style={S.runtimeGrid}>
+              {ALL_ABILITIES.map(type => (
+                <Chip key={type} label={RUNTIME_ABILITY_LABELS[type] ?? type} selected={runtimeType === type} color={sel.color} onPress={() => setRuntimeType(type)} />
+              ))}
+            </View>
+
             <Text style={S.secLabel}>⚠️ تحذير (اختياري)</Text>
             <TextInput style={[S.input, { borderColor: '#ef444433' }]} placeholder="تحذير أو ملاحظة..." placeholderTextColor="#444" value={warning} onChangeText={setWarning} textAlign="right" />
 
@@ -302,6 +359,7 @@ const S = StyleSheet.create({
   backTxt:          { color: '#6B7280', fontSize: 13, fontWeight: '700' },
   pageTitle:        { color: '#FFD700', fontSize: 18, fontWeight: '900', textAlign: 'center', flex: 1 },
   columns:          { flex: 1, flexDirection: 'row' },
+  subtitle:         { color: '#94A3B8', fontSize: 12, textAlign: 'center', marginBottom: 16 },
   leftCol:          { width: 200, paddingHorizontal: 12, paddingTop: 16, alignItems: 'center', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.06)' },
   rightCol:         { flex: 1, paddingHorizontal: 14, paddingTop: 12 },
   mediaRow:         { flexDirection: 'row', gap: 6, marginTop: 12, marginBottom: 4 },
@@ -318,6 +376,11 @@ const S = StyleSheet.create({
   iconHeaderTitle:  { color: '#E2E8F0', fontSize: 13, fontWeight: '800' },
   iconHeaderChevron:{ color: '#6B7280', fontSize: 12, fontWeight: '700' },
   iconsGrid:        { flexDirection: 'row', flexWrap: 'wrap', paddingVertical: 6 },
+  runtimeGrid:      { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  codeBox:          { backgroundColor: '#0d1117', borderRadius: 10, padding: 16, marginVertical: 16, borderWidth: 1, borderColor: '#1F2937' },
+  codeTxt:          { color: '#7DD3FC', fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', lineHeight: 20 },
+  outlineBtn:       { borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: 'rgba(148,163,184,0.35)' },
+  outlineTxt:       { color: '#CBD5E1', fontWeight: '800', fontSize: 14 },
   saveBtn:          { marginTop: 20, borderRadius: 12, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   saveBtnTxt:       { color: '#000', fontWeight: '900', fontSize: 15 },
 });

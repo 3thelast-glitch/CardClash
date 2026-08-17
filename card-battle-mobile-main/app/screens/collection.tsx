@@ -20,8 +20,16 @@ const COLLECTION_CATEGORIES = [
     icon: '⚡',
     title: 'القدرات',
     subtitle: 'استعرض قدرات البطاقات والمهارات',
-    route: '/screens/abilities' as const, // Placeholder or actual route if created later
-    accentColor: '#D946EF', // Magenta
+    route: '/screens/abilities' as const,
+    accentColor: '#D946EF',
+  },
+  {
+    id: 'content-admin',
+    icon: '🛠️',
+    title: 'إدارة المحتوى',
+    subtitle: 'أضف كروتاً وصدّر كود TypeScript',
+    route: '/screens/content-admin' as const,
+    accentColor: '#39E6D0',
   },
 ];
 

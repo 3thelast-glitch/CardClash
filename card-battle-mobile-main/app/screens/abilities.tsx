@@ -8,6 +8,8 @@ import { AbilityCard } from '@/components/game/ability-card';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Save, Plus, Pencil } from 'lucide-react-native';
 import * as AbilitiesData from '@/data/abilities';
+import type { Ability } from '@/data/abilities';
+import { loadCustomAbilities } from '@/lib/game/custom-content-store';
 import {
   getDisabledAbilityIds,
   saveDisabledAbilityIds,
@@ -35,9 +37,16 @@ export default function AbilitiesScreen() {
   const [saveText,    setSaveText]    = useState('حفظ التعديلات');
   const [saving,      setSaving]      = useState(false);
   const [disabledIds, setDisabledIds] = useState<Set<number>>(new Set());
+  const [customAbilities, setCustomAbilities] = useState<Ability[]>([]);
 
   useEffect(() => {
     let isActive = true;
+
+    void loadCustomAbilities().then(items => {
+      if (isActive) setCustomAbilities(items);
+    }).catch(() => {
+      if (isActive) setCustomAbilities([]);
+    });
 
     // لا نؤخر عرض الشبكة على التخزين: البيانات ثابتة ويمكن عرضها فوراً.
     // تُدمج تفضيلات التعطيل لاحقاً عندما يكون التخزين متاحاً.
@@ -68,10 +77,18 @@ export default function AbilitiesScreen() {
     return data.abilities || [];
   }, []);
 
+  const allAbilitiesWithCustom = useMemo(() => {
+    const merged = [...allAbilities, ...customAbilities];
+    return Object.values(merged.reduce<Record<number, Ability>>((acc, ability) => {
+      acc[ability.id] = ability;
+      return acc;
+    }, {}));
+  }, [allAbilities, customAbilities]);
+
   const filteredAbilities = useMemo(() => {
-    if (filter === 'All') return allAbilities;
-    return allAbilities.filter((a: any) => a.rarity === filter);
-  }, [allAbilities, filter]);
+    if (filter === 'All') return allAbilitiesWithCustom;
+    return allAbilitiesWithCustom.filter((a: Ability) => a.rarity === filter);
+  }, [allAbilitiesWithCustom, filter]);
 
   const toggleCard = useCallback((id: number) => {
     setDisabledIds(prev => {

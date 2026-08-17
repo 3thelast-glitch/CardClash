@@ -133,6 +133,7 @@ export default function RootLayout() {
                 <Stack.Screen name="screens/collection" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/cards-gallery" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/abilities" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="screens/content-admin" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/edit-ability" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="screens/add-card" options={{ animation: 'slide_from_bottom' }} />
                 <Stack.Screen name="oauth/callback" />

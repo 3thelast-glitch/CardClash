@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Card } from './types';
 import { getRarityFromStars } from './card-rarity';
+import { loadCustomCardsFromJson } from './custom-content-store';
 
 export const CUSTOM_CARDS_KEY = 'custom_cards_v1';
 
@@ -23,8 +24,16 @@ export async function saveCustomCard(card: Card): Promise<void> {
 /** تحميل كل الكروت المخصصة */
 export async function loadCustomCards(): Promise<Card[]> {
   try {
-    const raw = await AsyncStorage.getItem(CUSTOM_CARDS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const [bundledCards, raw] = await Promise.all([
+      loadCustomCardsFromJson(),
+      AsyncStorage.getItem(CUSTOM_CARDS_KEY),
+    ]);
+    const storedCards: Card[] = raw ? JSON.parse(raw) : [];
+    const merged = [...bundledCards, ...storedCards];
+    return Object.values(merged.reduce<Record<string, Card>>((acc, card) => {
+      acc[card.id] = card;
+      return acc;
+    }, {}));
   } catch {
     return [];
   }
