@@ -1,0 +1,49 @@
+# Dependencies and local package-manager state
+node_modules/
+.pnpm-store/
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+package-lock.json
+yarn.lock
+
+# Expo and generated output
+.expo/
+dist/
+web-build/
+.cache/
+expo-env.d.ts
+
+# CNG-generated native projects and machine-specific SDK settings
+android/
+ios/
+**/local.properties
+.kotlin/
+
+# Local secrets and signing materials
+.env
+.env.*
+!.env.example
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Editor, system, temporary, and test artifacts
+.vscode/
+.idea/
+.history/
+.snapshots/
+*.swp
+*.swo
+*~
+*.log
+*.tsbuildinfo
+*.tgz
+*.tar.gz
+.DS_Store
+Thumbs.db
+test-results/
+reports/card-artwork-samples/
