@@ -8,7 +8,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Image, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Video, ResizeMode } from 'expo-av';
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS, Video, ResizeMode } from 'expo-av';
 import Animated, {
     useSharedValue, useAnimatedStyle, withRepeat, withTiming,
     withSequence, interpolate, Easing, withDelay, cancelAnimation,
@@ -32,7 +32,7 @@ interface Props {
     effectiveAttack?: number;
     /** القيمة الفعلية للدفاع بعد تطبيق التأثيرات (Buffs/Debuffs). إذا لم تُمرَّر يُستخدم card.defense */
     effectiveDefense?: number;
-    /** هل يتم تشغيل الصوت (للفيديو)؟ الافتراضي false */
+    /** يسمح بصوت الفيديو في معاينة البطاقة المفردة فقط؛ يظل صوت بطاقات المعركة المتعددة مكتوماً. */
     playAudio?: boolean;
     winnerState?: 'winner' | 'leading' | null;
 }
@@ -439,12 +439,12 @@ const CARD_IMAGE_FIT_OVERRIDES: Record<string, 'cover' | 'contain'> = {
     yonji: 'contain',
 };
 
-const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, imgStyle, playAudio, shouldAnimate }: {
+const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate }: {
     cardImage: ReturnType<typeof getCardImage>; videoAsset?: any; customUri?: string;
-    isCustomImage: boolean; imageFit: 'cover' | 'contain'; imgStyle: object; playAudio: boolean; shouldAnimate: boolean;
+    isCustomImage: boolean; imageFit: 'cover' | 'contain'; imgStyle: object; audioEnabled: boolean; shouldAnimate: boolean;
 }) => {
-    if (videoAsset) return <Video source={videoAsset} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!playAudio || !shouldAnimate} volume={1.0} useNativeControls={false} />;
-    if (customUri && isVideoUri(customUri)) return <Video source={{ uri: customUri }} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!playAudio || !shouldAnimate} volume={1.0} useNativeControls={false} />;
+    if (videoAsset) return <Video source={videoAsset} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.58 : 0} useNativeControls={false} />;
+    if (customUri && isVideoUri(customUri)) return <Video source={{ uri: customUri }} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.58 : 0} useNativeControls={false} />;
     const uri: string | undefined = cardImage && typeof cardImage === 'object' && 'uri' in cardImage ? (cardImage as any).uri : undefined;
     const animated = uri ? isAnimatedUri(uri) : false;
     const source = animated ? { uri, headers: {} } : (cardImage as any);
@@ -461,6 +461,20 @@ export function LuxuryCharacterCardAnimated({
     const { settings } = useSettings();
     // هذا الخيار يوقف الحركات المستمرة والفيديو المتكرر، وهي أعلى عناصر البطاقة كلفة على الأجهزة الضعيفة.
     const enableVisualEffects = settings.animationsEnabled;
+    // الصور المتحركة لا تملك مساراً صوتياً؛ أما الفيديو فيُسمع فقط عند فتح بطاقة واحدة.
+    const videoAudioEnabled = playAudio && isOpenedView && settings.soundEnabled && enableVisualEffects;
+
+    useEffect(() => {
+        if (!videoAudioEnabled) return;
+        Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+            interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+            interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        }).catch(() => {});
+    }, [videoAudioEnabled]);
     const rarity: CardRarity = card.rarity ?? 'common';
     const theme = RARITY_THEMES[rarity] ?? RARITY_THEMES.common;
     const hasAbility = !!card.specialAbility;
@@ -546,7 +560,7 @@ export function LuxuryCharacterCardAnimated({
             <View style={[styles.cardInner, { borderRadius: Math.round(12 * sc) }]}>
                 <LinearGradient colors={theme.bgColors} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
                 {rarity === 'special' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 1 }]} pointerEvents="none" />}
-                {(hasImage || hasVideo) && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imageFit={imageFit} imgStyle={imgStyle} playAudio={playAudio} shouldAnimate={enableVisualEffects} />}
+                {(hasImage || hasVideo) && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imageFit={imageFit} imgStyle={imgStyle} audioEnabled={videoAudioEnabled} shouldAnimate={enableVisualEffects} />}
 
                 <View style={styles.contentLayer}>
                     {enableVisualEffects && theme.hasFoil && <RarityShimmer cardW={cardW} foilDuration={theme.foilDuration} color={themeColor} />}
