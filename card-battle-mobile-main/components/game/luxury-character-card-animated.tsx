@@ -444,23 +444,42 @@ const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, 
     isCustomImage: boolean; imageFit: 'cover' | 'contain'; imgStyle: object; audioEnabled: boolean; shouldAnimate: boolean;
 }) => {
     const videoRef = useRef<Video>(null);
+    const previousAudioEnabled = useRef(audioEnabled);
     const hasVideo = !!videoAsset || !!(customUri && isVideoUri(customUri));
 
-    const syncVideoStatus = useCallback(() => {
+    const syncVideoStatus = useCallback(async (restartAudio = false) => {
         if (!hasVideo) return;
-        videoRef.current?.setStatusAsync({
+        if (audioEnabled) {
+            await Audio.setAudioModeAsync({
+                playsInSilentModeIOS: true,
+                staysActiveInBackground: false,
+                shouldDuckAndroid: true,
+                playThroughEarpieceAndroid: false,
+                interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+                interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+            });
+        }
+        const video = videoRef.current;
+        if (!video) return;
+        await video.setStatusAsync({
             shouldPlay: shouldAnimate,
             isMuted: !audioEnabled,
             volume: audioEnabled ? 0.82 : 0,
-        }).catch(() => {});
+        });
+        if (restartAudio && audioEnabled && shouldAnimate) {
+            await video.setPositionAsync(0);
+            await video.playAsync();
+        }
     }, [audioEnabled, hasVideo, shouldAnimate]);
 
     useEffect(() => {
-        syncVideoStatus();
+        const audioJustEnabled = audioEnabled && !previousAudioEnabled.current;
+        previousAudioEnabled.current = audioEnabled;
+        syncVideoStatus(audioJustEnabled).catch(() => {});
     }, [syncVideoStatus]);
 
-    if (videoAsset) return <Video ref={videoRef} source={videoAsset} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.82 : 0} onLoad={syncVideoStatus} useNativeControls={false} />;
-    if (customUri && isVideoUri(customUri)) return <Video ref={videoRef} source={{ uri: customUri }} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.82 : 0} onLoad={syncVideoStatus} useNativeControls={false} />;
+    if (videoAsset) return <Video ref={videoRef} source={videoAsset} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.82 : 0} onLoad={() => { void syncVideoStatus(audioEnabled); }} useNativeControls={false} />;
+    if (customUri && isVideoUri(customUri)) return <Video ref={videoRef} source={{ uri: customUri }} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.82 : 0} onLoad={() => { void syncVideoStatus(audioEnabled); }} useNativeControls={false} />;
     const uri: string | undefined = cardImage && typeof cardImage === 'object' && 'uri' in cardImage ? (cardImage as any).uri : undefined;
     const animated = uri ? isAnimatedUri(uri) : false;
     const source = animated ? { uri, headers: {} } : (cardImage as any);

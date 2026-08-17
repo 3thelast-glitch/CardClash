@@ -66,6 +66,7 @@ import {
   decideBotAbility, updateBotMemory, resetBotMemory,
 } from '@/lib/game/bot-ai';
 import { getCardsWithEdits } from '@/lib/game/useCards';
+import { getCardImage } from '@/lib/game/get-card-image';
 import type { DifficultyLevel } from '@/app/screens/difficulty';
 // ✅ Step 1: settings hook + timings
 import { useSettings, BATTLE_TIMINGS } from '@/lib/game/hooks/useSettings';
@@ -706,9 +707,20 @@ export default function BattleScreen() {
       console.error('Error processing round result:', error);
       isTransitioning.current = false;
     } finally {
-      if (lastRoundResult.winner === 'player') playWin();
-      else if (lastRoundResult.winner === 'bot') playLoss();
-      else playDraw();
+      const winnerCard = lastRoundResult.winner === 'player'
+        ? lastRoundResult.playerCard
+        : lastRoundResult.winner === 'bot'
+          ? lastRoundResult.botCard
+          : null;
+      // نترك صوت فيديو الفائز يتصدر النتيجة بدلاً من مزجه بمؤثر ربح/خسارة عام.
+      if (winnerCard) getCardImage(winnerCard);
+      const winnerHasVideo = settings.soundEnabled && Boolean((winnerCard as { videoUrl?: unknown } | null)?.videoUrl);
+
+      if (!winnerHasVideo) {
+        if (lastRoundResult.winner === 'player') playWin();
+        else if (lastRoundResult.winner === 'bot') playLoss();
+        else playDraw();
+      }
 
       if (isGameOver) {
         if (lastRoundResult.winner === 'player') hapticNotification(Haptics.NotificationFeedbackType.Success);
@@ -725,7 +737,7 @@ export default function BattleScreen() {
         }, BATTLE_TIMINGS.autoNextRound) as unknown as NodeJS.Timeout;
       }
     }
-  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers, playDraw, playLoss, playWin]);
+  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers, settings.soundEnabled, playDraw, playLoss, playWin]);
 
   const spawnDmg = useCallback((side: 'player' | 'bot', value: number, variant: DamageNumberVariant) => {
     const id = `${Date.now()}-${Math.random()}`;
