@@ -7,6 +7,8 @@ interface RoundInsightPanelProps {
   title: string;
   insights: RoundInsight[];
   testID?: string;
+  /** يحدّ من حجم المعاينة عندما توضع بين الكروت في ساحة عمودية ضيقة. */
+  compact?: boolean;
 }
 
 const toneColor: Record<RoundInsightTone, string> = {
@@ -16,24 +18,25 @@ const toneColor: Record<RoundInsightTone, string> = {
   accent: '#39E6D0',
 };
 
-export function RoundInsightPanel({ title, insights, testID }: RoundInsightPanelProps) {
+export function RoundInsightPanel({ title, insights, testID, compact = false }: RoundInsightPanelProps) {
   if (insights.length === 0) return null;
 
-  const accessibilityLabel = [title, ...insights.slice(0, 4).map((insight) => insight.text)].join('، ');
+  const visibleInsights = insights.slice(0, compact ? 2 : 4);
+  const accessibilityLabel = [title, ...visibleInsights.map((insight) => insight.text)].join('، ');
 
   return (
     <View
       testID={testID}
-      style={styles.panel}
+      style={[styles.panel, compact && styles.panelCompact]}
       accessible
       accessibilityLabel={accessibilityLabel}
       accessibilityLiveRegion="polite"
     >
-      <Text style={styles.title}>{title}</Text>
-      {insights.slice(0, 4).map((insight) => (
+      <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>
+      {visibleInsights.map((insight) => (
         <View key={insight.id} style={styles.row}>
           <View style={[styles.dot, { backgroundColor: toneColor[insight.tone] }]} />
-          <Text style={[styles.text, { color: toneColor[insight.tone] }]} numberOfLines={2}>
+          <Text style={[styles.text, compact && styles.textCompact, { color: toneColor[insight.tone] }]} numberOfLines={compact ? 1 : 2}>
             {insight.text}
           </Text>
         </View>
@@ -53,12 +56,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 4,
   },
+  panelCompact: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    gap: 3,
+  },
   title: {
     color: '#EAFBF7',
     fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',
   },
+  titleCompact: { fontSize: 10 },
   row: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
@@ -74,4 +83,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textAlign: 'right',
   },
+  textCompact: { fontSize: 9 },
 });

@@ -839,7 +839,7 @@ export default function BattleScreen() {
             </View>
           )}
 
-          {/* ══ ARENA — صف واسع أفقياً وعمود متوازن عمودياً ══ */}
+          {/* ══ ARENA — في الوضع العمودي: البوت ← الأوامر ← اللاعب ══ */}
           <Animated.View
             testID="battle-arena"
             layout={layoutTransition}
@@ -850,7 +850,7 @@ export default function BattleScreen() {
                 paddingHorizontal: arenaPadding,
                 paddingVertical: isLandscape ? 0 : Math.max(4, arenaGap / 2),
                 gap: arenaGap,
-                flexDirection: isLandscape ? 'row' : 'column',
+                flexDirection: isLandscape ? 'row' : 'column-reverse',
               },
             ]}
           >
@@ -889,7 +889,7 @@ export default function BattleScreen() {
               S.centerPanel,
               !isLandscape && S.centerPanelPortrait,
               {
-                width: centerWidth,
+                width: isLandscape ? centerWidth : Math.min(centerWidth, cardWidth + 32),
                 gap: Math.max(6, arenaGap),
               },
             ]}>
@@ -902,6 +902,7 @@ export default function BattleScreen() {
                   testID="round-preview"
                   title="🔎 معاينة الجولة"
                   insights={previewInsights}
+                  compact={!isLandscape}
                 />
               )}
 
@@ -925,6 +926,7 @@ export default function BattleScreen() {
                   testID="round-event-log"
                   title={`📝 أحداث الجولة ${lastRoundResult.round}`}
                   insights={lastRoundInsights}
+                  compact={!isLandscape}
                 />
               )}
 
@@ -1167,10 +1169,10 @@ const S = StyleSheet.create({
   arena: { flex: 1, gap: SPACE.sm },
   playerPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
   botPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
-  // الوضع العمودي يوزع البطاقات فوق وتحت شريط الأوامر.
+  // الوضع العمودي يوزع البوت أعلى شريط الأوامر واللاعب أسفله.
   panelPortrait: { minHeight: 0 },
   centerPanel: { width: 120, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
-  centerPanelPortrait: { minHeight: 76 },
+  centerPanelPortrait: { minHeight: 0, maxHeight: 178, flexGrow: 0, flexShrink: 1, gap: SPACE.xs },
   panelLabel: { color: 'rgba(191,250,242,0.72)', fontSize: FONT.xs, letterSpacing: 0.5 },
 
   vsText: { fontSize: 28, opacity: 0.85 },
