@@ -5,7 +5,7 @@
  * ✨ Element has NO visual effect on card colors — rarity theme only
  * ✨ StatBadge shows effective value with ▲/▼ diff indicator when buffs/debuffs active
  */
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Image, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS, Video, ResizeMode } from 'expo-av';
@@ -443,8 +443,24 @@ const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, 
     cardImage: ReturnType<typeof getCardImage>; videoAsset?: any; customUri?: string;
     isCustomImage: boolean; imageFit: 'cover' | 'contain'; imgStyle: object; audioEnabled: boolean; shouldAnimate: boolean;
 }) => {
-    if (videoAsset) return <Video source={videoAsset} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.58 : 0} useNativeControls={false} />;
-    if (customUri && isVideoUri(customUri)) return <Video source={{ uri: customUri }} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.58 : 0} useNativeControls={false} />;
+    const videoRef = useRef<Video>(null);
+    const hasVideo = !!videoAsset || !!(customUri && isVideoUri(customUri));
+
+    const syncVideoStatus = useCallback(() => {
+        if (!hasVideo) return;
+        videoRef.current?.setStatusAsync({
+            shouldPlay: shouldAnimate,
+            isMuted: !audioEnabled,
+            volume: audioEnabled ? 0.82 : 0,
+        }).catch(() => {});
+    }, [audioEnabled, hasVideo, shouldAnimate]);
+
+    useEffect(() => {
+        syncVideoStatus();
+    }, [syncVideoStatus]);
+
+    if (videoAsset) return <Video ref={videoRef} source={videoAsset} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.82 : 0} onLoad={syncVideoStatus} useNativeControls={false} />;
+    if (customUri && isVideoUri(customUri)) return <Video ref={videoRef} source={{ uri: customUri }} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.82 : 0} onLoad={syncVideoStatus} useNativeControls={false} />;
     const uri: string | undefined = cardImage && typeof cardImage === 'object' && 'uri' in cardImage ? (cardImage as any).uri : undefined;
     const animated = uri ? isAnimatedUri(uri) : false;
     const source = animated ? { uri, headers: {} } : (cardImage as any);

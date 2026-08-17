@@ -21,7 +21,7 @@ const toneColor: Record<RoundInsightTone, string> = {
 export function RoundInsightPanel({ title, insights, testID, compact = false }: RoundInsightPanelProps) {
   if (insights.length === 0) return null;
 
-  const visibleInsights = insights.slice(0, compact ? 2 : 4);
+  const visibleInsights = insights.slice(0, compact ? 1 : 4);
   const accessibilityLabel = [title, ...visibleInsights.map((insight) => insight.text)].join('، ');
 
   return (

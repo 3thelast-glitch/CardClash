@@ -333,6 +333,10 @@ export default function BattleScreen() {
   const modalGap = height < 400 ? 8 : 16;
   const modalTitleMargin = height < 400 ? 6 : 16;
   const modalCancelMargin = height < 400 ? 6 : 16;
+  const portraitCommandWidth = Math.min(cardWidth, 340);
+  const commandButtonWidth = isLandscape
+    ? actionButtonWidth
+    : Math.max(104, Math.floor((portraitCommandWidth - Math.max(8, arenaGap)) / 2));
 
   // ✅ Step 1: تهيئة الـ hook — جاهز للربط في الخطوات القادمة
   const { settings } = useSettings();
@@ -895,7 +899,7 @@ export default function BattleScreen() {
                 advantage={lastRoundResult?.playerElementAdvantage ?? 'neutral'}
                 element={displayPlayerCard.element}
               />
-              <ActiveEffectsBar effects={state.activeEffects} side="player" />
+              {isLandscape && <ActiveEffectsBar effects={state.activeEffects} side="player" />}
             </View>
 
             {/* CENTER PANEL */}
@@ -903,7 +907,7 @@ export default function BattleScreen() {
               S.centerPanel,
               !isLandscape && S.centerPanelPortrait,
               {
-                width: isLandscape ? centerWidth : Math.min(centerWidth, cardWidth + 32),
+                width: isLandscape ? centerWidth : portraitCommandWidth,
                 gap: Math.max(6, arenaGap),
               },
             ]}>
@@ -952,7 +956,7 @@ export default function BattleScreen() {
                 ]}>
                   {/* Ability button */}
                   <TouchableOpacity
-                    style={[S.abilityBtn, { width: actionButtonWidth, height: actionButtonHeight }, state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled]}
+                    style={[S.abilityBtn, { width: commandButtonWidth, height: actionButtonHeight }, state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled]}
                     onPress={() => setIsAbilitiesModalOpen(true)}
                     disabled={state.playerAbilities.every(a => a.used)}
                     activeOpacity={0.8}
@@ -961,13 +965,13 @@ export default function BattleScreen() {
                   </TouchableOpacity>
 
                   {/* Attack button */}
-                  <TouchableOpacity style={[S.attackBtn, { width: actionButtonWidth, height: actionButtonHeight }]} onPress={handleExecuteAttack} activeOpacity={0.85}>
+                  <TouchableOpacity style={[S.attackBtn, { width: commandButtonWidth, height: actionButtonHeight }]} onPress={handleExecuteAttack} activeOpacity={0.85}>
                     <Text style={S.attackBtnText}>⚔️ هجوم</Text>
                   </TouchableOpacity>
 
                   {canRageNow && (
                     <TouchableOpacity
-                      style={[S.rageBtn, { width: actionButtonWidth, height: actionButtonHeight }]}
+                      style={[S.rageBtn, { width: commandButtonWidth, height: actionButtonHeight }]}
                       onPress={() => {
                         const tempState = { activatedThisMatch: new Set(rageState.current.activatedThisMatch) };
                         const rageCard = applyRageToCard(currentPlayerCard!, tempState);
@@ -1021,7 +1025,7 @@ export default function BattleScreen() {
                 advantage={lastRoundResult?.botElementAdvantage ?? 'neutral'}
                 element={displayBotCard.element}
               />
-              <ActiveEffectsBar effects={state.activeEffects} side="bot" />
+              {isLandscape && <ActiveEffectsBar effects={state.activeEffects} side="bot" />}
             </View>
           </Animated.View>
         </View>
@@ -1186,7 +1190,7 @@ const S = StyleSheet.create({
   // الوضع العمودي يوزع البوت أعلى شريط الأوامر واللاعب أسفله.
   panelPortrait: { minHeight: 0 },
   centerPanel: { width: 120, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
-  centerPanelPortrait: { minHeight: 0, maxHeight: 178, flexGrow: 0, flexShrink: 1, gap: SPACE.xs },
+  centerPanelPortrait: { minHeight: 0, maxHeight: 156, flexGrow: 0, flexShrink: 1, gap: 6, alignSelf: 'center' },
   panelLabel: { color: 'rgba(191,250,242,0.72)', fontSize: FONT.xs, letterSpacing: 0.5 },
 
   vsText: { fontSize: 28, opacity: 0.85 },
@@ -1197,7 +1201,7 @@ const S = StyleSheet.create({
   resultDraw: { color: '#fbbf24' },
 
   actionButtons: { gap: SPACE.sm, alignItems: 'center', width: '100%' },
-  actionButtonsPortrait: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  actionButtonsPortrait: { flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'center', gap: 8 },
   abilityBtn: { 
     width: 110, 
     height: 44, 
