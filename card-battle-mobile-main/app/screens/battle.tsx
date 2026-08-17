@@ -758,6 +758,9 @@ export default function BattleScreen() {
     }
     return expectedRoundResult?.winner ?? 'draw';
   }, [phase, lastRoundResult, expectedRoundResult]);
+  const isResolvedRound = phase === 'result' && !!lastRoundResult;
+  const playerWinnerVideoAudio = settings.soundEnabled && isResolvedRound && computedWinner === 'player';
+  const botWinnerVideoAudio = settings.soundEnabled && isResolvedRound && computedWinner === 'bot';
 
 
   const previewInsights = useMemo(() => {
@@ -878,8 +881,8 @@ export default function BattleScreen() {
                 <LuxuryCharacterCardAnimated
                   card={displayPlayerCard}
                   style={{ width: cardWidth, height: cardHeight }}
-                  isOpenedView
-                  playAudio={settings.soundEnabled}
+                  isOpenedView={playerWinnerVideoAudio}
+                  playAudio={playerWinnerVideoAudio}
                   effectiveAttack={playerEffective.attack}
                   effectiveDefense={playerEffective.defense}
                   winnerState={
@@ -1006,6 +1009,8 @@ export default function BattleScreen() {
                 <LuxuryCharacterCardAnimated
                   card={displayBotCard}
                   style={{ width: cardWidth, height: cardHeight }}
+                  isOpenedView={botWinnerVideoAudio}
+                  playAudio={botWinnerVideoAudio}
                   effectiveAttack={botEffective.attack}
                   effectiveDefense={botEffective.defense}
                   winnerState={
