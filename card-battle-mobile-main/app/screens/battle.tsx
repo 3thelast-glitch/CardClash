@@ -341,7 +341,7 @@ export default function BattleScreen() {
 
   // ✅ Step 1: تهيئة الـ hook — جاهز للربط في الخطوات القادمة
   const { settings } = useSettings();
-  const { playAttack, playAbility, playDraw, playLoss, playNextRound, playWin } = useSFX(settings.soundEnabled);
+  const { playAbility, playNextRound } = useSFX(settings.soundEnabled);
   const { animatedStyle: orientationStyle, layoutTransition } = useOrientationTransition(
     isLandscape,
     settings.animationsEnabled,
@@ -518,7 +518,6 @@ export default function BattleScreen() {
 
     try {
       hapticImpact(Haptics.ImpactFeedbackStyle.Heavy);
-      playAttack();
       flashAnim.value = withSequence(withTiming(0.35, { duration: 60 }), withTiming(0, { duration: 300 }));
       setPhase('combat');
       setShowPlayerEffect(true);
@@ -541,7 +540,7 @@ export default function BattleScreen() {
         isTransitioning.current = false;
       }, BATTLE_TIMINGS.combatDuration) as unknown as NodeJS.Timeout;
     }
-  }, [playRound, runBotAbility, hapticImpact, playAttack]);
+  }, [playRound, runBotAbility, hapticImpact]);
 
   const handleNextRound = useCallback(() => {
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
@@ -712,15 +711,7 @@ export default function BattleScreen() {
         : lastRoundResult.winner === 'bot'
           ? lastRoundResult.botCard
           : null;
-      // نترك صوت فيديو الفائز يتصدر النتيجة بدلاً من مزجه بمؤثر ربح/خسارة عام.
-      if (winnerCard) getCardImage(winnerCard);
-      const winnerHasVideo = settings.soundEnabled && Boolean((winnerCard as { videoUrl?: unknown } | null)?.videoUrl);
-
-      if (!winnerHasVideo) {
-        if (lastRoundResult.winner === 'player') playWin();
-        else if (lastRoundResult.winner === 'bot') playLoss();
-        else playDraw();
-      }
+      // لا نضيف أي مؤثر صوتي عند نتيجة الهجوم؛ صوت فيديو الكرت الأقوى يبدأ قبل الهجوم فقط.
 
       if (isGameOver) {
         if (lastRoundResult.winner === 'player') hapticNotification(Haptics.NotificationFeedbackType.Success);
@@ -737,7 +728,7 @@ export default function BattleScreen() {
         }, BATTLE_TIMINGS.autoNextRound) as unknown as NodeJS.Timeout;
       }
     }
-  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers, settings.soundEnabled, playDraw, playLoss, playWin]);
+  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers]);
 
   const spawnDmg = useCallback((side: 'player' | 'bot', value: number, variant: DamageNumberVariant) => {
     const id = `${Date.now()}-${Math.random()}`;
