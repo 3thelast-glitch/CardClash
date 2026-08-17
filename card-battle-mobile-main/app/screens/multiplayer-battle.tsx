@@ -71,6 +71,7 @@ export default function MultiplayerBattleScreen() {
   const [disconnected, setDisconnected] = useState(false);
   const [isPlayer1, setIsPlayer1] = useState(true);
   const [endBattleClicked, setEndBattleClicked] = useState(false);
+  const [turnPlayerId, setTurnPlayerId] = useState<string | null>(null);
 
   // ─── Animations ─────────────────────────────────────────────────────────────
   const myCardAnim = useSharedValue(0);
@@ -91,7 +92,7 @@ export default function MultiplayerBattleScreen() {
     const unsubs: (() => void)[] = [];
 
     unsubs.push(mpClient.on('BATTLE_START', (msg: MPMessage) => {
-      const { player1, player2, totalRounds: tr, p1Score, p2Score } = msg.payload;
+      const { player1, player2, totalRounds: tr, p1Score, p2Score, turnPlayerId: initialTurnPlayerId } = msg.payload;
       const iAmP1 = player1.id === params.playerId;
       setIsPlayer1(iAmP1);
       setMyCards(iAmP1 ? player1.cards : player2.cards);
@@ -99,10 +100,15 @@ export default function MultiplayerBattleScreen() {
       setTotalRounds(tr);
       setMyScore(iAmP1 ? p1Score : p2Score);
       setOppScore(iAmP1 ? p2Score : p1Score);
+      setTurnPlayerId(initialTurnPlayerId ?? player1.id);
       setCurrentRound(0);
       setEndBattleClicked(false);
       setPhase('selection');
       enterCards();
+    }));
+
+    unsubs.push(mpClient.on('TURN_CHANGED', (msg: MPMessage) => {
+      setTurnPlayerId(msg.payload?.turnPlayerId ?? null);
     }));
 
     unsubs.push(mpClient.on('OPPONENT_CARD_REVEALED', () => {
@@ -177,10 +183,10 @@ export default function MultiplayerBattleScreen() {
 
   // ─── كشف كرتي ────────────────────────────────────────────────────────────────
   const handleReveal = useCallback(() => {
-    if (!myCurrentCard) return;
+    if (!myCurrentCard || turnPlayerId !== params.playerId) return;
     mpClient.revealCard(params.playerId, currentRound, myCurrentCard);
     setPhase('waiting_opponent');
-  }, [myCurrentCard, params.playerId, currentRound]);
+  }, [myCurrentCard, params.playerId, currentRound, turnPlayerId]);
 
   // ─── التالي ──────────────────────────────────────────────────────────────────
   const handleNext = useCallback(() => {
@@ -300,11 +306,16 @@ export default function MultiplayerBattleScreen() {
           )}
 
           {/* CTA */}
-          {phase === 'selection' && (
+          {phase === 'selection' && turnPlayerId === params.playerId && (
             <TouchableOpacity style={[S.btn, S.btnAttack, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]} onPress={handleReveal} activeOpacity={0.85}>
               <Text style={S.btnIcon}>⚔️</Text>
               <Text style={S.btnText}>اكشف كرتك</Text>
             </TouchableOpacity>
+          )}
+          {phase === 'selection' && turnPlayerId !== params.playerId && (
+            <View style={[S.btn, S.btnWait, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]}> 
+              <Text style={S.btnText}>⌛ دور الخصم أولاً...</Text>
+            </View>
           )}
           {phase === 'waiting_opponent' && (
             <View style={[S.btn, S.btnWait, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]}>

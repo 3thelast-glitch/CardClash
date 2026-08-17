@@ -58,6 +58,8 @@ export interface Room {
   p2Score: number;
   roundHistory: RoundResult[];
   matchSettings: MatchSettings | null; // جديد — إعدادات المباراة
+  /** اللاعب المسموح له بكشف الكرت في المرحلة الحالية. */
+  currentTurnPlayerId: string | null;
 }
 
 // ─── Element Advantage ────────────────────────────────────────────────────────────
@@ -137,6 +139,7 @@ export class RoomManager {
       p2Score: 3,
       roundHistory: [],
       matchSettings: null,
+      currentTurnPlayerId: null,
     };
     this.rooms.set(roomId, room);
     this.playerToRoom.set(player.id, roomId);
@@ -148,6 +151,8 @@ export class RoomManager {
     if (!room || room.status !== 'waiting' || room.player2) return null;
     room.player2 = player;
     room.status = 'playing';
+    // يبدأ الدور بالمضيف، ثم يتناوب بعد كل جولة.
+    room.currentTurnPlayerId = room.player1?.id ?? player.id;
     this.playerToRoom.set(player.id, roomId);
     return room;
   }
@@ -203,6 +208,8 @@ export class RoomManager {
   revealCard(playerId: string, roundIndex: number, card: any): RoundResult | null {
     const room = this.getPlayerRoom(playerId);
     if (!room || !room.player1 || !room.player2) return null;
+    if (room.status !== 'playing' || room.currentTurnPlayerId !== playerId) return null;
+    if (room.currentRound.roundIndex !== roundIndex) return null;
     const isP1 = room.player1.id === playerId;
     const reveal: RevealedCard = { playerId, card, roundIndex };
     if (isP1) room.currentRound.p1Card = reveal;
@@ -214,9 +221,17 @@ export class RoomManager {
       room.p2Score = result.p2Score;
       room.roundHistory.push(result);
       room.currentRound = { roundIndex: roundIndex + 1, p1Card: null, p2Card: null, resolved: false };
+      // اللاعب الذي بدأ الجولة يتناوب في الجولة التالية.
+      room.currentTurnPlayerId = room.player1.id === playerId ? room.player2.id : room.player1.id;
       return result;
     }
+    // بعد كشف اللاعب الأول ينتقل الدور فوراً للاعب الآخر.
+    room.currentTurnPlayerId = room.player1.id === playerId ? room.player2.id : room.player1.id;
     return null;
+  }
+
+  getCurrentTurnPlayerId(roomId: string): string | null {
+    return this.rooms.get(roomId)?.currentTurnPlayerId ?? null;
   }
 
   isGameOver(room: Room): boolean {

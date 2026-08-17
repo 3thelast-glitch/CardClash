@@ -1,0 +1,14 @@
+# Card Clash multiplayer server
+# Railway uses the existing package script and exposes the HTTP/WebSocket port.
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "pnpm server:multiplayer"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[variables]
+MULTIPLAYER_PORT = "${{PORT}}"

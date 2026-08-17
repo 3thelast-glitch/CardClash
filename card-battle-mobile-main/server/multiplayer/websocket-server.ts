@@ -245,6 +245,7 @@ export class MultiplayerWebSocketServer {
       totalRounds: room.totalRounds || (room.player1.rounds ?? 5),
       p1Score: room.p1Score,
       p2Score: room.p2Score,
+      turnPlayerId: room.currentTurnPlayerId,
     };
     this.broadcastToRoom(room.id, { type: 'BATTLE_START', payload });
     console.log(`[Multiplayer] Battle started in room ${room.id}`);
@@ -319,9 +320,22 @@ export class MultiplayerWebSocketServer {
     const { playerId, roundIndex, card } = payload;
     const room = roomManager.getPlayerRoom(playerId);
     if (!room) return;
+    const turnBefore = roomManager.getCurrentTurnPlayerId(room.id);
+    const result = roomManager.revealCard(playerId, roundIndex, card);
+    const turnAfter = roomManager.getCurrentTurnPlayerId(room.id);
+    if (turnBefore !== playerId) {
+      const ws = this.clients.get(playerId);
+      if (ws) this.sendError(ws, 'ليس دورك حالياً');
+      return;
+    }
     const other = room.player1?.id === playerId ? room.player2 : room.player1;
     if (other) this.sendToPlayer(other.id, { type: 'OPPONENT_CARD_REVEALED', payload: { roundIndex } });
-    const result = roomManager.revealCard(playerId, roundIndex, card);
+    if (turnAfter && turnAfter !== turnBefore) {
+      this.broadcastToRoom(room.id, {
+        type: 'TURN_CHANGED',
+        payload: { turnPlayerId: turnAfter, roundIndex: room.currentRound.roundIndex },
+      });
+    }
     if (result) {
       this.broadcastToRoom(room.id, { type: 'ROUND_RESULT', payload: result });
       if (roomManager.isGameOver(room)) {
