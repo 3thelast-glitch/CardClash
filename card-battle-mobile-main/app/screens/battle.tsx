@@ -770,9 +770,10 @@ export default function BattleScreen() {
     }
     return expectedRoundResult?.winner ?? 'draw';
   }, [phase, lastRoundResult, expectedRoundResult]);
-  const isResolvedRound = phase === 'result' && !!lastRoundResult;
-  const playerWinnerVideoAudio = settings.soundEnabled && isResolvedRound && computedWinner === 'player';
-  const botWinnerVideoAudio = settings.soundEnabled && isResolvedRound && computedWinner === 'bot';
+  // بعد اكتمال دخول الكروت تظهر نتيجة القوة المتوقعة؛ أي قدرة تغيّر الفائز تبدّل مصدر الصوت فوراً قبل الهجوم.
+  const isRoundAudioActive = phase === 'action' || phase === 'combat' || (phase === 'result' && !!lastRoundResult);
+  const playerWinnerVideoAudio = settings.soundEnabled && isRoundAudioActive && computedWinner === 'player';
+  const botWinnerVideoAudio = settings.soundEnabled && isRoundAudioActive && computedWinner === 'bot';
 
 
   const previewInsights = useMemo(() => {
