@@ -497,8 +497,8 @@ const TacticalLegendaryCard = ({
     const abilityBottom = metaBottom + metaHeight + (abilityText ? 4 : 0);
     const nameBottom = abilityText ? abilityBottom + abilityHeight + 5 : metaBottom + metaHeight + 5;
     const metaItems = [
-        { key: 'race', icon: RACE_EMOJI[card.race], label: RACE_LABELS[card.race] },
-        { key: 'class', icon: CLASS_EMOJI[card.cardClass], label: CLASS_LABELS[card.cardClass] },
+        { key: 'race', label: RACE_LABELS[card.race] },
+        { key: 'class', label: CLASS_LABELS[card.cardClass] },
     ];
 
     return (
@@ -543,8 +543,7 @@ const TacticalLegendaryCard = ({
                         <React.Fragment key={item.key}>
                             {index > 0 && <View style={styles.tacticalLegendaryMetaDivider} />}
                             <View style={styles.tacticalLegendaryMetaItem}>
-                                <Text style={[styles.tacticalLegendaryMetaIcon, { fontSize: Math.max(8, labelFont + 1) }]}>{item.icon}</Text>
-                                {!isCompact && <Text style={[styles.tacticalLegendaryMetaLabel, { fontSize: Math.max(7, labelFont - 1) }]} numberOfLines={1}>{item.label}</Text>}
+                                <Text style={[styles.tacticalLegendaryMetaLabel, { fontSize: Math.max(8, labelFont) }]} numberOfLines={1}>{item.label}</Text>
                             </View>
                         </React.Fragment>
                     ))}
@@ -554,7 +553,6 @@ const TacticalLegendaryCard = ({
                     <View style={styles.tacticalLegendaryStat}>
                         <View style={styles.tacticalLegendaryStatCaption}>
                             <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 2 }]}>⚔️</Text>
-                            <Text style={[styles.tacticalLegendaryStatLabel, { fontSize: labelFont }]}>هجوم</Text>
                         </View>
                         <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statValueFont }]}>{attack}</Text>
                     </View>
@@ -562,7 +560,6 @@ const TacticalLegendaryCard = ({
                     <View style={styles.tacticalLegendaryStat}>
                         <View style={styles.tacticalLegendaryStatCaption}>
                             <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 2 }]}>🛡️</Text>
-                            <Text style={[styles.tacticalLegendaryStatLabel, { fontSize: labelFont }]}>دفاع</Text>
                         </View>
                         <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statValueFont }]}>{defense}</Text>
                     </View>
