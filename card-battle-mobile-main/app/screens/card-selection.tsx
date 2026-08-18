@@ -22,6 +22,7 @@ import {
   useLandscapeLayout,
   useCardSize,
   GRID_COLUMNS,
+  GRID_GAP,
   LAYOUT_PADDING,
 } from '@/utils/layout';
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
@@ -139,6 +140,8 @@ export default function CardSelectionScreen() {
   const padding = LAYOUT_PADDING[size];
   const { cardW: gridCardW, cardH: gridCardH } = useCardSize('selection');
   const { cardW: modalCardW, cardH: modalCardH } = useCardSize('modal');
+  const gridGap = GRID_GAP[size];
+  const gridCellW = Math.floor((width - padding * 2 - gridGap * (numColumns - 1)) / numColumns);
 
   const mp = useSafeMultiplayer();
   const isMultiplayer = !!mp?.state?.roomId;
@@ -226,7 +229,7 @@ export default function CardSelectionScreen() {
 
   const renderCardItem = ({ item, index }: { item: CardRound; index: number }) => (
     <TouchableOpacity
-      style={[styles.cardCell, { width: (width - padding * 2 - SPACE.md * (numColumns - 1)) / numColumns }]}
+      style={[styles.cardCell, { width: gridCellW }]}
       onPress={() => !waitingForOpponent && setFocusedCardIndex(index)}
       activeOpacity={0.8}
     >
@@ -235,17 +238,11 @@ export default function CardSelectionScreen() {
           card={item.card}
           style={{ width: gridCardW, height: gridCardH }}
         />
-        {item.round !== null ? (
-          <View style={styles.roundOverlay}>
-            <View style={styles.roundBadge}>
-              <Text style={styles.roundBadgeText}>الجولة {item.round}</Text>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.unassignedOverlay}>
-            <Text style={styles.unassignedText}>انقر للتعيين</Text>
-          </View>
-        )}
+      </View>
+      <View style={[styles.assignmentHint, item.round !== null && styles.assignmentHintAssigned]}>
+        <Text style={[styles.assignmentHintText, item.round !== null && styles.assignmentHintTextAssigned]}>
+          {item.round !== null ? `الجولة ${item.round}` : 'انقر للتعيين'}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -308,7 +305,7 @@ export default function CardSelectionScreen() {
           key={numColumns}
           numColumns={numColumns}
           contentContainerStyle={[styles.gridContent, { paddingHorizontal: padding }]}
-          columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
+          columnWrapperStyle={numColumns > 1 ? [styles.columnWrapper, { gap: gridGap, marginBottom: gridGap }] : undefined}
           style={styles.grid}
           showsVerticalScrollIndicator={false}
         />
@@ -455,14 +452,13 @@ const styles = StyleSheet.create({
   readyStepTextDone: { color: '#4ade80' },
   grid: { flex: 1 },
   gridContent: { paddingVertical: SPACE.md },
-  columnWrapper: { gap: SPACE.md, marginBottom: SPACE.md },
-  cardCell: { alignItems: 'center' },
+  columnWrapper: {},
+  cardCell: { alignItems: 'center', justifyContent: 'flex-start' },
   cardWrapper: { position: 'relative' },
-  roundOverlay: { position: 'absolute', top: 6, left: 6, right: 6, alignItems: 'center' },
-  roundBadge: { backgroundColor: 'rgba(212,175,55,0.9)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
-  roundBadgeText: { color: '#1a1a1a', fontSize: 11, fontWeight: '800' },
-  unassignedOverlay: { position: 'absolute', bottom: 48, left: 0, right: 0, alignItems: 'center' },
-  unassignedText: { color: '#fff', fontSize: 12, fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
+  assignmentHint: { marginTop: SPACE.xs, paddingHorizontal: SPACE.sm, paddingVertical: 3, borderRadius: RADIUS.pill, backgroundColor: 'rgba(5,10,18,0.82)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
+  assignmentHintAssigned: { backgroundColor: 'rgba(212,175,55,0.16)', borderColor: 'rgba(212,175,55,0.58)' },
+  assignmentHintText: { color: '#cbd5e1', fontSize: 10, fontWeight: '800', writingDirection: 'rtl' },
+  assignmentHintTextAssigned: { color: '#fde68a' },
   bottomBar: { padding: SPACE.md, backgroundColor: 'rgba(5,5,10,0.9)', borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.2)', alignItems: 'center', gap: SPACE.sm },
   waitingBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   waitingBannerText: { color: '#d4af37', fontSize: 12, fontWeight: '700' },

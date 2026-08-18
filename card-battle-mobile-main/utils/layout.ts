@@ -131,6 +131,14 @@ export const GRID_COLUMNS: Record<LayoutSize, number> = {
   xl: 5,
 };
 
+/** The same gutter is used by the grid cell calculation and rendered grid. */
+export const GRID_GAP: Record<LayoutSize, number> = {
+  sm: 12,
+  md: 14,
+  lg: 16,
+  xl: 18,
+};
+
 /** Preferred card widths; final values are constrained by the live viewport. */
 export const GALLERY_CARD_W: Record<LayoutSize, number> = {
   sm: 130,
@@ -162,7 +170,7 @@ export const useCardSize = (
     case 'gallery':
     case 'selection': {
       const columns = GRID_COLUMNS[size];
-      const gridGap = 12;
+      const gridGap = GRID_GAP[size];
       const cellWidth = Math.max(92, (width - padding * 2 - gridGap * (columns - 1)) / columns);
       cardW = Math.min(GALLERY_CARD_W[size], cellWidth);
       break;

@@ -9,14 +9,13 @@ import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
-import { RotateHintScreen } from '@/components/game/RotateHintScreen';
 import { ALL_CARDS } from '@/lib/game/cards-data-exports';
 import {
   Card, CardRarity, CardClass, Element, Race, Tag, RageModeData,
   ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI,
 } from '@/lib/game/types';
 import { getRarityConfig, getRarityFromStars } from '@/lib/game/card-rarity';
-import { useLandscapeLayout, useCardSize, LAYOUT_PADDING } from '@/utils/layout';
+import { useLandscapeLayout, useCardSize, GRID_GAP, LAYOUT_PADDING } from '@/utils/layout';
 import {
   ArrowLeft, Minus, Plus, Image as ImageIcon, Film, X,
   ChevronUp, ChevronDown, Zap, Trash2, Filter, Download, Upload,
@@ -590,7 +589,7 @@ export default function CardsGalleryScreen() {
   const { cardW: galleryCardW, cardH: galleryCardH } = useCardSize('gallery');
   const { cardW: modalCardW, cardH: modalCardH } = useCardSize('modal');
   const padding = LAYOUT_PADDING[size];
-  const gridGap = size === 'sm' ? 10 : size === 'md' ? 14 : size === 'lg' ? 18 : 22;
+  const gridGap = GRID_GAP[size];
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -721,8 +720,6 @@ export default function CardsGalleryScreen() {
     patch({ rarity: r, stars: defaultStars });
   };
 
-  if (!isLandscape) return <RotateHintScreen />;
-
   const filteredCards = cards.filter(card => {
     if (galleryFilters.rarity !== 'All' && (card.rarity ?? 'common').toLowerCase() !== galleryFilters.rarity) return false;
     if (galleryFilters.element !== null && (card.element ?? null) !== galleryFilters.element) return false;
@@ -787,7 +784,7 @@ export default function CardsGalleryScreen() {
         <RNText style={styles.fabTxt}>＋ كارت</RNText>
       </TouchableOpacity>
 
-      <View style={styles.container} className="pt-4 pb-2">
+      <View style={[styles.container, !isLandscape && styles.containerPortrait]} className="pt-4 pb-2">
         <View className="mb-2 mt-4 items-center">
           <Text style={styles.title}>Card Collection</Text>
           <Text style={styles.subtitle}>{sortedCards.length} cards</Text>
@@ -1051,6 +1048,7 @@ const ep = StyleSheet.create({
 const styles = StyleSheet.create({
   bg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 },
   container: { flex: 1, zIndex: 1, alignItems: 'center', width: '100%' },
+  containerPortrait: { paddingTop: 52 },
   title: { fontSize: 32, fontWeight: 'bold', color: '#d4af37', textAlign: 'center' },
   subtitle: { fontSize: 13, color: '#a0a0a0', marginTop: 4, textAlign: 'center' },
   scroll: { flex: 1, width: '100%' },

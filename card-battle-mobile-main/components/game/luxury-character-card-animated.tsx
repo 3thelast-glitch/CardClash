@@ -470,11 +470,14 @@ const TacticalLegendaryCard = ({
     defense: number;
 }) => {
     const hasMedia = !!cardImage || !!videoAsset || !!customUri;
-    const pad = Math.max(8, 12 * sc);
-    const statFont = Math.max(16, 22 * sc);
-    const labelFont = Math.max(8, 10 * sc);
-    const nameFont = Math.max(13, 20 * sc);
-    const badgeFont = Math.max(8, 11 * sc);
+    const isCompact = cardW < 154 || cardH < 224;
+    const pad = Math.max(7, Math.min(14, 11 * sc));
+    const statsDockH = Math.max(isCompact ? 42 : 50, Math.min(66, 58 * sc));
+    const statValueFont = Math.max(isCompact ? 15 : 18, 21 * sc);
+    const labelFont = Math.max(8, Math.min(11, 10 * sc));
+    const nameFont = Math.max(isCompact ? 12 : 15, Math.min(21, 19 * sc));
+    const badgeFont = Math.max(8, Math.min(11, 10 * sc));
+    const showEnglishName = !isCompact && !!card.nameEn;
 
     return (
         <View style={[styles.tacticalLegendaryCard, { width: cardW, height: cardH, borderRadius: Math.round(12 * sc) }, style]}>
@@ -485,31 +488,37 @@ const TacticalLegendaryCard = ({
 
                 <View style={[styles.tacticalLegendaryFrame, { borderRadius: Math.round(8 * sc) }]} pointerEvents="none" />
                 <View style={[styles.tacticalLegendaryTopRow, { top: pad, left: pad, right: pad }]}>
-                    <View style={styles.tacticalLegendaryChip}>
+                    <View style={[styles.tacticalLegendaryChip, isCompact && styles.tacticalLegendaryChipCompact]}>
                         <Text style={{ fontSize: badgeFont + 2 }}>{ELEMENT_EMOJI[card.element]}</Text>
                         <Text style={[styles.tacticalLegendaryChipText, { fontSize: badgeFont }]}>{ELEMENT_LABELS[card.element]}</Text>
                     </View>
-                    <View style={styles.tacticalLegendaryRarityChip}>
+                    <View style={[styles.tacticalLegendaryRarityChip, isCompact && styles.tacticalLegendaryChipCompact]}>
                         <Text style={[styles.tacticalLegendaryChipText, { color: '#FDE68A', fontSize: badgeFont }]}>✦ أسطوري</Text>
                     </View>
                 </View>
 
-                <View style={[styles.tacticalLegendaryNameBlock, { bottom: Math.max(58, 72 * sc), paddingHorizontal: pad }]}>
-                    <Text style={[styles.tacticalLegendaryName, { fontSize: nameFont }]} numberOfLines={1}>{card.nameAr || card.name}</Text>
-                    {!!card.nameEn && <Text style={[styles.tacticalLegendaryNameEn, { fontSize: Math.max(7, 9 * sc) }]} numberOfLines={1}>{card.nameEn}</Text>}
+                <View style={[styles.tacticalLegendaryNameBlock, { bottom: pad + statsDockH + 6, paddingHorizontal: pad }]}>
+                    <View style={styles.tacticalLegendaryNamePlate}>
+                        <Text style={[styles.tacticalLegendaryName, { fontSize: nameFont, lineHeight: Math.round(nameFont * 1.18) }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.72}>{card.nameAr || card.name}</Text>
+                        {showEnglishName && <Text style={[styles.tacticalLegendaryNameEn, { fontSize: Math.max(7, 9 * sc) }]} numberOfLines={1}>{card.nameEn}</Text>}
+                    </View>
                 </View>
 
-                <View style={[styles.tacticalLegendaryStatsDock, { left: pad, right: pad, bottom: pad, minHeight: Math.max(38, 48 * sc) }]}>
+                <View style={[styles.tacticalLegendaryStatsDock, { left: pad, right: pad, bottom: pad, height: statsDockH }]}>
                     <View style={styles.tacticalLegendaryStat}>
-                        <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: statFont }]}>⚔️</Text>
-                        <Text style={[styles.tacticalLegendaryStatLabel, { fontSize: labelFont }]}>هجوم</Text>
-                        <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statFont }]}>{attack}</Text>
+                        <View style={styles.tacticalLegendaryStatCaption}>
+                            <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 4 }]}>⚔️</Text>
+                            <Text style={[styles.tacticalLegendaryStatLabel, { fontSize: labelFont }]}>هجوم</Text>
+                        </View>
+                        <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statValueFont }]}>{attack}</Text>
                     </View>
                     <View style={styles.tacticalLegendaryDivider} />
                     <View style={styles.tacticalLegendaryStat}>
-                        <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: statFont }]}>🛡️</Text>
-                        <Text style={[styles.tacticalLegendaryStatLabel, { fontSize: labelFont }]}>دفاع</Text>
-                        <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statFont }]}>{defense}</Text>
+                        <View style={styles.tacticalLegendaryStatCaption}>
+                            <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 4 }]}>🛡️</Text>
+                            <Text style={[styles.tacticalLegendaryStatLabel, { fontSize: labelFont }]}>دفاع</Text>
+                        </View>
+                        <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statValueFont }]}>{defense}</Text>
                     </View>
                 </View>
             </View>
@@ -792,12 +801,15 @@ const styles = StyleSheet.create({
     tacticalLegendaryTopRow: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     tacticalLegendaryChip: { flexDirection: 'row-reverse', alignItems: 'center', gap: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(253,230,138,0.58)', backgroundColor: 'rgba(9,7,2,0.74)', paddingHorizontal: 7, paddingVertical: 3 },
     tacticalLegendaryRarityChip: { borderRadius: 6, borderWidth: 1, borderColor: 'rgba(253,230,138,0.7)', backgroundColor: 'rgba(9,7,2,0.78)', paddingHorizontal: 8, paddingVertical: 4 },
+    tacticalLegendaryChipCompact: { paddingHorizontal: 5, paddingVertical: 2 },
     tacticalLegendaryChipText: { color: '#FEF3C7', fontWeight: '800', writingDirection: 'rtl' },
     tacticalLegendaryNameBlock: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+    tacticalLegendaryNamePlate: { alignSelf: 'stretch', alignItems: 'center', backgroundColor: 'rgba(3,4,7,0.54)', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
     tacticalLegendaryName: { color: '#FFF7D6', fontWeight: '900', textAlign: 'center', writingDirection: 'rtl', textShadowColor: 'rgba(0,0,0,0.95)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
     tacticalLegendaryNameEn: { color: '#FDE68A', fontWeight: '800', letterSpacing: 1.1, marginTop: 1 },
-    tacticalLegendaryStatsDock: { position: 'absolute', flexDirection: 'row-reverse', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(253,230,138,0.74)', backgroundColor: 'rgba(8,6,2,0.88)', paddingHorizontal: 6 },
-    tacticalLegendaryStat: { flex: 1, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 4 },
+    tacticalLegendaryStatsDock: { position: 'absolute', flexDirection: 'row-reverse', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(253,230,138,0.74)', backgroundColor: 'rgba(8,6,2,0.9)', paddingHorizontal: 4 },
+    tacticalLegendaryStat: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 1 },
+    tacticalLegendaryStatCaption: { flexDirection: 'row-reverse', alignItems: 'center', gap: 2 },
     tacticalLegendaryStatIcon: {},
     tacticalLegendaryStatLabel: { color: '#FDE68A', fontWeight: '800', writingDirection: 'rtl' },
     tacticalLegendaryStatValue: { color: '#FFF7D6', fontWeight: '900' },
