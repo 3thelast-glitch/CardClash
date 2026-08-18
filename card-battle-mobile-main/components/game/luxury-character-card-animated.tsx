@@ -125,8 +125,8 @@ const RARITY_THEMES = {
     legendary: {
         label: 'أسطوري', color: '#FFD700', borderColor: '#FFD700', borderWidth: 2.5,
         shadowColor: '#FFD700', shadowOpacity: 0.9, shadowRadius: 26, elevation: 12,
-        hasFoil: true, hasFiligree: true, hasSideVines: false, hasDarkSmoke: false,
-        hasParticles: true, foilDuration: 2400,
+        hasFoil: false, hasFiligree: false, hasSideVines: false, hasDarkSmoke: false,
+        hasParticles: false, foilDuration: 0,
         starColor: '#FFD700', starEmpty: '#3a2d00',
         abilityBg: ['rgba(30,22,0,0.93)', 'rgba(50,36,0,0.97)'] as any,
         abilityBorder: '#FFD700CC', abilityTextColor: '#fef3c7', abilityIconColor: '#FFD700',
@@ -229,23 +229,25 @@ const LegendaryParticles = ({ color }: { color: string }) => (
 // StatBadge — يدعم إظهار الفرق ▲/▼ عند وجود تأثيرات
 // ─────────────────────────────────────────────
 const StatBadge = ({
-    icon, value, effectiveValue, isAttack, fs
+    icon, value, effectiveValue, isAttack, fs, legendary = false
 }: {
     icon: string;
     value: number;
     effectiveValue: number;
     isAttack: boolean;
     fs: number;
+    legendary?: boolean;
 }) => {
     const diff = effectiveValue - value;
     const isModified = diff !== 0;
     const diffColor = diff > 0 ? '#4ade80' : '#f87171';
 
     return (
-        <View style={[styles.statBadge, isAttack ? styles.attackBadge : styles.defenseBadge]}>
-            <View style={{ position: 'absolute', top: -11, left: 0, right: 0, alignItems: 'center', zIndex: 10 }}>
+        <View style={[styles.statBadge, isAttack ? styles.attackBadge : styles.defenseBadge, legendary && styles.legendaryStatBadge]}>
+            <View style={legendary ? styles.legendaryStatIcon : { position: 'absolute', top: -11, left: 0, right: 0, alignItems: 'center', zIndex: 10 }}>
                 <Text style={{ fontSize: fs, textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }} numberOfLines={1}>{icon}</Text>
             </View>
+            {legendary && <Text style={styles.legendaryStatLabel}>{isAttack ? 'هجوم' : 'دفاع'}</Text>}
             {isModified ? (
                 <>
                     {diff < 0 ? (
@@ -520,8 +522,8 @@ export function LuxuryCharacterCardAnimated({
     }, [videoAudioEnabled]);
     const rarity: CardRarity = card.rarity ?? 'common';
     const theme = RARITY_THEMES[rarity] ?? RARITY_THEMES.common;
-    const hasAbility = !!card.specialAbility;
-    const stars = card.stars ?? 0;
+    const hasAbility = !!card.specialAbility && rarity !== 'legendary';
+    const stars = rarity === 'legendary' ? 0 : (card.stars ?? 0);
 
     // القيم المعروضة — إذا لم تُمرَّر effectiveAttack/effectiveDefense نستخدم القيم الأصلية
     const displayAttack = effectiveAttack ?? card.attack;
@@ -556,7 +558,7 @@ export function LuxuryCharacterCardAnimated({
 
     const statsBottom = Math.round(8 * scH);
     const STAT_AREA_H = Math.round(38 * scH);
-    const ABILITY_H = hasAbility ? Math.round((rarity === 'legendary' || rarity === 'special' ? 50 : 42) * scH) : 0;
+    const ABILITY_H = hasAbility ? Math.round((rarity === 'special' ? 50 : 42) * scH) : 0;
     const ABILITY_GAP = hasAbility ? Math.round(4 * scH) : 0;
     const abilityBottom = statsBottom + STAT_AREA_H + ABILITY_GAP;
     const showBadge = !!(winnerState === 'winner' || (!winnerState && card.winState === 'win') || winnerState === 'leading');
@@ -596,7 +598,6 @@ export function LuxuryCharacterCardAnimated({
             rarity === 'special' && styles.specialCardBase,
             style,
         ]}>
-            {enableVisualEffects && isLegendary && <LegendaryGlowBorder color={themeColor} />}
             {enableVisualEffects && rarity === 'special' && <SpecialBreathingBorder />}
             {enableVisualEffects && rarity === 'epic' && <GlowRing color={themeColor} />}
 
@@ -700,9 +701,9 @@ export function LuxuryCharacterCardAnimated({
                     <View style={[styles.statsRow, { bottom: statsBottom, paddingHorizontal: Math.max(4, 8 * scW) }]}>
                         {isLegendary ? (
                             <View style={[styles.legendaryStatsDock, { borderColor: themeColor + '99' }]}>
-                                <StatBadge icon="⚔️" value={baseAttack} effectiveValue={displayAttack} isAttack={true} fs={statFs} />
+                                <StatBadge icon="⚔️" value={baseAttack} effectiveValue={displayAttack} isAttack={true} fs={statFs} legendary />
                                 <View style={[styles.legendaryStatDivider, { backgroundColor: themeColor + '99' }]} />
-                                <StatBadge icon="🛡️" value={baseDefense} effectiveValue={displayDefense} isAttack={false} fs={statFs} />
+                                <StatBadge icon="🛡️" value={baseDefense} effectiveValue={displayDefense} isAttack={false} fs={statFs} legendary />
                             </View>
                         ) : (
                             <>
@@ -765,6 +766,9 @@ const styles = StyleSheet.create({
     statsRow: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, gap: 2 },
     legendaryStatsDock: { flex: 1, flexDirection: 'row-reverse', alignItems: 'center', minHeight: 34, borderWidth: 1, borderRadius: 7, backgroundColor: 'rgba(10,7,0,0.86)' },
     legendaryStatDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', marginVertical: 5 },
+    legendaryStatBadge: { flex: 1, flexDirection: 'row-reverse', backgroundColor: 'transparent', borderWidth: 0, borderRadius: 0, paddingHorizontal: 5, paddingTop: 2, paddingBottom: 2 },
+    legendaryStatIcon: { alignItems: 'center', justifyContent: 'center', marginLeft: 3 },
+    legendaryStatLabel: { color: '#FDE68A', fontSize: 9, fontWeight: '700', writingDirection: 'rtl' },
     statBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingTop: 6, paddingBottom: 3, borderRadius: 20, gap: 1, minWidth: 32, justifyContent: 'center', flexWrap: 'nowrap', flexShrink: 1, overflow: 'visible' },
     attackBadge: { backgroundColor: 'rgba(20,12,0,0.88)', borderWidth: 1.5, borderColor: '#B8860B' },
     defenseBadge: { backgroundColor: 'rgba(0,10,28,0.88)', borderWidth: 1.5, borderColor: '#2563EB' },
