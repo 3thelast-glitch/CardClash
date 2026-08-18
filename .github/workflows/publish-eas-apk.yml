@@ -26,16 +26,30 @@ jobs:
         run: |
           curl --fail --location --retry 5 --retry-all-errors --connect-timeout 30 \
             --output card-clash-${{ inputs.tag }}.apk "$ARTIFACT_URL"
+          test -s card-clash-${{ inputs.tag }}.apk
+          MIME_TYPE="$(file --brief --mime-type card-clash-${{ inputs.tag }}.apk)"
+          if [ "$MIME_TYPE" != "application/vnd.android.package-archive" ] && [ "$MIME_TYPE" != "application/zip" ]; then
+            echo "Expected a downloadable APK, but received $MIME_TYPE."
+            echo "Pass the Expo applicationArchiveUrl, not the expo.dev build-page URL."
+            exit 1
+          fi
+          unzip -tq card-clash-${{ inputs.tag }}.apk
+          unzip -l card-clash-${{ inputs.tag }}.apk | grep -q 'AndroidManifest.xml'
           file card-clash-${{ inputs.tag }}.apk
           sha256sum card-clash-${{ inputs.tag }}.apk
 
-      - name: Publish GitHub release
+      - name: Publish or replace GitHub release asset
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ inputs.tag }}" "card-clash-${{ inputs.tag }}.apk" \
-            --repo "${{ github.repository }}" \
-            --target "${{ github.sha }}" \
-            --title "Card Clash Android ${{ inputs.tag }}" \
-            --notes $'## إصلاحات v1.0.1\n\n- إصلاح تشغيل صوت فيديو كرت اللاعب على الجوال.\n- احترام إعداد الصوت العام عند تشغيل فيديوهات البطاقات.\n- إضافة مؤثرات صوتية محلية لأحداث الهجوم والقدرات ونتائج الجولة.\n\n### التثبيت\nنزّل ملف APK، ثم افتحه من مجلد التنزيلات على Android واسمح بالتثبيت من المصدر المستخدم عند الطلب.' \
-            --latest
+          if gh release view "${{ inputs.tag }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "${{ inputs.tag }}" "card-clash-${{ inputs.tag }}.apk" \
+              --repo "${{ github.repository }}" --clobber
+          else
+            gh release create "${{ inputs.tag }}" "card-clash-${{ inputs.tag }}.apk" \
+              --repo "${{ github.repository }}" \
+              --target "${{ github.sha }}" \
+              --title "Card Clash Android ${{ inputs.tag }}" \
+              --notes $'## إصدار Android\n\nيحتوي هذا الإصدار على ملف APK تم التحقق من بنيته قبل النشر.\n\n### التثبيت\nنزّل ملف APK، ثم افتحه من مجلد التنزيلات على Android واسمح بالتثبيت من المصدر المستخدم عند الطلب.' \
+              --latest
+          fi
