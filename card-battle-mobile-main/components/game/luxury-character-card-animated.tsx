@@ -456,13 +456,66 @@ const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, 
 };
 
 /**
- * مسار الأسطوري المعتمد: لا يرث زخارف Luxury القديمة.
- * يبقي وسيط البطاقة ذاته (صورة أو فيديو وصوت) ويبدل طبقات الواجهة فقط.
+ * مسار المعلومات الموحد: يبقي وسيط البطاقة ذاته (صورة أو فيديو وصوت)
+ * ويعتمد طبقات واجهة متجاوبة مشتركة مع هوية مستقلة لكل ندرة.
  */
-const TacticalLegendaryCard = ({
+type TacticalRarityPalette = {
+    label: string;
+    symbol: string;
+    outer: string;
+    frame: string;
+    surface: string;
+    shadow: string;
+    chipBg: string;
+    chipBorder: string;
+    chipText: string;
+    nameBg: string;
+    text: string;
+    subText: string;
+    star: string;
+    starEmpty: string;
+    abilityBg: string;
+    abilityBorder: string;
+    railBg: string;
+    railBorder: string;
+    statBg: string;
+    statBorder: string;
+    overlayBottom: string;
+    fallback: [string, string];
+};
+
+const TACTICAL_RARITY_PALETTES: Record<CardRarity, TacticalRarityPalette> = {
+    common: {
+        label: 'عادي', symbol: '●', outer: '#64748B', frame: 'rgba(226,232,240,0.48)', surface: '#111827', shadow: '#020617',
+        chipBg: 'rgba(15,23,42,0.78)', chipBorder: 'rgba(203,213,225,0.5)', chipText: '#E2E8F0', nameBg: 'rgba(2,6,23,0.63)', text: '#F8FAFC', subText: '#CBD5E1',
+        star: '#CBD5E1', starEmpty: 'rgba(203,213,225,0.28)', abilityBg: 'rgba(15,23,42,0.86)', abilityBorder: 'rgba(148,163,184,0.45)', railBg: 'rgba(15,23,42,0.72)', railBorder: 'rgba(148,163,184,0.34)', statBg: 'rgba(2,6,23,0.9)', statBorder: 'rgba(148,163,184,0.58)', overlayBottom: 'rgba(2,6,23,0.9)', fallback: ['#1E293B', '#020617'],
+    },
+    rare: {
+        label: 'نادر', symbol: '◆', outer: '#C77F36', frame: 'rgba(254,215,170,0.55)', surface: '#211208', shadow: '#7C2D12',
+        chipBg: 'rgba(45,24,8,0.8)', chipBorder: 'rgba(251,191,36,0.55)', chipText: '#FDE68A', nameBg: 'rgba(28,14,5,0.67)', text: '#FFF7ED', subText: '#FED7AA',
+        star: '#F59E0B', starEmpty: 'rgba(251,191,36,0.28)', abilityBg: 'rgba(57,29,7,0.86)', abilityBorder: 'rgba(245,158,11,0.52)', railBg: 'rgba(45,24,8,0.74)', railBorder: 'rgba(251,191,36,0.36)', statBg: 'rgba(27,13,5,0.9)', statBorder: 'rgba(245,158,11,0.62)', overlayBottom: 'rgba(27,13,5,0.91)', fallback: ['#4A2510', '#160A03'],
+    },
+    epic: {
+        label: 'ملحمي', symbol: '✦', outer: '#9B7FE8', frame: 'rgba(221,214,254,0.58)', surface: '#1B1031', shadow: '#4C1D95',
+        chipBg: 'rgba(35,16,65,0.82)', chipBorder: 'rgba(196,181,253,0.58)', chipText: '#EDE9FE', nameBg: 'rgba(22,9,45,0.69)', text: '#FAF5FF', subText: '#DDD6FE',
+        star: '#C4B5FD', starEmpty: 'rgba(196,181,253,0.28)', abilityBg: 'rgba(41,18,75,0.88)', abilityBorder: 'rgba(167,139,250,0.54)', railBg: 'rgba(29,12,56,0.75)', railBorder: 'rgba(196,181,253,0.38)', statBg: 'rgba(20,8,42,0.92)', statBorder: 'rgba(167,139,250,0.66)', overlayBottom: 'rgba(20,8,42,0.92)', fallback: ['#3B1A62', '#12051F'],
+    },
+    legendary: {
+        label: 'أسطوري', symbol: '✦', outer: '#D4AF37', frame: 'rgba(253,230,138,0.58)', surface: '#090705', shadow: '#000000',
+        chipBg: 'rgba(9,7,2,0.78)', chipBorder: 'rgba(253,230,138,0.62)', chipText: '#FEF3C7', nameBg: 'rgba(3,4,7,0.58)', text: '#FFF7D6', subText: '#FDE68A',
+        star: '#FFD84D', starEmpty: 'rgba(253,230,138,0.28)', abilityBg: 'rgba(24,17,3,0.8)', abilityBorder: 'rgba(253,230,138,0.52)', railBg: 'rgba(4,5,8,0.7)', railBorder: 'rgba(253,230,138,0.36)', statBg: 'rgba(8,6,2,0.91)', statBorder: 'rgba(253,230,138,0.74)', overlayBottom: 'rgba(2,4,8,0.92)', fallback: ['#281C06', '#090705'],
+    },
+    special: {
+        label: 'خاص', symbol: '◈', outer: '#C4CDD7', frame: 'rgba(226,232,240,0.62)', surface: '#0B0D12', shadow: '#111827',
+        chipBg: 'rgba(9,11,16,0.82)', chipBorder: 'rgba(203,213,225,0.58)', chipText: '#F1F5F9', nameBg: 'rgba(2,3,6,0.72)', text: '#FFFFFF', subText: '#CBD5E1',
+        star: '#E2E8F0', starEmpty: 'rgba(226,232,240,0.27)', abilityBg: 'rgba(30,19,31,0.9)', abilityBorder: 'rgba(244,114,182,0.5)', railBg: 'rgba(9,11,16,0.78)', railBorder: 'rgba(203,213,225,0.38)', statBg: 'rgba(2,3,6,0.93)', statBorder: 'rgba(203,213,225,0.66)', overlayBottom: 'rgba(2,3,6,0.94)', fallback: ['#19141D', '#020306'],
+    },
+};
+
+const TacticalRarityCard = ({
     card, style, cardW, cardH, sc, cardImage, videoAsset, customUri,
     isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate,
-    attack, defense,
+    attack, defense, rarity,
 }: {
     card: Card;
     style?: ViewStyle;
@@ -479,8 +532,10 @@ const TacticalLegendaryCard = ({
     shouldAnimate: boolean;
     attack: number;
     defense: number;
+    rarity: CardRarity;
 }) => {
     const hasMedia = !!cardImage || !!videoAsset || !!customUri;
+    const palette = TACTICAL_RARITY_PALETTES[rarity];
     const isCompact = cardW < 154 || cardH < 224;
     const pad = Math.max(7, Math.min(14, 11 * sc));
     const statsDockH = Math.max(isCompact ? 30 : 34, Math.min(42, 42 * sc));
@@ -502,66 +557,66 @@ const TacticalLegendaryCard = ({
     ];
 
     return (
-        <View style={[styles.tacticalLegendaryCard, { width: cardW, height: cardH, borderRadius: Math.round(12 * sc) }, style]}>
-            <View style={[styles.tacticalLegendaryInner, { borderRadius: Math.round(10 * sc) }]}>
+        <View style={[styles.tacticalLegendaryCard, { width: cardW, height: cardH, borderRadius: Math.round(12 * sc), backgroundColor: palette.surface, borderColor: palette.outer, shadowColor: palette.shadow }, style]}>
+            <View style={[styles.tacticalLegendaryInner, { borderRadius: Math.round(10 * sc), backgroundColor: palette.surface }]}>
                 {hasMedia && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imageFit={imageFit} imgStyle={imgStyle} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />}
-                {!hasMedia && <LinearGradient colors={['#281C06', '#090705']} style={StyleSheet.absoluteFill} />}
-                <LinearGradient colors={['rgba(2,4,8,0.03)', 'rgba(2,4,8,0.08)', 'rgba(2,4,8,0.91)']} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
+                {!hasMedia && <LinearGradient colors={palette.fallback} style={StyleSheet.absoluteFill} />}
+                <LinearGradient colors={['rgba(2,4,8,0.03)', 'rgba(2,4,8,0.08)', palette.overlayBottom]} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
 
-                <View style={[styles.tacticalLegendaryFrame, { borderRadius: Math.round(8 * sc) }]} pointerEvents="none" />
+                <View style={[styles.tacticalLegendaryFrame, { borderRadius: Math.round(8 * sc), borderColor: palette.frame }]} pointerEvents="none" />
                 <View style={[styles.tacticalLegendaryTopRow, { top: pad, left: pad, right: pad }]}>
-                    <View style={[styles.tacticalLegendaryChip, isCompact && styles.tacticalLegendaryChipCompact]}>
+                    <View style={[styles.tacticalLegendaryChip, isCompact && styles.tacticalLegendaryChipCompact, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
                         <Text style={{ fontSize: badgeFont + 2 }}>{ELEMENT_EMOJI[card.element]}</Text>
-                        <Text style={[styles.tacticalLegendaryChipText, { fontSize: badgeFont }]}>{ELEMENT_LABELS[card.element]}</Text>
+                        <Text style={[styles.tacticalLegendaryChipText, { color: palette.chipText, fontSize: badgeFont }]}>{ELEMENT_LABELS[card.element]}</Text>
                     </View>
-                    <View style={[styles.tacticalLegendaryRarityChip, isCompact && styles.tacticalLegendaryChipCompact]}>
-                        <Text style={[styles.tacticalLegendaryChipText, { color: '#FDE68A', fontSize: badgeFont }]}>✦ أسطوري</Text>
+                    <View style={[styles.tacticalLegendaryRarityChip, isCompact && styles.tacticalLegendaryChipCompact, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
+                        <Text style={[styles.tacticalLegendaryChipText, { color: palette.chipText, fontSize: badgeFont }]}>{palette.symbol} {palette.label}</Text>
                     </View>
                 </View>
 
                 <View style={[styles.tacticalLegendaryNameBlock, { bottom: nameBottom, paddingHorizontal: pad }]}>
-                    <View style={styles.tacticalLegendaryNamePlate}>
-                        <Text style={[styles.tacticalLegendaryName, { fontSize: nameFont, lineHeight: Math.round(nameFont * 1.18) }]} numberOfLines={isCompact ? 1 : 2} adjustsFontSizeToFit minimumFontScale={0.72}>{card.nameAr || card.name}</Text>
-                        {showEnglishName && <Text style={[styles.tacticalLegendaryNameEn, { fontSize: Math.max(7, 9 * sc) }]} numberOfLines={1}>{card.nameEn}</Text>}
+                    <View style={[styles.tacticalLegendaryNamePlate, { backgroundColor: palette.nameBg }]}>
+                        <Text style={[styles.tacticalLegendaryName, { color: palette.text, fontSize: nameFont, lineHeight: Math.round(nameFont * 1.18) }]} numberOfLines={isCompact ? 1 : 2} adjustsFontSizeToFit minimumFontScale={0.72}>{card.nameAr || card.name}</Text>
+                        {showEnglishName && <Text style={[styles.tacticalLegendaryNameEn, { color: palette.subText, fontSize: Math.max(7, 9 * sc) }]} numberOfLines={1}>{card.nameEn}</Text>}
                         <View style={styles.tacticalLegendaryStars}>
                             {Array.from({ length: 5 }).map((_, index) => (
-                                <Text key={index} style={[styles.tacticalLegendaryStar, { fontSize: Math.max(7, 10 * sc), color: index < starCount ? '#FFD84D' : 'rgba(253,230,138,0.28)' }]}>{index < starCount ? '★' : '☆'}</Text>
+                                <Text key={index} style={[styles.tacticalLegendaryStar, { fontSize: Math.max(7, 10 * sc), color: index < starCount ? palette.star : palette.starEmpty }]}>{index < starCount ? '★' : '☆'}</Text>
                             ))}
                         </View>
                     </View>
                 </View>
 
                 {abilityText && (
-                    <View style={[styles.tacticalLegendaryAbility, { left: pad, right: pad, bottom: abilityBottom, minHeight: abilityHeight }]}>
-                        <Text style={[styles.tacticalLegendaryAbilityIcon, { fontSize: labelFont + 2 }]}>✦</Text>
-                        <Text style={[styles.tacticalLegendaryAbilityText, { fontSize: Math.max(7, labelFont - 1), lineHeight: Math.max(10, labelFont * 1.25) }]} numberOfLines={isCompact ? 1 : 2}>{abilityText}</Text>
+                    <View style={[styles.tacticalLegendaryAbility, { left: pad, right: pad, bottom: abilityBottom, minHeight: abilityHeight, backgroundColor: palette.abilityBg, borderColor: palette.abilityBorder }]}>
+                        <Text style={[styles.tacticalLegendaryAbilityIcon, { color: palette.star, fontSize: labelFont + 2 }]}>✦</Text>
+                        <Text style={[styles.tacticalLegendaryAbilityText, { color: palette.text, fontSize: Math.max(7, labelFont - 1), lineHeight: Math.max(10, labelFont * 1.25) }]} numberOfLines={isCompact ? 1 : 2}>{abilityText}</Text>
                     </View>
                 )}
 
-                <View style={[styles.tacticalLegendaryMetaRail, { left: pad, right: pad, bottom: metaBottom, minHeight: metaHeight }]}>
+                <View style={[styles.tacticalLegendaryMetaRail, { left: pad, right: pad, bottom: metaBottom, minHeight: metaHeight, backgroundColor: palette.railBg, borderColor: palette.railBorder }]}>
                     {metaItems.map((item, index) => (
                         <React.Fragment key={item.key}>
                             {index > 0 && <View style={styles.tacticalLegendaryMetaDivider} />}
                             <View style={styles.tacticalLegendaryMetaItem}>
-                                <Text style={[styles.tacticalLegendaryMetaLabel, { fontSize: Math.max(8, labelFont) }]} numberOfLines={1}>{item.label}</Text>
+                                <Text style={[styles.tacticalLegendaryMetaLabel, { color: palette.subText, fontSize: Math.max(8, labelFont) }]} numberOfLines={1}>{item.label}</Text>
                             </View>
                         </React.Fragment>
                     ))}
                 </View>
 
-                <View style={[styles.tacticalLegendaryStatsDock, { left: pad, right: pad, bottom: pad, height: statsDockH }]}>
+                <View style={[styles.tacticalLegendaryStatsDock, { left: pad, right: pad, bottom: pad, height: statsDockH, backgroundColor: palette.statBg, borderColor: palette.statBorder }]}>
                     <View style={styles.tacticalLegendaryStat}>
                         <View style={styles.tacticalLegendaryStatCaption}>
                             <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 2 }]}>⚔️</Text>
                         </View>
-                        <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statValueFont }]}>{attack}</Text>
+                        <Text style={[styles.tacticalLegendaryStatValue, { color: palette.text, fontSize: statValueFont }]}>{attack}</Text>
                     </View>
                     <View style={styles.tacticalLegendaryDivider} />
                     <View style={styles.tacticalLegendaryStat}>
                         <View style={styles.tacticalLegendaryStatCaption}>
                             <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 2 }]}>🛡️</Text>
                         </View>
-                        <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statValueFont }]}>{defense}</Text>
+                        <Text style={[styles.tacticalLegendaryStatValue, { color: palette.text, fontSize: statValueFont }]}>{defense}</Text>
                     </View>
                 </View>
             </View>
@@ -658,8 +713,8 @@ export function LuxuryCharacterCardAnimated({
         ? ['rgba(0,0,0,0.2)', 'transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.97)']
         : ['transparent', 'transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.94)'];
 
-    if (isLegendary) {
-        return <TacticalLegendaryCard
+    if (TACTICAL_RARITY_PALETTES[rarity]) {
+        return <TacticalRarityCard
             card={card}
             style={style}
             cardW={cardW}
@@ -675,6 +730,7 @@ export function LuxuryCharacterCardAnimated({
             shouldAnimate={enableVisualEffects}
             attack={displayAttack}
             defense={displayDefense}
+            rarity={rarity}
         />;
     }
 
