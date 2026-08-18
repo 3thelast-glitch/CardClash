@@ -1,0 +1,61 @@
+# This file must live at the Git repository root because EAS packages from there.
+# Keep the tracked Expo project at card-battle-mobile-main/ and exclude only
+# local dependencies, generated output, tests, and documentation.
+
+# Repository-local editor and machine state
+/.idea/
+/.vscode/
+/.expo/
+/.git_disabled/
+
+# Dependencies and package-manager caches at any repository level
+**/node_modules/
+**/.pnpm-store/
+**/.yarn/
+**/.npm/
+
+# Expo, Metro, TypeScript, and generated build output
+**/.expo/
+**/.cache/
+**/dist/
+**/web-build/
+**/android/
+**/ios/
+**/.kotlin/
+**/*.tsbuildinfo
+**/.metro-health-check*
+
+# Tests, browser artefacts, editor history, and non-runtime documentation
+/.github/
+/card-battle-mobile-main/.history/
+/card-battle-mobile-main/test-results/
+/card-battle-mobile-main/playwright-report/
+/card-battle-mobile-main/coverage/
+/card-battle-mobile-main/tests/
+/card-battle-mobile-main/reports/
+/card-battle-mobile-main/docs/
+/card-battle-mobile-main/design/
+
+# Local secrets and signing materials
+**/.env
+**/.env.*
+!**/.env.example
+**/*.jks
+**/*.p8
+**/*.p12
+**/*.key
+**/*.mobileprovision
+**/*.pem
+
+# Logs, archives, and operating-system artefacts
+**/npm-debug.*
+**/yarn-debug.*
+**/yarn-error.*
+**/*.log
+**/*.tgz
+**/*.tar.gz
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+**/Thumbs.db
