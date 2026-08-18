@@ -25,6 +25,7 @@ import {
   GRID_GAP,
   LAYOUT_PADDING,
 } from '@/utils/layout';
+import { doesRoundPickerNeedScroll, getRoundPickerLayout } from '@/utils/round-picker-layout';
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
 
 // Multiplayer — يبقى الاستدعاء آمناً إذا لم يكن Provider موجوداً في سياق الاختبار.
@@ -143,31 +144,19 @@ export default function CardSelectionScreen() {
   const gridGap = GRID_GAP[size];
   const gridCellW = Math.floor((width - padding * 2 - gridGap * (numColumns - 1)) / numColumns);
 
-  // لوحة اختيار الجولة لا يجب أن تتمدد رأسياً مع 10+ جولات.
-  // نثبت معاينة الكرت ونضع أرقام الجولات في شبكة قابلة للتمرير داخل المساحة المتبقية.
-  const focusModalPadding = height < 440 ? 10 : 14;
-  const focusModalGap = isLandscape ? 20 : 12;
-  const focusModalWidth = Math.min(width - (isLandscape ? 48 : 24), isLandscape ? 820 : width - 24);
-  const stackRoundPicker = !isLandscape;
-  const focusCardW = Math.min(
-    modalCardW,
-    Math.max(112, isLandscape ? focusModalWidth * 0.3 : focusModalWidth * 0.36),
-  );
-  const focusCardH = Math.round(focusCardW * (modalCardH / modalCardW));
-  const focusContentWidth = focusModalWidth - focusModalPadding * 2;
-  const focusPickerW = stackRoundPicker
-    ? focusContentWidth
-    : Math.max(158, focusContentWidth - focusCardW - focusModalGap);
-  const roundPickerColumns = stackRoundPicker
-    ? (focusPickerW >= 420 ? 6 : 4)
-    : isLandscape
-    ? (focusPickerW >= 420 ? 6 : 4)
-    : (focusPickerW >= 270 ? 4 : 3);
-  const roundPickerGap = 6;
-  const roundPickerChipW = Math.floor((focusPickerW - roundPickerGap * (roundPickerColumns - 1)) / roundPickerColumns);
-  const roundPickerHeight = stackRoundPicker
-    ? Math.min(210, Math.max(150, height * 0.28))
-    : Math.min(focusCardH, Math.max(166, height * 0.56));
+  const {
+    focusModalPadding,
+    focusModalGap,
+    focusModalWidth,
+    stackRoundPicker,
+    focusCardW,
+    focusCardH,
+    focusPickerW,
+    roundPickerColumns,
+    roundPickerGap,
+    roundPickerChipW,
+    roundPickerHeight,
+  } = getRoundPickerLayout({ width, height, isLandscape, modalCardW, modalCardH });
 
   const mp = useSafeMultiplayer();
   const isMultiplayer = !!mp?.state?.roomId;
@@ -365,6 +354,7 @@ export default function CardSelectionScreen() {
       <Modal visible={focusedCardIndex !== null} transparent animationType="fade" onRequestClose={() => setFocusedCardIndex(null)}>
         <TouchableOpacity style={styles.focusModalOverlay} activeOpacity={1} onPress={() => setFocusedCardIndex(null)}>
           <TouchableOpacity
+            testID="round-picker-modal"
             activeOpacity={1}
             onPress={e => e.stopPropagation()}
             style={[
@@ -392,9 +382,14 @@ export default function CardSelectionScreen() {
                 </Text>
               </View>
               <ScrollView
+                testID="round-picker-grid"
                 style={[styles.roundPickerScroll, { maxHeight: roundPickerHeight }]}
                 contentContainerStyle={[styles.roundPickerGrid, { gap: roundPickerGap }]}
-                showsVerticalScrollIndicator={totalRounds > roundPickerColumns * 5}
+                showsVerticalScrollIndicator={doesRoundPickerNeedScroll(totalRounds, {
+                  roundPickerColumns,
+                  roundPickerGap,
+                  roundPickerHeight,
+                })}
               >
                 {Array.from({ length: totalRounds }, (_, i) => i + 1).map(round => {
                   const alreadyUsed = cardRounds.some((cr, idx) => cr.round === round && idx !== focusedCardIndex);
@@ -403,6 +398,7 @@ export default function CardSelectionScreen() {
                   return (
                     <TouchableOpacity
                       key={round}
+                      testID={`round-picker-round-${round}`}
                       style={[
                         styles.roundPickerButton,
                         { width: roundPickerChipW },
