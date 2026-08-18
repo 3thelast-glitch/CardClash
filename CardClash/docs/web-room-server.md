@@ -30,7 +30,7 @@ pnpm server:multiplayer
 
 ## أسرع نشر سحابي: Render
 
-يوجد ملف `render.yaml` في جذر المستودع لإعداد خدمة خادم الغرف. بعد تسجيل الدخول إلى [Render](https://render.com/)، اختر **New → Blueprint**، واربط مستودع GitHub `3thelast-glitch/card-battle-mobile-main` ثم وافق على ملف الإعداد. يبدأ الملف بخطة تجريبية مجانية؛ سيبني Render خادم الغرف بالأمر `pnpm build:multiplayer` ويشغله بالأمر `pnpm start:multiplayer`، ويراقب `/health`. قبل اعتماد اللعب العام الدائم، غيّر الخطة إلى خدمة تبقى نشطة ولا تنام من لوحة Render، ثم راجع تسعيرها الحالي مباشرة في حسابك.
+يوجد ملف `render.yaml` في جذر المستودع لإعداد خدمة خادم الغرف. بعد تسجيل الدخول إلى [Render](https://render.com/)، اختر **New → Blueprint**، واربط مستودع GitHub `3thelast-glitch/CardClash` ثم وافق على ملف الإعداد. يبدأ الملف بخطة تجريبية مجانية؛ سيبني Render خادم الغرف بالأمر `pnpm build:multiplayer` ويشغله بالأمر `pnpm start:multiplayer`، ويراقب `/health`. قبل اعتماد اللعب العام الدائم، غيّر الخطة إلى خدمة تبقى نشطة ولا تنام من لوحة Render، ثم راجع تسعيرها الحالي مباشرة في حسابك.
 
 بعد النشر انسخ رابط الخدمة، مثال: `https://card-clash-rooms.onrender.com`، ثم اضبط متغير بناء الويب الآتي قبل نشر واجهة Expo Web:
 

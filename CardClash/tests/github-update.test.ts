@@ -1,8 +1,8 @@
-import { isVersionNewer, resolvePlayerApk, toAppUpdate, type GithubRelease } from '../lib/releases/github-update';
+import { GITHUB_RELEASES_LATEST_URL, isVersionNewer, resolvePlayerApk, toAppUpdate, type GithubRelease } from '../lib/releases/github-update';
 
 const release: GithubRelease = {
   tag_name: 'v1.2.0',
-  html_url: 'https://github.com/3thelast-glitch/card-battle-mobile-main/releases/tag/v1.2.0',
+  html_url: 'https://github.com/3thelast-glitch/CardClash/releases/tag/v1.2.0',
   assets: [
     { name: 'Card-Clash-Dev-v1.2.0.apk', browser_download_url: 'https://example.test/dev.apk' },
     { name: 'Card-Clash-v1.2.0.apk', browser_download_url: 'https://example.test/player.apk' },
@@ -10,6 +10,10 @@ const release: GithubRelease = {
 };
 
 describe('GitHub Releases update resolver', () => {
+  it('uses the renamed CardClash repository for release checks', () => {
+    expect(GITHUB_RELEASES_LATEST_URL).toBe('https://api.github.com/repos/3thelast-glitch/CardClash/releases/latest');
+  });
+
   it('recognises a newer semantic version with or without v prefix', () => {
     expect(isVersionNewer('v1.2.0', '1.1.9')).toBe(true);
     expect(isVersionNewer('1.0.1', 'v1.0.0')).toBe(true);

@@ -1,5 +1,5 @@
 # This file must live at the Git repository root because EAS packages from there.
-# Keep the tracked Expo project at card-battle-mobile-main/ and exclude only
+# Keep the tracked Expo project at CardClash/ and exclude only
 # local dependencies, generated output, tests, and documentation.
 
 # Repository-local editor and machine state
@@ -27,14 +27,14 @@
 
 # Tests, browser artefacts, editor history, and non-runtime documentation
 /.github/
-/card-battle-mobile-main/.history/
-/card-battle-mobile-main/test-results/
-/card-battle-mobile-main/playwright-report/
-/card-battle-mobile-main/coverage/
-/card-battle-mobile-main/tests/
-/card-battle-mobile-main/reports/
-/card-battle-mobile-main/docs/
-/card-battle-mobile-main/design/
+/CardClash/.history/
+/CardClash/test-results/
+/CardClash/playwright-report/
+/CardClash/coverage/
+/CardClash/tests/
+/CardClash/reports/
+/CardClash/docs/
+/CardClash/design/
 
 # Local secrets and signing materials
 **/.env

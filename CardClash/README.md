@@ -41,7 +41,7 @@ npm install -g pnpm@9.12.0
 
 ### 1. تثبيت الاعتمادات
 
-من داخل مجلد التطبيق `card-battle-mobile-main/` نفّذ:
+من داخل مجلد التطبيق `CardClash/` نفّذ:
 
 ```bash
 pnpm install
@@ -123,7 +123,7 @@ pnpm db:push
 ## بنية المشروع
 
 ```text
-card-battle-mobile-main/
+CardClash/
 ├── app/
 │   ├── _layout.tsx              # المزودات والخطوط والمسارات
 │   ├── screens/                 # الشاشات الفردية والجماعية والمجموعة والقدرات
