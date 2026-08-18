@@ -15,7 +15,7 @@ import Animated, {
     type SharedValue,
 } from 'react-native-reanimated';
 import { Svg, Circle, Line, Ellipse, Path, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { Card, CardRarity, Element, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
+import { Card, CardClass, CardRarity, Element, Gender, Race, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
 import { getCardImage } from '../../lib/game/get-card-image';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 
@@ -25,6 +25,23 @@ const ELEMENT_LABELS: Record<Element, string> = {
     earth: 'أرض',
     lightning: 'برق',
     wind: 'ريح',
+};
+
+const RACE_LABELS: Record<Race, string> = {
+    human: 'بشر', elf: 'إلف', orc: 'أورك', dragon: 'تنين',
+    demon: 'شيطان', undead: 'ميت', monster: 'وحش', robot: 'روبوت',
+};
+
+const CLASS_LABELS: Record<CardClass, string> = {
+    warrior: 'محارب', knight: 'فارس', mage: 'ساحر', archer: 'رامي',
+    berserker: 'مقاتل', paladin: 'بلادين', swordsman: 'سياف', fighter: 'مقاتل',
+    guardian: 'حارس', healer: 'طبيب',
+};
+
+const GENDER_META: Record<Gender, { icon: string; label: string }> = {
+    male: { icon: '👨', label: 'ذكر' },
+    female: { icon: '👩', label: 'أنثى' },
+    unknown: { icon: '◌', label: 'غير محدد' },
 };
 
 const BASE_W = 220;
@@ -478,6 +495,18 @@ const TacticalLegendaryCard = ({
     const nameFont = Math.max(isCompact ? 12 : 15, Math.min(21, 19 * sc));
     const badgeFont = Math.max(8, Math.min(11, 10 * sc));
     const showEnglishName = !isCompact && !!card.nameEn;
+    const starCount = Math.max(0, Math.min(5, card.stars ?? 5));
+    const abilityText = card.specialAbility?.trim();
+    const metaHeight = isCompact ? 18 : 22;
+    const abilityHeight = abilityText ? (isCompact ? 20 : 28) : 0;
+    const metaBottom = pad + statsDockH + 4;
+    const abilityBottom = metaBottom + metaHeight + (abilityText ? 4 : 0);
+    const nameBottom = abilityText ? abilityBottom + abilityHeight + 5 : metaBottom + metaHeight + 5;
+    const metaItems = [
+        { key: 'race', icon: RACE_EMOJI[card.race], label: RACE_LABELS[card.race] },
+        { key: 'class', icon: CLASS_EMOJI[card.cardClass], label: CLASS_LABELS[card.cardClass] },
+        { key: 'gender', ...GENDER_META[card.gender ?? 'unknown'] },
+    ];
 
     return (
         <View style={[styles.tacticalLegendaryCard, { width: cardW, height: cardH, borderRadius: Math.round(12 * sc) }, style]}>
@@ -497,11 +526,35 @@ const TacticalLegendaryCard = ({
                     </View>
                 </View>
 
-                <View style={[styles.tacticalLegendaryNameBlock, { bottom: pad + statsDockH + 6, paddingHorizontal: pad }]}>
+                <View style={[styles.tacticalLegendaryNameBlock, { bottom: nameBottom, paddingHorizontal: pad }]}>
                     <View style={styles.tacticalLegendaryNamePlate}>
-                        <Text style={[styles.tacticalLegendaryName, { fontSize: nameFont, lineHeight: Math.round(nameFont * 1.18) }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.72}>{card.nameAr || card.name}</Text>
+                        <Text style={[styles.tacticalLegendaryName, { fontSize: nameFont, lineHeight: Math.round(nameFont * 1.18) }]} numberOfLines={isCompact ? 1 : 2} adjustsFontSizeToFit minimumFontScale={0.72}>{card.nameAr || card.name}</Text>
                         {showEnglishName && <Text style={[styles.tacticalLegendaryNameEn, { fontSize: Math.max(7, 9 * sc) }]} numberOfLines={1}>{card.nameEn}</Text>}
+                        <View style={styles.tacticalLegendaryStars}>
+                            {Array.from({ length: 5 }).map((_, index) => (
+                                <Text key={index} style={[styles.tacticalLegendaryStar, { fontSize: Math.max(7, 10 * sc), color: index < starCount ? '#FFD84D' : 'rgba(253,230,138,0.28)' }]}>{index < starCount ? '★' : '☆'}</Text>
+                            ))}
+                        </View>
                     </View>
+                </View>
+
+                {abilityText && (
+                    <View style={[styles.tacticalLegendaryAbility, { left: pad, right: pad, bottom: abilityBottom, minHeight: abilityHeight }]}>
+                        <Text style={[styles.tacticalLegendaryAbilityIcon, { fontSize: labelFont + 2 }]}>✦</Text>
+                        <Text style={[styles.tacticalLegendaryAbilityText, { fontSize: Math.max(7, labelFont - 1), lineHeight: Math.max(10, labelFont * 1.25) }]} numberOfLines={isCompact ? 1 : 2}>{abilityText}</Text>
+                    </View>
+                )}
+
+                <View style={[styles.tacticalLegendaryMetaRail, { left: pad, right: pad, bottom: metaBottom, minHeight: metaHeight }]}>
+                    {metaItems.map((item, index) => (
+                        <React.Fragment key={item.key}>
+                            {index > 0 && <View style={styles.tacticalLegendaryMetaDivider} />}
+                            <View style={styles.tacticalLegendaryMetaItem}>
+                                <Text style={[styles.tacticalLegendaryMetaIcon, { fontSize: Math.max(8, labelFont + 1) }]}>{item.icon}</Text>
+                                {!isCompact && <Text style={[styles.tacticalLegendaryMetaLabel, { fontSize: Math.max(7, labelFont - 1) }]} numberOfLines={1}>{item.label}</Text>}
+                            </View>
+                        </React.Fragment>
+                    ))}
                 </View>
 
                 <View style={[styles.tacticalLegendaryStatsDock, { left: pad, right: pad, bottom: pad, height: statsDockH }]}>
@@ -807,6 +860,16 @@ const styles = StyleSheet.create({
     tacticalLegendaryNamePlate: { alignSelf: 'stretch', alignItems: 'center', backgroundColor: 'rgba(3,4,7,0.54)', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
     tacticalLegendaryName: { color: '#FFF7D6', fontWeight: '900', textAlign: 'center', writingDirection: 'rtl', textShadowColor: 'rgba(0,0,0,0.95)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
     tacticalLegendaryNameEn: { color: '#FDE68A', fontWeight: '800', letterSpacing: 1.1, marginTop: 1 },
+    tacticalLegendaryStars: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 1, marginTop: 1 },
+    tacticalLegendaryStar: { fontWeight: '900', lineHeight: 12 },
+    tacticalLegendaryAbility: { position: 'absolute', flexDirection: 'row-reverse', alignItems: 'center', gap: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(253,230,138,0.5)', backgroundColor: 'rgba(24,17,3,0.78)', paddingHorizontal: 6, paddingVertical: 2 },
+    tacticalLegendaryAbilityIcon: { color: '#FFD84D' },
+    tacticalLegendaryAbilityText: { flex: 1, color: '#FFF4C9', fontWeight: '700', writingDirection: 'rtl', textAlign: 'right' },
+    tacticalLegendaryMetaRail: { position: 'absolute', flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-evenly', borderRadius: 6, borderWidth: 1, borderColor: 'rgba(253,230,138,0.34)', backgroundColor: 'rgba(4,5,8,0.68)', paddingHorizontal: 4 },
+    tacticalLegendaryMetaItem: { flex: 1, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 2, minWidth: 0 },
+    tacticalLegendaryMetaIcon: {},
+    tacticalLegendaryMetaLabel: { color: '#FDE68A', fontWeight: '700', writingDirection: 'rtl', flexShrink: 1 },
+    tacticalLegendaryMetaDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', marginVertical: 3, backgroundColor: 'rgba(253,230,138,0.34)' },
     tacticalLegendaryStatsDock: { position: 'absolute', flexDirection: 'row-reverse', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(253,230,138,0.74)', backgroundColor: 'rgba(8,6,2,0.9)', paddingHorizontal: 4 },
     tacticalLegendaryStat: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 1 },
     tacticalLegendaryStatCaption: { flexDirection: 'row-reverse', alignItems: 'center', gap: 2 },
