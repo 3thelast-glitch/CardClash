@@ -15,7 +15,7 @@ import Animated, {
     type SharedValue,
 } from 'react-native-reanimated';
 import { Svg, Circle, Line, Ellipse, Path, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { Card, CardClass, CardRarity, Element, Gender, Race, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
+import { Card, CardClass, CardRarity, Element, Race, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
 import { getCardImage } from '../../lib/game/get-card-image';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 
@@ -36,12 +36,6 @@ const CLASS_LABELS: Record<CardClass, string> = {
     warrior: 'محارب', knight: 'فارس', mage: 'ساحر', archer: 'رامي',
     berserker: 'مقاتل', paladin: 'بلادين', swordsman: 'سياف', fighter: 'مقاتل',
     guardian: 'حارس', healer: 'طبيب',
-};
-
-const GENDER_META: Record<Gender, { icon: string; label: string }> = {
-    male: { icon: '👨', label: 'ذكر' },
-    female: { icon: '👩', label: 'أنثى' },
-    unknown: { icon: '◌', label: 'غير محدد' },
 };
 
 const BASE_W = 220;
@@ -489,15 +483,15 @@ const TacticalLegendaryCard = ({
     const hasMedia = !!cardImage || !!videoAsset || !!customUri;
     const isCompact = cardW < 154 || cardH < 224;
     const pad = Math.max(7, Math.min(14, 11 * sc));
-    const statsDockH = Math.max(isCompact ? 42 : 50, Math.min(66, 58 * sc));
-    const statValueFont = Math.max(isCompact ? 15 : 18, 21 * sc);
-    const labelFont = Math.max(8, Math.min(11, 10 * sc));
+    const statsDockH = Math.max(isCompact ? 30 : 34, Math.min(42, 42 * sc));
+    const statValueFont = Math.max(isCompact ? 12 : 15, Math.min(19, 17 * sc));
+    const labelFont = Math.max(8, Math.min(10, 9 * sc));
     const nameFont = Math.max(isCompact ? 12 : 15, Math.min(21, 19 * sc));
     const badgeFont = Math.max(8, Math.min(11, 10 * sc));
     const showEnglishName = !isCompact && !!card.nameEn;
     const starCount = Math.max(0, Math.min(5, card.stars ?? 5));
     const abilityText = card.specialAbility?.trim();
-    const metaHeight = isCompact ? 18 : 22;
+    const metaHeight = isCompact ? 16 : 20;
     const abilityHeight = abilityText ? (isCompact ? 20 : 28) : 0;
     const metaBottom = pad + statsDockH + 4;
     const abilityBottom = metaBottom + metaHeight + (abilityText ? 4 : 0);
@@ -505,7 +499,6 @@ const TacticalLegendaryCard = ({
     const metaItems = [
         { key: 'race', icon: RACE_EMOJI[card.race], label: RACE_LABELS[card.race] },
         { key: 'class', icon: CLASS_EMOJI[card.cardClass], label: CLASS_LABELS[card.cardClass] },
-        { key: 'gender', ...GENDER_META[card.gender ?? 'unknown'] },
     ];
 
     return (
@@ -560,7 +553,7 @@ const TacticalLegendaryCard = ({
                 <View style={[styles.tacticalLegendaryStatsDock, { left: pad, right: pad, bottom: pad, height: statsDockH }]}>
                     <View style={styles.tacticalLegendaryStat}>
                         <View style={styles.tacticalLegendaryStatCaption}>
-                            <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 4 }]}>⚔️</Text>
+                            <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 2 }]}>⚔️</Text>
                             <Text style={[styles.tacticalLegendaryStatLabel, { fontSize: labelFont }]}>هجوم</Text>
                         </View>
                         <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statValueFont }]}>{attack}</Text>
@@ -568,7 +561,7 @@ const TacticalLegendaryCard = ({
                     <View style={styles.tacticalLegendaryDivider} />
                     <View style={styles.tacticalLegendaryStat}>
                         <View style={styles.tacticalLegendaryStatCaption}>
-                            <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 4 }]}>🛡️</Text>
+                            <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 2 }]}>🛡️</Text>
                             <Text style={[styles.tacticalLegendaryStatLabel, { fontSize: labelFont }]}>دفاع</Text>
                         </View>
                         <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statValueFont }]}>{defense}</Text>
@@ -870,13 +863,13 @@ const styles = StyleSheet.create({
     tacticalLegendaryMetaIcon: {},
     tacticalLegendaryMetaLabel: { color: '#FDE68A', fontWeight: '700', writingDirection: 'rtl', flexShrink: 1 },
     tacticalLegendaryMetaDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', marginVertical: 3, backgroundColor: 'rgba(253,230,138,0.34)' },
-    tacticalLegendaryStatsDock: { position: 'absolute', flexDirection: 'row-reverse', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(253,230,138,0.74)', backgroundColor: 'rgba(8,6,2,0.9)', paddingHorizontal: 4 },
-    tacticalLegendaryStat: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 1 },
+    tacticalLegendaryStatsDock: { position: 'absolute', flexDirection: 'row-reverse', alignItems: 'center', borderRadius: 7, borderWidth: 1, borderColor: 'rgba(253,230,138,0.7)', backgroundColor: 'rgba(8,6,2,0.9)', paddingHorizontal: 4 },
+    tacticalLegendaryStat: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 0 },
     tacticalLegendaryStatCaption: { flexDirection: 'row-reverse', alignItems: 'center', gap: 2 },
     tacticalLegendaryStatIcon: {},
     tacticalLegendaryStatLabel: { color: '#FDE68A', fontWeight: '800', writingDirection: 'rtl' },
     tacticalLegendaryStatValue: { color: '#FFF7D6', fontWeight: '900' },
-    tacticalLegendaryDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: 'rgba(253,230,138,0.55)', marginVertical: 7 },
+    tacticalLegendaryDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: 'rgba(253,230,138,0.55)', marginVertical: 5 },
     winnerBadge: {
         position: 'absolute',
         top: '40%',
