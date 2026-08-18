@@ -15,9 +15,17 @@ import Animated, {
     type SharedValue,
 } from 'react-native-reanimated';
 import { Svg, Circle, Line, Ellipse, Path, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { Card, CardRarity, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
+import { Card, CardRarity, Element, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
 import { getCardImage } from '../../lib/game/get-card-image';
 import { useSettings } from '@/lib/game/hooks/useSettings';
+
+const ELEMENT_LABELS: Record<Element, string> = {
+    fire: 'نار',
+    water: 'ماء',
+    earth: 'أرض',
+    lightning: 'برق',
+    wind: 'ريح',
+};
 
 const BASE_W = 220;
 const BASE_H = 320;
@@ -625,8 +633,23 @@ export function LuxuryCharacterCardAnimated({
                         </>
                     )}
 
-                    {/* rarity badge */}
-                    <View style={[styles.rarityBadge, { top: badgeTop, left: badgeLeft, paddingHorizontal: badgePadH, paddingVertical: badgePadV, borderRadius: Math.round(7 * sc), borderColor: themeColor + 'AA', backgroundColor: specialRarityBadgeBg }]}>
+                    {/* Legendary layout uses opposing element and rarity badges. */}
+                    {isLegendary && (
+                        <View style={[styles.legendaryElementBadge, { top: badgeTop, left: badgeLeft, borderColor: themeColor + 'AA' }]}>
+                            <Text style={[styles.legendaryElementIcon, { fontSize: badgeFontSize + 2 }]}>{ELEMENT_EMOJI[card.element]}</Text>
+                            <Text style={[styles.legendaryElementText, { fontSize: badgeFontSize }]}>{ELEMENT_LABELS[card.element]}</Text>
+                        </View>
+                    )}
+                    <View style={[styles.rarityBadge, {
+                        top: badgeTop,
+                        left: isLegendary ? undefined : badgeLeft,
+                        right: isLegendary ? badgeLeft : undefined,
+                        paddingHorizontal: badgePadH,
+                        paddingVertical: badgePadV,
+                        borderRadius: Math.round(7 * sc),
+                        borderColor: themeColor + 'AA',
+                        backgroundColor: specialRarityBadgeBg,
+                    }]}>
                         <Text style={[styles.rarityBadgeText, { color: themeColor, fontSize: badgeFontSize }]}>
                             {rarity === 'legendary' ? '✧ ' : rarity === 'special' ? '☠️ ' : '✦ '}{theme.label}{rarity === 'legendary' ? ' ✧' : rarity === 'special' ? ' ☠️' : ' ✦'}
                         </Text>
@@ -673,11 +696,21 @@ export function LuxuryCharacterCardAnimated({
 
 
 
-                    {/* Stats row: [ ⚔️ 18 ] [ icons ] [ 🛡️ 16 ] */}
+                    {/* Legendary cards use a clean two-stat gold dock; other rarities keep compact metadata. */}
                     <View style={[styles.statsRow, { bottom: statsBottom, paddingHorizontal: Math.max(4, 8 * scW) }]}>
-                        <StatBadge icon="⚔️" value={baseAttack} effectiveValue={displayAttack} isAttack={true} fs={statFs} />
-                        <MetaStrip card={card} sc={sc} />
-                        <StatBadge icon="🛡️" value={baseDefense} effectiveValue={displayDefense} isAttack={false} fs={statFs} />
+                        {isLegendary ? (
+                            <View style={[styles.legendaryStatsDock, { borderColor: themeColor + '99' }]}>
+                                <StatBadge icon="⚔️" value={baseAttack} effectiveValue={displayAttack} isAttack={true} fs={statFs} />
+                                <View style={[styles.legendaryStatDivider, { backgroundColor: themeColor + '99' }]} />
+                                <StatBadge icon="🛡️" value={baseDefense} effectiveValue={displayDefense} isAttack={false} fs={statFs} />
+                            </View>
+                        ) : (
+                            <>
+                                <StatBadge icon="⚔️" value={baseAttack} effectiveValue={displayAttack} isAttack={true} fs={statFs} />
+                                <MetaStrip card={card} sc={sc} />
+                                <StatBadge icon="🛡️" value={baseDefense} effectiveValue={displayDefense} isAttack={false} fs={statFs} />
+                            </>
+                        )}
                     </View>
                 </View>
             </View>
@@ -706,6 +739,9 @@ const styles = StyleSheet.create({
 
     rarityBadge: { position: 'absolute', borderWidth: 1, zIndex: 10 },
     rarityBadgeText: { fontWeight: '700', letterSpacing: 0.5 },
+    legendaryElementBadge: { position: 'absolute', flexDirection: 'row-reverse', alignItems: 'center', gap: 3, borderWidth: 1, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: 'rgba(30,20,0,0.75)', zIndex: 10 },
+    legendaryElementIcon: {},
+    legendaryElementText: { color: '#FEF3C7', fontWeight: '700', writingDirection: 'rtl' },
 
     nameContainer: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 8 },
     legendaryNameBar: { position: 'absolute', top: -4, left: -10, right: -10, bottom: -4 },
@@ -727,6 +763,8 @@ const styles = StyleSheet.create({
     abilityText: { flex: 1, fontWeight: '600', writingDirection: 'rtl' },
 
     statsRow: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, gap: 2 },
+    legendaryStatsDock: { flex: 1, flexDirection: 'row-reverse', alignItems: 'center', minHeight: 34, borderWidth: 1, borderRadius: 7, backgroundColor: 'rgba(10,7,0,0.86)' },
+    legendaryStatDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', marginVertical: 5 },
     statBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingTop: 6, paddingBottom: 3, borderRadius: 20, gap: 1, minWidth: 32, justifyContent: 'center', flexWrap: 'nowrap', flexShrink: 1, overflow: 'visible' },
     attackBadge: { backgroundColor: 'rgba(20,12,0,0.88)', borderWidth: 1.5, borderColor: '#B8860B' },
     defenseBadge: { backgroundColor: 'rgba(0,10,28,0.88)', borderWidth: 1.5, borderColor: '#2563EB' },
