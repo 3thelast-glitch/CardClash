@@ -110,7 +110,7 @@ interface CardRound { card: Card; round: number | null; }
 // ───────────────────────────────────────────────────────────────────────
 export default function CardSelectionScreen() {
   const router = useRouter();
-  const { width, height, size } = useLandscapeLayout();
+  const { width, height, size, isLandscape } = useLandscapeLayout();
 
   // Dynamic scaling parameters for the abilities modal in card selection:
   const selModalH = height * 0.95 - 100;
@@ -142,6 +142,32 @@ export default function CardSelectionScreen() {
   const { cardW: modalCardW, cardH: modalCardH } = useCardSize('modal');
   const gridGap = GRID_GAP[size];
   const gridCellW = Math.floor((width - padding * 2 - gridGap * (numColumns - 1)) / numColumns);
+
+  // لوحة اختيار الجولة لا يجب أن تتمدد رأسياً مع 10+ جولات.
+  // نثبت معاينة الكرت ونضع أرقام الجولات في شبكة قابلة للتمرير داخل المساحة المتبقية.
+  const focusModalPadding = height < 440 ? 10 : 14;
+  const focusModalGap = isLandscape ? 20 : 12;
+  const focusModalWidth = Math.min(width - (isLandscape ? 48 : 24), isLandscape ? 820 : width - 24);
+  const stackRoundPicker = !isLandscape;
+  const focusCardW = Math.min(
+    modalCardW,
+    Math.max(112, isLandscape ? focusModalWidth * 0.3 : focusModalWidth * 0.36),
+  );
+  const focusCardH = Math.round(focusCardW * (modalCardH / modalCardW));
+  const focusContentWidth = focusModalWidth - focusModalPadding * 2;
+  const focusPickerW = stackRoundPicker
+    ? focusContentWidth
+    : Math.max(158, focusContentWidth - focusCardW - focusModalGap);
+  const roundPickerColumns = stackRoundPicker
+    ? (focusPickerW >= 420 ? 6 : 4)
+    : isLandscape
+    ? (focusPickerW >= 420 ? 6 : 4)
+    : (focusPickerW >= 270 ? 4 : 3);
+  const roundPickerGap = 6;
+  const roundPickerChipW = Math.floor((focusPickerW - roundPickerGap * (roundPickerColumns - 1)) / roundPickerColumns);
+  const roundPickerHeight = stackRoundPicker
+    ? Math.min(210, Math.max(150, height * 0.28))
+    : Math.min(focusCardH, Math.max(166, height * 0.56));
 
   const mp = useSafeMultiplayer();
   const isMultiplayer = !!mp?.state?.roomId;
@@ -219,6 +245,10 @@ export default function CardSelectionScreen() {
   };
 
   const allAssigned = cardRounds.every(cr => cr.round !== null);
+  const selectedCardRound = focusedCardIndex !== null ? cardRounds[focusedCardIndex]?.round ?? null : null;
+  const suggestedRound = selectedCardRound === null
+    ? Array.from({ length: totalRounds }, (_, i) => i + 1).find(round => !cardRounds.some(cr => cr.round === round)) ?? null
+    : null;
 
   const startBtnLabel = () => {
     if (!allAssigned) return `${cardRounds.filter(c => c.round).length} / ${totalRounds} مُعيّنة`;
@@ -334,32 +364,65 @@ export default function CardSelectionScreen() {
       {/* Modal: تحديد الجولة */}
       <Modal visible={focusedCardIndex !== null} transparent animationType="fade" onRequestClose={() => setFocusedCardIndex(null)}>
         <TouchableOpacity style={styles.focusModalOverlay} activeOpacity={1} onPress={() => setFocusedCardIndex(null)}>
-          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={styles.focusModalContentRow}>
-            <View style={styles.focusModalLeftCol}>
-              {Array.from({ length: totalRounds }, (_, i) => i + 1).map(round => {
-                const alreadyUsed = cardRounds.some((cr, idx) => cr.round === round && idx !== focusedCardIndex);
-                return (
-                  <TouchableOpacity key={round} style={[styles.focusRoundBtn, alreadyUsed && styles.focusRoundBtnUsed]} onPress={() => handleRoundSelect(round)} activeOpacity={0.7}>
-                    <View style={[
-                      styles.focusRoundBadge,
-                      alreadyUsed && styles.focusRoundBadgeUsed,
-                      focusedCardIndex !== null && cardRounds[focusedCardIndex]?.round === round && styles.focusRoundBadgeActive,
-                    ]}>
-                      <Text style={[styles.focusRoundText, alreadyUsed && styles.focusRoundTextUsed]}>ج {round}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={e => e.stopPropagation()}
+            style={[
+              styles.focusModalContent,
+              { width: focusModalWidth, padding: focusModalPadding, gap: focusModalGap },
+              stackRoundPicker && styles.focusModalContentStacked,
+            ]}
+          >
             {focusedCardIndex !== null && cardRounds[focusedCardIndex] && (
-              <View style={styles.focusModalRightCol}>
+              <View style={[styles.focusCardColumn, { width: focusCardW }]}>
                 <LuxuryCharacterCardAnimated
                   card={cardRounds[focusedCardIndex].card}
-                  style={{ width: modalCardW, height: modalCardH }}
+                  style={{ width: focusCardW, height: focusCardH }}
                   isOpenedView={true}
                 />
               </View>
             )}
+            <View style={[styles.roundPickerPanel, { width: focusPickerW }]}>
+              <View style={styles.roundPickerHeader}>
+                <Text style={styles.roundPickerTitle}>اختر الجولة</Text>
+                <Text style={styles.roundPickerSubtitle} numberOfLines={2}>
+                  {suggestedRound !== null
+                    ? `الاقتراح الذهبي: ج ${suggestedRound}`
+                    : 'يمكن اختيار خانة مستخدمة لتبديل الترتيب'}
+                </Text>
+              </View>
+              <ScrollView
+                style={[styles.roundPickerScroll, { maxHeight: roundPickerHeight }]}
+                contentContainerStyle={[styles.roundPickerGrid, { gap: roundPickerGap }]}
+                showsVerticalScrollIndicator={totalRounds > roundPickerColumns * 5}
+              >
+                {Array.from({ length: totalRounds }, (_, i) => i + 1).map(round => {
+                  const alreadyUsed = cardRounds.some((cr, idx) => cr.round === round && idx !== focusedCardIndex);
+                  const isCurrentRound = selectedCardRound === round;
+                  const isSuggested = suggestedRound === round;
+                  return (
+                    <TouchableOpacity
+                      key={round}
+                      style={[
+                        styles.roundPickerButton,
+                        { width: roundPickerChipW },
+                        alreadyUsed && styles.roundPickerButtonUsed,
+                        isCurrentRound && styles.roundPickerButtonActive,
+                        isSuggested && styles.roundPickerButtonSuggested,
+                      ]}
+                      onPress={() => handleRoundSelect(round)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[
+                        styles.roundPickerButtonText,
+                        alreadyUsed && styles.roundPickerButtonTextUsed,
+                        (isCurrentRound || isSuggested) && styles.roundPickerButtonTextActive,
+                      ]}>ج {round}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -463,16 +526,23 @@ const styles = StyleSheet.create({
   waitingBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   waitingBannerText: { color: '#d4af37', fontSize: 12, fontWeight: '700' },
   allReadyBanner: { backgroundColor: 'rgba(74,222,128,0.08)', borderColor: 'rgba(74,222,128,0.30)' },
-  focusModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
-  focusModalContentRow: { flexDirection: 'row', alignItems: 'center', gap: 24, backgroundColor: 'rgba(10,10,20,0.97)', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
-  focusModalLeftCol: { gap: 10 },
-  focusRoundBtn: { alignItems: 'center' },
-  focusRoundBtnUsed: { opacity: 0.5 },
-  focusRoundBadge: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', minWidth: 90, alignItems: 'center' },
-  focusRoundBadgeUsed: { borderColor: 'rgba(248,113,113,0.4)', backgroundColor: 'rgba(248,113,113,0.08)' },
-  focusRoundBadgeActive: { borderColor: '#d4af37', backgroundColor: 'rgba(212,175,55,0.2)' },
-  focusRoundText: { color: '#e2e8f0', fontSize: 14, fontWeight: '700' },
-  focusRoundTextUsed: { color: '#f87171' },
+  focusModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
+  focusModalContent: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(10,10,20,0.97)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
+  focusModalContentStacked: { flexDirection: 'column' },
+  focusCardColumn: { alignItems: 'center', justifyContent: 'center' },
+  roundPickerPanel: { alignSelf: 'stretch', minWidth: 0, backgroundColor: 'rgba(2,6,23,0.62)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(148,163,184,0.22)', padding: 8 },
+  roundPickerHeader: { marginBottom: 8, gap: 2 },
+  roundPickerTitle: { color: '#f8fafc', fontSize: 15, fontWeight: '800', textAlign: 'right' },
+  roundPickerSubtitle: { color: '#94a3b8', fontSize: 11, fontWeight: '600', textAlign: 'right', lineHeight: 16 },
+  roundPickerScroll: { flexGrow: 0 },
+  roundPickerGrid: { flexDirection: 'row', flexWrap: 'wrap', alignContent: 'flex-start' },
+  roundPickerButton: { height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  roundPickerButtonUsed: { borderColor: 'rgba(248,113,113,0.38)', backgroundColor: 'rgba(248,113,113,0.08)' },
+  roundPickerButtonActive: { borderColor: '#d4af37', backgroundColor: 'rgba(212,175,55,0.22)' },
+  roundPickerButtonSuggested: { borderColor: 'rgba(250,204,21,0.92)', backgroundColor: 'rgba(250,204,21,0.14)' },
+  roundPickerButtonText: { color: '#e2e8f0', fontSize: 13, fontWeight: '800' },
+  roundPickerButtonTextUsed: { color: '#fca5a5' },
+  roundPickerButtonTextActive: { color: '#fde68a' },
   focusModalRightCol: { alignItems: 'center' },
   abilitiesModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
   abilitiesModalContent: { width: '90%', maxWidth: 700, backgroundColor: 'rgba(5,10,22,0.98)', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: 'rgba(168,85,247,0.38)', shadowColor: '#7c3aed', shadowOpacity: 0.3, shadowRadius: 20, shadowOffset: { width: 0, height: 0 }, elevation: 12 },
