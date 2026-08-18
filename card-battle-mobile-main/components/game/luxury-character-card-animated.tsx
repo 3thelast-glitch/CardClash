@@ -546,15 +546,22 @@ const TacticalRarityCard = ({
     const showEnglishName = !isCompact && !!card.nameEn;
     const starCount = Math.max(0, Math.min(5, card.stars ?? 5));
     const abilityText = card.specialAbility?.trim();
-    const metaHeight = isCompact ? 16 : 20;
+    const elementEmoji = card.element ? ELEMENT_EMOJI[card.element] : undefined;
+    const elementLabel = card.element ? ELEMENT_LABELS[card.element] : undefined;
+    const hasElement = Boolean(elementEmoji && elementLabel);
+    type MetaItem = { key: 'race' | 'class'; label: string };
+    const raceLabel = card.race ? RACE_LABELS[card.race] : undefined;
+    const classLabel = card.cardClass ? CLASS_LABELS[card.cardClass] : undefined;
+    const metaItems: MetaItem[] = [
+        raceLabel ? { key: 'race', label: raceLabel } : null,
+        classLabel ? { key: 'class', label: classLabel } : null,
+    ].filter((item): item is MetaItem => item !== null);
+    const hasMeta = metaItems.length > 0;
+    const metaHeight = hasMeta ? (isCompact ? 16 : 20) : 0;
     const abilityHeight = abilityText ? (isCompact ? 20 : 28) : 0;
-    const metaBottom = pad + statsDockH + 4;
+    const metaBottom = pad + statsDockH + (hasMeta ? 4 : 0);
     const abilityBottom = metaBottom + metaHeight + (abilityText ? 4 : 0);
     const nameBottom = abilityText ? abilityBottom + abilityHeight + 5 : metaBottom + metaHeight + 5;
-    const metaItems = [
-        { key: 'race', label: RACE_LABELS[card.race] },
-        { key: 'class', label: CLASS_LABELS[card.cardClass] },
-    ];
 
     return (
         <View style={[styles.tacticalLegendaryCard, { width: cardW, height: cardH, borderRadius: Math.round(12 * sc), backgroundColor: palette.surface, borderColor: palette.outer, shadowColor: palette.shadow }, style]}>
@@ -564,11 +571,13 @@ const TacticalRarityCard = ({
                 <LinearGradient colors={['rgba(2,4,8,0.03)', 'rgba(2,4,8,0.08)', palette.overlayBottom]} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
 
                 <View style={[styles.tacticalLegendaryFrame, { borderRadius: Math.round(8 * sc), borderColor: palette.frame }]} pointerEvents="none" />
-                <View style={[styles.tacticalLegendaryTopRow, { top: pad, left: pad, right: pad }]}>
-                    <View style={[styles.tacticalLegendaryChip, isCompact && styles.tacticalLegendaryChipCompact, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
-                        <Text style={{ fontSize: badgeFont + 2 }}>{ELEMENT_EMOJI[card.element]}</Text>
-                        <Text style={[styles.tacticalLegendaryChipText, { color: palette.chipText, fontSize: badgeFont }]}>{ELEMENT_LABELS[card.element]}</Text>
-                    </View>
+                <View style={[styles.tacticalLegendaryTopRow, { top: pad, left: pad, right: pad, justifyContent: hasElement ? 'space-between' : 'flex-end' }]}>
+                    {hasElement && (
+                        <View style={[styles.tacticalLegendaryChip, isCompact && styles.tacticalLegendaryChipCompact, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
+                            <Text style={{ fontSize: badgeFont + 2 }}>{elementEmoji}</Text>
+                            <Text style={[styles.tacticalLegendaryChipText, { color: palette.chipText, fontSize: badgeFont }]}>{elementLabel}</Text>
+                        </View>
+                    )}
                     <View style={[styles.tacticalLegendaryRarityChip, isCompact && styles.tacticalLegendaryChipCompact, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
                         <Text style={[styles.tacticalLegendaryChipText, { color: palette.chipText, fontSize: badgeFont }]}>{palette.symbol} {palette.label}</Text>
                     </View>
@@ -593,16 +602,18 @@ const TacticalRarityCard = ({
                     </View>
                 )}
 
-                <View style={[styles.tacticalLegendaryMetaRail, { left: pad, right: pad, bottom: metaBottom, minHeight: metaHeight, backgroundColor: palette.railBg, borderColor: palette.railBorder }]}>
-                    {metaItems.map((item, index) => (
-                        <React.Fragment key={item.key}>
-                            {index > 0 && <View style={styles.tacticalLegendaryMetaDivider} />}
-                            <View style={styles.tacticalLegendaryMetaItem}>
-                                <Text style={[styles.tacticalLegendaryMetaLabel, { color: palette.subText, fontSize: Math.max(8, labelFont) }]} numberOfLines={1}>{item.label}</Text>
-                            </View>
-                        </React.Fragment>
-                    ))}
-                </View>
+                {hasMeta && (
+                    <View style={[styles.tacticalLegendaryMetaRail, { left: pad, right: pad, bottom: metaBottom, minHeight: metaHeight, backgroundColor: palette.railBg, borderColor: palette.railBorder }]}>
+                        {metaItems.map((item, index) => (
+                            <React.Fragment key={item.key}>
+                                {index > 0 && <View style={styles.tacticalLegendaryMetaDivider} />}
+                                <View style={styles.tacticalLegendaryMetaItem}>
+                                    <Text style={[styles.tacticalLegendaryMetaLabel, { color: palette.subText, fontSize: Math.max(8, labelFont) }]} numberOfLines={1}>{item.label}</Text>
+                                </View>
+                            </React.Fragment>
+                        ))}
+                    </View>
+                )}
 
                 <View style={[styles.tacticalLegendaryStatsDock, { left: pad, right: pad, bottom: pad, height: statsDockH, backgroundColor: palette.statBg, borderColor: palette.statBorder }]}>
                     <View style={styles.tacticalLegendaryStat}>
