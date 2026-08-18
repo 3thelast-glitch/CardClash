@@ -19,6 +19,7 @@ import { COLOR, FONT, RADIUS, SHADOW, SPACE } from '@/components/ui/design-token
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
 import { isValidInviteCode, normalizeInviteCode } from '@/lib/multiplayer/invites';
+import { fetchJoinableRooms, type PublicRoom } from '@/lib/multiplayer/room-directory';
 
 type LobbyPhase = 'menu' | 'matchmaking' | 'waiting_opponent' | 'ready';
 
@@ -74,6 +75,9 @@ export default function MultiplayerLobbyScreen() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [waitSeconds, setWaitSeconds] = useState(0);
   const [tipIndex, setTipIndex] = useState(0);
+  const [availableRooms, setAvailableRooms] = useState<PublicRoom[]>([]);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+  const [roomsError, setRoomsError] = useState('');
 
   const inviteFromLink = useMemo(() => {
     const value = Array.isArray(params.invite) ? params.invite[0] : params.invite;
@@ -116,6 +120,23 @@ export default function MultiplayerLobbyScreen() {
     }
   }, [inviteFromLink]);
 
+  const refreshAvailableRooms = useCallback(async () => {
+    setIsLoadingRooms(true);
+    setRoomsError('');
+    try {
+      setAvailableRooms(await fetchJoinableRooms());
+    } catch {
+      setAvailableRooms([]);
+      setRoomsError('تعذر تحميل الغرف الآن. يمكنك استخدام رمز الغرفة مباشرة.');
+    } finally {
+      setIsLoadingRooms(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (phase === 'menu') void refreshAvailableRooms();
+  }, [phase, refreshAvailableRooms]);
+
   useEffect(() => {
     if (state.lastError) {
       setError(state.lastError === 'Invite code is invalid or already in use'
@@ -156,6 +177,15 @@ export default function MultiplayerLobbyScreen() {
       return;
     }
     withConnection(() => joinRoom(joinInput.trim().toUpperCase(), playerName.trim()));
+  };
+
+  const handleJoinListedRoom = (roomId: string) => {
+    if (!playerName.trim()) {
+      setError('أدخل اسمك أولاً');
+      return;
+    }
+    setJoinInput(roomId);
+    withConnection(() => joinRoom(roomId, playerName.trim()));
   };
 
   const handleQuickMatch = () => withConnection(() => queueRankedMatch(playerName.trim()));
@@ -280,6 +310,31 @@ export default function MultiplayerLobbyScreen() {
                   <Text style={styles.btnText}>انضم</Text>
                 </TouchableOpacity>
               </View>
+
+              <View style={styles.directoryCard}>
+                <View style={styles.directoryHeader}>
+                  <View style={styles.directoryTitleBlock}>
+                    <Text style={styles.directoryTitle}>الغرف المتاحة الآن</Text>
+                    <Text style={styles.directoryHint}>اختر غرفة للانضمام مباشرة</Text>
+                  </View>
+                  <TouchableOpacity style={[styles.refreshRoomsBtn, isLoadingRooms && styles.disabled]} onPress={() => void refreshAvailableRooms()} disabled={isLoadingRooms} activeOpacity={0.75}>
+                    {isLoadingRooms ? <ActivityIndicator size="small" color="#c4b5fd" /> : <Text style={styles.refreshRoomsText}>تحديث</Text>}
+                  </TouchableOpacity>
+                </View>
+                {!!roomsError && <Text style={styles.directoryError}>{roomsError}</Text>}
+                {!isLoadingRooms && !roomsError && availableRooms.length === 0 && <Text style={styles.directoryEmpty}>لا توجد غرف عامة في الانتظار حالياً. أنشئ غرفة أو اطلب من صديقك إنشاءها.</Text>}
+                {availableRooms.slice(0, 8).map((room) => (
+                  <View key={room.id} style={styles.directoryRoom}>
+                    <View style={styles.directoryRoomCopy}>
+                      <Text style={styles.directoryRoomHost}>غرفة {room.hostName}</Text>
+                      <Text style={styles.directoryRoomCode}>{room.id}</Text>
+                    </View>
+                    <TouchableOpacity style={[styles.directoryJoinBtn, isConnecting && styles.disabled]} onPress={() => handleJoinListedRoom(room.id)} disabled={isConnecting} activeOpacity={0.8}>
+                      <Text style={styles.directoryJoinText}>انضم</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
             </View>
           </>
         )}
@@ -397,6 +452,21 @@ const styles = StyleSheet.create({
   btnText: { color: '#f1f5f9', fontSize: FONT.base, letterSpacing: 0.3 },
   joinRow: { flexDirection: 'row', gap: SPACE.sm, alignItems: 'center' },
   joinInput: { flex: 1, letterSpacing: 4 },
+  directoryCard: { gap: SPACE.sm, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)', backgroundColor: 'rgba(76,29,149,0.12)', padding: SPACE.md },
+  directoryHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.md },
+  directoryTitleBlock: { flex: 1, gap: 2 },
+  directoryTitle: { color: '#ddd6fe', fontSize: FONT.base, textAlign: 'right' },
+  directoryHint: { color: '#94a3b8', fontSize: 11, textAlign: 'right' },
+  refreshRoomsBtn: { minWidth: 70, minHeight: 34, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 1, borderColor: 'rgba(196,181,253,0.55)', backgroundColor: 'rgba(167,139,250,0.12)', paddingHorizontal: SPACE.sm },
+  refreshRoomsText: { color: '#ddd6fe', fontSize: FONT.xs },
+  directoryError: { color: '#fca5a5', fontSize: FONT.xs, lineHeight: 18, textAlign: 'right' },
+  directoryEmpty: { color: '#94a3b8', fontSize: FONT.xs, lineHeight: 19, textAlign: 'right', paddingVertical: SPACE.sm },
+  directoryRoom: { minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.md, borderTopWidth: 1, borderTopColor: 'rgba(196,181,253,0.15)', paddingTop: SPACE.sm },
+  directoryRoomCopy: { flex: 1, gap: 2 },
+  directoryRoomHost: { color: '#e2e8f0', fontSize: FONT.sm, textAlign: 'right' },
+  directoryRoomCode: { color: '#c4b5fd', fontSize: FONT.xs, letterSpacing: 2, textAlign: 'right' },
+  directoryJoinBtn: { minWidth: 72, minHeight: 36, borderRadius: RADIUS.pill, backgroundColor: 'rgba(74,222,128,0.14)', borderWidth: 1, borderColor: '#4ade80', alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.sm },
+  directoryJoinText: { color: '#bbf7d0', fontSize: FONT.xs },
   waitingBox: { alignItems: 'center', gap: SPACE.md, backgroundColor: 'rgba(228,165,42,0.06)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(228,165,42,0.25)', padding: SPACE.xxl, width: '100%', maxWidth: 440 },
   waitingLabel: { color: '#94a3b8', fontSize: FONT.sm },
   roomCode: { fontSize: 40, color: COLOR.gold, letterSpacing: 8, fontVariant: ['tabular-nums'] } as any,

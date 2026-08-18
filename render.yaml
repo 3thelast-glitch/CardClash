@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: card-clash-rooms
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm build:multiplayer
+    startCommand: pnpm start:multiplayer
+    healthCheckPath: /health
+    autoDeployTrigger: commit
