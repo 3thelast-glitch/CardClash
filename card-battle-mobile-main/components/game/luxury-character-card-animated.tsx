@@ -145,30 +145,6 @@ const RARITY_THEMES = {
 } as const;
 
 // ─────────────────────────────────────────────
-// LegendaryGlowBorder
-// ─────────────────────────────────────────────
-const LegendaryGlowBorder = ({ color }: { color: string }) => {
-    const glow = useSharedValue(0);
-    useEffect(() => {
-        glow.value = withRepeat(
-            withSequence(
-                withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
-                withTiming(0, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
-            ), -1, false
-        );
-        return () => cancelAnimation(glow);
-    }, [glow]);
-    const o = useAnimatedStyle(() => ({ opacity: interpolate(glow.value, [0, 1], [0.55, 1.0]), transform: [{ scale: interpolate(glow.value, [0, 1], [1.0, 1.008]) }] }));
-    const i = useAnimatedStyle(() => ({ opacity: interpolate(glow.value, [0, 1], [0.25, 0.7]), transform: [{ scale: interpolate(glow.value, [0, 1], [1.004, 1.012]) }] }));
-    return (
-        <>
-            <Animated.View pointerEvents="none" style={[styles.legendGlowOuter, { borderColor: color }, o]} />
-            <Animated.View pointerEvents="none" style={[styles.legendGlowInner, { borderColor: color }, i]} />
-        </>
-    );
-};
-
-// ─────────────────────────────────────────────
 // RarityShimmer — foil using rarity color only
 // ─────────────────────────────────────────────
 const RarityShimmer = ({ cardW, foilDuration, color }: { cardW: number; foilDuration: number; color: string }) => {
@@ -200,54 +176,26 @@ const RarityShimmer = ({ cardW, foilDuration, color }: { cardW: number; foilDura
 };
 
 // ─────────────────────────────────────────────
-// LegendaryParticles
-// ─────────────────────────────────────────────
-const PARTICLE_CONFIGS = [
-    { x: 28, startY: 240, delay: 0, dur: 2800 }, { x: 75, startY: 270, delay: 500, dur: 3200 },
-    { x: 130, startY: 255, delay: 900, dur: 2600 }, { x: 170, startY: 265, delay: 300, dur: 3000 },
-    { x: 55, startY: 285, delay: 1200, dur: 2400 }, { x: 155, startY: 275, delay: 700, dur: 3400 },
-];
-const SingleParticle = ({ x, startY, delay, dur, color }: { x: number; startY: number; delay: number; dur: number; color: string }) => {
-    const p = useSharedValue(0);
-    useEffect(() => {
-        p.value = withDelay(delay, withRepeat(withTiming(1, { duration: dur, easing: Easing.out(Easing.quad) }), -1, false));
-        return () => cancelAnimation(p);
-    }, [p, delay, dur]);
-    const style = useAnimatedStyle(() => ({
-        opacity: interpolate(p.value, [0, 0.15, 0.75, 1], [0, 0.9, 0.6, 0]),
-        transform: [{ translateX: x + Math.sin(p.value * Math.PI * 2) * 6 }, { translateY: startY - p.value * 85 }, { scale: interpolate(p.value, [0, 0.3, 1], [0.4, 1.0, 0.6]) }],
-    }));
-    return <Animated.View pointerEvents="none" style={[styles.particle, { backgroundColor: color }, style]} />;
-};
-const LegendaryParticles = ({ color }: { color: string }) => (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {PARTICLE_CONFIGS.map((cfg, i) => <SingleParticle key={i} {...cfg} color={color} />)}
-    </View>
-);
-
-// ─────────────────────────────────────────────
 // StatBadge — يدعم إظهار الفرق ▲/▼ عند وجود تأثيرات
 // ─────────────────────────────────────────────
 const StatBadge = ({
-    icon, value, effectiveValue, isAttack, fs, legendary = false
+    icon, value, effectiveValue, isAttack, fs
 }: {
     icon: string;
     value: number;
     effectiveValue: number;
     isAttack: boolean;
     fs: number;
-    legendary?: boolean;
 }) => {
     const diff = effectiveValue - value;
     const isModified = diff !== 0;
     const diffColor = diff > 0 ? '#4ade80' : '#f87171';
 
     return (
-        <View style={[styles.statBadge, isAttack ? styles.attackBadge : styles.defenseBadge, legendary && styles.legendaryStatBadge]}>
-            <View style={legendary ? styles.legendaryStatIcon : { position: 'absolute', top: -11, left: 0, right: 0, alignItems: 'center', zIndex: 10 }}>
+        <View style={[styles.statBadge, isAttack ? styles.attackBadge : styles.defenseBadge]}>
+            <View style={{ position: 'absolute', top: -11, left: 0, right: 0, alignItems: 'center', zIndex: 10 }}>
                 <Text style={{ fontSize: fs, textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }} numberOfLines={1}>{icon}</Text>
             </View>
-            {legendary && <Text style={styles.legendaryStatLabel}>{isAttack ? 'هجوم' : 'دفاع'}</Text>}
             {isModified ? (
                 <>
                     {diff < 0 ? (
@@ -496,6 +444,79 @@ const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, 
     return <Image source={source} style={imgStyle as any} resizeMode={isCustomImage ? 'contain' : imageFit} />;
 };
 
+/**
+ * مسار الأسطوري المعتمد: لا يرث زخارف Luxury القديمة.
+ * يبقي وسيط البطاقة ذاته (صورة أو فيديو وصوت) ويبدل طبقات الواجهة فقط.
+ */
+const TacticalLegendaryCard = ({
+    card, style, cardW, cardH, sc, cardImage, videoAsset, customUri,
+    isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate,
+    attack, defense,
+}: {
+    card: Card;
+    style?: ViewStyle;
+    cardW: number;
+    cardH: number;
+    sc: number;
+    cardImage: ReturnType<typeof getCardImage>;
+    videoAsset?: any;
+    customUri?: string;
+    isCustomImage: boolean;
+    imageFit: 'cover' | 'contain';
+    imgStyle: object;
+    audioEnabled: boolean;
+    shouldAnimate: boolean;
+    attack: number;
+    defense: number;
+}) => {
+    const hasMedia = !!cardImage || !!videoAsset || !!customUri;
+    const pad = Math.max(8, 12 * sc);
+    const statFont = Math.max(16, 22 * sc);
+    const labelFont = Math.max(8, 10 * sc);
+    const nameFont = Math.max(13, 20 * sc);
+    const badgeFont = Math.max(8, 11 * sc);
+
+    return (
+        <View style={[styles.tacticalLegendaryCard, { width: cardW, height: cardH, borderRadius: Math.round(12 * sc) }, style]}>
+            <View style={[styles.tacticalLegendaryInner, { borderRadius: Math.round(10 * sc) }]}>
+                {hasMedia && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imageFit={imageFit} imgStyle={imgStyle} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />}
+                {!hasMedia && <LinearGradient colors={['#281C06', '#090705']} style={StyleSheet.absoluteFill} />}
+                <LinearGradient colors={['rgba(2,4,8,0.03)', 'rgba(2,4,8,0.08)', 'rgba(2,4,8,0.91)']} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
+
+                <View style={[styles.tacticalLegendaryFrame, { borderRadius: Math.round(8 * sc) }]} pointerEvents="none" />
+                <View style={[styles.tacticalLegendaryTopRow, { top: pad, left: pad, right: pad }]}>
+                    <View style={styles.tacticalLegendaryChip}>
+                        <Text style={{ fontSize: badgeFont + 2 }}>{ELEMENT_EMOJI[card.element]}</Text>
+                        <Text style={[styles.tacticalLegendaryChipText, { fontSize: badgeFont }]}>{ELEMENT_LABELS[card.element]}</Text>
+                    </View>
+                    <View style={styles.tacticalLegendaryRarityChip}>
+                        <Text style={[styles.tacticalLegendaryChipText, { color: '#FDE68A', fontSize: badgeFont }]}>✦ أسطوري</Text>
+                    </View>
+                </View>
+
+                <View style={[styles.tacticalLegendaryNameBlock, { bottom: Math.max(58, 72 * sc), paddingHorizontal: pad }]}>
+                    <Text style={[styles.tacticalLegendaryName, { fontSize: nameFont }]} numberOfLines={1}>{card.nameAr || card.name}</Text>
+                    {!!card.nameEn && <Text style={[styles.tacticalLegendaryNameEn, { fontSize: Math.max(7, 9 * sc) }]} numberOfLines={1}>{card.nameEn}</Text>}
+                </View>
+
+                <View style={[styles.tacticalLegendaryStatsDock, { left: pad, right: pad, bottom: pad, minHeight: Math.max(38, 48 * sc) }]}>
+                    <View style={styles.tacticalLegendaryStat}>
+                        <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: statFont }]}>⚔️</Text>
+                        <Text style={[styles.tacticalLegendaryStatLabel, { fontSize: labelFont }]}>هجوم</Text>
+                        <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statFont }]}>{attack}</Text>
+                    </View>
+                    <View style={styles.tacticalLegendaryDivider} />
+                    <View style={styles.tacticalLegendaryStat}>
+                        <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: statFont }]}>🛡️</Text>
+                        <Text style={[styles.tacticalLegendaryStatLabel, { fontSize: labelFont }]}>دفاع</Text>
+                        <Text style={[styles.tacticalLegendaryStatValue, { fontSize: statFont }]}>{defense}</Text>
+                    </View>
+                </View>
+            </View>
+        </View>
+    );
+};
+
 // ─────────────────────────────────────────────
 // ✨✨ MAIN EXPORT ✨✨
 // ─────────────────────────────────────────────
@@ -585,6 +606,26 @@ export function LuxuryCharacterCardAnimated({
         ? ['rgba(0,0,0,0.2)', 'transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.97)']
         : ['transparent', 'transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.94)'];
 
+    if (isLegendary) {
+        return <TacticalLegendaryCard
+            card={card}
+            style={style}
+            cardW={cardW}
+            cardH={cardH}
+            sc={sc}
+            cardImage={cardImage}
+            videoAsset={videoAsset}
+            customUri={customUri}
+            isCustomImage={isCustomImage}
+            imageFit={imageFit}
+            imgStyle={imgStyle}
+            audioEnabled={videoAudioEnabled}
+            shouldAnimate={enableVisualEffects}
+            attack={displayAttack}
+            defense={displayDefense}
+        />;
+    }
+
     return (
         <Animated.View style={[
             styles.cardContainer,
@@ -618,33 +659,24 @@ export function LuxuryCharacterCardAnimated({
                             <Text style={styles.noImageText}>لا توجد صورة</Text>
                         </View>
                     )}
-                    {enableVisualEffects && isLegendary && theme.hasParticles && <LegendaryParticles color={themeColor} />}
                     {enableVisualEffects && theme.hasSideVines && <SideVines color={themeColor} />}
                     {enableVisualEffects && (theme as any).hasDarkSmoke && <DarkSmokeEffect />}
                     {enableVisualEffects && theme.hasFiligree && (
                         <>
-                            <ElvenCorner position="tl" color={themeColor} rich={rarity === 'legendary' || rarity === 'special'} scale={sc} />
-                            <ElvenCorner position="tr" color={themeColor} rich={rarity === 'legendary' || rarity === 'special'} scale={sc} />
-                            {(rarity === 'legendary' || rarity === 'epic' || rarity === 'special') && (
+                            <ElvenCorner position="tl" color={themeColor} rich={rarity === 'special'} scale={sc} />
+                            <ElvenCorner position="tr" color={themeColor} rich={rarity === 'special'} scale={sc} />
+                            {(rarity === 'epic' || rarity === 'special') && (
                                 <>
-                                    <ElvenCorner position="bl" color={themeColor} rich={rarity === 'legendary' || rarity === 'special'} scale={sc} />
-                                    <ElvenCorner position="br" color={themeColor} rich={rarity === 'legendary' || rarity === 'special'} scale={sc} />
+                                    <ElvenCorner position="bl" color={themeColor} rich={rarity === 'special'} scale={sc} />
+                                    <ElvenCorner position="br" color={themeColor} rich={rarity === 'special'} scale={sc} />
                                 </>
                             )}
                         </>
                     )}
 
-                    {/* Legendary layout uses opposing element and rarity badges. */}
-                    {isLegendary && (
-                        <View style={[styles.legendaryElementBadge, { top: badgeTop, left: badgeLeft, borderColor: themeColor + 'AA' }]}>
-                            <Text style={[styles.legendaryElementIcon, { fontSize: badgeFontSize + 2 }]}>{ELEMENT_EMOJI[card.element]}</Text>
-                            <Text style={[styles.legendaryElementText, { fontSize: badgeFontSize }]}>{ELEMENT_LABELS[card.element]}</Text>
-                        </View>
-                    )}
                     <View style={[styles.rarityBadge, {
                         top: badgeTop,
-                        left: isLegendary ? undefined : badgeLeft,
-                        right: isLegendary ? badgeLeft : undefined,
+                        left: badgeLeft,
                         paddingHorizontal: badgePadH,
                         paddingVertical: badgePadV,
                         borderRadius: Math.round(7 * sc),
@@ -652,17 +684,12 @@ export function LuxuryCharacterCardAnimated({
                         backgroundColor: specialRarityBadgeBg,
                     }]}>
                         <Text style={[styles.rarityBadgeText, { color: themeColor, fontSize: badgeFontSize }]}>
-                            {rarity === 'legendary' ? '✧ ' : rarity === 'special' ? '☠️ ' : '✦ '}{theme.label}{rarity === 'legendary' ? ' ✧' : rarity === 'special' ? ' ☠️' : ' ✦'}
+                            {rarity === 'special' ? '☠️ ' : '✦ '}{theme.label}{rarity === 'special' ? ' ☠️' : ' ✦'}
                         </Text>
                     </View>
 
                     {/* name + stars */}
                     <View style={[styles.nameContainer, { bottom: nameBottom, paddingHorizontal: Math.max(4, 10 * scW) }]}>
-                        {isLegendary && (
-                            <View style={styles.legendaryNameBar}>
-                                <LinearGradient colors={['transparent', 'rgba(255,215,0,0.18)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-                            </View>
-                        )}
                         {rarity === 'special' && (
                             <View style={styles.legendaryNameBar}>
                                 <LinearGradient colors={['transparent', 'rgba(192,192,192,0.12)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
@@ -697,21 +724,11 @@ export function LuxuryCharacterCardAnimated({
 
 
 
-                    {/* Legendary cards use a clean two-stat gold dock; other rarities keep compact metadata. */}
+                    {/* The legacy renderer now serves common, rare, epic and special cards only. */}
                     <View style={[styles.statsRow, { bottom: statsBottom, paddingHorizontal: Math.max(4, 8 * scW) }]}>
-                        {isLegendary ? (
-                            <View style={[styles.legendaryStatsDock, { borderColor: themeColor + '99' }]}>
-                                <StatBadge icon="⚔️" value={baseAttack} effectiveValue={displayAttack} isAttack={true} fs={statFs} legendary />
-                                <View style={[styles.legendaryStatDivider, { backgroundColor: themeColor + '99' }]} />
-                                <StatBadge icon="🛡️" value={baseDefense} effectiveValue={displayDefense} isAttack={false} fs={statFs} legendary />
-                            </View>
-                        ) : (
-                            <>
-                                <StatBadge icon="⚔️" value={baseAttack} effectiveValue={displayAttack} isAttack={true} fs={statFs} />
-                                <MetaStrip card={card} sc={sc} />
-                                <StatBadge icon="🛡️" value={baseDefense} effectiveValue={displayDefense} isAttack={false} fs={statFs} />
-                            </>
-                        )}
+                        <StatBadge icon="⚔️" value={baseAttack} effectiveValue={displayAttack} isAttack={true} fs={statFs} />
+                        <MetaStrip card={card} sc={sc} />
+                        <StatBadge icon="🛡️" value={baseDefense} effectiveValue={displayDefense} isAttack={false} fs={statFs} />
                     </View>
                 </View>
             </View>
@@ -725,8 +742,6 @@ const styles = StyleSheet.create({
     cardInner: { flex: 1, overflow: 'hidden' },
     contentLayer: { flex: 1, position: 'relative' },
 
-    legendGlowOuter: { position: 'absolute', top: -8, left: -8, right: -8, bottom: -8, borderRadius: 22, borderWidth: 2.5, shadowOffset: { width: 0, height: 0 }, shadowRadius: 20, shadowColor: '#FFD700', zIndex: 20 },
-    legendGlowInner: { position: 'absolute', top: -4, left: -4, right: -4, bottom: -4, borderRadius: 18, borderWidth: 1.5, shadowOffset: { width: 0, height: 0 }, shadowRadius: 10, shadowColor: '#FFD700', zIndex: 19 },
     specialBreathingBorder: { position: 'absolute', top: -8, left: -8, right: -8, bottom: -8, borderRadius: 21, borderWidth: 2, borderColor: '#3a3a3a', shadowOffset: { width: 0, height: 0 }, shadowColor: '#000', zIndex: 20 },
     glowRing: { position: 'absolute', top: -3, left: -3, right: -3, bottom: -3, borderRadius: 16, borderWidth: 1.5, shadowOffset: { width: 0, height: 0 }, shadowRadius: 14, zIndex: 19 },
 
@@ -740,9 +755,6 @@ const styles = StyleSheet.create({
 
     rarityBadge: { position: 'absolute', borderWidth: 1, zIndex: 10 },
     rarityBadgeText: { fontWeight: '700', letterSpacing: 0.5 },
-    legendaryElementBadge: { position: 'absolute', flexDirection: 'row-reverse', alignItems: 'center', gap: 3, borderWidth: 1, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: 'rgba(30,20,0,0.75)', zIndex: 10 },
-    legendaryElementIcon: {},
-    legendaryElementText: { color: '#FEF3C7', fontWeight: '700', writingDirection: 'rtl' },
 
     nameContainer: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 8 },
     legendaryNameBar: { position: 'absolute', top: -4, left: -10, right: -10, bottom: -4 },
@@ -764,11 +776,6 @@ const styles = StyleSheet.create({
     abilityText: { flex: 1, fontWeight: '600', writingDirection: 'rtl' },
 
     statsRow: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, gap: 2 },
-    legendaryStatsDock: { flex: 1, flexDirection: 'row-reverse', alignItems: 'center', minHeight: 34, borderWidth: 1, borderRadius: 7, backgroundColor: 'rgba(10,7,0,0.86)' },
-    legendaryStatDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', marginVertical: 5 },
-    legendaryStatBadge: { flex: 1, flexDirection: 'row-reverse', backgroundColor: 'transparent', borderWidth: 0, borderRadius: 0, paddingHorizontal: 5, paddingTop: 2, paddingBottom: 2 },
-    legendaryStatIcon: { alignItems: 'center', justifyContent: 'center', marginLeft: 3 },
-    legendaryStatLabel: { color: '#FDE68A', fontSize: 9, fontWeight: '700', writingDirection: 'rtl' },
     statBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingTop: 6, paddingBottom: 3, borderRadius: 20, gap: 1, minWidth: 32, justifyContent: 'center', flexWrap: 'nowrap', flexShrink: 1, overflow: 'visible' },
     attackBadge: { backgroundColor: 'rgba(20,12,0,0.88)', borderWidth: 1.5, borderColor: '#B8860B' },
     defenseBadge: { backgroundColor: 'rgba(0,10,28,0.88)', borderWidth: 1.5, borderColor: '#2563EB' },
@@ -777,8 +784,24 @@ const styles = StyleSheet.create({
     defenseText: { color: '#60A5FA' },
     struckValue: { textDecorationLine: 'line-through', opacity: 0.45 },
 
-    particle: { position: 'absolute', width: 5, height: 5, borderRadius: 3 },
     smokeBlob: { position: 'absolute', zIndex: 3 },
+
+    tacticalLegendaryCard: { backgroundColor: '#090705', borderWidth: 1, borderColor: '#D4AF37', shadowColor: '#000', shadowOpacity: 0.34, shadowOffset: { width: 0, height: 7 }, shadowRadius: 11, elevation: 7 },
+    tacticalLegendaryInner: { flex: 1, overflow: 'hidden', backgroundColor: '#090705' },
+    tacticalLegendaryFrame: { position: 'absolute', top: 5, right: 5, bottom: 5, left: 5, borderWidth: 1, borderColor: 'rgba(253,230,138,0.58)' },
+    tacticalLegendaryTopRow: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    tacticalLegendaryChip: { flexDirection: 'row-reverse', alignItems: 'center', gap: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(253,230,138,0.58)', backgroundColor: 'rgba(9,7,2,0.74)', paddingHorizontal: 7, paddingVertical: 3 },
+    tacticalLegendaryRarityChip: { borderRadius: 6, borderWidth: 1, borderColor: 'rgba(253,230,138,0.7)', backgroundColor: 'rgba(9,7,2,0.78)', paddingHorizontal: 8, paddingVertical: 4 },
+    tacticalLegendaryChipText: { color: '#FEF3C7', fontWeight: '800', writingDirection: 'rtl' },
+    tacticalLegendaryNameBlock: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+    tacticalLegendaryName: { color: '#FFF7D6', fontWeight: '900', textAlign: 'center', writingDirection: 'rtl', textShadowColor: 'rgba(0,0,0,0.95)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
+    tacticalLegendaryNameEn: { color: '#FDE68A', fontWeight: '800', letterSpacing: 1.1, marginTop: 1 },
+    tacticalLegendaryStatsDock: { position: 'absolute', flexDirection: 'row-reverse', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(253,230,138,0.74)', backgroundColor: 'rgba(8,6,2,0.88)', paddingHorizontal: 6 },
+    tacticalLegendaryStat: { flex: 1, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 4 },
+    tacticalLegendaryStatIcon: {},
+    tacticalLegendaryStatLabel: { color: '#FDE68A', fontWeight: '800', writingDirection: 'rtl' },
+    tacticalLegendaryStatValue: { color: '#FFF7D6', fontWeight: '900' },
+    tacticalLegendaryDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: 'rgba(253,230,138,0.55)', marginVertical: 7 },
     winnerBadge: {
         position: 'absolute',
         top: '40%',
