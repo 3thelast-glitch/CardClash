@@ -54,6 +54,8 @@ interface Props {
     /** يسمح بصوت الفيديو في معاينة البطاقة المفردة فقط؛ يظل صوت بطاقات المعركة المتعددة مكتوماً. */
     playAudio?: boolean;
     winnerState?: 'winner' | 'leading' | null;
+    /** وسم سياقي قصير، مثل موضع الكرت في ترتيب الجولات. */
+    selectionLabel?: string;
 }
 
 function isVideoUri(uri: string): boolean {
@@ -515,7 +517,7 @@ const TACTICAL_RARITY_PALETTES: Record<CardRarity, TacticalRarityPalette> = {
 const TacticalRarityCard = ({
     card, style, cardW, cardH, sc, cardImage, videoAsset, customUri,
     isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate,
-    attack, defense, rarity,
+    attack, defense, baseAttack, baseDefense, selectionLabel, rarity,
 }: {
     card: Card;
     style?: ViewStyle;
@@ -532,6 +534,9 @@ const TacticalRarityCard = ({
     shouldAnimate: boolean;
     attack: number;
     defense: number;
+    baseAttack: number;
+    baseDefense: number;
+    selectionLabel?: string;
     rarity: CardRarity;
 }) => {
     const hasMedia = !!cardImage || !!videoAsset || !!customUri;
@@ -546,6 +551,10 @@ const TacticalRarityCard = ({
     const showEnglishName = !isCompact && !!card.nameEn;
     const starCount = Math.max(0, Math.min(5, card.stars ?? 5));
     const abilityText = card.specialAbility?.trim();
+    const effectivePower = Math.max(0, attack + defense);
+    const basePower = Math.max(0, baseAttack + baseDefense);
+    const powerDelta = effectivePower - basePower;
+    const powerDeltaText = powerDelta === 0 ? '' : ` ${powerDelta > 0 ? '+' : ''}${powerDelta}`;
     const elementEmoji = card.element ? ELEMENT_EMOJI[card.element] : undefined;
     const elementLabel = card.element ? ELEMENT_LABELS[card.element] : undefined;
     const hasElement = Boolean(elementEmoji && elementLabel);
@@ -581,6 +590,19 @@ const TacticalRarityCard = ({
                     <View style={[styles.tacticalLegendaryRarityChip, isCompact && styles.tacticalLegendaryChipCompact, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
                         <Text style={[styles.tacticalLegendaryChipText, { color: palette.chipText, fontSize: badgeFont }]}>{palette.symbol} {palette.label}</Text>
                     </View>
+                </View>
+
+                <View style={[styles.tacticalContextRail, { top: pad + (isCompact ? 25 : 31), left: pad, right: pad }]}>
+                    <View style={[styles.tacticalPowerChip, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
+                        <Text style={[styles.tacticalPowerChipText, { color: powerDelta < 0 ? '#FCA5A5' : powerDelta > 0 ? '#86EFAC' : palette.chipText, fontSize: Math.max(7, badgeFont - 1) }]}>
+                            ⚡ {effectivePower}{powerDeltaText}
+                        </Text>
+                    </View>
+                    {!!selectionLabel && (
+                        <View style={[styles.tacticalSelectionChip, { backgroundColor: palette.abilityBg, borderColor: palette.abilityBorder }]}>
+                            <Text style={[styles.tacticalSelectionChipText, { color: palette.text, fontSize: Math.max(7, badgeFont - 1) }]}>{selectionLabel}</Text>
+                        </View>
+                    )}
                 </View>
 
                 <View style={[styles.tacticalLegendaryNameBlock, { bottom: nameBottom, paddingHorizontal: pad }]}>
@@ -640,7 +662,7 @@ const TacticalRarityCard = ({
 // ─────────────────────────────────────────────
 export function LuxuryCharacterCardAnimated({
     card, style, imageOffsetY = 0, fitInsideBorder = false, isOpenedView = false,
-    effectiveAttack, effectiveDefense, playAudio = false, winnerState,
+    effectiveAttack, effectiveDefense, playAudio = false, winnerState, selectionLabel,
 }: Props) {
     const { settings } = useSettings();
     // هذا الخيار يوقف الحركات المستمرة والفيديو المتكرر، وهي أعلى عناصر البطاقة كلفة على الأجهزة الضعيفة.
@@ -741,6 +763,9 @@ export function LuxuryCharacterCardAnimated({
             shouldAnimate={enableVisualEffects}
             attack={displayAttack}
             defense={displayDefense}
+            baseAttack={baseAttack}
+            baseDefense={baseDefense}
+            selectionLabel={selectionLabel}
             rarity={rarity}
         />;
     }
@@ -909,10 +934,15 @@ const styles = StyleSheet.create({
     tacticalLegendaryInner: { flex: 1, overflow: 'hidden', backgroundColor: '#090705' },
     tacticalLegendaryFrame: { position: 'absolute', top: 5, right: 5, bottom: 5, left: 5, borderWidth: 1, borderColor: 'rgba(253,230,138,0.58)' },
     tacticalLegendaryTopRow: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    tacticalLegendaryChip: { flexDirection: 'row-reverse', alignItems: 'center', gap: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(253,230,138,0.58)', backgroundColor: 'rgba(9,7,2,0.74)', paddingHorizontal: 7, paddingVertical: 3 },
+    tacticalLegendaryChip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 3 },
     tacticalLegendaryRarityChip: { borderRadius: 6, borderWidth: 1, borderColor: 'rgba(253,230,138,0.7)', backgroundColor: 'rgba(9,7,2,0.78)', paddingHorizontal: 8, paddingVertical: 4 },
     tacticalLegendaryChipCompact: { paddingHorizontal: 5, paddingVertical: 2 },
-    tacticalLegendaryChipText: { color: '#FEF3C7', fontWeight: '800', writingDirection: 'rtl' },
+    tacticalLegendaryChipText: { fontWeight: '800', writingDirection: 'rtl' },
+    tacticalContextRail: { position: 'absolute', zIndex: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 4 },
+    tacticalPowerChip: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+    tacticalPowerChipText: { fontWeight: '900', writingDirection: 'rtl' },
+    tacticalSelectionChip: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+    tacticalSelectionChipText: { fontWeight: '800', writingDirection: 'rtl' },
     tacticalLegendaryNameBlock: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
     tacticalLegendaryNamePlate: { alignSelf: 'stretch', alignItems: 'center', backgroundColor: 'rgba(3,4,7,0.54)', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
     tacticalLegendaryName: { color: '#FFF7D6', fontWeight: '900', textAlign: 'center', writingDirection: 'rtl', textShadowColor: 'rgba(0,0,0,0.95)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },

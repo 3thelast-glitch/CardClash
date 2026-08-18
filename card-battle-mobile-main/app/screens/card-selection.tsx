@@ -235,6 +235,8 @@ export default function CardSelectionScreen() {
 
   const allAssigned = cardRounds.every(cr => cr.round !== null);
   const selectedCardRound = focusedCardIndex !== null ? cardRounds[focusedCardIndex]?.round ?? null : null;
+  const focusedCard = focusedCardIndex !== null ? cardRounds[focusedCardIndex]?.card : undefined;
+  const focusedAbilityPreview = focusedCard?.specialAbility?.trim();
   const suggestedRound = selectedCardRound === null
     ? Array.from({ length: totalRounds }, (_, i) => i + 1).find(round => !cardRounds.some(cr => cr.round === round)) ?? null
     : null;
@@ -256,11 +258,12 @@ export default function CardSelectionScreen() {
         <LuxuryCharacterCardAnimated
           card={item.card}
           style={{ width: gridCardW, height: gridCardH }}
+          selectionLabel={item.round !== null ? `ج ${item.round}` : undefined}
         />
       </View>
       <View style={[styles.assignmentHint, item.round !== null && styles.assignmentHintAssigned]}>
         <Text style={[styles.assignmentHintText, item.round !== null && styles.assignmentHintTextAssigned]}>
-          {item.round !== null ? `الجولة ${item.round}` : 'انقر للتعيين'}
+          {item.round !== null ? `✓ الجولة ${item.round}` : '◌ غير معيّن'}
         </Text>
       </View>
     </TouchableOpacity>
@@ -369,19 +372,26 @@ export default function CardSelectionScreen() {
                   card={cardRounds[focusedCardIndex].card}
                   style={{ width: focusCardW, height: focusCardH }}
                   isOpenedView={true}
+                  selectionLabel={selectedCardRound !== null ? `ج ${selectedCardRound}` : 'اختر جولة'}
                 />
               </View>
             )}
-            <View style={[styles.roundPickerPanel, { width: focusPickerW }]}>
-              <View style={styles.roundPickerHeader}>
+              <View style={[styles.roundPickerPanel, { width: focusPickerW }]}> 
+                <View style={styles.roundPickerHeader}>
                 <Text style={styles.roundPickerTitle}>اختر الجولة</Text>
                 <Text style={styles.roundPickerSubtitle} numberOfLines={2}>
                   {suggestedRound !== null
                     ? `الاقتراح الذهبي: ج ${suggestedRound}`
                     : 'يمكن اختيار خانة مستخدمة لتبديل الترتيب'}
-                </Text>
-              </View>
-              <ScrollView
+                  </Text>
+                </View>
+                {focusedAbilityPreview && (
+                  <View style={styles.focusAbilityPreview}>
+                    <Text style={styles.focusAbilityPreviewTitle}>✦ معاينة القدرة</Text>
+                    <Text style={styles.focusAbilityPreviewText} numberOfLines={3}>{focusedAbilityPreview}</Text>
+                  </View>
+                )}
+                <ScrollView
                 testID="round-picker-grid"
                 style={[styles.roundPickerScroll, { maxHeight: roundPickerHeight }]}
                 contentContainerStyle={[styles.roundPickerGrid, { gap: roundPickerGap }]}
@@ -518,6 +528,9 @@ const styles = StyleSheet.create({
   assignmentHintAssigned: { backgroundColor: 'rgba(212,175,55,0.16)', borderColor: 'rgba(212,175,55,0.58)' },
   assignmentHintText: { color: '#cbd5e1', fontSize: 10, fontWeight: '800', writingDirection: 'rtl' },
   assignmentHintTextAssigned: { color: '#fde68a' },
+  focusAbilityPreview: { marginTop: SPACE.xs, marginBottom: SPACE.xs, paddingHorizontal: SPACE.sm, paddingVertical: SPACE.xs, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(212,175,55,0.42)', backgroundColor: 'rgba(212,175,55,0.09)' },
+  focusAbilityPreviewTitle: { color: '#fde68a', fontSize: 10, fontWeight: '900', writingDirection: 'rtl' },
+  focusAbilityPreviewText: { color: '#e2e8f0', fontSize: 10, lineHeight: 16, marginTop: 2, writingDirection: 'rtl' },
   bottomBar: { padding: SPACE.md, backgroundColor: 'rgba(5,5,10,0.9)', borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.2)', alignItems: 'center', gap: SPACE.sm },
   waitingBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   waitingBannerText: { color: '#d4af37', fontSize: 12, fontWeight: '700' },
