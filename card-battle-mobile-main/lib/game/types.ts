@@ -165,6 +165,10 @@ export type AbilityType =
 
 export type Side = 'player' | 'bot';
 
+/** طريقة إدارة الطرف الثاني في المباراة. تبقى أسماء player/bot داخل المحرك
+ * متوافقة مع منطق القتال، لكن واجهة local تعرضها كمضيف وضيف. */
+export type MatchMode = 'solo' | 'local';
+
 /** أسماء الإحصاءات التي يمكن لتأثير القدرة تعديلها. */
 export type EffectStat = 'attack' | 'defense' | 'all_stats';
 
@@ -253,6 +257,8 @@ export interface ActiveEffect {
 }
 
 export interface GameState {
+  /** غيابه في البيانات القديمة يعني مباراة فردية. */
+  matchMode?: MatchMode;
   playerDeck: Card[];
   botDeck: Card[];
   currentRound: number;

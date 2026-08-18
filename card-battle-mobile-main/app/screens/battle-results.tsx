@@ -78,6 +78,9 @@ export default function BattleResultsScreen() {
 
   const playerHp    = state.playerScore;
   const botHp       = state.botScore;
+  const isLocalTwoPlayer = state.matchMode === 'local';
+  const playerLabel = isLocalTwoPlayer ? 'المضيف' : 'أنت';
+  const opponentLabel = isLocalTwoPlayer ? 'الضيف' : 'البوت';
   const totalRounds = state.totalRounds;
   const displayedMaxHp = Math.max(totalRounds, state.playerMaxHealth, state.botMaxHealth);
 
@@ -121,8 +124,8 @@ export default function BattleResultsScreen() {
   const resultConfig = isDraw
     ? { emoji: '🤝', label: 'تعادل!',         color: COLOR.amber, bg: 'rgba(251,191,36,0.08)',  border: COLOR.amber }
     : isPlayerWinner
-      ? { emoji: '🏆', label: 'فزت!',            color: COLOR.green, bg: 'rgba(74,222,128,0.08)',  border: COLOR.green }
-      : { emoji: '💀', label: 'انتهت اللعبة!', color: COLOR.red,   bg: 'rgba(248,113,113,0.08)', border: COLOR.red };
+      ? { emoji: '🏆', label: isLocalTwoPlayer ? 'فاز المضيف!' : 'فزت!', color: COLOR.green, bg: 'rgba(74,222,128,0.08)',  border: COLOR.green }
+      : { emoji: isLocalTwoPlayer ? '🏆' : '💀', label: isLocalTwoPlayer ? 'فاز الضيف!' : 'انتهت اللعبة!', color: COLOR.red, bg: 'rgba(248,113,113,0.08)', border: COLOR.red };
 
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
@@ -149,8 +152,8 @@ export default function BattleResultsScreen() {
 
             {/* ── شريطي صحة ── */}
             <View style={styles.hpSection}>
-              <HpBar current={playerHp} max={displayedMaxHp} color={COLOR.green} label="أنت ♥" />
-              <HpBar current={botHp}    max={displayedMaxHp} color={COLOR.red}   label="البوت ♥" />
+              <HpBar current={playerHp} max={displayedMaxHp} color={COLOR.green} label={`${playerLabel} ♥`} />
+              <HpBar current={botHp}    max={displayedMaxHp} color={COLOR.red}   label={`${opponentLabel} ♥`} />
             </View>
           </View>
 
@@ -170,7 +173,7 @@ export default function BattleResultsScreen() {
               <Text style={styles.panelTitle}>⚡ القدرات المستخدمة</Text>
               {stats.playerUsed.length > 0 && (
                 <View style={styles.abilitiesBlock}>
-                  <Text style={[styles.abilitiesWho, { color: COLOR.green }]}>👤 أنت</Text>
+                  <Text style={[styles.abilitiesWho, { color: COLOR.green }]}>👤 {playerLabel}</Text>
                   <View style={styles.abilitiesRow}>
                     {stats.playerUsed.map((ab, i) => (
                       <View key={i} style={[styles.abilityChip, { borderColor: COLOR.green + '55', backgroundColor: COLOR.green + '10' }]}>
@@ -182,7 +185,7 @@ export default function BattleResultsScreen() {
               )}
               {stats.botUsed.length > 0 && (
                 <View style={styles.abilitiesBlock}>
-                  <Text style={[styles.abilitiesWho, { color: COLOR.red }]}>🤖 البوت</Text>
+                  <Text style={[styles.abilitiesWho, { color: COLOR.red }]}>{isLocalTwoPlayer ? '🤝' : '🤖'} {opponentLabel}</Text>
                   <View style={styles.abilitiesRow}>
                     {stats.botUsed.map((ab, i) => (
                       <View key={i} style={[styles.abilityChip, { borderColor: COLOR.red + '55', backgroundColor: COLOR.red + '10' }]}>
@@ -201,7 +204,7 @@ export default function BattleResultsScreen() {
               <Text style={styles.panelTitle}>📜 سجل الجولات</Text>
               {state.roundResults.map((round: any, index: number) => {
                 const roundColor  = round.winner === 'player' ? COLOR.green : round.winner === 'bot' ? COLOR.red : COLOR.amber;
-                const roundLabel  = round.winner === 'player' ? '✓ أنت' : round.winner === 'bot' ? '✗ البوت' : '= تعادل';
+                const roundLabel  = round.winner === 'player' ? `✓ ${playerLabel}` : round.winner === 'bot' ? `✓ ${opponentLabel}` : '= تعادل';
                 return (
                   <View key={index} style={[styles.roundRow, { borderLeftColor: roundColor }]}>
                     <View style={styles.roundLeft}>

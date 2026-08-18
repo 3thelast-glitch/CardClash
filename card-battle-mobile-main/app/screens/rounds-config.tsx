@@ -114,7 +114,8 @@ export default function RoundsConfigScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
-  const { setTotalRounds, setAbilitiesEnabled, rarityWeights, setRarityWeights } = useGame();
+  const { state: gameState, setTotalRounds, setAbilitiesEnabled, rarityWeights, setRarityWeights } = useGame();
+  const isLocalTwoPlayer = gameState.matchMode === 'local';
 
   const mp = useSafeMultiplayer();
   const isMultiplayer = !!mp?.state?.roomId;
@@ -199,7 +200,7 @@ export default function RoundsConfigScreen() {
   const ctaBtn = (
     <TouchableOpacity style={styles.continueBtn} onPress={handleContinue} activeOpacity={0.85}>
       <Text style={styles.continueBtnText}>
-        {isMultiplayer && isHost ? '✓ تأكيد وإرسال للضيف →' : 'التالي →'}
+        {isMultiplayer && isHost ? '✓ تأكيد وإرسال للضيف →' : isLocalTwoPlayer ? 'التالي: اختيار أرقام الجولات →' : 'التالي →'}
       </Text>
     </TouchableOpacity>
   );
@@ -213,13 +214,13 @@ export default function RoundsConfigScreen() {
           </TouchableOpacity>
 
           <View style={styles.header}>
-            <Text style={styles.title}>إعداد المباراة</Text>
+            <Text style={styles.title}>{isLocalTwoPlayer ? 'إعداد مباراة محلية' : 'إعداد المباراة'}</Text>
             {isMultiplayer && isHost && (
               <View style={styles.hostBadge}>
                 <Text style={styles.hostBadgeText}>👑 صاحب الجلسة</Text>
               </View>
             )}
-            <Text style={styles.subtitle}>خصّص تجربتك قبل المعركة</Text>
+            <Text style={styles.subtitle}>{isLocalTwoPlayer ? 'طرفان على جهاز واحد — ثبّت القواعد ثم يبدأ المضيف' : 'خصّص تجربتك قبل المعركة'}</Text>
           </View>
 
           {isLandscape ? (

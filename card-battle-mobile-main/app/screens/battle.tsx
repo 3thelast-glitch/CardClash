@@ -47,7 +47,7 @@ import { BattleResultOverlay } from '@/components/game/BattleResultOverlay';
 import { useBattleLayout } from '@/utils/layout';
 import { useOrientationTransition } from '@/utils/orientation-transition';
 import { useGame } from '@/lib/game/game-context';
-import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass, AbilityType, RoundResult } from '@/lib/game/types';
+import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass, AbilityType, RoundResult, Side } from '@/lib/game/types';
 import { getAbilityNameAr, getAbilityNameOnly, getAbilityDescription } from '@/lib/game/ability-names';
 import { AbilityCard } from '@/components/game/ability-card';
 import { abilities as ALL_ABILITIES } from '@/data/abilities';
@@ -374,6 +374,7 @@ export default function BattleScreen() {
   const [roundHistory, setRoundHistory] = useState<RoundResult[]>([]);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isAbilitiesModalOpen, setIsAbilitiesModalOpen] = useState(false);
+  const [abilityOwnerSide, setAbilityOwnerSide] = useState<Side>('player');
   const [showPredictionModal, setShowPredictionModal] = useState(false);
   const [predictionSelections, setPredictionSelections] = useState<Record<number, 'win' | 'loss'>>({});
   const [predictionAbilityType, setPredictionAbilityType] = useState<'LogicalEncounter' | 'Eclipse' | 'Trap' | 'Pool'>('LogicalEncounter');
@@ -391,8 +392,9 @@ export default function BattleScreen() {
     title: string;
     options: { value: string; label: string }[];
     abilityType: string;
+    ownerSide: Side;
     extraData?: unknown;
-  }>({ visible: false, title: '', options: [], abilityType: '' });
+  }>({ visible: false, title: '', options: [], abilityType: '', ownerSide: 'player' });
 
   // ── Transition Lock & Timers ──
   const isTransitioning = useRef(false);
@@ -400,6 +402,9 @@ export default function BattleScreen() {
 
   // ✅ FIX: guard against startBattle being called more than once
   const battleStarted = useRef(false);
+  const isLocalTwoPlayer = state.matchMode === 'local';
+  const playerLabel = isLocalTwoPlayer ? 'المضيف' : 'لاعب';
+  const opponentLabel = isLocalTwoPlayer ? 'الضيف' : 'بوت';
 
   // تهيئة الصوت ليعمل حتى لو كان الهاتف صامتاً (iOS)
   useEffect(() => {
@@ -483,6 +488,7 @@ export default function BattleScreen() {
 
   // ── Bot AI: يقرر ويستخدم قدرته قبل الهجوم ──────────────────────────────
   const runBotAbility = useCallback(() => {
+    if (isLocalTwoPlayer) return;
     if (!currentPlayerCard) return;
     const difficulty = (state.difficulty ?? 3) as DifficultyLevel;
     // السهل فقط لا يستخدم القدرات؛ بقية المستويات تتصرف مثل اللاعب قبل الهجوم.
@@ -499,7 +505,7 @@ export default function BattleScreen() {
       activateAbility(decision.abilityType, decision.abilityData ?? {}, false);
       playAbility();
     }
-  }, [currentPlayerCard, state, activateAbility, playAbility]);
+  }, [currentPlayerCard, state, activateAbility, playAbility, isLocalTwoPlayer]);
 
   // 🔥 Rage Mode: تحديث الكرت الحالي في الملعب قبل الهجوم
   const handleRageActivate = useCallback((rageCard: any) => {
@@ -562,61 +568,64 @@ export default function BattleScreen() {
   }, [hapticImpact]);
 
   const handleConfirmPrediction = useCallback(() => {
-    activateAbility(predictionAbilityType, { predictions: predictionSelections });
+    activateAbility(predictionAbilityType, { predictions: predictionSelections }, abilityOwnerSide === 'player');
     playAbility();
     setShowPredictionModal(false); setPredictionSelections({});
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-  }, [predictionAbilityType, predictionSelections, activateAbility, hapticImpact, playAbility]);
+  }, [predictionAbilityType, predictionSelections, activateAbility, hapticImpact, playAbility, abilityOwnerSide]);
 
   const handleConfirmPopularity = useCallback(() => {
     if (selectedPopularityRound === null) return;
-    activateAbility(popularityAbilityType, { round: selectedPopularityRound });
+    activateAbility(popularityAbilityType, { round: selectedPopularityRound }, abilityOwnerSide === 'player');
     playAbility();
     setShowPopularityModal(false); setSelectedPopularityRound(null);
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-  }, [popularityAbilityType, selectedPopularityRound, activateAbility, hapticImpact, playAbility]);
+  }, [popularityAbilityType, selectedPopularityRound, activateAbility, hapticImpact, playAbility, abilityOwnerSide]);
 
   // ── Choice modal handlers ────────────────────────────────────────────────
   const openChoiceModal = useCallback((abilityType: string) => {
+    const isHostAbility = abilityOwnerSide === 'player';
+    const ownPast = state.roundResults.map((r, i) => {
+      const card = isHostAbility ? r.playerCard : r.botCard;
+      return { value: String(i), label: `جولة ${r.round}: ${card.nameAr ?? card.name}` };
+    });
+    const opponentPast = state.roundResults.map((r, i) => {
+      const card = isHostAbility ? r.botCard : r.playerCard;
+      return { value: String(i), label: `جولة ${r.round}: ${card.nameAr ?? card.name}` };
+    });
 
     if (abilityType === 'Propaganda') {
-      setChoiceModal({ visible: true, title: '🎙️ بروباغاندا — اختر فئة الخصم', options: ALL_CLASSES.map(c => ({ value: c, label: CLASS_LABELS[c] })), abilityType });
+    setChoiceModal({ visible: true, title: '🎙️ بروباغاندا — اختر فئة الخصم', options: ALL_CLASSES.map(c => ({ value: c, label: CLASS_LABELS[c] })), abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'AddElement') {
-      setChoiceModal({ visible: true, title: '🧪 إضافة عنصر — اختر العنصر', options: ALL_ELEMENTS.map(e => ({ value: e, label: ELEMENT_LABELS[e] })), abilityType });
+      setChoiceModal({ visible: true, title: '🧪 إضافة عنصر — اختر العنصر', options: ALL_ELEMENTS.map(e => ({ value: e, label: ELEMENT_LABELS[e] })), abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'SwapClass') {
-      setChoiceModal({ visible: true, title: '🔀 تبديل الفئة — اختر فئتك', options: ALL_CLASSES.map(c => ({ value: c, label: CLASS_LABELS[c] })), abilityType });
+      setChoiceModal({ visible: true, title: '🔀 تبديل الفئة — اختر فئتك', options: ALL_CLASSES.map(c => ({ value: c, label: CLASS_LABELS[c] })), abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'Dilemma') {
-      const botPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.botCard.nameAr ?? r.botCard.name}` }));
-      if (!botPast.length) { Alert.alert('لا يوجد كروت سابقة للخصم بعد'); return; }
-      setChoiceModal({ visible: true, title: '🌀 الوهقة — اختر كرت الخصم السابق', options: botPast, abilityType });
+      if (!opponentPast.length) { Alert.alert('لا يوجد كروت سابقة للخصم بعد'); return; }
+      setChoiceModal({ visible: true, title: '🌀 الوهقة — اختر كرت الخصم السابق', options: opponentPast, abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'Recall') {
-      const myPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.playerCard.nameAr ?? r.playerCard.name} (هج ${r.playerCard.attack} / دف ${r.playerCard.defense})` }));
-      if (!myPast.length) { Alert.alert('لا يوجد كروت سابقة لك بعد'); return; }
-      setChoiceModal({ visible: true, title: '🔄 استدعاء — اختر كرتك السابق', options: myPast, abilityType });
+      if (!ownPast.length) { Alert.alert('لا يوجد كروت سابقة لك بعد'); return; }
+      setChoiceModal({ visible: true, title: '🔄 استدعاء — اختر كرتك السابق', options: ownPast, abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'Revive') {
-      const myPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.playerCard.nameAr ?? r.playerCard.name} (هج ${Math.ceil(r.playerCard.attack / 2)} / دف ${Math.ceil(r.playerCard.defense / 2)})` }));
-      if (!myPast.length) { Alert.alert('لا يوجد كروت سابقة لك بعد'); return; }
-      setChoiceModal({ visible: true, title: '💖 إنعاش — اختر كرتك (بنصف طاقاته)', options: myPast, abilityType });
+      if (!ownPast.length) { Alert.alert('لا يوجد كروت سابقة لك بعد'); return; }
+      setChoiceModal({ visible: true, title: '💖 إنعاش — اختر كرتك (بنصف طاقاته)', options: ownPast, abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'Arise') {
-      const botPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.botCard.nameAr ?? r.botCard.name} (هج ${r.botCard.attack} / دف ${r.botCard.defense})` }));
-      if (!botPast.length) { Alert.alert('لا يوجد كروت سابقة للخصم بعد'); return; }
-      setChoiceModal({ visible: true, title: '👻 أرايز — اختر كرت الخصم السابق يصير كرتك', options: botPast, abilityType });
+      if (!opponentPast.length) { Alert.alert('لا يوجد كروت سابقة للخصم بعد'); return; }
+      setChoiceModal({ visible: true, title: '👻 أرايز — اختر كرت الخصم السابق يصير كرتك', options: opponentPast, abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'Disaster') {
-      const botPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.botCard.nameAr ?? r.botCard.name} (هج ${r.botCard.attack} / دف ${r.botCard.defense})` }));
-      if (!botPast.length) { Alert.alert('لا يوجد كروت سابقة للخصم بعد'); return; }
-      setChoiceModal({ visible: true, title: '💣 النكبة — اختر كرت سابق للخصم', options: botPast, abilityType });
+      if (!opponentPast.length) { Alert.alert('لا يوجد كروت سابقة للخصم بعد'); return; }
+      setChoiceModal({ visible: true, title: '💣 النكبة — اختر كرت سابق للخصم', options: opponentPast, abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'Merge') {
-      const myPast = state.roundResults.map((r, i) => ({ value: String(i), label: `جولة ${r.round}: ${r.playerCard.nameAr ?? r.playerCard.name} (+${r.playerCard.attack} هج / +${r.playerCard.defense} دف)` }));
-      if (!myPast.length) { Alert.alert('لا يوجد كروت سابقة لك بعد'); return; }
-      setChoiceModal({ visible: true, title: '🔗 الدمج — اختر الكرت السابق تضيف طاقاته لكرتك', options: myPast, abilityType });
+      if (!ownPast.length) { Alert.alert('لا يوجد كروت سابقة لك بعد'); return; }
+      setChoiceModal({ visible: true, title: '🔗 الدمج — اختر الكرت السابق تضيف طاقاته لكرتك', options: ownPast, abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'Sniping') {
       const futureRounds = Array.from(
@@ -625,32 +634,32 @@ export default function BattleScreen() {
       );
       if (!futureRounds.length) { Alert.alert('لا توجد جولات قادمة للقنص'); return; }
       const options = futureRounds.map(r => ({ value: String(r), label: `جولة ${r}` }));
-      setChoiceModal({ visible: true, title: '🎯 القناص — اختر الجولة التي ستفوز فيها', options, abilityType });
+      setChoiceModal({ visible: true, title: '🎯 القناص — اختر الجولة التي ستفوز فيها', options, abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'Subhan') {
-      const currentBotAttack = state.botDeck[state.currentRound]?.attack ?? 0;
+      const currentBotAttack = (isHostAbility ? state.botDeck : state.playerDeck)[state.currentRound]?.attack ?? 0;
       const guessOptions = Array.from({ length: 15 }, (_, i) => currentBotAttack - 7 + i)
         .filter(v => v > 0)
         .map(v => ({ value: String(v), label: `هجوم: ${v}` }));
-      setChoiceModal({ visible: true, title: '🔮 سبحان — خمّن هجوم كرت الخصم (±3)', options: guessOptions, abilityType });
+      setChoiceModal({ visible: true, title: '🔮 سبحان — خمّن هجوم كرت الخصم (±3)', options: guessOptions, abilityType, ownerSide: abilityOwnerSide });
     }
-  }, [state.roundResults, state.currentRound, state.totalRounds, state.botDeck]);
+  }, [state.roundResults, state.currentRound, state.totalRounds, state.botDeck, abilityOwnerSide]);
 
   const handleChoiceSelect = useCallback((value: string) => {
-    const { abilityType } = choiceModal;
+    const { abilityType, ownerSide } = choiceModal;
     setChoiceModal(p => ({ ...p, visible: false }));
 
     const roundIndexAbilities = ['Dilemma', 'Disaster', 'Recall', 'Revive', 'Arise', 'Merge'];
     if (roundIndexAbilities.includes(abilityType)) {
-      activateAbility(abilityType as any, { roundIndex: Number(value) });
+      activateAbility(abilityType as any, { roundIndex: Number(value) }, ownerSide === 'player');
     } else if (abilityType === 'SwapClass') {
-      activateAbility(abilityType as any, { myClass: value, oppClass: value });
+      activateAbility(abilityType as any, { myClass: value, oppClass: value }, ownerSide === 'player');
     } else if (abilityType === 'Sniping') {
-      activateAbility(abilityType as any, { round: Number(value) });
+      activateAbility(abilityType as any, { round: Number(value) }, ownerSide === 'player');
     } else if (abilityType === 'Subhan') {
-      activateAbility(abilityType as any, { guessedAttack: Number(value) });
+      activateAbility(abilityType as any, { guessedAttack: Number(value) }, ownerSide === 'player');
     } else {
-      activateAbility(abilityType as any, { selection: value, targetClass: value, element: value });
+      activateAbility(abilityType as any, { selection: value, targetClass: value, element: value }, ownerSide === 'player');
     }
 
     setIsAbilitiesModalOpen(false);
@@ -666,7 +675,7 @@ export default function BattleScreen() {
     isTransitioning.current = true;
 
     try {
-      updateBotMemory(lastRoundResult, undefined, state.botAbilities);
+      if (!isLocalTwoPlayer) updateBotMemory(lastRoundResult, undefined, state.botAbilities);
 
       // Show toasts for passive effects that triggered this round
       try {
@@ -728,7 +737,7 @@ export default function BattleScreen() {
         }, BATTLE_TIMINGS.autoNextRound) as unknown as NodeJS.Timeout;
       }
     }
-  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers]);
+  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers, isLocalTwoPlayer, state.botAbilities]);
 
   const spawnDmg = useCallback((side: 'player' | 'bot', value: number, variant: DamageNumberVariant) => {
     const id = `${Date.now()}-${Math.random()}`;
@@ -825,7 +834,7 @@ export default function BattleScreen() {
             <View style={S.hudSide}>
               <View style={[S.avatar, { borderColor: '#4ade80' }]}><Text style={{ fontSize: 18 }}>👤</Text></View>
               <View style={S.hudInfo}>
-                <Text style={[S.hudName, { color: '#4ade80' }]}>لاعب</Text>
+                <Text style={[S.hudName, { color: '#4ade80' }]}>{playerLabel}</Text>
                 <ScoreBar score={state.playerScore} maxScore={maxScore} color="#4ade80" />
               </View>
               <Text style={[S.hudScore, { color: '#4ade80' }]}>{state.playerScore}</Text>
@@ -840,10 +849,10 @@ export default function BattleScreen() {
             <View style={[S.hudSide, S.hudSideRight]}>
               <Text style={[S.hudScore, { color: '#f87171' }]}>{state.botScore}</Text>
               <View style={S.hudInfo}>
-                <Text style={[S.hudName, { color: '#f87171', textAlign: 'right' }]}>بوت</Text>
+                <Text style={[S.hudName, { color: '#f87171', textAlign: 'right' }]}>{opponentLabel}</Text>
                 <ScoreBar score={state.botScore} maxScore={maxScore} color="#f87171" reverse />
               </View>
-              <View style={[S.avatar, { borderColor: '#f87171' }]}><Text style={{ fontSize: 18 }}>🤖</Text></View>
+              <View style={[S.avatar, { borderColor: '#f87171' }]}><Text style={{ fontSize: 18 }}>{isLocalTwoPlayer ? '🤝' : '🤖'}</Text></View>
             </View>
           </View>
 
@@ -851,12 +860,12 @@ export default function BattleScreen() {
           {state.activeEffects.length > 0 && (
             <View style={S.effectsBar}>
               <View style={S.effectsBarSide}>
-                <Text style={S.effectsBarLabel}>تأثيراتك</Text>
+                <Text style={S.effectsBarLabel}>{isLocalTwoPlayer ? 'تأثيرات المضيف' : 'تأثيراتك'}</Text>
                 <ActiveEffectsBar effects={state.activeEffects} side="player" />
               </View>
               <View style={S.effectsBarDivider} />
               <View style={[S.effectsBarSide, { alignItems: 'flex-end' }]}>
-                <Text style={[S.effectsBarLabel, { textAlign: 'right' }]}>تأثيرات البوت</Text>
+                <Text style={[S.effectsBarLabel, { textAlign: 'right' }]}>{isLocalTwoPlayer ? 'تأثيرات الضيف' : 'تأثيرات البوت'}</Text>
                 <ActiveEffectsBar effects={state.activeEffects} side="bot" />
               </View>
             </View>
@@ -880,7 +889,7 @@ export default function BattleScreen() {
 
             {/* PLAYER PANEL */}
             <View testID="battle-player-panel" style={[S.playerPanel, !isLandscape && S.panelPortrait]}>
-              <Text style={S.panelLabel}>لاعب</Text>
+              <Text style={S.panelLabel}>{playerLabel}</Text>
               <Animated.View style={playerStyle}>
                 <LuxuryCharacterCardAnimated
                   card={displayPlayerCard}
@@ -939,8 +948,8 @@ export default function BattleScreen() {
                     : lastRoundResult.winner === 'bot' ? S.resultLose
                     : S.resultDraw,
                   ]}>
-                    {lastRoundResult.winner === 'player' ? '🏆 فزت'
-                      : lastRoundResult.winner === 'bot' ? '💀 خسرت'
+                    {lastRoundResult.winner === 'player' ? (isLocalTwoPlayer ? '🏆 فاز المضيف' : '🏆 فزت')
+                      : lastRoundResult.winner === 'bot' ? (isLocalTwoPlayer ? '🏆 فاز الضيف' : '💀 خسرت')
                       : '🤝 تعادل'}
                   </Text>
                 </Animated.View>
@@ -964,12 +973,23 @@ export default function BattleScreen() {
                   {/* Ability button */}
                   <TouchableOpacity
                     style={[S.abilityBtn, { width: commandButtonWidth, height: actionButtonHeight }, state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled]}
-                    onPress={() => setIsAbilitiesModalOpen(true)}
+                    onPress={() => { setAbilityOwnerSide('player'); setIsAbilitiesModalOpen(true); }}
                     disabled={state.playerAbilities.every(a => a.used)}
                     activeOpacity={0.8}
                   >
-                    <Text style={S.abilityBtnText}>✨ قدرة</Text>
+                    <Text style={S.abilityBtnText}>{isLocalTwoPlayer ? '✨ قدرة المضيف' : '✨ قدرة'}</Text>
                   </TouchableOpacity>
+
+                  {isLocalTwoPlayer && (
+                    <TouchableOpacity
+                      style={[S.abilityBtn, S.guestAbilityBtn, { width: commandButtonWidth, height: actionButtonHeight }, state.botAbilities.every(a => a.used) && S.abilityBtnDisabled]}
+                      onPress={() => { setAbilityOwnerSide('bot'); setIsAbilitiesModalOpen(true); }}
+                      disabled={state.botAbilities.every(a => a.used)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={S.abilityBtnText}>✨ قدرة الضيف</Text>
+                    </TouchableOpacity>
+                  )}
 
                   {/* Attack button */}
                   <TouchableOpacity style={[S.attackBtn, { width: commandButtonWidth, height: actionButtonHeight }]} onPress={handleExecuteAttack} activeOpacity={0.85}>
@@ -1008,7 +1028,7 @@ export default function BattleScreen() {
 
             {/* BOT PANEL */}
             <View testID="battle-bot-panel" style={[S.botPanel, !isLandscape && S.panelPortrait]}>
-              <Text style={[S.panelLabel, { textAlign: 'right' }]}>بوت</Text>
+              <Text style={[S.panelLabel, { textAlign: 'right' }]}>{opponentLabel}</Text>
               <Animated.View style={botStyle}>
                 <LuxuryCharacterCardAnimated
                   card={displayBotCard}
@@ -1068,13 +1088,13 @@ export default function BattleScreen() {
       <Modal visible={isAbilitiesModalOpen} transparent animationType="slide" onRequestClose={() => setIsAbilitiesModalOpen(false)}>
         <TouchableOpacity style={cm.overlay} activeOpacity={1} onPress={() => setIsAbilitiesModalOpen(false)}>
           <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[S.abilitiesBox, { padding: modalPadding }]}>
-            <Text style={[cm.title, { marginBottom: modalTitleMargin }]}>✨ قدراتك</Text>
+            <Text style={[cm.title, { marginBottom: modalTitleMargin }]}>✨ قدرات {abilityOwnerSide === 'player' ? playerLabel : opponentLabel}</Text>
             <ScrollView 
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ flexDirection: 'row', gap: modalGap, paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center' }}
             >
-              {state.playerAbilities.map((ab, i) => {
+              {(abilityOwnerSide === 'player' ? state.playerAbilities : state.botAbilities).map((ab, i) => {
                 const match = ALL_ABILITIES.find(
                   a => a.nameEn.replace(/\s+/g, '').toLowerCase() === ab.type.replace(/\s+/g, '').toLowerCase()
                 );
@@ -1106,7 +1126,7 @@ export default function BattleScreen() {
                         setShowPopularityModal(true);
                         setIsAbilitiesModalOpen(false);
                       } else {
-                        activateAbility(ab.type, {});
+                        activateAbility(ab.type, {}, abilityOwnerSide === 'player');
                         setIsAbilitiesModalOpen(false);
                         hapticImpact(Haptics.ImpactFeedbackStyle.Light);
                       }
@@ -1226,6 +1246,7 @@ const S = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   abilityBtnDisabled: { opacity: 0.35 },
+  guestAbilityBtn: { backgroundColor: 'rgba(251,113,133,0.14)', borderColor: 'rgba(251,113,133,0.54)' },
   abilityBtnText: { color: '#BFFAF2', fontSize: 13, fontWeight: '700', textAlign: 'center' },
   attackBtn: { 
     width: 110, 

@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL } from '@/components/ui/design-tokens';
+import { useGame } from '@/lib/game/game-context';
 
 const MODES = [
   {
@@ -13,6 +14,15 @@ const MODES = [
     subtitle: 'العب ضد الذكاء الاصطناعي',
     route: '/screens/difficulty' as const,
     accentColor: '#E4A52A',
+    matchMode: 'solo' as const,
+  },
+  {
+    icon: '🤝',
+    title: 'لعب محلي — جهاز واحد',
+    subtitle: 'رتّبا كروتكما بالتناوب ثم تقاتلان',
+    route: '/screens/rounds-config' as const,
+    accentColor: '#38BDF8',
+    matchMode: 'local' as const,
   },
   {
     icon: '🌐',
@@ -20,6 +30,7 @@ const MODES = [
     subtitle: 'واجه لاعبين حقيقيين',
     route: '/screens/multiplayer-lobby' as const,
     accentColor: '#60A5FA',
+    matchMode: 'solo' as const,
   },
   {
     icon: '📚',
@@ -27,6 +38,7 @@ const MODES = [
     subtitle: 'استعرض كروتك',
     route: '/screens/collection' as const,
     accentColor: '#4ADE80',
+    matchMode: 'solo' as const,
   },
   {
     icon: '📡',
@@ -34,11 +46,13 @@ const MODES = [
     subtitle: 'واجهة مباشرة داخل الشبكة',
     route: '/screens/local-lan' as const,
     accentColor: '#A78BFA',
+    matchMode: 'solo' as const,
   },
 ];
 
 export default function GameModeScreen() {
   const router = useRouter();
+  const { setMatchMode } = useGame();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
@@ -70,7 +84,7 @@ export default function GameModeScreen() {
                   styles.modeCard,
                   { flex: 1, width: isLandscape ? undefined : '100%', marginBottom: isLandscape ? 0 : SPACE.sm }
                 ]}
-                onPress={() => router.push(mode.route as any)}
+                onPress={() => { setMatchMode(mode.matchMode); router.push(mode.route as any); }}
                 activeOpacity={0.8}
               >
                 {/* Accent top bar */}

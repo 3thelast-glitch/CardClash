@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Card, GameState, RoundResult, Effect, AbilityType, Side, ElementAdvantage, Element } from './types';
+import { Card, GameState, RoundResult, Effect, AbilityType, Side, ElementAdvantage, Element, MatchMode } from './types';
 import { getRandomAbilities } from './abilities';
 import type { DifficultyLevel } from './difficulty-types';
 import { determineRoundWinner } from './cards-data-exports';
@@ -16,6 +16,7 @@ import { ABILITY_DETAILS } from './ability-details';
 
 // ─────────────────────────────────────────────────────────────────────────────────
 const initialState: GameState = {
+  matchMode: 'solo',
   playerDeck: [],
   botDeck: [],
   currentRound: 0,
@@ -132,10 +133,11 @@ const makeEffectId = (abilityType: AbilityType, side: Side, roundNumber: number)
 
 // ─────────────────────────────────────────────────────────────────────────────────
 type GameAction =
+  | { type: 'SET_MATCH_MODE'; payload: MatchMode }
   | { type: 'SET_PLAYER_DECK'; payload: Card[] }
   | { type: 'SET_BOT_DECK'; payload: Card[] }
   | { type: 'SET_TOTAL_ROUNDS'; payload: number }
-  | { type: 'START_BATTLE'; payload?: { playerDeck?: Card[]; playerAbilities?: AbilityType[]; botDeck?: Card[] } }
+  | { type: 'START_BATTLE'; payload?: { playerDeck?: Card[]; playerAbilities?: AbilityType[]; botDeck?: Card[]; botAbilities?: AbilityType[] } }
   | { type: 'PLAY_ROUND' }
   | { type: 'NEXT_ROUND' }
   | { type: 'RESET_GAME' }
@@ -149,6 +151,9 @@ type GameAction =
 // ─────────────────────────────────────────────────────────────────────────────────
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
+
+    case 'SET_MATCH_MODE':
+      return { ...state, matchMode: action.payload };
 
     case 'SET_PLAYER_DECK':
       return { ...state, playerDeck: action.payload, totalRounds: action.payload.length };
@@ -168,6 +173,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'START_BATTLE': {
       const assignedAbilities = action.payload?.playerAbilities;
       const incomingBotDeck   = action.payload?.botDeck;
+      const assignedBotAbilities = action.payload?.botAbilities;
       // ── FIX: إذا أُرسل playerDeck ضمن الـ action استخدمه مباشرة، وإلا استخدم الـ state
       const rawPlayerDeck     = (action.payload?.playerDeck && action.payload.playerDeck.length > 0)
         ? action.payload.playerDeck
@@ -204,7 +210,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
               : getRandomAbilities(3).map(type => ({ type, used: false })))
           : [],
         botAbilities: state.abilitiesEnabled
-          ? getRandomAbilities(3).map(type => ({ type, used: false }))
+          ? (assignedBotAbilities
+              ? assignedBotAbilities.map(type => ({ type, used: false }))
+              : getRandomAbilities(3).map(type => ({ type, used: false })))
           : [],
         usedAbilities: [],
       };
@@ -1110,7 +1118,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, abilitiesEnabled: action.payload };
 
     case 'RESET_GAME':
-      return { ...initialState, difficulty: state.difficulty, abilitiesEnabled: state.abilitiesEnabled };
+      return { ...initialState, matchMode: state.matchMode, difficulty: state.difficulty, abilitiesEnabled: state.abilitiesEnabled };
 
     default:
       return state;
@@ -1126,8 +1134,9 @@ type GameContextType = {
   setRarityWeights: (weights: RarityWeights) => void;
   // ── helpers — جميعها مكشوفة لجميع الشاشات ──
   setPlayerDeck: (deck: Card[]) => void;
+  setMatchMode: (mode: MatchMode) => void;
   setTotalRounds: (rounds: number) => void;
-  startBattle: (deck: Card[], abilities?: AbilityType[], botDeck?: Card[]) => void;
+  startBattle: (deck: Card[], abilities?: AbilityType[], botDeck?: Card[], botAbilities?: AbilityType[]) => void;
   syncDecks: (playerDeck: Card[], botDeck: Card[]) => void;
   setDifficulty: (level: DifficultyLevel) => void;
   setAbilitiesEnabled: (enabled: boolean) => void;
@@ -1167,11 +1176,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_PLAYER_DECK', payload: deck });
   }, []);
 
+  const setMatchMode = useCallback((mode: MatchMode) => {
+    dispatch({ type: 'SET_MATCH_MODE', payload: mode });
+  }, []);
+
   // ── FIX: إرسال playerDeck داخل START_BATTLE مباشرة بدل dispatch منفصل
   // كانت المشكلة أن dispatch('SET_PLAYER_DECK') + dispatch('START_BATTLE') يحدثان
   // في نفس الـ render cycle، فـ START_BATTLE كان يقرأ totalRounds = 0 من الـ state القديم
-  const startBattle = useCallback((deck: Card[], abilities?: AbilityType[], botDeck?: Card[]) => {
-    dispatch({ type: 'START_BATTLE', payload: { playerDeck: deck, playerAbilities: abilities, botDeck } });
+  const startBattle = useCallback((deck: Card[], abilities?: AbilityType[], botDeck?: Card[], botAbilities?: AbilityType[]) => {
+    dispatch({ type: 'START_BATTLE', payload: { playerDeck: deck, playerAbilities: abilities, botDeck, botAbilities } });
   }, []);
 
   const syncDecks = useCallback((playerDeck: Card[], botDeck: Card[]) => {
@@ -1299,7 +1312,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     <GameContext.Provider value={{
       state, dispatch, rarityWeights, updateRarityWeights,
       setRarityWeights: (w: RarityWeights) => { setRarityWeights(w); saveRarityWeights(w); },
-      setPlayerDeck, setTotalRounds, startBattle, syncDecks,
+      setPlayerDeck, setMatchMode, setTotalRounds, startBattle, syncDecks,
       setDifficulty, setAbilitiesEnabled,
       playRound, nextRound, resetGame, useAbility,
       isGameOver, currentPlayerCard, currentBotCard,

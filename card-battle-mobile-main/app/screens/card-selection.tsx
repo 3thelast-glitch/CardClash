@@ -16,7 +16,7 @@ import { getDisabledAbilityIds } from '@/lib/game/abilities-store';
 import { AbilityCard, AbilityData } from '@/components/game/ability-card';
 import { abilities as allAbilitiesData } from '@/data/abilities';
 import { ProButton } from '@/components/ui/ProButton';
-import { SPACE, RADIUS } from '@/components/ui/design-tokens';
+import { SPACE, RADIUS, FONT } from '@/components/ui/design-tokens';
 import type { RarityWeights, RarityKey } from '@/lib/game/game-context';
 import {
   useLandscapeLayout,
@@ -134,7 +134,11 @@ export default function CardSelectionScreen() {
   const [isAbilitiesModalOpen, setIsAbilitiesModalOpen] = useState(false);
   const [assignedAbilities, setAssignedAbilities] = useState<AbilityType[]>([]);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+  const [localStage, setLocalStage] = useState<'host' | 'handover' | 'guest'>('host');
+  const [hostDeck, setHostDeck] = useState<Card[]>([]);
+  const [hostAbilities, setHostAbilities] = useState<AbilityType[]>([]);
   const totalRounds = state.totalRounds || 5;
+  const isLocalTwoPlayer = state.matchMode === 'local';
 
   const allCards = useCards();
   const numColumns = GRID_COLUMNS[size];
@@ -213,7 +217,15 @@ export default function CardSelectionScreen() {
     // ✅ إجبار Turin على أول القائمة بغض النظر عن اختيار اللاعب
     const sorted = enforceTurinFirst(sortedByRound);
 
-    if (isMultiplayer && mp?.sendArrangementReady) {
+    if (isLocalTwoPlayer && localStage === 'host') {
+      setHostDeck(sorted);
+      setHostAbilities(assignedAbilities);
+      setLocalStage('handover');
+    } else if (isLocalTwoPlayer && localStage === 'guest') {
+      if (!hostDeck.length) return;
+      startBattle(hostDeck, hostAbilities, sorted, assignedAbilities);
+      router.push('/screens/battle' as any);
+    } else if (isMultiplayer && mp?.sendArrangementReady) {
       setPlayerDeck(sorted);
       mp.sendArrangementReady(sorted);
       setWaitingForOpponent(true);
@@ -222,6 +234,19 @@ export default function CardSelectionScreen() {
       startBattle(sorted, assignedAbilities);
       router.push('/screens/battle' as any);
     }
+  };
+
+  const handleGuestTakeover = () => {
+    getDisabledAbilityIds().then(disabledIds => {
+      const disabledTypes = idsToAbilityTypes(disabledIds);
+      const available = ALL_ABILITIES.filter(ability => !disabledTypes.has(ability) && isAbilityInData(ability));
+      const guestAbilities = [...available].sort(() => Math.random() - 0.5).slice(0, 3);
+      const guestCards = sampleCardsByRarity(allCards, totalRounds, rarityWeights);
+      setCardRounds(guestCards.map(card => ({ card, round: null })));
+      setAssignedAbilities(guestAbilities);
+      setFocusedCardIndex(null);
+      setLocalStage('guest');
+    });
   };
 
   const handleShuffleCards = () => {
@@ -243,6 +268,8 @@ export default function CardSelectionScreen() {
 
   const startBtnLabel = () => {
     if (!allAssigned) return `${cardRounds.filter(c => c.round).length} / ${totalRounds} مُعيّنة`;
+    if (isLocalTwoPlayer && localStage === 'host') return '✓ تثبيت ترتيب المضيف';
+    if (isLocalTwoPlayer && localStage === 'guest') return '⚔️ تثبيت ترتيب الضيف وبدء المعركة';
     if (!isMultiplayer) return 'ابدأ المعركة ⚔️';
     if (waitingForOpponent) return opponentArrangementReady ? '✅ كلاكم جاهز، تبدأ...' : '⏳ انتظار الخصم...';
     return '✅ جاهز — اضغط للبدء';
@@ -251,7 +278,7 @@ export default function CardSelectionScreen() {
   const renderCardItem = ({ item, index }: { item: CardRound; index: number }) => (
     <TouchableOpacity
       style={[styles.cardCell, { width: gridCellW }]}
-      onPress={() => !waitingForOpponent && setFocusedCardIndex(index)}
+      onPress={() => !waitingForOpponent && localStage !== 'handover' && setFocusedCardIndex(index)}
       activeOpacity={0.8}
     >
       <View style={styles.cardWrapper}>
@@ -279,10 +306,15 @@ export default function CardSelectionScreen() {
             <Text style={styles.backBtnText}>← رجوع</Text>
           </TouchableOpacity>
           <View style={styles.titleGroup}>
-            <Text style={styles.title}>رتّب بطاقاتك</Text>
+            <Text style={styles.title}>{isLocalTwoPlayer ? `رتّب بطاقات ${localStage === 'guest' ? 'الضيف' : 'المضيف'}` : 'رتّب بطاقاتك'}</Text>
             <Text style={styles.subtitle}>{cardRounds.filter(c => c.round).length} / {totalRounds} مُعيّنة</Text>
           </View>
           <View style={styles.rightActionGroup}>
+            {isLocalTwoPlayer && localStage !== 'handover' && (
+              <View style={[styles.mpBadge, localStage === 'guest' && styles.mpBadgeReady]}>
+                <Text style={styles.mpBadgeText}>{localStage === 'host' ? '👑 دور المضيف' : '🤝 دور الضيف'}</Text>
+              </View>
+            )}
             {isMultiplayer && (
               <View style={[styles.mpBadge, opponentArrangementReady && styles.mpBadgeReady]}>
                 {opponentArrangementReady
@@ -305,6 +337,17 @@ export default function CardSelectionScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        <Modal visible={isLocalTwoPlayer && localStage === 'handover'} transparent animationType="fade" onRequestClose={() => undefined}>
+          <View style={styles.localHandoverOverlay}>
+            <View style={styles.localHandoverCard}>
+              <Text style={styles.localHandoverKicker}>✓ تم تثبيت ترتيب المضيف</Text>
+              <Text style={styles.localHandoverTitle}>مرّر الجهاز إلى الضيف</Text>
+              <Text style={styles.localHandoverDesc}>لن تظهر كروت المضيف أو مواضع جولاته في مرحلة الضيف. اضغط فقط بعد أن يصبح الضيف أمام الشاشة.</Text>
+              <ProButton label="أنا الضيف — ابدأ ترتيبي" onPress={handleGuestTakeover} variant="primary" />
+            </View>
+          </View>
+        </Modal>
 
         {isMultiplayer && (
           <View style={[styles.readyPanel, isRankedMatch && styles.rankedReadyPanel]}>
@@ -535,6 +578,11 @@ const styles = StyleSheet.create({
   waitingBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   waitingBannerText: { color: '#d4af37', fontSize: 12, fontWeight: '700' },
   allReadyBanner: { backgroundColor: 'rgba(74,222,128,0.08)', borderColor: 'rgba(74,222,128,0.30)' },
+  localHandoverOverlay: { flex: 1, backgroundColor: 'rgba(3,7,18,0.96)', alignItems: 'center', justifyContent: 'center', padding: SPACE.xl },
+  localHandoverCard: { width: '100%', maxWidth: 460, gap: SPACE.lg, padding: SPACE.xl, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(56,189,248,0.45)', backgroundColor: 'rgba(14,25,43,0.98)' },
+  localHandoverKicker: { color: '#fde68a', fontSize: FONT.sm, textAlign: 'center', fontWeight: '800' },
+  localHandoverTitle: { color: '#bae6fd', fontSize: FONT.xxl, textAlign: 'center', fontWeight: '900' },
+  localHandoverDesc: { color: '#94a3b8', fontSize: FONT.base, textAlign: 'center', lineHeight: 22 },
   focusModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
   focusModalContent: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(10,10,20,0.97)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
   focusModalContentStacked: { flexDirection: 'column' },
