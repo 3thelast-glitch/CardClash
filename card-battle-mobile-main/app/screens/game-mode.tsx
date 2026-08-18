@@ -43,10 +43,10 @@ const MODES = [
   {
     icon: '📡',
     title: 'لعب محلي Wi‑Fi',
-    subtitle: 'واجهة مباشرة داخل الشبكة',
+    subtitle: 'واجه صديقاً على جهاز ثانٍ بلا إنترنت',
     route: '/screens/local-lan' as const,
     accentColor: '#A78BFA',
-    matchMode: 'solo' as const,
+    matchMode: 'lan' as const,
   },
 ];
 

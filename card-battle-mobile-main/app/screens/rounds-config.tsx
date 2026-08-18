@@ -21,6 +21,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { useGame } from '@/lib/game/game-context';
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
+import { useLanMultiplayer } from '@/lib/lan/lan-context';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
 import type { RarityWeights, RarityKey } from '@/lib/game/game-context';
 
@@ -116,10 +117,14 @@ export default function RoundsConfigScreen() {
   const isLandscape = width > height;
   const { state: gameState, setTotalRounds, setAbilitiesEnabled, rarityWeights, setRarityWeights } = useGame();
   const isLocalTwoPlayer = gameState.matchMode === 'local';
+  const isLanMatch = gameState.matchMode === 'lan';
 
   const mp = useSafeMultiplayer();
   const isMultiplayer = !!mp?.state?.roomId;
-  const isHost = mp?.state?.isHost ?? true;
+  const lan = useLanMultiplayer();
+  const isLanHost = isLanMatch && lan.match.role === 'host';
+  const isLanGuest = isLanMatch && lan.match.role === 'guest';
+  const isHost = isLanMatch ? isLanHost : (mp?.state?.isHost ?? true);
   const pendingMatchSettings = mp?.state?.pendingMatchSettings ?? null;
 
   const [rounds, setRounds] = React.useState(5);
@@ -133,16 +138,24 @@ export default function RoundsConfigScreen() {
     router.push('/screens/leaderboard' as any);
   }, [pendingMatchSettings, isMultiplayer, isHost, router, setAbilitiesEnabled, setRarityWeights, setTotalRounds]);
 
+  useEffect(() => {
+    if (!isLanGuest || lan.match.phase !== 'arranging' || !lan.match.totalRounds) return;
+    setTotalRounds(lan.match.totalRounds);
+    setAbilitiesEnabled(lan.match.abilitiesEnabled);
+    router.replace('/screens/leaderboard' as any);
+  }, [isLanGuest, lan.match.abilitiesEnabled, lan.match.phase, lan.match.totalRounds, router, setAbilitiesEnabled, setTotalRounds]);
+
   const handleContinue = () => {
     setTotalRounds(rounds);
     setAbilitiesEnabled(withAbility);
     if (isMultiplayer && isHost && mp?.sendMatchSettings) {
       mp.sendMatchSettings({ rounds, withAbilities: withAbility, rarityWeights });
     }
+    if (isLanHost) lan.configureMatch(rounds, withAbility);
     router.push('/screens/leaderboard' as any);
   };
 
-  if (isMultiplayer && !isHost) {
+  if ((isMultiplayer || isLanMatch) && !isHost) {
     return (
       <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
         <LuxuryBackground>
@@ -200,7 +213,7 @@ export default function RoundsConfigScreen() {
   const ctaBtn = (
     <TouchableOpacity style={styles.continueBtn} onPress={handleContinue} activeOpacity={0.85}>
       <Text style={styles.continueBtnText}>
-        {isMultiplayer && isHost ? '✓ تأكيد وإرسال للضيف →' : isLocalTwoPlayer ? 'التالي: اختيار أرقام الجولات →' : 'التالي →'}
+        {(isMultiplayer || isLanHost) ? '✓ تأكيد وإرسال للضيف →' : isLocalTwoPlayer ? 'التالي: اختيار أرقام الجولات →' : 'التالي →'}
       </Text>
     </TouchableOpacity>
   );
@@ -214,13 +227,13 @@ export default function RoundsConfigScreen() {
           </TouchableOpacity>
 
           <View style={styles.header}>
-            <Text style={styles.title}>{isLocalTwoPlayer ? 'إعداد مباراة محلية' : 'إعداد المباراة'}</Text>
-            {isMultiplayer && isHost && (
+            <Text style={styles.title}>{isLocalTwoPlayer ? 'إعداد مباراة محلية' : isLanMatch ? 'إعداد مباراة Wi‑Fi' : 'إعداد المباراة'}</Text>
+            {(isMultiplayer || isLanMatch) && isHost && (
               <View style={styles.hostBadge}>
                 <Text style={styles.hostBadgeText}>👑 صاحب الجلسة</Text>
               </View>
             )}
-            <Text style={styles.subtitle}>{isLocalTwoPlayer ? 'طرفان على جهاز واحد — ثبّت القواعد ثم يبدأ المضيف' : 'خصّص تجربتك قبل المعركة'}</Text>
+            <Text style={styles.subtitle}>{isLocalTwoPlayer ? 'طرفان على جهاز واحد — ثبّت القواعد ثم يبدأ المضيف' : isLanMatch ? 'المضيف يحدد القواعد ثم يتسلمها الضيف على الجهاز الثاني' : 'خصّص تجربتك قبل المعركة'}</Text>
           </View>
 
           {isLandscape ? (

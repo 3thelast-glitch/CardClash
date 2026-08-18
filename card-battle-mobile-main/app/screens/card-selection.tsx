@@ -27,6 +27,7 @@ import {
 } from '@/utils/layout';
 import { doesRoundPickerNeedScroll, getRoundPickerLayout } from '@/utils/round-picker-layout';
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
+import { useLanMultiplayer } from '@/lib/lan/lan-context';
 
 // Multiplayer — يبقى الاستدعاء آمناً إذا لم يكن Provider موجوداً في سياق الاختبار.
 function useSafeMultiplayer() {
@@ -163,10 +164,17 @@ export default function CardSelectionScreen() {
   } = getRoundPickerLayout({ width, height, isLandscape, modalCardW, modalCardH });
 
   const mp = useSafeMultiplayer();
-  const isMultiplayer = !!mp?.state?.roomId;
-  const opponentArrangementReady = mp?.state?.opponentArrangementReady ?? false;
+  const lan = useLanMultiplayer();
+  const isOnlineMultiplayer = !!mp?.state?.roomId;
+  const isLanMultiplayer = state.matchMode === 'lan' && lan.match.role !== null;
+  const isMultiplayer = isOnlineMultiplayer || isLanMultiplayer;
+  const opponentArrangementReady = isLanMultiplayer
+    ? (lan.match.role === 'host' ? lan.match.guestReady : lan.match.hostReady)
+    : (mp?.state?.opponentArrangementReady ?? false);
   const isRankedMatch = mp?.state?.isRankedMatch ?? false;
-  const playerReady = mp?.state?.isPlayerReady ?? false;
+  const playerReady = isLanMultiplayer
+    ? (lan.match.role === 'host' ? lan.match.hostReady : lan.match.guestReady)
+    : (mp?.state?.isPlayerReady ?? false);
 
   useEffect(() => {
     getDisabledAbilityIds().then(disabledIds => {
@@ -181,11 +189,15 @@ export default function CardSelectionScreen() {
   }, [totalRounds, allCards, rarityWeights]);
 
   useEffect(() => {
-    if (!isMultiplayer) return;
+    if (!isOnlineMultiplayer) return;
     if (mp?.state?.status === 'playing') {
       router.push('/screens/battle' as any);
     }
-  }, [mp?.state?.status, isMultiplayer, router]);
+  }, [mp?.state?.status, isOnlineMultiplayer, router]);
+
+  useEffect(() => {
+    if (isLanMultiplayer && lan.match.phase === 'playing') router.replace('/screens/lan-battle' as any);
+  }, [isLanMultiplayer, lan.match.phase, router]);
 
   const handleRoundSelect = (round: number) => {
     if (focusedCardIndex !== null) {
@@ -225,6 +237,10 @@ export default function CardSelectionScreen() {
       if (!hostDeck.length) return;
       startBattle(hostDeck, hostAbilities, sorted, assignedAbilities);
       router.push('/screens/battle' as any);
+    } else if (isLanMultiplayer) {
+      setPlayerDeck(sorted);
+      lan.submitArrangement(sorted);
+      setWaitingForOpponent(true);
     } else if (isMultiplayer && mp?.sendArrangementReady) {
       setPlayerDeck(sorted);
       mp.sendArrangementReady(sorted);

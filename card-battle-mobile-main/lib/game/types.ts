@@ -167,7 +167,7 @@ export type Side = 'player' | 'bot';
 
 /** طريقة إدارة الطرف الثاني في المباراة. تبقى أسماء player/bot داخل المحرك
  * متوافقة مع منطق القتال، لكن واجهة local تعرضها كمضيف وضيف. */
-export type MatchMode = 'solo' | 'local';
+export type MatchMode = 'solo' | 'local' | 'lan';
 
 /** أسماء الإحصاءات التي يمكن لتأثير القدرة تعديلها. */
 export type EffectStat = 'attack' | 'defense' | 'all_stats';
