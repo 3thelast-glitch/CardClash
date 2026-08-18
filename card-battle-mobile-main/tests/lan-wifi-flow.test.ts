@@ -13,6 +13,15 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(config).toContain("gameState.matchMode === 'lan'");
   });
 
+  it('offers browser users a room-code fallback instead of native mDNS', () => {
+    const lobby = source('app/screens/local-lan.tsx');
+    const transport = source('lib/multiplayer/websocket-client.ts');
+    expect(lobby).toContain('غرف الويب برمز');
+    expect(lobby).toContain("router.replace('/screens/multiplayer-lobby'");
+    expect(transport).toContain('resolveMultiplayerWebSocketUrl');
+    expect(transport).toContain("wss:");
+  });
+
   it('requires both arrangements, then synchronizes reveals and the host-authoritative result', () => {
     const context = source('lib/lan/lan-context.tsx');
     const selection = source('app/screens/card-selection.tsx');

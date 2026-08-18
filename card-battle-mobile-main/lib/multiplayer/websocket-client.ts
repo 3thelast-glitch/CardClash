@@ -86,7 +86,26 @@ export interface MultiplayerClientOptions {
 }
 
 const OPEN = 1;
-const DEFAULT_URL = process.env.EXPO_PUBLIC_MP_SERVER_URL ?? 'ws://localhost:3001/multiplayer';
+type BrowserLocation = { protocol: string; host: string };
+
+/** يتيح لخادم الغرف المنشور مشاركة نطاق الويب نفسه، مع دعم عنوان WSS صريح عند فصل الاستضافة. */
+export function resolveMultiplayerWebSocketUrl(
+  configuredUrl = process.env.EXPO_PUBLIC_MP_SERVER_URL,
+  browserLocation?: BrowserLocation | null,
+): string {
+  const configured = configuredUrl?.trim();
+  if (configured) return configured;
+  const currentLocation = browserLocation ?? (typeof globalThis !== 'undefined' && 'location' in globalThis
+    ? globalThis.location as unknown as BrowserLocation
+    : null);
+  if (currentLocation?.host) {
+    const protocol = currentLocation.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${currentLocation.host}/multiplayer`;
+  }
+  return 'ws://localhost:3001/multiplayer';
+}
+
+const DEFAULT_URL = resolveMultiplayerWebSocketUrl();
 
 /**
  * Client-side transport for the multiplayer protocol.

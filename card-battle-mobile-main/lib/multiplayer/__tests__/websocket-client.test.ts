@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MultiplayerClient,
+  resolveMultiplayerWebSocketUrl,
   type WebSocketLike,
 } from '../websocket-client';
 
@@ -62,6 +63,15 @@ afterEach(() => {
 });
 
 describe('MultiplayerClient', () => {
+  it('uses a configured server or derives a secure same-origin web socket URL', () => {
+    expect(resolveMultiplayerWebSocketUrl('wss://rooms.example.com/multiplayer', { protocol: 'https:', host: 'game.example.com' }))
+      .toBe('wss://rooms.example.com/multiplayer');
+    expect(resolveMultiplayerWebSocketUrl(undefined, { protocol: 'https:', host: 'game.example.com' }))
+      .toBe('wss://game.example.com/multiplayer');
+    expect(resolveMultiplayerWebSocketUrl(undefined, { protocol: 'http:', host: 'localhost:8081' }))
+      .toBe('ws://localhost:8081/multiplayer');
+  });
+
   it('opens a connection, sends room commands, and stores the room session', async () => {
     const { client, sockets } = makeClient();
     const connection = client.connect();
