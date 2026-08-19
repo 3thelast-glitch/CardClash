@@ -667,8 +667,8 @@ export function LuxuryCharacterCardAnimated({
     const { settings } = useSettings();
     // هذا الخيار يوقف الحركات المستمرة والفيديو المتكرر، وهي أعلى عناصر البطاقة كلفة على الأجهزة الضعيفة.
     const enableVisualEffects = settings.animationsEnabled;
-    // الصور المتحركة لا تملك مساراً صوتياً؛ أما الفيديو فيُسمع فقط عند فتح بطاقة واحدة.
-    const videoAudioEnabled = playAudio && isOpenedView && settings.soundEnabled && enableVisualEffects;
+    // الصور المتحركة لا تملك مساراً صوتياً؛ وصوت الفيديو يحدده صاحب الساحة (مثل الكرت الأقوى في Wi‑Fi).
+    const videoAudioEnabled = playAudio && settings.soundEnabled && enableVisualEffects;
 
     useEffect(() => {
         if (!videoAudioEnabled) return;

@@ -9,6 +9,7 @@ import { COLOR, FONT, RADIUS, SPACE } from '@/components/ui/design-tokens';
 import { useLanMultiplayer } from '@/lib/lan/lan-context';
 import { isLanGameOver } from '@/lib/lan/lan-match-engine';
 import { ABILITY_DETAILS, CATEGORY_CONFIG } from '@/lib/game/ability-details';
+import { determineRoundWinner } from '@/lib/game/cards-data-exports';
 import { useBattleLayout } from '@/utils/layout';
 
 function getRoundExplanation(result: NonNullable<ReturnType<typeof useLanMultiplayer>['match']['lastResult']>): string {
@@ -19,6 +20,30 @@ function getRoundExplanation(result: NonNullable<ReturnType<typeof useLanMultipl
   const winnerNet = Math.max(0, (winner.attack ?? 0) - (loser.defense ?? 0));
   const loserNet = Math.max(0, (loser.attack ?? 0) - (winner.defense ?? 0));
   return `فاز ${winner.name}: قوة الهجوم بعد دفاع الخصم ${winnerNet} مقابل ${loserNet} للكرت الآخر، بعد تطبيق القدرات والتأثيرات.`;
+}
+
+function getDynamicAudioWinner(match: ReturnType<typeof useLanMultiplayer>['match']): 'host' | 'guest' | null {
+  if (match.phase === 'result' && match.lastResult) return match.lastResult.winner === 'draw' ? null : match.lastResult.winner;
+  if (match.phase !== 'playing') return null;
+  const hostCard = match.hostDeck[match.currentRound];
+  const guestCard = match.guestDeck[match.currentRound];
+  if (!hostCard || !guestCard) return null;
+
+  const round = match.currentRound + 1;
+  const effects = match.activeEffects.filter(effect => effect.createdAtRound <= round && (effect.expiresAtRound === undefined || round <= effect.expiresAtRound) && (effect.charges === undefined || effect.charges > 0));
+  const decisive = effects
+    .filter(effect => ['absoluteDominance', 'forcedOutcome', 'starAdvantage'].includes(effect.kind))
+    .filter(effect => !(effect.data as { appliesToRound?: number } | undefined)?.appliesToRound || (effect.data as { appliesToRound?: number }).appliesToRound === round)
+    .sort((left, right) => right.priority - left.priority)[0];
+  if (decisive) {
+    if (decisive.kind === 'forcedOutcome' && (decisive.data as { outcome?: string } | undefined)?.outcome === 'draw') return null;
+    return decisive.sourceSide === 'player' ? 'host' : 'guest';
+  }
+
+  const hostEffects = effects.filter(effect => effect.targetSide === 'player' || effect.targetSide === 'all');
+  const guestEffects = effects.filter(effect => effect.targetSide === 'bot' || effect.targetSide === 'all');
+  const predicted = determineRoundWinner(hostCard, guestCard, hostEffects, guestEffects, match.abilitiesEnabled).winner;
+  return predicted === 'player' ? 'host' : predicted === 'bot' ? 'guest' : null;
 }
 
 /** ساحة Wi‑Fi تتبع ترتيب اللعب الفردي: الخصم في الأعلى، الأمر والنتيجة في الوسط، وكرت اللاعب في الأسفل. */
@@ -43,8 +68,9 @@ export default function LanBattleScreen() {
   const gameOver = !!result && isLanGameOver(result, match.totalRounds);
   const iWonRound = result?.winner === (isHost ? 'host' : 'guest');
   const resultExplanation = result ? getRoundExplanation(result) : null;
-  const myCardWon = match.phase === 'result' && iWonRound;
-  const opponentCardWon = match.phase === 'result' && !!result && result.winner !== 'draw' && !iWonRound;
+  const audioWinner = getDynamicAudioWinner(match);
+  const myCardAudio = audioWinner === (isHost ? 'host' : 'guest');
+  const opponentCardAudio = audioWinner === (isHost ? 'guest' : 'host');
 
   useEffect(() => {
     if (match.phase === 'idle') router.replace('/screens/game-mode' as any);
@@ -107,7 +133,7 @@ export default function LanBattleScreen() {
     <View style={[styles.arena, { flexDirection: isLandscape ? 'row' : 'column-reverse', paddingHorizontal: arenaPadding, gap: arenaGap }]}>
       <View style={[styles.cardPanel, !isLandscape && styles.cardPanelPortrait]}>
         <Text style={styles.myName}>{myName || 'أنت'}</Text>
-        {myCard ? <LuxuryCharacterCardAnimated card={myCard} style={{ width: cardWidth, height: cardHeight }} isOpenedView={iRevealed || match.phase === 'result'} playAudio={myCardWon} winnerState={result?.winner === (isHost ? 'host' : 'guest') ? 'winner' : null} /> : <View style={[styles.hiddenCard, { width: cardWidth, height: cardHeight }]}><Text style={styles.hiddenMark}>?</Text></View>}
+        {myCard ? <LuxuryCharacterCardAnimated card={myCard} style={{ width: cardWidth, height: cardHeight }} isOpenedView={iRevealed || match.phase === 'result'} playAudio={myCardAudio} winnerState={result?.winner === (isHost ? 'host' : 'guest') ? 'winner' : null} /> : <View style={[styles.hiddenCard, { width: cardWidth, height: cardHeight }]}><Text style={styles.hiddenMark}>?</Text></View>}
       </View>
 
       <View style={[styles.centerPanel, { width: isLandscape ? centerWidth : undefined, minHeight: isLandscape ? undefined : 94, gap: Math.max(6, arenaGap) }]}>
@@ -132,7 +158,7 @@ export default function LanBattleScreen() {
 
       <View style={[styles.cardPanel, !isLandscape && styles.cardPanelPortrait]}>
         <Text style={styles.opponentName}>{opponentName || 'الخصم'}</Text>
-        {opponentCard ? <LuxuryCharacterCardAnimated card={opponentCard} style={{ width: cardWidth, height: cardHeight }} isOpenedView={opponentRevealed || match.phase === 'result'} playAudio={opponentCardWon} winnerState={result?.winner === (isHost ? 'guest' : 'host') ? 'winner' : null} /> : <View style={[styles.hiddenCard, { width: cardWidth, height: cardHeight }]}><Text style={styles.hiddenMark}>?</Text></View>}
+        {opponentCard ? <LuxuryCharacterCardAnimated card={opponentCard} style={{ width: cardWidth, height: cardHeight }} isOpenedView={opponentRevealed || match.phase === 'result'} playAudio={opponentCardAudio} winnerState={result?.winner === (isHost ? 'guest' : 'host') ? 'winner' : null} /> : <View style={[styles.hiddenCard, { width: cardWidth, height: cardHeight }]}><Text style={styles.hiddenMark}>?</Text></View>}
       </View>
     </View>
     <Modal visible={isAbilitiesOpen} transparent animationType="fade" onRequestClose={() => setIsAbilitiesOpen(false)}>
