@@ -168,7 +168,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, totalRounds: action.payload };
 
     case 'NEXT_ROUND':
-      return { ...state, currentRound: Math.min(state.currentRound + 1, state.totalRounds) };
+      // لا نتجاوز فهرس آخر كرت؛ نهاية المباراة تُعالَج في شاشة المعركة من نتيجة الجولة الأخيرة.
+      return { ...state, currentRound: Math.min(state.currentRound + 1, Math.max(0, state.totalRounds - 1)) };
 
     case 'START_BATTLE': {
       const assignedAbilities = action.payload?.playerAbilities;

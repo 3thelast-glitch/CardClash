@@ -114,14 +114,15 @@ export default function CardSelectionScreen() {
   const router = useRouter();
   const { width, height, size, isLandscape } = useLandscapeLayout();
 
-  // Dynamic scaling parameters for the abilities modal in card selection:
-  const selModalH = height * 0.95 - 100;
-  const selCardH = Math.max(140, Math.min(240, selModalH));
-  const selCardW = Math.round(selCardH * (160 / 240));
-
   const modalPadding = height < 400 ? 10 : 20;
   const modalGap = height < 400 ? 8 : 12;
   const modalHeaderMargin = height < 400 ? 8 : 16;
+  // شبكة صريحة بدلاً من سكة أفقية مخفية: يظهر الكرت الثالث دائماً في الصف نفسه أو التالي.
+  const abilityGridColumns = width < 520 ? 2 : 3;
+  const abilityContentWidth = Math.max(248, Math.min(width * 0.9, 700) - modalPadding * 2);
+  const abilityMaxCardWidth = Math.floor((abilityContentWidth - modalGap * (abilityGridColumns - 1)) / abilityGridColumns);
+  const selCardH = Math.min(240, Math.max(168, Math.round(abilityMaxCardWidth * 1.5)));
+  const selCardW = Math.round(selCardH * (160 / 240));
 
   const game = useGame();
   const { state, rarityWeights } = game;
@@ -507,9 +508,8 @@ export default function CardSelectionScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              decelerationRate="fast"
+              style={{ maxHeight: Math.max(220, height * 0.62) }}
+              showsVerticalScrollIndicator={assignedAbilities.length > abilityGridColumns}
               contentContainerStyle={[
                 styles.abilitiesModalRail,
                 { gap: modalGap, paddingHorizontal: Math.max(4, modalPadding / 2), paddingVertical: Math.max(6, modalPadding / 2) },
@@ -621,5 +621,5 @@ const styles = StyleSheet.create({
   abilitiesModalContent: { width: '90%', maxWidth: 700, backgroundColor: 'rgba(5,10,22,0.98)', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: 'rgba(168,85,247,0.38)', shadowColor: '#7c3aed', shadowOpacity: 0.3, shadowRadius: 20, shadowOffset: { width: 0, height: 0 }, elevation: 12 },
   abilitiesModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(168,85,247,0.2)', gap: 12 },
   abilitiesModalTitle: { flex: 1, fontSize: 16, fontWeight: '800', color: '#f8fafc', writingDirection: 'rtl', textAlign: 'right' },
-  abilitiesModalRail: { alignItems: 'center' },
+  abilitiesModalRail: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'center', width: '100%' },
 });

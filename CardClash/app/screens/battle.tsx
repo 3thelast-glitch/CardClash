@@ -548,17 +548,6 @@ export default function BattleScreen() {
     }
   }, [playRound, runBotAbility, hapticImpact]);
 
-  const handleNextRound = useCallback(() => {
-    hapticImpact(Haptics.ImpactFeedbackStyle.Light);
-    playNextRound();
-    if (isGameOver) {
-      router.push('/screens/battle-results' as any);
-    } else {
-      setPhase('selection');
-      nextRound();
-    }
-  }, [isGameOver, router, nextRound, hapticImpact, playNextRound]);
-
   const handleEndBattle = useCallback(() => {
     hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
     setPhase('waiting');
@@ -566,6 +555,18 @@ export default function BattleScreen() {
     setShowResult(true);
     resultOp.value = withTiming(1, { duration: 300 });
   }, [hapticImpact]);
+
+  const handleNextRound = useCallback(() => {
+    hapticImpact(Haptics.ImpactFeedbackStyle.Light);
+    const isFinalRound = state.currentRound >= Math.max(0, state.totalRounds - 1);
+    if (isGameOver || isFinalRound) {
+      handleEndBattle();
+    } else {
+      playNextRound();
+      setPhase('selection');
+      nextRound();
+    }
+  }, [isGameOver, state.currentRound, state.totalRounds, nextRound, hapticImpact, playNextRound, handleEndBattle]);
 
   const handleConfirmPrediction = useCallback(() => {
     activateAbility(predictionAbilityType, { predictions: predictionSelections }, abilityOwnerSide === 'player');
@@ -722,11 +723,16 @@ export default function BattleScreen() {
           : null;
       // لا نضيف أي مؤثر صوتي عند نتيجة الهجوم؛ صوت فيديو الكرت الأقوى يبدأ قبل الهجوم فقط.
 
-      if (isGameOver) {
+      const isFinalRound = lastRoundResult.round >= state.totalRounds;
+      if (isGameOver || isFinalRound) {
         if (lastRoundResult.winner === 'player') hapticNotification(Haptics.NotificationFeedbackType.Success);
         else if (lastRoundResult.winner === 'bot') hapticNotification(Haptics.NotificationFeedbackType.Error);
         else hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
-        isTransitioning.current = false;
+        if (nextRoundTimeout.current) clearTimeout(nextRoundTimeout.current);
+        nextRoundTimeout.current = setTimeout(() => {
+          handleEndBattle();
+          isTransitioning.current = false;
+        }, BATTLE_TIMINGS.autoNextRound) as unknown as NodeJS.Timeout;
       } else {
         hapticImpact(Haptics.ImpactFeedbackStyle.Light);
         if (nextRoundTimeout.current) clearTimeout(nextRoundTimeout.current);
@@ -737,7 +743,7 @@ export default function BattleScreen() {
         }, BATTLE_TIMINGS.autoNextRound) as unknown as NodeJS.Timeout;
       }
     }
-  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers, isLocalTwoPlayer, state.botAbilities]);
+  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers, isLocalTwoPlayer, state.botAbilities, state.totalRounds, handleEndBattle]);
 
   const spawnDmg = useCallback((side: 'player' | 'bot', value: number, variant: DamageNumberVariant) => {
     const id = `${Date.now()}-${Math.random()}`;
@@ -796,6 +802,7 @@ export default function BattleScreen() {
 
   const isExpectedLoss = expectedRoundResult?.winner === 'bot';
   const canRageNow = isExpectedLoss && !!currentPlayerCard && shouldTriggerRage(currentPlayerCard, rageState.current);
+  const isFinalRoundResult = !!lastRoundResult && lastRoundResult.round >= state.totalRounds;
 
   const CHOICE_ABILITIES = ['Propaganda', 'AddElement', 'SwapClass', 'Dilemma', 'Recall', 'Revive', 'Arise', 'Disaster', 'Merge', 'Sniping', 'Subhan'];
 
@@ -1013,13 +1020,13 @@ export default function BattleScreen() {
                 </View>
               )}
 
-              {phase === 'result' && !isGameOver && (
+              {phase === 'result' && !isGameOver && !isFinalRoundResult && (
                 <TouchableOpacity style={[S.nextBtn, { width: actionButtonWidth, height: actionButtonHeight }]} onPress={handleNextRound} activeOpacity={0.85}>
                   <Text style={S.nextBtnText}>التالي ▶</Text>
                 </TouchableOpacity>
               )}
 
-              {phase === 'result' && isGameOver && (
+              {phase === 'result' && (isGameOver || isFinalRoundResult) && (
                 <TouchableOpacity style={[S.endBattleBtn, { width: actionButtonWidth, height: actionButtonHeight }]} onPress={handleEndBattle} activeOpacity={0.85}>
                   <Text style={S.endBattleBtnText}>إنهاء المعركة 🏁</Text>
                 </TouchableOpacity>
