@@ -33,6 +33,7 @@ const CLASS_LABELS: Record<CardClass, string> = {
 
 const FACTION_MEDALLIONS: Partial<Record<Race, ImageSourcePropType>> = {
     human: require('../../assets/icons/factions/human_clean.png'),
+    orc: require('../../assets/icons/factions/orc.png'),
 };
 
 const BASE_W = 220;
