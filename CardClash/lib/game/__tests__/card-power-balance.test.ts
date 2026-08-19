@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_CARDS } from '../cards-data-exports';
-import { MAX_CARD_STAT, RARITY_POWER_RANGES, isCardPowerWithinRarityRange, normalizeCardPower } from '../card-power-balance';
+import { MAX_CARD_STAT, RARITY_POWER_RANGES, getCardStatCap, isCardPowerWithinRarityRange, normalizeCardPower } from '../card-power-balance';
 import type { Card } from '../types';
 
 const makeCard = (overrides: Partial<Card> = {}): Card => ({
@@ -34,5 +34,14 @@ describe('card power balance by rarity', () => {
     expect(normalized.attack + normalized.defense).toBeGreaterThanOrEqual(rule.minTotal);
     expect(normalized.attack).toBeLessThanOrEqual(rule.maxStat);
     expect(normalized.defense).toBeLessThanOrEqual(rule.maxStat);
+  });
+
+  it('exempts special cards from the standard 20-stat cap while retaining their values', () => {
+    const special = makeCard({ rarity: 'special', stars: 5, attack: 27, defense: 24 });
+    const normalized = normalizeCardPower(special);
+    expect(getCardStatCap(special)).toBe(Number.POSITIVE_INFINITY);
+    expect(normalized.attack).toBe(27);
+    expect(normalized.defense).toBe(24);
+    expect(isCardPowerWithinRarityRange(normalized)).toBe(true);
   });
 });

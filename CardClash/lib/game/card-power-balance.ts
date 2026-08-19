@@ -1,7 +1,7 @@
 import { getRarityFromStars } from './card-rarity';
 import type { Card, CardRarity } from './types';
 
-/** سقف إحصاءات الكرت الأساسية، بما في ذلك الإحصاء بعد تفعيل وضع الغضب. */
+/** سقف إحصاءات الكرت الأساسية ووضع الغضب للندرات غير الخاصة. */
 export const MAX_CARD_STAT = 20;
 
 /**
@@ -13,11 +13,16 @@ export const RARITY_POWER_RANGES: Record<CardRarity, { minTotal: number; maxTota
   rare: { minTotal: 14, maxTotal: 24, maxStat: 13 },
   epic: { minTotal: 22, maxTotal: 31, maxStat: 16 },
   legendary: { minTotal: 31, maxTotal: 39, maxStat: MAX_CARD_STAT },
-  special: { minTotal: 36, maxTotal: 40, maxStat: MAX_CARD_STAT },
+  special: { minTotal: 36, maxTotal: Number.POSITIVE_INFINITY, maxStat: Number.POSITIVE_INFINITY },
 };
 
 export function getCardBalanceRarity(card: Pick<Card, 'rarity' | 'stars'>): CardRarity {
   return card.rarity === 'special' ? 'special' : (card.rarity ?? getRarityFromStars(card.stars));
+}
+
+/** الكروت الخاصة مستثناة من سقف 20، وتحتفظ بقيمها المميزة. */
+export function getCardStatCap(card: Pick<Card, 'rarity' | 'stars'>): number {
+  return getCardBalanceRarity(card) === 'special' ? Number.POSITIVE_INFINITY : MAX_CARD_STAT;
 }
 
 function toStat(value: number | undefined, maximum: number): number {
@@ -59,10 +64,11 @@ export function normalizeCardPower<T extends Card>(card: T): T {
 }
 
 export function isCardPowerWithinRarityRange(card: Card): boolean {
-  const rule = RARITY_POWER_RANGES[getCardBalanceRarity(card)];
+  const rarity = getCardBalanceRarity(card);
+  const rule = RARITY_POWER_RANGES[rarity];
   const total = card.attack + card.defense;
   return card.attack >= 0 && card.defense >= 0
-    && card.attack <= MAX_CARD_STAT && card.defense <= MAX_CARD_STAT
+    && (rarity === 'special' || (card.attack <= MAX_CARD_STAT && card.defense <= MAX_CARD_STAT))
     && card.attack <= rule.maxStat && card.defense <= rule.maxStat
     && total >= rule.minTotal && total <= rule.maxTotal;
 }
