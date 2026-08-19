@@ -24,6 +24,7 @@ import { saveImage, loadImage, deleteImage } from '@/lib/game/image-storage';
 import { getRageOverrides, saveRageOverride, RageOverridesMap } from '@/lib/game/rage-store';
 import { loadCustomCards, deleteCustomCard } from '@/lib/game/custom-cards-store';
 import { exportBackup, importBackup } from '@/lib/game/backup-restore';
+import { loadProjectCardCollection } from '@/lib/game/project-card-collection';
 
 export const CARD_EDITS_KEY = 'card_edits_v1';
 export const DELETED_CARDS_KEY = 'deleted_cards_v1';
@@ -583,7 +584,7 @@ export default function CardsGalleryScreen() {
     setBackupLoading(true);
     try {
       await exportBackup();
-      showToast('✅ تم تصدير النسخة الاحتياطية بنجاح', 'success');
+      showToast('✅ تم تصدير بيانات Card Collection. استبدل بها data/card-collection.json ثم ارفعها', 'success');
     } catch (e) {
       showToast('فشل التصدير: ' + String(e), 'error');
     } finally {
@@ -594,7 +595,7 @@ export default function CardsGalleryScreen() {
   const handleImport = () => {
     importBackup(
       () => {
-        showToast('✅ تم الاستيراد! أعد تحميل الصفحة لتفعيل التغييرات', 'success');
+        showToast('✅ تم استيراد بيانات Card Collection! أعد تحميل الصفحة لتفعيل التغييرات', 'success');
         setTimeout(() => { if (Platform.OS === 'web') window.location.reload(); }, 2000);
       },
       (msg) => showToast(msg, 'error')
@@ -602,24 +603,40 @@ export default function CardsGalleryScreen() {
   };
 
   const load = async () => {
+    const projectCollection = loadProjectCardCollection();
     const customCards = await loadCustomCards();
     const UNIQUE = buildUniqueCards(ALL_CARDS, customCards);
     const customIds = new Set(customCards.map(c => c.id));
-    const deletedIds = await loadDeletedCardIds();
+    const localDeletedIds = await loadDeletedCardIds();
+    const deletedIds = new Set([...projectCollection.deletedCards, ...localDeletedIds]);
     setDeletedBaseIds(deletedIds);
     const rawEdits = await AsyncStorage.getItem(CARD_EDITS_KEY);
-    const rageOverrides = await getRageOverrides();
+    const localRageOverrides = await getRageOverrides();
+    const projectRageOverrides = Object.fromEntries(
+      Object.entries(projectCollection.rageOverrides).map(([id, value]) => {
+        const rage = { ...(value as Record<string, any>) };
+        if (typeof rage.rageImageUrl === 'string' && rage.rageImageUrl.startsWith('__ref:')) {
+          rage.rageImageUrl = projectCollection.images[rage.rageImageUrl.replace('__ref:', '')];
+        }
+        return [id, rage];
+      }),
+    ) as RageOverridesMap;
+    const rageOverrides = { ...projectRageOverrides, ...localRageOverrides };
     setRageMap(rageOverrides);
     const VISIBLE = UNIQUE.filter(c => !deletedIds.has(c.id));
-    if (!rawEdits) { setCards(VISIBLE.map(c => ({ ...c, _isCustom: customIds.has(c.id) }))); return; }
+    const localEdits: Record<string, any> = rawEdits ? JSON.parse(rawEdits) : {};
+    const mergedEdits = { ...projectCollection.cardEdits, ...localEdits };
+    if (Object.keys(mergedEdits).length === 0) { setCards(VISIBLE.map(c => ({ ...c, _isCustom: customIds.has(c.id) }))); return; }
     try {
-      const map: Record<string, any> = JSON.parse(rawEdits);
+      const map: Record<string, any> = mergedEdits;
       const entries = await Promise.all(
         Object.entries(map).map(async ([id, data]) => {
           const safeCopy = toStoreSafe({ ...data });
           if (data.hasCustomImage) {
             const img = await loadImage(`card_img_${id}`);
             if (img) return [id, { ...safeCopy, customImage: img, isVideo: data.isVideo ?? isVideoUri(img) }] as [string, any];
+            const projectImage = projectCollection.images[`card_img_${id}`];
+            if (projectImage) return [id, { ...safeCopy, customImage: projectImage, isVideo: data.isVideo ?? isVideoUri(projectImage) }] as [string, any];
           }
           return [id, safeCopy] as [string, any];
         })
@@ -744,19 +761,19 @@ export default function CardsGalleryScreen() {
         <Text className="text-white text-sm font-bold">رجوع</Text>
       </TouchableOpacity>
 
-      {/* ─── أزرار Backup ─── */}
+      {/* ─── أزرار ملف بيانات Card Collection ─── */}
       <View style={styles.backupRow}>
         <TouchableOpacity onPress={handleExport} disabled={backupLoading}
           style={[styles.backupBtn, { borderColor: '#34d39988', backgroundColor: 'rgba(52,211,153,0.10)' }]}
           activeOpacity={0.8}>
           <Download size={13} color="#34d399" />
-          <RNText style={[styles.backupBtnTxt, { color: '#34d399' }]}>تصدير</RNText>
+          <RNText style={[styles.backupBtnTxt, { color: '#34d399' }]}>تصدير JSON</RNText>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleImport} disabled={backupLoading}
           style={[styles.backupBtn, { borderColor: '#60a5fa88', backgroundColor: 'rgba(96,165,250,0.10)' }]}
           activeOpacity={0.8}>
           <Upload size={13} color="#60a5fa" />
-          <RNText style={[styles.backupBtnTxt, { color: '#60a5fa' }]}>استيراد</RNText>
+          <RNText style={[styles.backupBtnTxt, { color: '#60a5fa' }]}>استيراد JSON</RNText>
         </TouchableOpacity>
       </View>
 

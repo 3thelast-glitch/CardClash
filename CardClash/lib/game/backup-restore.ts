@@ -9,37 +9,48 @@ import { saveImage, loadImage } from './image-storage';
 import { CARD_EDITS_KEY, DELETED_CARDS_KEY } from '@/app/screens/cards-gallery';
 import { CUSTOM_CARDS_KEY } from './custom-cards-store';
 import { getRageOverrides, saveRageOverride } from './rage-store';
+import { loadProjectCardCollection } from './project-card-collection';
+import {
+  CARD_COLLECTION_EXPORT_VERSION,
+  parseCardCollectionExport,
+  type CardCollectionExport,
+} from './card-collection-export-format';
 
-export const BACKUP_VERSION = 2;
+export const BACKUP_VERSION = CARD_COLLECTION_EXPORT_VERSION;
 
-export interface BackupData {
-  version: number;
-  exportedAt: string;
-  cardEdits: Record<string, any>;
-  deletedCards: string[];
-  customCards: any[];
-  rageOverrides: Record<string, any>;
-  images: Record<string, string>; // key -> base64
-}
+export type BackupData = CardCollectionExport;
 
 // ── Export ──────────────────────────────────────────────────────────
 export async function exportBackup(): Promise<void> {
-  if (Platform.OS !== 'web') return;
+  if (Platform.OS !== 'web') {
+    throw new Error('تصدير ملف المشروع متاح من نسخة الويب؛ افتح Card Collection في المتصفح أولاً');
+  }
 
-  // 1. اقرأ AsyncStorage
+  const projectCollection = loadProjectCardCollection();
+
+  // 1. اقرأ AsyncStorage وادمجه مع الملف المتتبع في Git
   const [rawEdits, rawDeleted, rawCustom] = await Promise.all([
     AsyncStorage.getItem(CARD_EDITS_KEY),
     AsyncStorage.getItem(DELETED_CARDS_KEY),
     AsyncStorage.getItem(CUSTOM_CARDS_KEY),
   ]);
 
-  const cardEdits: Record<string, any> = rawEdits ? JSON.parse(rawEdits) : {};
-  const deletedCards: string[] = rawDeleted ? JSON.parse(rawDeleted) : [];
-  const customCards: any[] = rawCustom ? JSON.parse(rawCustom) : [];
-  const rageOverrides = await getRageOverrides();
+  const localCardEdits: Record<string, any> = rawEdits ? JSON.parse(rawEdits) : {};
+  const localDeletedCards: string[] = rawDeleted ? JSON.parse(rawDeleted) : [];
+  const localCustomCards: any[] = rawCustom ? JSON.parse(rawCustom) : [];
+  const localRageOverrides = await getRageOverrides();
+  const cardEdits = { ...projectCollection.cardEdits, ...localCardEdits };
+  const deletedCards = [...new Set([...projectCollection.deletedCards, ...localDeletedCards])];
+  const customCards = Object.values(
+    [...projectCollection.customCards, ...localCustomCards].reduce<Record<string, any>>((acc, card) => {
+      if (typeof card?.id === 'string') acc[card.id] = card;
+      return acc;
+    }, {})
+  );
+  const rageOverrides = { ...projectCollection.rageOverrides, ...localRageOverrides };
 
   // 2. اقرأ كل الصور من IndexedDB
-  const images: Record<string, string> = {};
+  const images: Record<string, string> = { ...projectCollection.images };
   const imageKeys = [
     ...Object.entries(cardEdits)
       .filter(([, d]) => d.hasCustomImage)
@@ -104,9 +115,9 @@ export async function importBackup(
 
     try {
       const text = await file.text();
-      const backup: BackupData = JSON.parse(text);
+      const backup = parseCardCollectionExport(JSON.parse(text));
 
-      if (!backup.version || !backup.cardEdits) {
+      if (!backup) {
         onError('الملف غير صالح أو تالف');
         return;
       }
