@@ -37,6 +37,7 @@ const FACTION_MEDALLIONS: Partial<Record<Race, ImageSourcePropType>> = {
     orc: require('../../assets/icons/factions/orc.png'),
     demon: require('../../assets/icons/factions/demon.png'),
     undead: require('../../assets/icons/factions/undead.png'),
+    robot: require('../../assets/icons/factions/robot.png'),
 };
 
 const BASE_W = 220;
