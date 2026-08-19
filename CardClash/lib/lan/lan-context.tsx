@@ -213,6 +213,16 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
       hostScore: snapshot.hostScore,
       guestScore: snapshot.guestScore,
       advantage,
+      comparison: {
+        hostDamage: roundResult.playerDamage,
+        guestDamage: roundResult.botDamage,
+        hostBaseDamage: roundResult.playerBaseDamage,
+        guestBaseDamage: roundResult.botBaseDamage,
+        hostElementAdvantage: roundResult.playerElementAdvantage,
+        guestElementAdvantage: roundResult.botElementAdvantage,
+        hostHealthDelta: roundResult.playerHealthDelta,
+        guestHealthDelta: roundResult.botHealthDelta,
+      },
     };
     const resolved: LanMatchState = {
       ...next,
@@ -425,7 +435,12 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
     const current = matchRef.current;
     if (current.phase !== 'arranging' || deck.length !== current.totalRounds || !roleRef.current) return;
     if (roleRef.current === 'host') {
-      updateMatch(previous => ({ ...previous, hostDeck: deck, hostReady: true }));
+      updateMatch(previous => {
+        const next = { ...previous, hostDeck: deck, hostReady: true };
+        // قد يكون الضيف قد رتّب تشكيلته أولاً؛ افحص الجاهزية أيضاً عند تأكيد المضيف.
+        queueMicrotask(() => startWhenReady(next));
+        return next;
+      });
       sendDirectEvent('LAN_HOST_ARRANGED', { deck });
     } else {
       updateMatch(previous => ({ ...previous, guestDeck: deck, guestReady: true }));

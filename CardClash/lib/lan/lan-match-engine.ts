@@ -1,4 +1,4 @@
-import type { Card } from '@/lib/game/types';
+import type { Card, RoundResult } from '../game/types';
 
 export type LanPlayerRole = 'host' | 'guest';
 export type LanRoundWinner = LanPlayerRole | 'draw';
@@ -11,6 +11,16 @@ export type LanRoundResult = {
   hostScore: number;
   guestScore: number;
   advantage: 'element' | 'attack' | 'draw';
+  comparison?: {
+    hostDamage: number;
+    guestDamage: number;
+    hostBaseDamage: number;
+    guestBaseDamage: number;
+    hostElementAdvantage: RoundResult['playerElementAdvantage'];
+    guestElementAdvantage: RoundResult['botElementAdvantage'];
+    hostHealthDelta: number;
+    guestHealthDelta: number;
+  };
 };
 
 const ELEMENT_BEATS: Record<string, string> = {
