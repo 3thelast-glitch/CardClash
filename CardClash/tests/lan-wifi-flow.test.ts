@@ -8,9 +8,14 @@ describe('Wi-Fi local multiplayer flow', () => {
   it('takes both connected phones from discovery to shared match settings', () => {
     const lobby = source('app/screens/local-lan.tsx');
     const config = source('app/screens/rounds-config.tsx');
+    const context = source('lib/lan/lan-context.tsx');
     expect(lobby).toContain("router.replace('/screens/rounds-config'");
-    expect(config).toContain('lan.configureMatch(rounds, withAbility)');
+    expect(config).toContain('lan.configureMatch(rounds, withAbility, rarityWeights)');
     expect(config).toContain("gameState.matchMode === 'lan'");
+    expect(config).toContain('setRarityWeights(lan.match.rarityWeights as RarityWeights)');
+    expect(context).toContain('rarityWeights: LanRarityWeights');
+    expect(context).toContain("LAN_MATCH_SETTINGS");
+    expect(context).toContain('rarityWeights: sharedRarityWeights');
   });
 
   it('offers browser users a room-code fallback instead of native mDNS', () => {

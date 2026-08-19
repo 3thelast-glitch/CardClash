@@ -169,6 +169,7 @@ export default function CardSelectionScreen() {
   const isOnlineMultiplayer = !!mp?.state?.roomId;
   const isLanMultiplayer = state.matchMode === 'lan' && lan.match.role !== null;
   const isMultiplayer = isOnlineMultiplayer || isLanMultiplayer;
+  const isCompactMobile = !isLandscape && width < 520;
   const opponentArrangementReady = isLanMultiplayer
     ? (lan.match.role === 'host' ? lan.match.guestReady : lan.match.hostReady)
     : (mp?.state?.opponentArrangementReady ?? false);
@@ -318,12 +319,12 @@ export default function CardSelectionScreen() {
       <View style={styles.bgWrapper}><LuxuryBackground /></View>
 
       <View style={styles.container}>
-        <View style={styles.topBar}>
+        <View style={[styles.topBar, isCompactMobile && styles.topBarCompact]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.push('/screens/leaderboard' as any)} activeOpacity={0.7}>
             <Text style={styles.backBtnText}>← رجوع</Text>
           </TouchableOpacity>
-          <View style={styles.titleGroup}>
-            <Text style={styles.title}>{isLocalTwoPlayer ? `رتّب بطاقات ${localStage === 'guest' ? 'الضيف' : 'المضيف'}` : 'رتّب بطاقاتك'}</Text>
+          <View style={[styles.titleGroup, isCompactMobile && styles.titleGroupCompact]}>
+            <Text style={[styles.title, isCompactMobile && styles.titleCompact]}>{isLocalTwoPlayer ? `رتّب بطاقات ${localStage === 'guest' ? 'الضيف' : 'المضيف'}` : 'رتّب بطاقاتك'}</Text>
             <Text style={styles.subtitle}>{cardRounds.filter(c => c.round).length} / {totalRounds} مُعيّنة</Text>
           </View>
           <View style={styles.rightActionGroup}>
@@ -332,7 +333,7 @@ export default function CardSelectionScreen() {
                 <Text style={styles.mpBadgeText}>{localStage === 'host' ? '👑 دور المضيف' : '🤝 دور الضيف'}</Text>
               </View>
             )}
-            {isMultiplayer && (
+            {isMultiplayer && !isCompactMobile && (
               <View style={[styles.mpBadge, opponentArrangementReady && styles.mpBadgeReady]}>
                 {opponentArrangementReady
                   ? <Text style={styles.mpBadgeText}>✅ الخصم جاهز</Text>
@@ -349,9 +350,9 @@ export default function CardSelectionScreen() {
                 <Text style={styles.abilitiesBadgeText}>{assignedAbilities.length}/3</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.shuffleBtn} onPress={handleShuffleCards} activeOpacity={0.7} disabled={waitingForOpponent}>
+            {!isCompactMobile && <TouchableOpacity style={styles.shuffleBtn} onPress={handleShuffleCards} activeOpacity={0.7} disabled={waitingForOpponent}>
               <Text style={styles.shuffleBtnText}>🔀</Text>
-            </TouchableOpacity>
+            </TouchableOpacity>}
           </View>
         </View>
 
@@ -393,6 +394,16 @@ export default function CardSelectionScreen() {
         />
 
         <View style={styles.bottomBar}>
+          {isCompactMobile && (
+            <TouchableOpacity
+              style={[styles.mobileShuffleBtn, waitingForOpponent && styles.mobileShuffleBtnDisabled]}
+              onPress={handleShuffleCards}
+              activeOpacity={0.75}
+              disabled={waitingForOpponent}
+            >
+              <Text style={styles.mobileShuffleBtnText}>🔀 ترتيب الكروت عشوائياً</Text>
+            </TouchableOpacity>
+          )}
           {isOnlineMultiplayer && mp?.state?.lastError && (
             <View style={styles.multiplayerErrorBanner}>
               <Text style={styles.multiplayerErrorText}>{mp.state.lastError}</Text>
@@ -556,10 +567,13 @@ const styles = StyleSheet.create({
   bgWrapper: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 },
   container: { flex: 1, zIndex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, backgroundColor: 'rgba(5,5,10,0.85)', borderBottomWidth: 1, borderBottomColor: 'rgba(212,175,55,0.2)' },
+  topBarCompact: { paddingHorizontal: SPACE.sm, gap: SPACE.xs },
   backBtn: { paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   backBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   titleGroup: { alignItems: 'center' },
+  titleGroupCompact: { flex: 1, minWidth: 0 },
   title: { color: '#d4af37', fontSize: 18, fontWeight: '800' },
+  titleCompact: { fontSize: 16 },
   subtitle: { color: '#94a3b8', fontSize: 11, marginTop: 2 },
   rightActionGroup: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   mpBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: SPACE.sm, paddingVertical: SPACE.xs, backgroundColor: 'rgba(148,163,184,0.1)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(148,163,184,0.25)' },
@@ -596,6 +610,9 @@ const styles = StyleSheet.create({
   focusAbilityPreviewTitle: { color: '#fde68a', fontSize: 10, fontWeight: '900', writingDirection: 'rtl' },
   focusAbilityPreviewText: { color: '#e2e8f0', fontSize: 10, lineHeight: 16, marginTop: 2, writingDirection: 'rtl' },
   bottomBar: { padding: SPACE.md, backgroundColor: 'rgba(5,5,10,0.9)', borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.2)', alignItems: 'center', gap: SPACE.sm },
+  mobileShuffleBtn: { alignSelf: 'stretch', minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(167,139,250,0.72)', backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: SPACE.md },
+  mobileShuffleBtnDisabled: { opacity: 0.42 },
+  mobileShuffleBtnText: { color: '#ddd6fe', fontSize: 14, fontWeight: '900', writingDirection: 'rtl' },
   waitingBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   waitingBannerText: { color: '#d4af37', fontSize: 12, fontWeight: '700' },
   multiplayerErrorBanner: { alignSelf: 'stretch', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(248,113,113,0.5)', backgroundColor: 'rgba(127,29,29,0.28)', paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm },

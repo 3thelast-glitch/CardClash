@@ -7,6 +7,19 @@ import type { LanRoom, LanWireMessage } from './lan-protocol';
 
 type LanState = 'idle' | 'hosting' | 'discovering' | 'connecting' | 'connected' | 'failed';
 type LanMatchPhase = 'idle' | 'configuring' | 'arranging' | 'playing' | 'result' | 'finished';
+type LanRarityWeights = Record<'common' | 'rare' | 'epic' | 'legendary' | 'special', number>;
+
+const DEFAULT_RARITY_WEIGHTS: LanRarityWeights = { common: 45, rare: 28, epic: 17, legendary: 8, special: 2 };
+
+function asRarityWeights(value: unknown, fallback: LanRarityWeights = DEFAULT_RARITY_WEIGHTS): LanRarityWeights {
+  if (!value || typeof value !== 'object') return fallback;
+  const source = value as Record<string, unknown>;
+  const read = (key: keyof LanRarityWeights) => {
+    const weight = typeof source[key] === 'number' ? Math.round(source[key] as number) : fallback[key];
+    return Math.max(0, Math.min(100, weight));
+  };
+  return { common: read('common'), rare: read('rare'), epic: read('epic'), legendary: read('legendary'), special: read('special') };
+}
 
 export type LanMatchState = {
   role: LanPlayerRole | null;
@@ -15,6 +28,7 @@ export type LanMatchState = {
   guestName: string;
   totalRounds: number;
   abilitiesEnabled: boolean;
+  rarityWeights: LanRarityWeights;
   hostDeck: Card[];
   guestDeck: Card[];
   hostReady: boolean;
@@ -35,6 +49,7 @@ const emptyMatch = (): LanMatchState => ({
   guestName: '',
   totalRounds: 0,
   abilitiesEnabled: true,
+  rarityWeights: { ...DEFAULT_RARITY_WEIGHTS },
   hostDeck: [],
   guestDeck: [],
   hostReady: false,
@@ -60,7 +75,7 @@ type LanContextValue = {
   hostRoom: (name: string) => Promise<void>;
   refreshRooms: () => void;
   joinRoom: (room: LanRoom, name: string) => Promise<void>;
-  configureMatch: (rounds: number, abilitiesEnabled: boolean) => void;
+  configureMatch: (rounds: number, abilitiesEnabled: boolean, rarityWeights: LanRarityWeights) => void;
   submitArrangement: (deck: Card[]) => void;
   revealCurrentCard: () => void;
   advanceRound: () => void;
@@ -124,6 +139,7 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
     sendDirectEvent('LAN_MATCH_START', {
       totalRounds: started.totalRounds,
       abilitiesEnabled: started.abilitiesEnabled,
+      rarityWeights: started.rarityWeights,
       hostName: started.hostName,
       guestName: started.guestName,
       hostDeck: started.hostDeck,
@@ -160,6 +176,7 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
         phase: 'arranging',
         totalRounds,
         abilitiesEnabled: data.abilitiesEnabled !== false,
+        rarityWeights: asRarityWeights(data.rarityWeights, previous.rarityWeights),
         hostName: typeof data.hostName === 'string' ? data.hostName : previous.hostName,
         guestName: nameRef.current,
       }));
@@ -193,6 +210,7 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
         phase: 'playing',
         totalRounds,
         abilitiesEnabled: data.abilitiesEnabled !== false,
+        rarityWeights: asRarityWeights(data.rarityWeights, previous.rarityWeights),
         hostName: typeof data.hostName === 'string' ? data.hostName : previous.hostName,
         guestName: typeof data.guestName === 'string' ? data.guestName : previous.guestName,
         hostDeck,
@@ -285,11 +303,12 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
     }
   }, [updateMatch]);
 
-  const configureMatch = useCallback((rounds: number, abilitiesEnabled: boolean) => {
+  const configureMatch = useCallback((rounds: number, abilitiesEnabled: boolean, rarityWeights: LanRarityWeights) => {
     if (roleRef.current !== 'host' || state !== 'connected') return;
     const totalRounds = Math.min(30, Math.max(1, Math.floor(rounds)));
-    updateMatch(previous => ({ ...previous, role: 'host', phase: 'arranging', totalRounds, abilitiesEnabled, hostName: nameRef.current, guestName: previous.guestName || peer?.name || 'الضيف' }));
-    sendDirectEvent('LAN_MATCH_SETTINGS', { totalRounds, abilitiesEnabled, hostName: nameRef.current });
+    const sharedRarityWeights = asRarityWeights(rarityWeights);
+    updateMatch(previous => ({ ...previous, role: 'host', phase: 'arranging', totalRounds, abilitiesEnabled, rarityWeights: sharedRarityWeights, hostName: nameRef.current, guestName: previous.guestName || peer?.name || 'الضيف' }));
+    sendDirectEvent('LAN_MATCH_SETTINGS', { totalRounds, abilitiesEnabled, rarityWeights: sharedRarityWeights, hostName: nameRef.current });
   }, [peer?.name, sendDirectEvent, state, updateMatch]);
 
   const submitArrangement = useCallback((deck: Card[]) => {

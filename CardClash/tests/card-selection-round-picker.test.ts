@@ -54,4 +54,11 @@ describe('card selection round picker', () => {
     expect(layout.focusPickerW).toBeGreaterThanOrEqual(158);
     expect(layout.roundPickerChipW).toBeGreaterThan(30);
   });
+
+  it('keeps the shuffle action visible in a dedicated mobile command row', () => {
+    expect(cardSelectionSource).toContain('const isCompactMobile = !isLandscape && width < 520;');
+    expect(cardSelectionSource).toContain('styles.mobileShuffleBtn');
+    expect(cardSelectionSource).toContain('🔀 ترتيب الكروت عشوائياً');
+    expect(cardSelectionSource).toContain('!isCompactMobile && <TouchableOpacity style={styles.shuffleBtn}');
+  });
 });

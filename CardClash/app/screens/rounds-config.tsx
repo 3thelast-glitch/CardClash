@@ -142,8 +142,9 @@ export default function RoundsConfigScreen() {
     if (!isLanGuest || lan.match.phase !== 'arranging' || !lan.match.totalRounds) return;
     setTotalRounds(lan.match.totalRounds);
     setAbilitiesEnabled(lan.match.abilitiesEnabled);
+    setRarityWeights(lan.match.rarityWeights as RarityWeights);
     router.replace('/screens/leaderboard' as any);
-  }, [isLanGuest, lan.match.abilitiesEnabled, lan.match.phase, lan.match.totalRounds, router, setAbilitiesEnabled, setTotalRounds]);
+  }, [isLanGuest, lan.match.abilitiesEnabled, lan.match.phase, lan.match.rarityWeights, lan.match.totalRounds, router, setAbilitiesEnabled, setRarityWeights, setTotalRounds]);
 
   const handleContinue = () => {
     setTotalRounds(rounds);
@@ -151,7 +152,7 @@ export default function RoundsConfigScreen() {
     if (isMultiplayer && isHost && mp?.sendMatchSettings) {
       mp.sendMatchSettings({ rounds, withAbilities: withAbility, rarityWeights });
     }
-    if (isLanHost) lan.configureMatch(rounds, withAbility);
+    if (isLanHost) lan.configureMatch(rounds, withAbility, rarityWeights);
     router.push('/screens/leaderboard' as any);
   };
 
