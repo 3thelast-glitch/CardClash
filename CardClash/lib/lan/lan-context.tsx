@@ -440,9 +440,14 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
     const deck = role === 'host' ? current.hostDeck : current.guestDeck;
     const card = deck[current.currentRound];
     if (!card || (role === 'host' ? current.hostRevealed : current.guestRevealed)) return;
-    updateMatch(previous => role === 'host' ? { ...previous, hostRevealed: true } : { ...previous, guestRevealed: true });
+    updateMatch(previous => {
+      const next = role === 'host' ? { ...previous, hostRevealed: true } : { ...previous, guestRevealed: true };
+      // المضيف قد يكون آخر من أكد كرتَه؛ لذلك يفحص اكتمال الكشف محلياً فوراً.
+      if (role === 'host') queueMicrotask(() => resolveIfReady(next));
+      return next;
+    });
     sendDirectEvent('LAN_REVEAL', { roundIndex: current.currentRound, card });
-  }, [sendDirectEvent, updateMatch]);
+  }, [resolveIfReady, sendDirectEvent, updateMatch]);
 
   const useAbility = useCallback((abilityType: AbilityType) => {
     const current = matchRef.current;

@@ -40,6 +40,7 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(context).toContain('hostAbilities');
     expect(context).toContain('guestAbilities');
     expect(context).toContain('useAbility');
+    expect(context).toContain('if (role === \'host\') queueMicrotask(() => resolveIfReady(next));');
     expect(context).toContain("LAN_NEXT_ROUND_READY");
     expect(context).toContain('hostNextReady');
     expect(context).toContain('guestNextReady');
@@ -47,6 +48,8 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(battle).toContain('revealCurrentCard()');
     expect(battle).toContain('قدرات');
     expect(battle).toContain('useAbility(ability.type)');
+    expect(battle).toContain("playAudio={iRevealed && match.phase === 'playing'}");
+    expect(battle).toContain('كيف حُسمت الجولة؟');
     expect(battle).toContain('confirmNextRound()');
     expect(battle).toContain('يجب أن يؤكد الطرفان للانتقال');
     expect(battle).toContain('finishMatch()');
