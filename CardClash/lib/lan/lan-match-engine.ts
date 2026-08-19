@@ -34,7 +34,8 @@ export function resolveLanRound(
 ): LanRoundResult {
   const resolved = determineRoundWinner(hostCard, guestCard);
   const winner: LanRoundWinner = resolved.winner === 'player' ? 'host' : resolved.winner === 'bot' ? 'guest' : 'draw';
-  const factionWon = resolved.playerFactionAdvantage === 'strong' || resolved.botFactionAdvantage === 'strong';
+  const factionWon = (resolved.winner === 'player' && resolved.playerFactionAdvantage === 'strong')
+    || (resolved.winner === 'bot' && resolved.botFactionAdvantage === 'strong');
 
   return {
     roundIndex,

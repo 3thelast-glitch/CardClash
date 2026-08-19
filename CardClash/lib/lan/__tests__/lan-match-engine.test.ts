@@ -27,4 +27,9 @@ describe('LAN match engine', () => {
     expect(result).toMatchObject({ winner: 'guest', hostScore: 0, guestScore: 3, advantage: 'attack' });
     expect(isLanGameOver(result, 5)).toBe(true);
   });
+
+  it('does not label the result as faction-decided when the advantaged card still loses on damage', () => {
+    const result = resolveLanRound(0, card('host', 1, 1, 'human'), card('guest', 99, 99, 'elf'), 3, 3);
+    expect(result).toMatchObject({ winner: 'guest', advantage: 'attack' });
+  });
 });
