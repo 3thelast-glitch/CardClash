@@ -67,4 +67,18 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(battle).toContain('يجب أن يؤكد الطرفان للانتقال');
     expect(battle).toContain('finishMatch()');
   });
+
+  it('lets the host request a rematch, lets the guest accept it, then sends both players back to card arrangement', () => {
+    const context = source('lib/lan/lan-context.tsx');
+    const battle = source('app/screens/lan-battle.tsx');
+    expect(context).toContain('rematchRequested: boolean');
+    expect(context).toContain('requestRematch');
+    expect(context).toContain('acceptRematch');
+    expect(context).toContain("LAN_REMATCH_REQUEST");
+    expect(context).toContain("LAN_REMATCH_ACCEPTED");
+    expect(context).toContain('resetForArrangement');
+    expect(battle).toContain('↻ العب مجدداً');
+    expect(battle).toContain('قبول إعادة المباراة');
+    expect(battle).toContain("router.replace('/screens/card-selection'");
+  });
 });

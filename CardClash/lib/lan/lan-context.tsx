@@ -47,6 +47,8 @@ export type LanMatchState = {
   roundResults: RoundResult[];
   lastResult: LanRoundResult | null;
   results: LanRoundResult[];
+  /** يصبح صحيحاً بعد أن يطلب المضيف مباراة جديدة وينتظر تأكيد الضيف. */
+  rematchRequested: boolean;
 };
 
 const emptyMatch = (): LanMatchState => ({
@@ -74,7 +76,34 @@ const emptyMatch = (): LanMatchState => ({
   roundResults: [],
   lastResult: null,
   results: [],
+  rematchRequested: false,
 });
+
+/** يعيد بيانات الجولة فقط، ويحافظ على الاتصال وأسماء اللاعبين وإعدادات المضيف. */
+function resetForArrangement(previous: LanMatchState): LanMatchState {
+  return {
+    ...previous,
+    phase: 'arranging',
+    hostDeck: [],
+    guestDeck: [],
+    hostReady: false,
+    guestReady: false,
+    currentRound: 0,
+    hostScore: 3,
+    guestScore: 3,
+    hostRevealed: false,
+    guestRevealed: false,
+    hostNextReady: false,
+    guestNextReady: false,
+    hostAbilities: [],
+    guestAbilities: [],
+    activeEffects: [],
+    roundResults: [],
+    lastResult: null,
+    results: [],
+    rematchRequested: false,
+  };
+}
 
 type LanContextValue = {
   rooms: LanRoom[];
@@ -94,6 +123,8 @@ type LanContextValue = {
   useAbility: (abilityType: AbilityType) => void;
   confirmNextRound: () => void;
   finishMatch: () => void;
+  requestRematch: () => void;
+  acceptRematch: () => void;
   sendGameEvent: (event: string, data: Record<string, unknown>) => boolean;
   leave: () => void;
 };
@@ -245,9 +276,8 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
       const totalRounds = asFiniteRoundCount(data.totalRounds);
       if (!totalRounds) return;
       updateMatch(previous => ({
-        ...previous,
+        ...resetForArrangement(previous),
         role: 'guest',
-        phase: 'arranging',
         totalRounds,
         abilitiesEnabled: data.abilitiesEnabled !== false,
         rarityWeights: asRarityWeights(data.rarityWeights, previous.rarityWeights),
@@ -306,6 +336,7 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
         roundResults: [],
         lastResult: null,
         results: [],
+        rematchRequested: false,
       }));
       return;
     }
@@ -378,8 +409,32 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
 
     if (event === 'LAN_GAME_OVER') {
       updateMatch(previous => ({ ...previous, phase: 'finished' }));
+      return;
     }
-  }, [resolveIfReady, startNextRoundWhenReady, startWhenReady, updateMatch]);
+
+    if (event === 'LAN_REMATCH_REQUEST') {
+      if (roleRef.current !== 'guest') return;
+      updateMatch(previous => previous.phase === 'finished'
+        ? { ...previous, rematchRequested: true }
+        : previous);
+      return;
+    }
+
+    if (event === 'LAN_REMATCH_ACCEPTED') {
+      if (roleRef.current !== 'host') return;
+      updateMatch(previous => {
+        if (previous.phase !== 'finished' || !previous.rematchRequested) return previous;
+        const restarted = resetForArrangement(previous);
+        queueMicrotask(() => sendDirectEvent('LAN_MATCH_SETTINGS', {
+          totalRounds: restarted.totalRounds,
+          abilitiesEnabled: restarted.abilitiesEnabled,
+          rarityWeights: restarted.rarityWeights,
+          hostName: restarted.hostName,
+        }));
+        return restarted;
+      });
+    }
+  }, [resolveIfReady, sendDirectEvent, startNextRoundWhenReady, startWhenReady, updateMatch]);
 
   if (!sessionRef.current) {
     sessionRef.current = new LanSession({
@@ -427,7 +482,7 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
     if (roleRef.current !== 'host' || state !== 'connected') return;
     const totalRounds = Math.min(30, Math.max(1, Math.floor(rounds)));
     const sharedRarityWeights = asRarityWeights(rarityWeights);
-    updateMatch(previous => ({ ...previous, role: 'host', phase: 'arranging', totalRounds, abilitiesEnabled, rarityWeights: sharedRarityWeights, hostName: nameRef.current, guestName: previous.guestName || peer?.name || 'الضيف' }));
+    updateMatch(previous => ({ ...resetForArrangement(previous), role: 'host', totalRounds, abilitiesEnabled, rarityWeights: sharedRarityWeights, hostName: nameRef.current, guestName: previous.guestName || peer?.name || 'الضيف' }));
     sendDirectEvent('LAN_MATCH_SETTINGS', { totalRounds, abilitiesEnabled, rarityWeights: sharedRarityWeights, hostName: nameRef.current });
   }, [peer?.name, sendDirectEvent, state, updateMatch]);
 
@@ -510,6 +565,19 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
     sendDirectEvent('LAN_GAME_OVER', {});
   }, [sendDirectEvent, updateMatch]);
 
+  const requestRematch = useCallback(() => {
+    const current = matchRef.current;
+    if (roleRef.current !== 'host' || current.phase !== 'finished' || current.rematchRequested || state !== 'connected') return;
+    updateMatch(previous => ({ ...previous, rematchRequested: true }));
+    sendDirectEvent('LAN_REMATCH_REQUEST', {});
+  }, [sendDirectEvent, state, updateMatch]);
+
+  const acceptRematch = useCallback(() => {
+    const current = matchRef.current;
+    if (roleRef.current !== 'guest' || current.phase !== 'finished' || !current.rematchRequested || state !== 'connected') return;
+    sendDirectEvent('LAN_REMATCH_ACCEPTED', {});
+  }, [sendDirectEvent, state]);
+
   const sendGameEvent = useCallback((event: string, data: Record<string, unknown>) => {
     if (state !== 'connected') return false;
     sendDirectEvent(event, data);
@@ -527,7 +595,7 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
 
   return <LanContext.Provider value={{
     rooms, hostedRoom, state, notice, peer, lastGameEvent, isSupported: Platform.OS !== 'web', match,
-    hostRoom, refreshRooms, joinRoom, configureMatch, submitArrangement, revealCurrentCard, useAbility, confirmNextRound, finishMatch, sendGameEvent, leave,
+    hostRoom, refreshRooms, joinRoom, configureMatch, submitArrangement, revealCurrentCard, useAbility, confirmNextRound, finishMatch, requestRematch, acceptRematch, sendGameEvent, leave,
   }}>{children}</LanContext.Provider>;
 }
 

@@ -53,7 +53,7 @@ function getDynamicAudioWinner(match: ReturnType<typeof useLanMultiplayer>['matc
 /** ساحة Wi‑Fi تتبع ترتيب اللعب الفردي: الخصم في الأعلى، الأمر والنتيجة في الوسط، وكرت اللاعب في الأسفل. */
 export default function LanBattleScreen() {
   const router = useRouter();
-  const { state: connectionState, match, revealCurrentCard, useAbility, confirmNextRound, finishMatch, leave } = useLanMultiplayer();
+  const { state: connectionState, match, revealCurrentCard, useAbility, confirmNextRound, finishMatch, requestRematch, acceptRematch, leave } = useLanMultiplayer();
   const [isAbilitiesOpen, setIsAbilitiesOpen] = useState(false);
   const { cardWidth, cardHeight, arenaPadding, arenaGap, centerWidth, actionButtonWidth, actionButtonHeight, isCompact, isLandscape } = useBattleLayout();
   const isHost = match.role === 'host';
@@ -81,6 +81,10 @@ export default function LanBattleScreen() {
     if (match.phase === 'idle') router.replace('/screens/game-mode' as any);
   }, [match.phase, router]);
 
+  useEffect(() => {
+    if (match.phase === 'arranging') router.replace('/screens/card-selection' as any);
+  }, [match.phase, router]);
+
   if (!match.role) return null;
 
   const exit = () => {
@@ -91,13 +95,26 @@ export default function LanBattleScreen() {
   if (match.phase === 'finished') {
     const finalWinner = match.hostScore === match.guestScore ? 'draw' : match.hostScore > match.guestScore ? 'host' : 'guest';
     const iWon = finalWinner === (isHost ? 'host' : 'guest');
+    const canRequestRematch = isHost && !match.rematchRequested && connectionState === 'connected';
+    const canAcceptRematch = !isHost && match.rematchRequested && connectionState === 'connected';
     return <View style={styles.root}><StatusBar hidden /><LuxuryBackground />
       <View style={styles.finalBox}>
         <Text style={styles.finalIcon}>{finalWinner === 'draw' ? '🤝' : iWon ? '🏆' : '🛡️'}</Text>
         <Text style={[styles.finalTitle, { color: finalWinner === 'draw' ? '#facc15' : iWon ? '#86efac' : '#fca5a5' }]}>{finalWinner === 'draw' ? 'تعادل!' : iWon ? 'فزت بالمباراة!' : 'فاز الخصم'}</Text>
         <Text style={styles.finalScore}>{myName} {myScore} — {opponentScore} {opponentName}</Text>
         <Text style={styles.finalHint}>تمت مزامنة النتيجة عبر الشبكة المحلية.</Text>
-        <TouchableOpacity style={[styles.actionButton, styles.homeButton]} onPress={exit}><Text style={styles.actionText}>العودة لأنماط اللعب</Text></TouchableOpacity>
+        <View style={styles.finalActions}>
+          {isHost ? (
+            <TouchableOpacity disabled={!canRequestRematch} style={[styles.actionButton, styles.rematchButton, !canRequestRematch && styles.disabledButton]} onPress={requestRematch}>
+              <Text style={styles.actionText}>{match.rematchRequested ? 'بانتظار موافقة الخصم…' : '↻ العب مجدداً'}</Text>
+            </TouchableOpacity>
+          ) : match.rematchRequested ? (
+            <TouchableOpacity disabled={!canAcceptRematch} style={[styles.actionButton, styles.rematchButton, !canAcceptRematch && styles.disabledButton]} onPress={acceptRematch}>
+              <Text style={styles.actionText}>✓ قبول إعادة المباراة</Text>
+            </TouchableOpacity>
+          ) : <Text style={styles.rematchHint}>بانتظار المضيف لطلب إعادة المباراة.</Text>}
+          <TouchableOpacity style={[styles.actionButton, styles.homeButton]} onPress={exit}><Text style={styles.actionText}>العودة لأنماط اللعب</Text></TouchableOpacity>
+        </View>
       </View>
     </View>;
   }
@@ -212,5 +229,5 @@ const styles = StyleSheet.create({
   actionButton: { borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(74,222,128,0.14)', borderWidth: 1.5, borderColor: '#4ade80', paddingHorizontal: SPACE.md }, abilityButton: { minHeight: 34, borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(167,139,250,0.14)', borderWidth: 1, borderColor: '#a78bfa', paddingHorizontal: SPACE.md }, abilityButtonText: { color: '#ddd6fe', fontSize: 10, fontWeight: '900' }, nextButton: { backgroundColor: 'rgba(96,165,250,0.14)', borderColor: '#60a5fa' }, disabledButton: { backgroundColor: 'rgba(71,85,105,0.28)', borderColor: '#475569' }, actionText: { color: '#f8fafc', fontSize: FONT.xs, fontWeight: '900', textAlign: 'center' }, hostControls: { color: '#94a3b8', fontSize: 10, textAlign: 'center' }, resultExplanation: { width: '100%', maxWidth: 270, backgroundColor: 'rgba(15,23,42,0.9)', borderWidth: 1, borderColor: 'rgba(250,204,21,0.5)', borderRadius: RADIUS.md, padding: SPACE.sm, gap: 3 }, resultExplanationTitle: { color: '#fde68a', fontSize: 10, fontWeight: '900', textAlign: 'right' }, resultExplanationText: { color: '#e2e8f0', fontSize: 10, lineHeight: 15, textAlign: 'right' }, resultMetrics: { borderTopWidth: 1, borderTopColor: 'rgba(148,163,184,0.25)', paddingTop: 5, gap: 2 }, resultMetricText: { color: '#cbd5e1', fontSize: 9, lineHeight: 14, textAlign: 'right' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(2,6,23,0.84)', justifyContent: 'center', padding: SPACE.lg }, abilitiesModal: { maxHeight: '78%', backgroundColor: '#0f172a', borderWidth: 1, borderColor: 'rgba(167,139,250,0.65)', borderRadius: RADIUS.lg, padding: SPACE.md, gap: SPACE.sm }, modalHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' }, modalTitle: { color: '#f8fafc', fontWeight: '900', fontSize: FONT.md }, closeText: { color: '#c4b5fd', fontWeight: '800', fontSize: FONT.xs }, modalHint: { color: '#cbd5e1', fontSize: 11, lineHeight: 17, textAlign: 'right' }, abilityList: { gap: SPACE.sm }, abilityCard: { borderWidth: 1, borderRadius: RADIUS.md, backgroundColor: 'rgba(15,23,42,0.94)', padding: SPACE.sm, gap: 4 }, abilityCardUsed: { opacity: 0.45 }, abilityName: { fontSize: FONT.sm, fontWeight: '900', textAlign: 'right' }, abilityDescription: { color: '#e2e8f0', fontSize: 11, textAlign: 'right', lineHeight: 17 }, abilityState: { color: '#94a3b8', fontSize: 10, textAlign: 'right' },
   disconnectBar: { paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md, backgroundColor: 'rgba(127,29,29,0.92)', alignItems: 'center' }, disconnectText: { color: '#fecaca', fontSize: FONT.xs, textAlign: 'center' },
-  finalBox: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.xl, gap: SPACE.md }, finalIcon: { fontSize: 68 }, finalTitle: { fontSize: FONT.xxl, fontWeight: '900', textAlign: 'center' }, finalScore: { color: '#e2e8f0', fontSize: FONT.md, textAlign: 'center', lineHeight: 26 }, finalHint: { color: '#c4b5fd', fontSize: FONT.xs, textAlign: 'center' }, homeButton: { width: 210, minHeight: 48, borderColor: COLOR.gold, backgroundColor: 'rgba(228,165,42,0.16)', marginTop: SPACE.md },
+  finalBox: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.xl, gap: SPACE.md }, finalIcon: { fontSize: 68 }, finalTitle: { fontSize: FONT.xxl, fontWeight: '900', textAlign: 'center' }, finalScore: { color: '#e2e8f0', fontSize: FONT.md, textAlign: 'center', lineHeight: 26 }, finalHint: { color: '#c4b5fd', fontSize: FONT.xs, textAlign: 'center' }, finalActions: { width: '100%', alignItems: 'center', gap: SPACE.sm, marginTop: SPACE.md }, rematchButton: { width: 250, minHeight: 48, borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.16)' }, rematchHint: { color: '#94a3b8', fontSize: FONT.xs, textAlign: 'center' }, homeButton: { width: 250, minHeight: 48, borderColor: COLOR.gold, backgroundColor: 'rgba(228,165,42,0.16)' },
 });
