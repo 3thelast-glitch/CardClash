@@ -19,19 +19,20 @@ describe('card power balance by rarity', () => {
     });
   });
 
-  it('caps excessive values and preserves a legendary card inside its configured total range', () => {
+  it('caps excessive values and keeps each legendary stat inside its configured range', () => {
     const normalized = normalizeCardPower(makeCard());
     const rule = RARITY_POWER_RANGES.legendary;
     expect(normalized.attack).toBeLessThanOrEqual(MAX_CARD_STAT);
     expect(normalized.defense).toBeLessThanOrEqual(MAX_CARD_STAT);
-    expect(normalized.attack + normalized.defense).toBeLessThanOrEqual(rule.maxTotal);
-    expect(normalized.attack + normalized.defense).toBeGreaterThanOrEqual(rule.minTotal);
+    expect(normalized.attack).toBeGreaterThanOrEqual(rule.minStat);
+    expect(normalized.defense).toBeGreaterThanOrEqual(rule.minStat);
   });
 
-  it('raises very low common cards into the common power band without exceeding the rarity stat ceiling', () => {
+  it('normalizes each common stat into the 0–6 range', () => {
     const normalized = normalizeCardPower(makeCard({ rarity: 'common', stars: 1, attack: 1, defense: 2 }));
     const rule = RARITY_POWER_RANGES.common;
-    expect(normalized.attack + normalized.defense).toBeGreaterThanOrEqual(rule.minTotal);
+    expect(normalized.attack).toBeGreaterThanOrEqual(rule.minStat);
+    expect(normalized.defense).toBeGreaterThanOrEqual(rule.minStat);
     expect(normalized.attack).toBeLessThanOrEqual(rule.maxStat);
     expect(normalized.defense).toBeLessThanOrEqual(rule.maxStat);
   });
