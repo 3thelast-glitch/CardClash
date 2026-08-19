@@ -1,7 +1,7 @@
 /**
  * FullArtTacticalCard
  * تصميم Full Art Tactical: الفن يملأ الكرت، بينما تُرسم الإحصاءات والندرة
- * والعنصر ديناميكياً فوقه من بيانات Card. لا تُضمَّن الأرقام داخل صورة الفن.
+ * والفصيلة ديناميكياً فوقه من بيانات Card. لا تُضمَّن الأرقام داخل صورة الفن.
  */
 import React from 'react';
 import {
@@ -16,9 +16,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Card,
   CardRarity,
-  ELEMENT_COLORS,
-  ELEMENT_EMOJI,
-  Element,
+  RACE_EMOJI,
+  RACE_LABELS,
 } from '@/lib/game/types';
 import { getCardImage } from '@/lib/game/get-card-image';
 
@@ -34,14 +33,6 @@ const RARITY_THEME: Record<CardRarity, { label: string; color: string }> = {
   epic: { label: 'ملحمي', color: '#C4B5FD' },
   legendary: { label: 'أسطوري', color: '#F6C65D' },
   special: { label: 'خاص', color: '#67E8F9' },
-};
-
-const ELEMENT_LABEL: Record<Element, string> = {
-  fire: 'نار',
-  water: 'ماء',
-  earth: 'أرض',
-  lightning: 'برق',
-  wind: 'ريح',
 };
 
 type StatProps = {
@@ -74,7 +65,6 @@ export function FullArtTacticalCard({
 }: FullArtTacticalCardProps) {
   const rarity = card.rarity ?? 'common';
   const rarityTheme = RARITY_THEME[rarity];
-  const elementColor = ELEMENT_COLORS[card.element];
   const imageSource = getCardImage(card);
   const cardHeight = Math.round(width * 1.333);
 
@@ -89,9 +79,9 @@ export function FullArtTacticalCard({
       <View style={[styles.innerFrame, { borderColor: rarityTheme.color }]} pointerEvents="none" />
 
       <View style={styles.topBadges}>
-        <View style={[styles.badge, { borderColor: elementColor }]}>
-          <Text style={[styles.badgeIcon, { color: elementColor }]}>{ELEMENT_EMOJI[card.element]}</Text>
-          <Text style={styles.badgeText}>{ELEMENT_LABEL[card.element]}</Text>
+        <View style={[styles.badge, { borderColor: '#A78BFA' }]}>
+          <Text style={[styles.badgeIcon, { color: '#C4B5FD' }]}>{RACE_EMOJI[card.race]}</Text>
+          <Text style={styles.badgeText}>{RACE_LABELS[card.race]}</Text>
         </View>
         <View style={[styles.badge, { borderColor: rarityTheme.color }]}>
           <Text style={[styles.badgeIcon, { color: rarityTheme.color }]}>✦</Text>
@@ -116,7 +106,7 @@ export function FullArtTacticalCard({
     <View
       style={[styles.card, { width, height: cardHeight, borderColor: rarityTheme.color }, style]}
       accessibilityRole="image"
-      accessibilityLabel={`${card.nameAr}. ${ELEMENT_LABEL[card.element]}. ${rarityTheme.label}. هجوم ${card.attack}. دفاع ${card.defense}.`}
+      accessibilityLabel={`${card.nameAr}. ${RACE_LABELS[card.race]}. ${rarityTheme.label}. هجوم ${card.attack}. دفاع ${card.defense}.`}
     >
       {imageSource ? (
         <ImageBackground source={imageSource} style={styles.image} imageStyle={styles.imageCorners}>

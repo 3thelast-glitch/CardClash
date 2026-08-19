@@ -33,51 +33,53 @@ const makeState = (playerCard: Card, botCard: Card): GameState => ({
   usedAbilities: [],
 });
 
-describe('نموذج صحة المباراة والعلاج العنصري', () => {
-  it('يسجل تفاعل الماء ضد النار علاجاً فعلياً بمقدار +4 للاعب', () => {
-    const waterCard = makeCard('water-card', { element: 'water', attack: 10 });
-    const fireCard = makeCard('fire-card', { element: 'fire', attack: 1 });
+describe('نموذج صحة المباراة وأفضلية الفصائل', () => {
+  it('يطبق أفضلية البشر على الألف من دون علاج تلقائي', () => {
+    const humanCard = makeCard('human-card', { race: 'human', attack: 10 });
+    const elfCard = makeCard('elf-card', { race: 'elf', attack: 1 });
 
-    const result = determineRoundWinner(waterCard, fireCard);
+    const result = determineRoundWinner(humanCard, elfCard);
 
-    expect(result.playerHealthDelta).toBe(4);
+    expect(result.playerFactionAdvantage).toBe('strong');
+    expect(result.playerHealthDelta).toBe(0);
     expect(result.botHealthDelta).toBe(0);
   });
 
-  it('يسجل تفاعل الأرض ضد الماء علاجاً فعلياً بمقدار +2 للاعب', () => {
-    const earthCard = makeCard('earth-card', { element: 'earth', attack: 10 });
-    const waterCard = makeCard('water-card', { element: 'water', attack: 1 });
+  it('يسجل ضعف الألف أمام البشر من دون تفاعل عنصري', () => {
+    const elfCard = makeCard('elf-card', { race: 'elf', attack: 10 });
+    const humanCard = makeCard('human-card', { race: 'human', attack: 1 });
 
-    const result = determineRoundWinner(earthCard, waterCard);
+    const result = determineRoundWinner(elfCard, humanCard);
 
-    expect(result.playerHealthDelta).toBe(2);
+    expect(result.playerFactionAdvantage).toBe('weak');
+    expect(result.playerHealthDelta).toBe(0);
     expect(result.botHealthDelta).toBe(0);
   });
 
-  it('يحفظ علاج الماء في صحة اللاعب ويرفع حدها الأقصى في الجولة الأولى', () => {
-    const player = makeCard('water-card', { element: 'water', attack: 10 });
-    const bot = makeCard('fire-card', { element: 'fire', attack: 1 });
+  it('لا يغيّر أفضلية الفصيلة صحة اللاعب أو حدها الأقصى', () => {
+    const player = makeCard('human-card', { race: 'human', attack: 10 });
+    const bot = makeCard('elf-card', { race: 'elf', attack: 1 });
 
     const resolved = gameReducer(makeState(player, bot), { type: 'PLAY_ROUND' });
 
-    expect(resolved.playerScore).toBe(5);
-    expect(resolved.playerMaxHealth).toBe(5);
+    expect(resolved.playerScore).toBe(1);
+    expect(resolved.playerMaxHealth).toBe(1);
     expect(resolved.botScore).toBe(0);
     expect(resolved.botMaxHealth).toBe(1);
-    expect(resolved.roundResults[0].playerHealthDelta).toBe(4);
+    expect(resolved.roundResults[0].playerHealthDelta).toBe(0);
   });
 
-  it('يطبق علاج العناصر للبوت ويحدّث حد صحته الأقصى بالتساوي', () => {
-    const player = makeCard('fire-card', { element: 'fire', attack: 1 });
-    const bot = makeCard('water-card', { element: 'water', attack: 10 });
+  it('يطبق أفضلية الفصيلة للبوت من دون علاج تلقائي', () => {
+    const player = makeCard('elf-card', { race: 'elf', attack: 1 });
+    const bot = makeCard('human-card', { race: 'human', attack: 10 });
 
     const resolved = gameReducer(makeState(player, bot), { type: 'PLAY_ROUND' });
 
-    expect(resolved.botScore).toBe(5);
-    expect(resolved.botMaxHealth).toBe(5);
+    expect(resolved.botScore).toBe(1);
+    expect(resolved.botMaxHealth).toBe(1);
     expect(resolved.playerScore).toBe(0);
     expect(resolved.playerMaxHealth).toBe(1);
-    expect(resolved.roundResults[0].botHealthDelta).toBe(4);
+    expect(resolved.roundResults[0].botHealthDelta).toBe(0);
   });
 
   it('يعيد InfinityLoop بناء الصحة القصوى من الجولات المحتفظ بها', () => {
@@ -91,8 +93,8 @@ describe('نموذج صحة المباراة والعلاج العنصري', () 
       botDamage: 0,
       playerBaseDamage: 1,
       botBaseDamage: 0,
-      playerElementAdvantage: 'neutral' as const,
-      botElementAdvantage: 'neutral' as const,
+      playerFactionAdvantage: 'neutral' as const,
+      botFactionAdvantage: 'neutral' as const,
       playerHealthDelta,
       botHealthDelta,
       winner: 'player' as const,

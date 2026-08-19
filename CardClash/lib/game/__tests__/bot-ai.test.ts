@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { buildBotAbilityData, decideBotAbility, getBotCards, predictPlayerMove } from '../bot-ai';
 import { gameReducer } from '../game-context';
-import { ALL_CARDS } from '../cards-data-exports';
+import { ALL_CARDS, getFactionAdvantage } from '../cards-data-exports';
 import type { Card, GameState, RoundResult } from '../types';
 
 describe('Bot AI System', () => {
@@ -68,27 +68,21 @@ describe('Bot AI System', () => {
     it('should handle hard difficulty with strategic selection', () => {
       const count = 3;
       const playerDeck = [
-        ALL_CARDS.find((c: any) => c.element === 'fire')!,
-        ALL_CARDS.find((c: any) => c.element === 'water')!,
-        ALL_CARDS.find((c: any) => c.element === 'earth')!,
+        ALL_CARDS.find(card => card.race === 'elf')!,
+        ALL_CARDS.find(card => card.race === 'orc')!,
+        ALL_CARDS.find(card => card.race === 'dragon')!,
       ];
       const botCards = getBotCards(count, 3, playerDeck);
 
-      // Hard mode should try to counter player elements
+      // Hard mode should try to counter player factions.
       expect(botCards).toHaveLength(count);
 
-      // Check if bot selected cards with elemental advantage
-      const hasElementalAdvantage = botCards.some((botCard, index) => {
+      const hasFactionAdvantage = botCards.some((botCard, index) => {
         const playerCard = playerDeck[index];
-        // Water > Fire, Earth/Lightning > Water, Fire/Wind > Earth
-        return (
-          (playerCard.element === 'fire' && botCard.element === 'water') ||
-          (playerCard.element === 'water' && (botCard.element === 'earth' || botCard.element === 'lightning')) ||
-          (playerCard.element === 'earth' && (botCard.element === 'fire' || botCard.element === 'wind'))
-        );
+        return getFactionAdvantage(botCard.race, playerCard.race) === 'strong';
       });
 
-      expect(hasElementalAdvantage).toBe(true);
+      expect(hasFactionAdvantage).toBe(true);
     });
 
     it('should handle edge case with 1 card', () => {
@@ -146,7 +140,7 @@ describe('Bot AI System', () => {
       };
       const prediction = predictPlayerMove(state, 3);
 
-      expect(prediction.element).toBe('water');
+      expect(prediction.faction).toBe('human');
       expect(prediction.cardClass).toBe('healer');
       expect(prediction.sampleCount).toBe(3);
       expect(prediction.confidence).toBeGreaterThan(0.5);
@@ -189,7 +183,7 @@ describe('Bot AI System', () => {
       addElement = buildBotAbilityData('AddElement', state, card),
       propaganda = buildBotAbilityData('Propaganda', state, card);
 
-      expect(['earth', 'lightning']).toContain(addElement.element);
+      expect(['human', 'elf', 'orc', 'dragon', 'demon', 'undead', 'monster', 'robot']).toContain(addElement.faction);
       expect(propaganda.targetClass).toBe('healer');
     });
   });

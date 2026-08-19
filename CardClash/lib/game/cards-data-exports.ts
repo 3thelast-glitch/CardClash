@@ -3,8 +3,7 @@
  *
  * يُوفّر exports مطلوبة من ملفات أخرى:
  *   - ALL_CARDS                 ← bot-ai.ts
- *   - getElementAdvantage       ← bot-ai.ts
- *   - applyElementalReactions   ← منطق المعركة (داخلي)
+ *   - getFactionAdvantage       ← bot-ai.ts
  *   - determineRoundWinner      ← game-context.tsx
  */
 
@@ -18,12 +17,11 @@ import { CARDS_BATCH_7 } from './cards-batch-7-fixed';
 import { CARDS_BATCH_8 } from './cards-batch-8-fixed';
 import {
   Card,
-  Element,
-  ElementAdvantage,
+  FactionAdvantage,
+  Race,
   Effect,
-  ELEMENT_ADVANTAGES,
-  ELEMENT_WEAKNESSES,
-  ELEMENT_MULTIPLIER,
+  FACTION_ADVANTAGES,
+  FACTION_MULTIPLIER,
 } from './types';
 import { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive } from './rage-engine';
 import { applyCombatCharacterSpecials } from './ui-helpers';
@@ -48,92 +46,16 @@ export const ALL_CARDS: Card[] = [
   ...normalizeCardPower({ ...card, rarity: card.rarity === 'special' ? 'special' : getRarityFromStars(card.stars) }),
 }));
 
-// ─── getElementAdvantage ─────────────────────────────────────────────────────
-export function getElementAdvantage(
-  attacker: Element,
-  defender: Element,
-): ElementAdvantage {
-  const advantages = ELEMENT_ADVANTAGES[attacker] ?? [];
-  const weaknesses = ELEMENT_WEAKNESSES[attacker] ?? [];
-  if (advantages.includes(defender)) return 'strong';
-  if (weaknesses.includes(defender)) return 'weak';
+// ─── getFactionAdvantage ─────────────────────────────────────────────────────
+export function getFactionAdvantage(
+  attacker: Race,
+  defender: Race,
+): FactionAdvantage {
+  if (FACTION_ADVANTAGES[attacker] === defender) return 'strong';
+  if (FACTION_ADVANTAGES[defender] === attacker) return 'weak';
   return 'neutral';
 }
 
-// ─── applyElementalReactions ─────────────────────────────────────────────────
-//
-// تُطبّق Buffs/Debuffs على نسخ مؤقتة — لا تعدّل البيانات الأصلية.
-//
-// جدول التفاعلات الكامل (7 تفاعلات):
-// ┌─────────────────────────────┬───────────────────────────────────────────┐
-// │ التفاعل                     │ التأثير                                   │
-// ├─────────────────────────────┼───────────────────────────────────────────┤
-// │ 1. ماء   ضد نار   (إخماد)  │ مهاجم: +4 hp    │ مدافع: −2 attack       │
-// │ 2. برق   ضد ماء   (صعق)    │ مهاجم: +3 atk   │ مدافع: −2 atk, −1 def  │
-// │ 3. برق   ضد ريح   (شحن)    │ مهاجم: +2 atk   │ مدافع: −2 def          │
-// │ 4. أرض   ضد برق  (تأريض)  │ مهاجم: +4 def   │ مدافع: −3 attack       │
-// │ 5. نار   ضد أرض  (صهر)    │ مهاجم: +2 atk   │ مدافع: −3 def          │
-// │ 6. ريح   ضد أرض  (تعرية)  │ مهاجم: +3 atk   │ مدافع: −2 def          │
-// │ 7. أرض   ضد ماء  (تجفيف)  │ مهاجم: +2 hp    │ مدافع: −2 def          │
-// └─────────────────────────────┴───────────────────────────────────────────┘
-//
-export function applyElementalReactions(
-  attacker: { attack: number; defense: number; hp?: number; element: Element },
-  defender: { attack: number; defense: number; hp?: number; element: Element },
-): void {
-  const atk = attacker.element;
-  const def = defender.element;
-
-  // ─ 1. ماء ضد نار (إخماد) ────────────────────────────────────────────
-  if (atk === 'water' && def === 'fire') {
-    attacker.hp = (attacker.hp ?? 0) + 4;
-    defender.attack = Math.max(1, defender.attack - 2);
-    return;
-  }
-
-  // ─ 2. برق ضد ماء (صعق) ──────────────────────────────────────────────
-  if (atk === 'lightning' && def === 'water') {
-    attacker.attack += 3;
-    defender.attack  = Math.max(1, defender.attack  - 2);
-    defender.defense = Math.max(0, defender.defense - 1);
-    return;
-  }
-
-  // ─ 3. برق ضد ريح (شحن) ──────────────────────────────────────────────
-  if (atk === 'lightning' && def === 'wind') {
-    attacker.attack += 2;
-    defender.defense = Math.max(0, defender.defense - 2);
-    return;
-  }
-
-  // ─ 4. أرض ضد برق (تأريض) ────────────────────────────────────────────
-  if (atk === 'earth' && def === 'lightning') {
-    attacker.defense += 4;
-    defender.attack = Math.max(1, defender.attack - 3);
-    return;
-  }
-
-  // ─ 5. نار ضد أرض (صهر الصخور) ───────────────────────────────────────
-  if (atk === 'fire' && def === 'earth') {
-    attacker.attack += 2;
-    defender.defense = Math.max(0, defender.defense - 3);
-    return;
-  }
-
-  // ─ 6. ريح ضد أرض (تعرية) ─────────────────────────────────────────────
-  if (atk === 'wind' && def === 'earth') {
-    attacker.attack += 3;
-    defender.defense = Math.max(0, defender.defense - 2);
-    return;
-  }
-
-  // ─ 7. أرض ضد ماء (تجفيف) ─────────────────────────────────────────────
-  if (atk === 'earth' && def === 'water') {
-    attacker.hp      = (attacker.hp ?? 0) + 2;
-    defender.defense = Math.max(0, defender.defense - 2);
-    return;
-  }
-}
 
 // ─── determineRoundWinner ─────────────────────────────────────────────────────
 interface RoundWinnerResult {
@@ -142,8 +64,8 @@ interface RoundWinnerResult {
   botDamage: number;
   playerBaseDamage: number;
   botBaseDamage: number;
-  playerElementAdvantage: ElementAdvantage;
-  botElementAdvantage: ElementAdvantage;
+  playerFactionAdvantage: FactionAdvantage;
+  botFactionAdvantage: FactionAdvantage;
   playerHealthDelta: number;
   botHealthDelta: number;
 }
@@ -155,14 +77,14 @@ export function determineRoundWinner(
   botEffects: Effect[] = [],
   _abilitiesEnabled = true,
 ): RoundWinnerResult {
-  const playerHasMastery = playerEffects.some(e => e.kind === 'elementalMastery');
-  const botHasMastery = botEffects.some(e => e.kind === 'elementalMastery');
+  const playerHasMastery = playerEffects.some(e => e.kind === 'factionMastery');
+  const botHasMastery = botEffects.some(e => e.kind === 'factionMastery');
 
-  const playerAdv = playerHasMastery ? 'strong' : getElementAdvantage(playerCard.element, botCard.element);
-  const botAdv    = botHasMastery ? 'strong' : getElementAdvantage(botCard.element,    playerCard.element);
+  const playerAdv = playerHasMastery ? 'strong' : getFactionAdvantage(playerCard.race, botCard.race);
+  const botAdv    = botHasMastery ? 'strong' : getFactionAdvantage(botCard.race,    playerCard.race);
 
   // ── 1. قدرات خاصة (Mihawk / Gehrman / Sanji) ─────────────────────────
-  // تُفحص أولاً قبل أي حسابات إحصائية أو عناصر
+  // تُفحص أولاً قبل أي حسابات إحصائية أو أفضلية فصائل
   const playerSpecial = resolveSpecialAbility(playerCard, botCard);
   const botSpecial    = resolveSpecialAbility(botCard,    playerCard);
 
@@ -173,8 +95,8 @@ export function determineRoundWinner(
       botDamage: 0,
       playerBaseDamage: 0,
       botBaseDamage: 0,
-      playerElementAdvantage: playerAdv,
-      botElementAdvantage: botAdv,
+      playerFactionAdvantage: playerAdv,
+      botFactionAdvantage: botAdv,
       playerHealthDelta: 0,
       botHealthDelta: 0,
     };
@@ -187,22 +109,19 @@ export function determineRoundWinner(
       botDamage: 0,
       playerBaseDamage: 0,
       botBaseDamage: 0,
-      playerElementAdvantage: playerAdv,
-      botElementAdvantage: botAdv,
+      playerFactionAdvantage: playerAdv,
+      botFactionAdvantage: botAdv,
       playerHealthDelta: 0,
       botHealthDelta: 0,
     };
   }
 
   // ── 2. حسابات الإحصائيات العادية ─────────────────────────────────────
-  const p = { attack: playerCard.attack, defense: playerCard.defense, hp: playerCard.hp, element: playerCard.element };
-  const b = { attack: botCard.attack,    defense: botCard.defense,    hp: botCard.hp,    element: botCard.element };
+  const p = { attack: playerCard.attack, defense: playerCard.defense, hp: playerCard.hp };
+  const b = { attack: botCard.attack,    defense: botCard.defense,    hp: botCard.hp };
 
   // Apply card special abilities (Ainz, Gojo, Sukuna, Makima, Kaido)
   applyCombatCharacterSpecials(playerCard, botCard, p, b);
-
-  applyElementalReactions(p, b);
-  applyElementalReactions(b, p);
 
   const playerShield = playerEffects.some(e => e.kind === 'shieldGuard');
   const botShield = botEffects.some(e => e.kind === 'shieldGuard');
@@ -242,15 +161,15 @@ export function determineRoundWinner(
     return { atk, def };
   };
 
-  // تسجل تفاعلات الماء/الأرض علاجاً فعلياً للمباراة، وليس للنسخة المؤقتة فقط.
+  // تسجل القدرات الخاصة أي زيادة صحة فعلية للمباراة.
   const playerHealthDelta = Math.max(0, (p.hp ?? 0) - (playerCard.hp ?? 0));
   const botHealthDelta = Math.max(0, (b.hp ?? 0) - (botCard.hp ?? 0));
 
   const pStats = applySideEffects(p.attack, p.defense, playerEffects, playerCard.cardClass, playerShield);
   const bStats = applySideEffects(b.attack, b.defense, botEffects, botCard.cardClass, botShield);
 
-  const playerRaw = pStats.atk * ELEMENT_MULTIPLIER[playerAdv];
-  const botRaw    = bStats.atk * ELEMENT_MULTIPLIER[botAdv];
+  const playerRaw = pStats.atk * FACTION_MULTIPLIER[playerAdv];
+  const botRaw    = bStats.atk * FACTION_MULTIPLIER[botAdv];
 
   const playerBaseDamage = Math.max(0, Math.floor(playerRaw));
   const botBaseDamage    = Math.max(0, Math.floor(botRaw));
@@ -269,8 +188,8 @@ export function determineRoundWinner(
     botDamage,
     playerBaseDamage,
     botBaseDamage,
-    playerElementAdvantage: playerAdv,
-    botElementAdvantage:    botAdv,
+    playerFactionAdvantage: playerAdv,
+    botFactionAdvantage:    botAdv,
     playerHealthDelta,
     botHealthDelta,
   };

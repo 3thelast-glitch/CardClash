@@ -50,7 +50,7 @@ const KIND_INFO: Record<EffectKind, { label: string; emoji: string; color: strin
   pool: { label: 'تجميع النقاط', emoji: '\u{1F3B1}', color: '#06b6d4' },
   doubleDebuffs: { label: 'مضاعفة النيرفات', emoji: '📉', color: '#f87171' },
   doublePoints: { label: 'مضاعفة النقاط', emoji: '✖️', color: '#f59e0b' },
-  elementalMastery: { label: 'إتقان العناصر', emoji: '🌈', color: '#38bdf8' },
+  factionMastery: { label: 'إتقان الفصائل', emoji: '👥', color: '#a78bfa' },
   turinPenalty: { label: 'عقوبة تورين', emoji: '📉', color: '#f87171' },
   absoluteDominance: { label: 'سيطرة مطلقة', emoji: '👑', color: '#e879f9' },
   phantomBlade: { label: 'شفرة الوهم', emoji: '⚔️', color: '#c084fc' },

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Ability, Rarity } from '@/data/abilities';
 import { ALL_ABILITIES } from './abilities';
 import { getRarityFromStars } from './card-rarity';
-import type { AbilityType, Card, CardClass, CardRarity, Element, Gender, Race } from './types';
+import type { AbilityType, Card, CardClass, CardRarity, Gender, Race } from './types';
 
 export interface CustomCardJson {
   id: string;
@@ -13,7 +13,8 @@ export interface CustomCardJson {
   hp?: number;
   race: Race;
   cardClass: CardClass;
-  element: Element;
+  /** قيمة قديمة اختيارية لتوافق ملفات الاستيراد السابقة؛ لا تؤثر في اللعب. */
+  element?: Card['element'];
   tags?: string[];
   rarity?: CardRarity;
   stars?: number;
@@ -49,7 +50,7 @@ export const CUSTOM_ABILITIES_KEY = 'custom_abilities_v1';
 
 const RACES: Race[] = ['human', 'elf', 'orc', 'dragon', 'demon', 'undead', 'monster', 'robot'];
 const CLASSES: CardClass[] = ['warrior', 'knight', 'mage', 'archer', 'berserker', 'paladin', 'swordsman', 'fighter', 'guardian', 'healer'];
-const ELEMENTS: Element[] = ['fire', 'water', 'earth', 'lightning', 'wind'];
+const LEGACY_ELEMENTS = ['fire', 'water', 'earth', 'lightning', 'wind'] as const;
 const RARITIES: CardRarity[] = ['common', 'rare', 'epic', 'legendary', 'special'];
 const ABILITY_RARITIES: Rarity[] = ['Common', 'Rare', 'Epic', 'Legendary', 'Special'];
 
@@ -74,7 +75,7 @@ export function validateCustomCard(value: unknown): value is CustomCardJson {
   return nonEmpty(value.id) && nonEmpty(value.name) && nonEmpty(value.nameAr)
     && validNumber(value.attack, 1) && validNumber(value.defense, 1)
     && enumValue(value.race, RACES) && enumValue(value.cardClass, CLASSES)
-    && enumValue(value.element, ELEMENTS)
+    && (value.element === undefined || enumValue(value.element, LEGACY_ELEMENTS))
     && (value.hp === undefined || validNumber(value.hp, 1))
     && (value.stars === undefined || validNumber(value.stars, 0, 5))
     && (value.rarity === undefined || enumValue(value.rarity, RARITIES));
@@ -108,6 +109,8 @@ function cardFromJson(card: CustomCardJson): Card {
   const stars = Math.max(0, Math.min(5, card.stars ?? 1));
   return {
     ...card,
+    // لا تستخدم المعركة هذه القيمة؛ تُحفظ فقط لأن البيانات الأصلية لا تزال تحمل الحقل.
+    element: card.element ?? 'fire',
     stars,
     rarity: getRarityFromStars(stars),
     hp: card.hp ?? card.defense,

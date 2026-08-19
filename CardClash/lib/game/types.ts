@@ -24,7 +24,7 @@ export type CardClass =
   | 'guardian'    //'روبوت
   | 'healer';     // طبيب
 
-// ✦ نظام خماسي
+/** @deprecated بيانات قديمة؛ لم تعد تستعمل في اللعب أو الواجهة. */
 export type Element = 'fire' | 'water' | 'earth' | 'lightning' | 'wind';
 
 export type Tag = string;
@@ -85,6 +85,7 @@ export interface Card {
   hp?: number;
   race: Race;
   cardClass: CardClass;
+  /** @deprecated بيانات قديمة فقط؛ لم تعد العناصر جزءاً من نظام اللعب أو الواجهة. */
   element: Element;
   tags?: Tag[];
   emoji?: string;
@@ -183,7 +184,7 @@ export interface AbilityData {
   rounds?: number;
   totalPenalty?: number;
   double?: boolean;
-  element?: Element;
+  faction?: Race;
   guessedAttack?: number;
   multiplier?: number | boolean;
   outcome?: 'player' | 'bot' | 'draw' | 'win' | 'loss';
@@ -225,7 +226,7 @@ export type EffectKind =
   | 'pool'
   | 'doubleDebuffs'
   | 'doublePoints'
-  | 'elementalMastery'
+  | 'factionMastery'
   | 'turinPenalty' // ✅ Turin: جولات الخسارة الإجبارية
   | 'absoluteDominance'
   | 'phantomBlade';
@@ -292,8 +293,8 @@ export interface RoundResult {
   botDamage: number;
   playerBaseDamage: number;
   botBaseDamage: number;
-  playerElementAdvantage: ElementAdvantage;
-  botElementAdvantage: ElementAdvantage;
+  playerFactionAdvantage?: FactionAdvantage;
+  botFactionAdvantage?: FactionAdvantage;
   /** التغير النهائي في صحة المباراة بعد الحسم والعلاج والآثار النشطة. */
   playerHealthDelta: number;
   botHealthDelta: number;
@@ -326,23 +327,6 @@ export const CLASS_EMOJI: Record<CardClass, string> = {
   healer: '\u2695\ufe0f',       // ⚕️  طبيب
 };
 
-// ✦ بدون ice
-export const ELEMENT_EMOJI: Record<Element, string> = {
-  fire: '\u{1F525}',
-  water: '\u{1F4A7}',
-  earth: '\u{1F30D}',
-  lightning: '\u26a1',
-  wind: '\u{1F4A8}',
-};
-
-export const ELEMENT_COLORS: Record<Element, string> = {
-  fire: '#ef4444',
-  water: '#3b82f6',
-  earth: '#a3e635',
-  lightning: '#facc15',
-  wind: '#a78bfa',
-};
-
 export const GENDER_EMOJI: Record<Gender, string> = {
   male: '\u{1F466}',  // 👦
   female: '\u{1F467}',  // 👧
@@ -355,36 +339,36 @@ export const GENDER_COLORS: Record<Gender, string> = {
   unknown: '#6B7280',
 };
 
-export type ElementAdvantage = 'strong' | 'weak' | 'neutral';
+export type FactionAdvantage = 'strong' | 'weak' | 'neutral';
 
-export const ELEMENT_MULTIPLIER = {
+export const FACTION_MULTIPLIER: Record<FactionAdvantage, number> = {
   strong: 1.25,
   weak: 0.75,
   neutral: 1.0,
 };
 
-// ─── نظام التفوق العنصري الخماسي ────────────────────────────────────────────
-export const ELEMENT_ADVANTAGES: Record<Element, Element[]> = {
-  fire: ['earth'],
-  water: ['fire'],
-  earth: ['lightning', 'water'],
-  lightning: ['water', 'wind'],
-  wind: ['earth'],
+/**
+ * دورة التضاد المعتمدة: كل فصيلة تتفوق على الفصيلة المسجلة أمامها فقط.
+ * بشر > ألف > أورك > تنين > شيطان > ميت > وحش > روبوت > بشر.
+ */
+export const FACTION_ADVANTAGES: Record<Race, Race> = {
+  human: 'elf',
+  elf: 'orc',
+  orc: 'dragon',
+  dragon: 'demon',
+  demon: 'undead',
+  undead: 'monster',
+  monster: 'robot',
+  robot: 'human',
 };
 
-export const ELEMENT_WEAKNESSES: Record<Element, Element[]> = {
-  fire: ['water', 'wind'],
-  water: ['earth', 'lightning'],
-  earth: ['wind'],
-  lightning: ['earth'],
-  wind: ['lightning', 'fire'],
-};
-
-// ─── خريطة المضاعفات العنصرية (ELEMENTAL_MAP) ────────────────────────────────
-export const ELEMENTAL_MAP: Record<string, Record<string, number>> = {
-  '\u0646\u0627\u0631': { '\u0623\u0631\u0636': 2.0, '\u0645\u0627\u0621': 0.5 },
-  '\u0645\u0627\u0621': { '\u0646\u0627\u0631': 2.0, '\u0623\u0631\u0636': 0.5, '\u0628\u0631\u0642': 0.5 },
-  '\u0623\u0631\u0636': { '\u0628\u0631\u0642': 2.0, '\u0645\u0627\u0621': 2.0, '\u0631\u064a\u062d': 0.5 },
-  '\u0628\u0631\u0642': { '\u0645\u0627\u0621': 2.0, '\u0631\u064a\u062d': 2.0, '\u0623\u0631\u0636': 0.5 },
-  '\u0631\u064a\u062d': { '\u0623\u0631\u0636': 2.0, '\u0628\u0631\u0642': 0.5, '\u0646\u0627\u0631': 0.5 },
+export const RACE_LABELS: Record<Race, string> = {
+  human: 'بشر',
+  elf: 'ألف',
+  orc: 'أورك',
+  dragon: 'تنين',
+  demon: 'شيطان',
+  undead: 'ميت',
+  monster: 'وحش',
+  robot: 'روبوت',
 };

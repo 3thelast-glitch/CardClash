@@ -184,7 +184,7 @@ export default function SplashScreen() {
           <Text style={styles.guideBtnIcon}>📖</Text>
           <View style={styles.guideBtnTextWrap}>
             <Text style={styles.guideBtnTitle}>كيف تلعب؟</Text>
-            <Text style={styles.guideBtnSub}>دليل مبسط للقواعد والعناصر والقدرات</Text>
+            <Text style={styles.guideBtnSub}>دليل مبسط للقواعد والفصائل والقدرات</Text>
           </View>
           <Text style={styles.guideBtnArrow}>←</Text>
         </TouchableOpacity>

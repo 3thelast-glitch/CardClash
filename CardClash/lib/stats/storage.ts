@@ -8,12 +8,21 @@ export async function loadStats(): Promise<PlayerStats> {
   try {
     const data = await AsyncStorage.getItem(STATS_KEY);
     if (data) {
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      return {
+        ...DEFAULT_STATS,
+        ...parsed,
+        factionStats: parsed.factionStats ?? {},
+        matchHistory: (parsed.matchHistory ?? []).map((match: any) => ({
+          ...match,
+          factionsUsed: match.factionsUsed ?? [],
+        })),
+      };
     }
-    return { ...DEFAULT_STATS, elementStats: { ...DEFAULT_STATS.elementStats }, matchHistory: [...DEFAULT_STATS.matchHistory] };
+    return { ...DEFAULT_STATS, factionStats: { ...DEFAULT_STATS.factionStats }, matchHistory: [...DEFAULT_STATS.matchHistory] };
   } catch (error) {
     console.error('Error loading stats: - storage.ts:15', error);
-    return { ...DEFAULT_STATS, elementStats: { ...DEFAULT_STATS.elementStats }, matchHistory: [...DEFAULT_STATS.matchHistory] };
+    return { ...DEFAULT_STATS, factionStats: { ...DEFAULT_STATS.factionStats }, matchHistory: [...DEFAULT_STATS.matchHistory] };
   }
 }
 
@@ -35,7 +44,7 @@ export async function updateStatsAfterMatch(
   playerScore: number,
   botScore: number,
   totalRounds: number,
-  elementsUsed: string[],
+  factionsUsed: string[],
   difficulty: 1 | 2 | 3 | 4 | 5 = 2
 ): Promise<PlayerStats> {
   const stats = await loadStats();
@@ -66,21 +75,21 @@ export async function updateStatsAfterMatch(
     stats.highestScore = playerScore;
   }
 
-  // تحديث إحصائيات العناصر
-  elementsUsed.forEach((element) => {
-    if (!stats.elementStats[element]) {
-      stats.elementStats[element] = {
-        element,
+  // تحديث إحصائيات الفصائل
+  factionsUsed.forEach((faction) => {
+    if (!stats.factionStats[faction]) {
+      stats.factionStats[faction] = {
+        faction,
         timesUsed: 0,
         wins: 0,
         losses: 0,
       };
     }
-    stats.elementStats[element].timesUsed++;
+    stats.factionStats[faction].timesUsed++;
     if (winner === 'player') {
-      stats.elementStats[element].wins++;
+      stats.factionStats[faction].wins++;
     } else if (winner === 'bot') {
-      stats.elementStats[element].losses++;
+      stats.factionStats[faction].losses++;
     }
   });
 
@@ -92,7 +101,7 @@ export async function updateStatsAfterMatch(
     botScore,
     totalRounds,
     winner,
-    elementsUsed,
+    factionsUsed,
     difficulty,
   };
 

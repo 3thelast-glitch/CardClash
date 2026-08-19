@@ -3,43 +3,6 @@
  * Centralised labels, emoji maps, and type lists used across the app.
  */
 
-// ─── Element advantage type ───────────────────────────────────────────────────
-export type ElementAdvantage = 'strong' | 'weak' | 'neutral';
-
-// ─── Element emoji map ────────────────────────────────────────────────────────
-export const ELEMENT_EMOJI: Record<string, string> = {
-  fire:      '🔥',
-  water:     '💧',
-  earth:     '🌍',
-  wind:      '🌪️',
-  lightning: '⚡',
-  ice:       '❄️',
-  light:     '✨',
-  dark:      '🌑',
-  nature:    '🌿',
-  metal:     '⚙️',
-  void:      '🕳️',
-  spirit:    '👻',
-};
-
-// ─── Element labels (Arabic) ──────────────────────────────────────────────────
-export const ELEMENT_LABELS: Record<string, string> = {
-  fire:      '🔥 نار',
-  water:     '💧 ماء',
-  earth:     '🌍 أرض',
-  wind:      '🌪️ ريح',
-  lightning: '⚡ برق',
-  ice:       '❄️ جليد',
-  light:     '✨ نور',
-  dark:      '🌑 ظلام',
-  nature:    '🌿 طبيعة',
-  metal:     '⚙️ معدن',
-  void:      '🕳️ فراغ',
-  spirit:    '👻 روح',
-};
-
-export const ALL_ELEMENTS = Object.keys(ELEMENT_LABELS);
-
 // ─── Card class labels (Arabic) ───────────────────────────────────────────────
 export const CLASS_LABELS: Record<string, string> = {
   swordsman:  '⚔️ سياف',

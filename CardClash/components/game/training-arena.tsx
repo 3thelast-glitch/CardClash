@@ -3,23 +3,23 @@ import { ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } f
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useCards } from '@/lib/game/useCards';
 import { determineRoundWinner } from '@/lib/game/cards-data-exports';
-import { Card, Element, ELEMENT_COLORS, ELEMENT_EMOJI } from '@/lib/game/types';
+import { Card, Race, RACE_EMOJI } from '@/lib/game/types';
 import { COLOR, FONT, RADIUS, SPACE } from '@/components/ui/design-tokens';
 
-const ELEMENTS: Element[] = ['fire', 'water', 'earth', 'lightning', 'wind'];
+const FACTIONS: Race[] = ['human', 'elf', 'orc', 'dragon', 'demon', 'undead', 'monster', 'robot'];
 
 function cardLabel(card: Card) {
   return card.nameAr || card.name;
 }
 
 function advantageLabel(value: 'strong' | 'weak' | 'neutral') {
-  if (value === 'strong') return 'تفوق عنصري ×1.25';
-  if (value === 'weak') return 'ضعف عنصري ×0.75';
-  return 'تفاعل عنصري محايد ×1.00';
+  if (value === 'strong') return 'أفضلية فصيلية ×1.25';
+  if (value === 'weak') return 'ضعف فصيلي ×0.75';
+  return 'مواجهة فصيلية محايدة ×1.00';
 }
 
 function CardChoice({ card, selected, onPress }: { card: Card; selected: boolean; onPress: () => void }) {
-  const color = ELEMENT_COLORS[card.element];
+  const color = '#A78BFA';
   return (
     <TouchableOpacity
       style={[s.choice, selected && { borderColor: color, backgroundColor: `${color}1a` }]}
@@ -27,7 +27,7 @@ function CardChoice({ card, selected, onPress }: { card: Card; selected: boolean
       activeOpacity={0.78}
     >
       <View style={[s.choiceElement, { backgroundColor: `${color}24` }]}>
-        <Text style={s.choiceEmoji}>{card.emoji || ELEMENT_EMOJI[card.element]}</Text>
+        <Text style={s.choiceEmoji}>{card.emoji || RACE_EMOJI[card.race]}</Text>
       </View>
       <Text style={s.choiceName} numberOfLines={1}>{cardLabel(card)}</Text>
       <Text style={s.choiceStats}>⚔ {card.attack}   🛡 {card.defense}</Text>
@@ -44,10 +44,10 @@ export function TrainingArena() {
   const [hasRun, setHasRun] = useState(false);
 
   const trainingCards = useMemo(() => {
-    const onePerElement = ELEMENTS
-      .map(element => cards.find(card => card.element === element))
+    const onePerFaction = FACTIONS
+      .map(faction => cards.find(card => card.race === faction))
       .filter((card): card is Card => Boolean(card));
-    return onePerElement.length >= 2 ? onePerElement : cards.slice(0, 5);
+    return onePerFaction.length >= 2 ? onePerFaction : cards.slice(0, 5);
   }, [cards]);
 
   useEffect(() => {
@@ -112,9 +112,9 @@ export function TrainingArena() {
       </ScrollView>
 
       <View style={[s.matchup, isLandscape && s.matchupLandscape]}>
-        <View style={[s.fighter, { borderColor: `${ELEMENT_COLORS[playerCard.element]}70` }]}>
+        <View style={[s.fighter, { borderColor: '#A78BFA70' }]}>
           <Text style={s.fighterRole}>بطاقتك</Text>
-          <Text style={s.fighterEmoji}>{playerCard.emoji || ELEMENT_EMOJI[playerCard.element]}</Text>
+          <Text style={s.fighterEmoji}>{playerCard.emoji || RACE_EMOJI[playerCard.race]}</Text>
           <Text style={s.fighterName} numberOfLines={1}>{cardLabel(playerCard)}</Text>
           <Text style={s.fighterStats}>⚔ {playerCard.attack}  ·  🛡 {playerCard.defense}</Text>
         </View>
@@ -126,9 +126,9 @@ export function TrainingArena() {
           </TouchableOpacity>
         </View>
 
-        <View style={[s.fighter, { borderColor: `${ELEMENT_COLORS[opponentCard.element]}70` }]}>
+        <View style={[s.fighter, { borderColor: '#A78BFA70' }]}>
           <Text style={[s.fighterRole, { color: '#fca5a5' }]}>بطاقة الخصم</Text>
-          <Text style={s.fighterEmoji}>{opponentCard.emoji || ELEMENT_EMOJI[opponentCard.element]}</Text>
+          <Text style={s.fighterEmoji}>{opponentCard.emoji || RACE_EMOJI[opponentCard.race]}</Text>
           <Text style={s.fighterName} numberOfLines={1}>{cardLabel(opponentCard)}</Text>
           <Text style={s.fighterStats}>⚔ {opponentCard.attack}  ·  🛡 {opponentCard.defense}</Text>
         </View>
@@ -150,17 +150,17 @@ export function TrainingArena() {
             <View style={s.damageSide}>
               <Text style={s.damageLabel}>ضررك</Text>
               <Text style={[s.damageValue, { color: '#4ade80' }]}>{result.playerDamage}</Text>
-              <Text style={s.damageMeta}>{advantageLabel(result.playerElementAdvantage)}</Text>
+              <Text style={s.damageMeta}>{advantageLabel(result.playerFactionAdvantage ?? 'neutral')}</Text>
             </View>
             <View style={s.damageDivider} />
             <View style={s.damageSide}>
               <Text style={s.damageLabel}>ضرر الخصم</Text>
               <Text style={[s.damageValue, { color: '#f87171' }]}>{result.botDamage}</Text>
-              <Text style={s.damageMeta}>{advantageLabel(result.botElementAdvantage)}</Text>
+              <Text style={s.damageMeta}>{advantageLabel(result.botFactionAdvantage ?? 'neutral')}</Text>
             </View>
           </View>
           <Text style={s.resultExplanation}>
-            تمت المقارنة بعد تطبيق الهجوم والدفاع ومعامل العنصر وأي قدرة فريدة للبطاقة. غيّر البطاقات ثم أعد التحليل لترى الفرق.
+            تمت المقارنة بعد تطبيق الهجوم والدفاع ومعامل الفصيلة وأي قدرة فريدة للبطاقة. غيّر البطاقات ثم أعد التحليل لترى الفرق.
           </Text>
         </View>
       )}

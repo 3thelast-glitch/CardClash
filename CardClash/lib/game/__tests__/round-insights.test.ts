@@ -22,8 +22,8 @@ const makeResult = (overrides: Partial<RoundResult> = {}): RoundResult => ({
   botDamage: 2,
   playerBaseDamage: 10,
   botBaseDamage: 4,
-  playerElementAdvantage: 'strong',
-  botElementAdvantage: 'weak',
+  playerFactionAdvantage: 'strong',
+  botFactionAdvantage: 'weak',
   playerHealthDelta: 6,
   botHealthDelta: -1,
   winner: 'player',
@@ -36,7 +36,7 @@ describe('سجل أحداث الجولة والمعاينة', () => {
 
     expect(texts).toContain('فزت بالجولة');
     expect(texts).toContain('الضرر: أنت 8 — البوت 2');
-    expect(texts).toContain('أفضلية عنصرية لك في هذه الجولة');
+    expect(texts).toContain('أفضلية فصيلتك لك في هذه الجولة');
     expect(texts).toContain('أنت اكتسب 6 صحة');
     expect(texts).toContain('طب تسونادي: +2 صحة عند دخول الجولة');
 

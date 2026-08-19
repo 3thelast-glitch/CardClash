@@ -19,7 +19,7 @@ const EFFECT_LABELS: Partial<Record<Effect['kind'], string>> = {
   starAdvantage: 'أفضلية النجوم',
   shieldGuard: 'درع',
   doublePoints: 'مضاعفة النقاط',
-  elementalMastery: 'إتقان العناصر',
+  factionMastery: 'إتقان الفصائل',
   absoluteDominance: 'السيطرة المطلقة',
   phantomBlade: 'شفرة الوهم',
 };
@@ -96,11 +96,11 @@ export function buildRoundEventLog(result: RoundResult): RoundInsight[] {
       tone: 'neutral',
     });
   }
-  if (result.playerElementAdvantage === 'strong') {
-    events.push({ id: 'player-element', text: 'أفضلية عنصرية لك في هذه الجولة', tone: 'positive' });
+  if (result.playerFactionAdvantage === 'strong') {
+    events.push({ id: 'player-faction', text: 'أفضلية فصيلتك لك في هذه الجولة', tone: 'positive' });
   }
-  if (result.botElementAdvantage === 'strong') {
-    events.push({ id: 'bot-element', text: 'أفضلية عنصرية للبوت في هذه الجولة', tone: 'negative' });
+  if (result.botFactionAdvantage === 'strong') {
+    events.push({ id: 'bot-faction', text: 'أفضلية فصيلة البوت في هذه الجولة', tone: 'negative' });
   }
   if (result.botAbilityUsed) {
     events.push({

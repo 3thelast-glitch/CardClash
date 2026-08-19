@@ -61,7 +61,7 @@ describe('نظام الإحصائيات', () => {
   });
 
   it('يجب تحديث الإحصائيات بعد الفوز', async () => {
-    const stats = await updateStatsAfterMatch(3, 2, 5, ['🔥 نار', '❄️ جليد']);
+    const stats = await updateStatsAfterMatch(3, 2, 5, ['human', 'elf']);
     
     expect(stats.totalMatches).toBe(1);
     expect(stats.totalWins).toBe(1);
@@ -71,25 +71,25 @@ describe('نظام الإحصائيات', () => {
   });
 
   it('يجب تحديث الإحصائيات بعد الخسارة', async () => {
-    const stats = await updateStatsAfterMatch(2, 3, 5, ['🔥 نار']);
+    const stats = await updateStatsAfterMatch(2, 3, 5, ['human']);
     
     expect(stats.totalMatches).toBeGreaterThanOrEqual(1);
     expect(stats.totalLosses).toBeGreaterThanOrEqual(1);
   });
 
-  it('يجب تحديث إحصائيات العناصر', async () => {
-    const stats = await updateStatsAfterMatch(3, 2, 5, ['🔥 نار', '❄️ جليد', '🔥 نار']);
+  it('يجب تحديث إحصائيات الفصائل', async () => {
+    const stats = await updateStatsAfterMatch(3, 2, 5, ['human', 'elf', 'human']);
     
-    expect(stats.elementStats['🔥 نار']).toBeDefined();
-    expect(stats.elementStats['🔥 نار'].timesUsed).toBeGreaterThanOrEqual(2);
-    expect(stats.elementStats['❄️ جليد']).toBeDefined();
+    expect(stats.factionStats.human).toBeDefined();
+    expect(stats.factionStats.human.timesUsed).toBeGreaterThanOrEqual(2);
+    expect(stats.factionStats.elf).toBeDefined();
   });
 
   it('يجب إعادة تعيين الإحصائيات', async () => {
     // إنشاء مخزن جديد لهذا الاختبار
     mockStorage = {};
     
-    await updateStatsAfterMatch(3, 2, 5, ['🔥 نار']);
+    await updateStatsAfterMatch(3, 2, 5, ['human']);
     await resetStats();
     
     const stats = await loadStats();

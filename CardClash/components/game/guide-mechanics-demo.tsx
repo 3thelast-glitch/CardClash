@@ -12,11 +12,11 @@ import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 import { COLOR, FONT, RADIUS, SPACE } from '@/components/ui/design-tokens';
 
-type LessonId = 'damage' | 'elements' | 'shield';
+type LessonId = 'damage' | 'factions' | 'shield';
 
 const LESSONS: { id: LessonId; icon: string; label: string; caption: string }[] = [
   { id: 'damage', icon: '⚔️', label: 'حساب الضرر', caption: 'كيف يتحول الهجوم والدفاع إلى ضرر فعلي؟' },
-  { id: 'elements', icon: '🌈', label: 'العناصر', caption: 'كيف يمنح التفوق العنصري أفضلية؟' },
+  { id: 'factions', icon: '🔁', label: 'الفصائل', caption: 'كيف تمنح أفضلية الفصيلة قوة إضافية؟' },
   { id: 'shield', icon: '🛡️', label: 'الدرع', caption: 'كيف تحميك القدرة من ضربة حاسمة؟' },
 ];
 
@@ -33,14 +33,14 @@ function DamageDemo({ progress }: { progress: SharedValue<number> }) {
     <View style={s.demoBody}>
       <Stage progress={progress} start={0.06} end={1}>
         <View style={s.cardsRow}>
-          <View style={[s.miniCard, s.fireCard]}><Text style={s.miniEmoji}>🔥</Text><Text style={s.miniLabel}>هجوم 18</Text></View>
+          <View style={[s.miniCard, s.fireCard]}><Text style={s.miniEmoji}>👤</Text><Text style={s.miniLabel}>هجوم 18</Text></View>
           <Text style={s.vsText}>ضد</Text>
-          <View style={[s.miniCard, s.earthCard]}><Text style={s.miniEmoji}>🌍</Text><Text style={s.miniLabel}>دفاع 8</Text></View>
+          <View style={[s.miniCard, s.earthCard]}><Text style={s.miniEmoji}>🧝</Text><Text style={s.miniLabel}>دفاع 8</Text></View>
         </View>
       </Stage>
       <Stage progress={progress} start={0.32} end={1}>
         <View style={s.calculationRow}><Text style={s.calculation}>18</Text><Text style={s.operation}>×</Text><Text style={[s.calculation, { color: '#fcd34d' }]}>1.25</Text><Text style={s.operation}>−</Text><Text style={s.calculation}>8</Text></View>
-        <Text style={s.explainText}>النار متفوقة على الأرض، لذلك يُطبّق معامل 1.25.</Text>
+        <Text style={s.explainText}>البشر متفوقون على الألف، لذلك يُطبّق معامل 1.25.</Text>
       </Stage>
       <Stage progress={progress} start={0.66} end={1}>
         <View style={s.resultPill}><Text style={s.resultIcon}>💥</Text><Text style={s.resultText}>الضرر النهائي: 14</Text></View>
@@ -49,21 +49,21 @@ function DamageDemo({ progress }: { progress: SharedValue<number> }) {
   );
 }
 
-function ElementsDemo({ progress }: { progress: SharedValue<number> }) {
+function FactionsDemo({ progress }: { progress: SharedValue<number> }) {
   return (
     <View style={s.demoBody}>
       <Stage progress={progress} start={0.06} end={1}>
         <View style={s.cardsRow}>
-          <View style={[s.miniCard, s.waterCard]}><Text style={s.miniEmoji}>💧</Text><Text style={s.miniLabel}>الماء</Text></View>
+          <View style={[s.miniCard, s.waterCard]}><Text style={s.miniEmoji}>🐉</Text><Text style={s.miniLabel}>تنين</Text></View>
           <Text style={s.arrowText}>→</Text>
-          <View style={[s.miniCard, s.fireCard]}><Text style={s.miniEmoji}>🔥</Text><Text style={s.miniLabel}>النار</Text></View>
+          <View style={[s.miniCard, s.fireCard]}><Text style={s.miniEmoji}>😈</Text><Text style={s.miniLabel}>شيطان</Text></View>
         </View>
       </Stage>
       <Stage progress={progress} start={0.36} end={1}>
-        <View style={s.bonusPill}><Text style={s.bonusText}>ميزة العناصر: +25% هجوم</Text></View>
+        <View style={s.bonusPill}><Text style={s.bonusText}>أفضلية الفصيلة: +25% هجوم</Text></View>
       </Stage>
       <Stage progress={progress} start={0.68} end={1}>
-        <Text style={s.explainText}>لا تفترض القوة من الرتبة فقط؛ راقب لون ورمز العنصر قبل الهجوم.</Text>
+        <Text style={s.explainText}>لا تفترض القوة من الرتبة فقط؛ راقب فصيلة الخصم قبل الهجوم.</Text>
       </Stage>
     </View>
   );
@@ -116,7 +116,7 @@ export function GuideMechanicsDemo() {
   }, [activeLesson, clearTimers, runAnimation]);
 
   const renderDemo = () => {
-    if (activeLesson === 'elements') return <ElementsDemo progress={progress} />;
+    if (activeLesson === 'factions') return <FactionsDemo progress={progress} />;
     if (activeLesson === 'shield') return <ShieldDemo progress={progress} />;
     return <DamageDemo progress={progress} />;
   };

@@ -30,8 +30,8 @@ const makeRoundResult = (
   botDamage: 1,
   playerBaseDamage: 8,
   botBaseDamage: 2,
-  playerElementAdvantage: 'neutral',
-  botElementAdvantage: 'neutral',
+  playerFactionAdvantage: 'neutral',
+  botFactionAdvantage: 'neutral',
   playerHealthDelta: 0,
   botHealthDelta: 0,
   winner,
@@ -153,10 +153,10 @@ const activationCases: Array<{
   { ability: 'SwapClass' },
   { ability: 'TakeIt', effect: 'takeIt' },
   { ability: 'Skip', effect: 'forcedOutcome' },
-  { ability: 'AddElement', data: { element: 'water' } },
+  { ability: 'AddElement', data: { faction: 'elf' } },
   { ability: 'Explosion', effect: 'explosionDebuff' },
   { ability: 'DoublePoints', effect: 'doublePoints' },
-  { ability: 'ElementalMastery', effect: 'elementalMastery' },
+  { ability: 'ElementalMastery', effect: 'factionMastery' },
   { ability: 'AbsoluteDominance', effect: 'absoluteDominance' },
   { ability: 'InfinityLoop' },
   { ability: 'PhantomBlade', effect: 'phantomBlade' },
@@ -204,15 +204,15 @@ describe('تدقيق تفعيل بطاقات القدرات', () => {
     expect(afterDilemma.botDeck[1].id).toBe('p0');
   });
 
-  it('تدمج Merge الإحصاءات وتبدل SwapClass الفئتين وتغير AddElement العنصر', () => {
+  it('تدمج Merge الإحصاءات وتبدل SwapClass الفئتين وتغير AddElement الفصيلة', () => {
     const merged = usePlayerAbility(makeState('Merge'), 'Merge');
     const swapped = usePlayerAbility(makeState('SwapClass'), 'SwapClass');
-    const withElement = usePlayerAbility(makeState('AddElement'), 'AddElement', { element: 'water' });
+    const withFaction = usePlayerAbility(makeState('AddElement'), 'AddElement', { faction: 'elf' });
 
     expect(merged.playerDeck[1]).toMatchObject({ attack: 20, defense: 9 });
     expect(swapped.playerDeck[1].cardClass).toBe('mage');
     expect(swapped.botDeck[1].cardClass).toBe('warrior');
-    expect(withElement.playerDeck[1].element).toBe('water');
+    expect(withFaction.playerDeck[1].race).toBe('elf');
   });
 
   it('تعيد InfinityLoop الجولات السابقة والنقاط إلى ما قبلها', () => {
@@ -371,13 +371,13 @@ describe('تدقيق تسوية آثار القدرات في الجولة', () =
     expect(misdirected.activeEffects).toContainEqual(expect.objectContaining({ id: 'bot-debuff', data: { stat: 'defense', amount: -4 } }));
   });
 
-  it('يطبق ElementalMastery أفضلية عنصر كاملة وPhantomBlade هجوماً مضاعفاً', () => {
+  it('يطبق ElementalMastery أفضلية فصيلية كاملة وPhantomBlade هجوماً مضاعفاً', () => {
     const mastery = playRound(usePlayerAbility(losingState('ElementalMastery'), 'ElementalMastery'));
     const phantomState = losingState('PhantomBlade');
     phantomState.playerDeck[1] = makeCard('phantom-player', { attack: 11, defense: 0 });
     const phantom = playRound(usePlayerAbility(phantomState, 'PhantomBlade'));
 
-    expect(mastery.roundResults.at(-1)?.playerElementAdvantage).toBe('strong');
+    expect(mastery.roundResults.at(-1)?.playerFactionAdvantage).toBe('strong');
     expect(phantom.roundResults.at(-1)?.winner).toBe('player');
   });
 

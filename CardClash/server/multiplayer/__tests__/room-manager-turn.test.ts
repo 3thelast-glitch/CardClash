@@ -5,7 +5,7 @@ function player(id: string): Player {
   return { id, name: id, socketId: id, isReady: false };
 }
 
-const card = (attack: number) => ({ element: 'fire', attack, defense: 1 });
+const card = (attack: number, race: string = 'human') => ({ race, attack, defense: 1 });
 
 describe('RoomManager turn protocol', () => {
   it('rejects out-of-turn reveals and alternates turns across rounds', () => {
@@ -53,5 +53,26 @@ describe('RoomManager turn protocol', () => {
     expect(started?.totalRounds).toBe(2);
     expect(manager.getCurrentTurnPlayerId('START1')).toBe(host.id);
     expect(manager.startMatch('START1')).toBeNull();
+  });
+
+  it('applies the faction multiplier without forcing a round winner', () => {
+    const manager = new RoomManager();
+    const host = player('host-faction-test');
+    const guest = player('guest-faction-test');
+    manager.createRoom(host, 'FACT01');
+    manager.joinRoom('FACT01', guest);
+    manager.setPlayerCards(host.id, [card(10, 'human')], 1);
+    manager.setPlayerCards(guest.id, [card(10, 'elf')], 1);
+    manager.setPlayerReady(host.id, true);
+    manager.setPlayerReady(guest.id, true);
+    manager.startMatch('FACT01');
+
+    manager.revealCard(host.id, 0, card(10, 'human'));
+    const result = manager.revealCard(guest.id, 0, card(10, 'elf'));
+
+    expect(result?.winner).toBe('player1');
+    expect(result?.advantage).toBe('faction');
+    expect(result?.p1FactionAdvantage).toBe('strong');
+    expect(result?.p2FactionAdvantage).toBe('weak');
   });
 });

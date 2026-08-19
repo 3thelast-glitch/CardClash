@@ -15,7 +15,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { LuxuryBackground } from '@/components/game/luxury-background';
-import { ElementEffect } from '@/components/game/element-effect';
 import { useBattleLayout } from '@/utils/layout';
 import { useOrientationTransition } from '@/utils/orientation-transition';
 import { mpClient, MPMessage } from '@/lib/multiplayer/websocket-client';
@@ -307,7 +306,6 @@ export default function MultiplayerBattleScreen() {
                 isOpenedView={phase === 'result' && lastResult?.myWin}
                 winnerState={phase === 'result' && myCard?.winState === 'win' ? 'winner' : null}
               />
-              {phase === 'result' && <ElementEffect element={myCard.element} isActive />}
             </Animated.View>
           ) : (
             <View style={[S.emptyCard, { width: cardWidth, height: cardHeight }]}>
@@ -377,7 +375,6 @@ export default function MultiplayerBattleScreen() {
                 style={{ width: cardWidth, height: cardHeight }}
                 winnerState={phase === 'result' && oppCard?.winState === 'win' ? 'winner' : null}
               />
-              {phase === 'result' && <ElementEffect element={oppCard.element} isActive />}
             </Animated.View>
           ) : (
             <View style={[S.emptyCard, { width: cardWidth, height: cardHeight }]}>

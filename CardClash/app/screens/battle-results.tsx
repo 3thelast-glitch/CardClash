@@ -12,16 +12,8 @@ import { updateStatsAfterMatch } from '@/lib/stats/storage';
 import { ProButton } from '@/components/ui/ProButton';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL } from '@/components/ui/design-tokens';
 import { getAbilityNameAr } from '@/lib/game/ability-names';
-import type { AbilityType } from '@/lib/game/types';
+import { RACE_EMOJI, RACE_LABELS, type AbilityType } from '@/lib/game/types';
 
-const ELEMENT_EMOJI: Record<string, string> = {
-  fire: '🔥', ice: '❄️', water: '💧',
-  earth: '🌍', lightning: '⚡', wind: '💨',
-};
-const ELEMENT_AR: Record<string, string> = {
-  fire: 'نار', ice: 'جليد', water: 'ماء',
-  earth: 'أرض', lightning: 'برق', wind: 'ريح',
-};
 const DIFF_LABELS: Record<number, string> = {
   1: 'سهل', 2: 'متوسط', 3: 'صعب', 4: 'خيالي', 5: 'أسطوري',
 };
@@ -92,10 +84,10 @@ export default function BattleResultsScreen() {
   useEffect(() => {
     const saveStats = async () => {
       if (state.playerDeck.length > 0) {
-        const elementsUsed = state.playerDeck.map(card => card.element);
+        const factionsUsed = state.playerDeck.map(card => card.race);
         await updateStatsAfterMatch(
           state.playerScore, state.botScore,
-          state.totalRounds, elementsUsed, state.difficulty,
+          state.totalRounds, factionsUsed, state.difficulty,
         );
       }
     };
@@ -107,9 +99,9 @@ export default function BattleResultsScreen() {
     const bestPlayerCard = results.reduce((best: any, r: any) =>
       (r.playerCard.attack + r.playerCard.defense) > ((best?.attack ?? 0) + (best?.defense ?? 0))
         ? r.playerCard : best, null);
-    const elementCount: Record<string, number> = {};
-    for (const r of results) { const el = r.playerCard.element; elementCount[el] = (elementCount[el] ?? 0) + 1; }
-    const topElement = Object.entries(elementCount).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const factionCount: Record<string, number> = {};
+    for (const r of results) { const faction = r.playerCard.race; factionCount[faction] = (factionCount[faction] ?? 0) + 1; }
+    const topFaction = Object.entries(factionCount).sort((a, b) => b[1] - a[1])[0]?.[0];
     const closeRounds = results.filter((r: any) => r.winner !== 'draw' && Math.abs(r.playerDamage - r.botDamage) <= 5).length;
     let maxStreak = 0, curStreak = 0;
     for (const r of results) {
@@ -118,7 +110,7 @@ export default function BattleResultsScreen() {
     }
     const playerUsed: AbilityType[] = state.usedAbilities ?? [];
     const botUsed: AbilityType[] = (state.botAbilities ?? []).filter((a: any) => a.used).map((a: any) => a.type);
-    return { bestPlayerCard, topElement, closeRounds, maxStreak, playerUsed, botUsed };
+    return { bestPlayerCard, topFaction, closeRounds, maxStreak, playerUsed, botUsed };
   }, [state.roundResults, state.usedAbilities, state.botAbilities]);
 
   const resultConfig = isDraw
@@ -160,7 +152,7 @@ export default function BattleResultsScreen() {
           {/* Stats */}
           <View style={styles.statsRow}>
             <StatChip icon="⚡" label="أقوى كرت" value={stats.bestPlayerCard ? (stats.bestPlayerCard.nameAr ?? stats.bestPlayerCard.name) : '—'} color={COLOR.gold} />
-            <StatChip icon={stats.topElement ? (ELEMENT_EMOJI[stats.topElement] ?? '🌀') : '🌀'} label="عنصرك المفضل" value={stats.topElement ? (ELEMENT_AR[stats.topElement] ?? stats.topElement) : '—'} />
+            <StatChip icon={stats.topFaction ? (RACE_EMOJI[stats.topFaction as keyof typeof RACE_EMOJI] ?? '👥') : '👥'} label="فصيلتك الأكثر استخداماً" value={stats.topFaction ? (RACE_LABELS[stats.topFaction as keyof typeof RACE_LABELS] ?? stats.topFaction) : '—'} />
           </View>
           <View style={styles.statsRow}>
             <StatChip icon="🔥" label="سلسلة فوز" value={stats.maxStreak > 0 ? `${stats.maxStreak} جولات` : '—'} color={stats.maxStreak >= 3 ? COLOR.green : COLOR.textMuted} />
@@ -217,7 +209,7 @@ export default function BattleResultsScreen() {
                       <Text style={styles.roundCard} numberOfLines={1}>{round.botCard?.nameAr}</Text>
                     </View>
                     <View style={styles.roundRight}>
-                      <Text style={styles.roundDmg}>{round.playerDamage}{round.playerElementAdvantage !== 'neutral' ? ` (${round.playerElementAdvantage === 'strong' ? '+25%' : '-25%'})` : ''}</Text>
+                      <Text style={styles.roundDmg}>{round.playerDamage}{round.playerFactionAdvantage !== 'neutral' ? ` (${round.playerFactionAdvantage === 'strong' ? '+25%' : '-25%'})` : ''}</Text>
                     </View>
                   </View>
                 );

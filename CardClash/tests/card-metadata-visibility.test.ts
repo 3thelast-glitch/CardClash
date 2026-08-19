@@ -8,9 +8,9 @@ const characterCardSource = readFileSync(
 );
 
 describe('character card optional metadata', () => {
-    it('does not render an element chip without both element values', () => {
-        expect(characterCardSource).toContain('const hasElement = Boolean(elementEmoji && elementLabel);');
-        expect(characterCardSource).toContain('{hasElement && (');
+    it('does not render an element chip and keeps faction metadata only', () => {
+        expect(characterCardSource).not.toContain('ELEMENT_EMOJI');
+        expect(characterCardSource).toContain('const raceLabel = card.race ? RACE_LABELS[card.race] : undefined;');
     });
 
     it('does not render the metadata rail when race and class are absent', () => {

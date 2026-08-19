@@ -240,8 +240,8 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
     const winner = roundResult.winner === 'player' ? 'host' : roundResult.winner === 'bot' ? 'guest' : 'draw';
     const advantage = winner === 'draw'
       ? 'draw'
-      : roundResult.playerElementAdvantage === 'strong' || roundResult.botElementAdvantage === 'strong'
-        ? 'element'
+      : roundResult.playerFactionAdvantage === 'strong' || roundResult.botFactionAdvantage === 'strong'
+        ? 'faction'
         : 'attack';
     const result: LanRoundResult = {
       roundIndex: next.currentRound,
@@ -256,8 +256,8 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
         guestDamage: roundResult.botDamage,
         hostBaseDamage: roundResult.playerBaseDamage,
         guestBaseDamage: roundResult.botBaseDamage,
-        hostElementAdvantage: roundResult.playerElementAdvantage,
-        guestElementAdvantage: roundResult.botElementAdvantage,
+        hostFactionAdvantage: roundResult.playerFactionAdvantage,
+        guestFactionAdvantage: roundResult.botFactionAdvantage,
         hostHealthDelta: roundResult.playerHealthDelta,
         guestHealthDelta: roundResult.botHealthDelta,
       },

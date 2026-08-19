@@ -31,7 +31,7 @@ function RoundFlowSketch() {
     <View style={s.flowArt}>
       <FlowNode number="1" emoji="🃏" label="اختر البطاقة" tone="#60a5fa" />
       <Text style={s.flowArrow}>←</Text>
-      <FlowNode number="2" emoji="🌈" label="افحص العنصر" tone="#a78bfa" />
+      <FlowNode number="2" emoji="🔁" label="افحص الفصيلة" tone="#a78bfa" />
       <Text style={s.flowArrow}>←</Text>
       <FlowNode number="3" emoji="⚔️" label="احسب الضرر" tone="#f87171" />
       <Text style={s.flowArrow}>←</Text>
@@ -40,13 +40,13 @@ function RoundFlowSketch() {
   );
 }
 
-function ElementSketch() {
+function FactionSketch() {
   return (
     <View style={s.elementArt}>
-      <View style={[s.elementBubble, { borderColor: '#60a5fa', backgroundColor: 'rgba(59,130,246,0.16)' }]}><Text style={s.elementEmoji}>💧</Text><Text style={s.elementText}>الماء</Text></View>
+      <View style={[s.elementBubble, { borderColor: '#60a5fa', backgroundColor: 'rgba(59,130,246,0.16)' }]}><Text style={s.elementEmoji}>👤</Text><Text style={s.elementText}>بشر</Text></View>
       <View style={s.elementArrowWrap}><Text style={s.elementArrow}>←</Text><Text style={s.bonus}>×1.25</Text></View>
-      <View style={[s.elementBubble, { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.16)' }]}><Text style={s.elementEmoji}>🔥</Text><Text style={s.elementText}>النار</Text></View>
-      <Text style={s.elementCaption}>اربط الرمز بالخصم المناسب قبل أن تضغط الهجوم.</Text>
+      <View style={[s.elementBubble, { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.16)' }]}><Text style={s.elementEmoji}>🧝</Text><Text style={s.elementText}>ألف</Text></View>
+      <Text style={s.elementCaption}>اربط فصيلة بطاقتك بفصيلة الخصم قبل أن تضغط الهجوم.</Text>
     </View>
   );
 }
@@ -71,8 +71,8 @@ export function GuideSketchBoard() {
       <SketchFrame title="سكتش الجولة" subtitle="اتبع المسار البسيط في كل مواجهة">
         <RoundFlowSketch />
       </SketchFrame>
-      <SketchFrame title="سكتش العناصر" subtitle="التفوق يمنح هجوماً أقوى">
-        <ElementSketch />
+      <SketchFrame title="سكتش الفصائل" subtitle="الأفضلية تمنح هجوماً أقوى">
+        <FactionSketch />
       </SketchFrame>
       <SketchFrame title="سكتش القدرات" subtitle="القدرة في التوقيت الصحيح تصنع الفارق">
         <AbilitySketch />

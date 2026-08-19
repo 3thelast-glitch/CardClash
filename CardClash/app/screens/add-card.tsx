@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { saveCustomCard, generateCardCode } from '@/lib/game/custom-cards-store';
 import { saveImage } from '@/lib/game/image-storage';
-import { Card, CardRarity, Race, CardClass, Element, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI, GENDER_COLORS } from '@/lib/game/types';
+import { Card, CardRarity, Race, CardClass, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI, GENDER_COLORS } from '@/lib/game/types';
 import { CARD_EDITS_KEY } from '@/app/screens/cards-gallery';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { getRarityFromStars } from '@/lib/game/card-rarity';
@@ -32,11 +32,6 @@ const CLASS_AR: Partial<Record<CardClass, string>> = {
   fighter: 'مقاتل',
   guardian: 'روبوت',
   healer: 'طبيب',
-};
-
-const ELEMENT_AR: Record<Element, string> = {
-  fire: 'نار', water: 'ماء',
-  earth: 'أرض', lightning: 'برق', wind: 'ريح',
 };
 
 // ✔ جنسين فقط: ذكر و أنثى (no unknown)
@@ -65,15 +60,9 @@ const RACES: Race[] = ['human', 'elf', 'orc', 'dragon', 'demon', 'undead', 'mons
 // ✔ ست فئات فقط (حذف warrior, knight, berserker, paladin)
 const CLASSES: CardClass[] = ['mage', 'archer', 'swordsman', 'fighter', 'guardian', 'healer'];
 
-const ELEMENTS: Element[] = ['fire', 'water', 'earth', 'lightning', 'wind'];
-
 // ✔ جنسين فقط (حذف unknown)
 const GENDERS: ('male' | 'female')[] = ['male', 'female'];
 
-const EL_COLORS: Record<Element, string> = {
-  fire: '#ef4444', water: '#3b82f6',
-  earth: '#a3e635', lightning: '#facc15', wind: '#a78bfa',
-};
 const RACE_COLORS: Record<Race, string> = {
   human: '#FCD34D', elf: '#34D399', orc: '#FB923C', dragon: '#F87171',
   demon: '#EF4444', undead: '#94A3B8', monster: '#A78BFA', robot: '#67E8F9',
@@ -157,7 +146,7 @@ function CardPreview({ card, mediaB64, isVideo }: { card: Partial<Card>; mediaB6
     hp: card.defense ?? 16,
     race: card.race ?? 'human',
     cardClass: card.cardClass ?? 'mage',
-    element: card.element ?? 'fire',
+    element: 'fire',
     tags: card.tags ?? ['sword'],
     rarity: card.rarity ?? 'common',
     stars: card.stars ?? 1,
@@ -179,7 +168,6 @@ export default function AddCardScreen() {
   const [rarity, setRarity] = useState<CardRarity>('common');
   const [race, setRace] = useState<Race>('human');
   const [cls, setCls] = useState<CardClass>('mage');
-  const [element, setElement] = useState<Element>('fire');
   // ✔ الافتراضي male وليس unknown
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [tags, setTags] = useState<string[]>(['sword']);
@@ -213,7 +201,7 @@ export default function AddCardScreen() {
         attack: Math.max(1, Math.min(99, parseInt(form.attack) || 18)),
         defense: Math.max(1, Math.min(99, parseInt(form.defense) || 16)),
         hp: Math.max(1, Math.min(99, parseInt(form.defense) || 16)),
-        race, cardClass: cls, element, gender,
+        race, cardClass: cls, element: 'fire', gender,
         tags: tags.length ? tags : ['sword'],
         rarity: finalRarity, stars,
         specialAbility: form.specialAbility.trim() || undefined,
@@ -228,12 +216,12 @@ export default function AddCardScreen() {
         hasAbility: !!card.specialAbility, specialAbility: card.specialAbility ?? '',
         hasCustomImage: !!mediaB64, isVideo, imageOffsetY: 0, fitInsideBorder: false,
         _isCustom: true, name: card.name,
-        race, cardClass: cls, element, gender, tags: card.tags, hp: card.hp,
+        race, cardClass: cls, gender, tags: card.tags, hp: card.hp,
       };
       await AsyncStorage.setItem(CARD_EDITS_KEY, JSON.stringify(editsMap));
       setGeneratedCode(generateCardCode(card));
     } finally { setSaving(false); }
-  }, [form, rarity, race, cls, element, gender, tags, mediaB64, isVideo]);
+  }, [form, rarity, race, cls, gender, tags, mediaB64, isVideo]);
 
   const copyCode = () => {
     if (!generatedCode) return;
@@ -268,12 +256,11 @@ export default function AddCardScreen() {
     name: form.nameEn || 'New Card',
     attack: parseInt(form.attack) || 18,
     defense: parseInt(form.defense) || 16,
-    race, cardClass: cls, element, gender, tags, rarity, stars,
+    race, cardClass: cls, gender, tags, rarity, stars,
     specialAbility: form.specialAbility || undefined,
   };
 
   const iconsPreview = [
-    ELEMENT_EMOJI[element],
     RACE_EMOJI[race],
     CLASS_EMOJI[cls],
     GENDER_EMOJI[gender],
@@ -362,23 +349,7 @@ export default function AddCardScreen() {
             {iconsOpen && (
               <View style={S.iconsBody}>
 
-                {/* العنصر */}
-                <Text style={S.secLabel}>العنصر 🔥</Text>
-                <View style={S.iconRow}>
-                  {ELEMENTS.map(e => (
-                    <IconChip
-                      key={e}
-                      icon={ELEMENT_EMOJI[e]}
-                      label={ELEMENT_AR[e]}
-                      selected={element === e}
-                      color={EL_COLORS[e]}
-                      onPress={() => setElement(e)}
-                    />
-                  ))}
-                </View>
-
-                {/* الجنس / الفصيلة */}
-                <Text style={S.secLabel}>الجنس / الفصيلة 👤</Text>
+                <Text style={S.secLabel}>الفصيلة 👥</Text>
                 <View style={S.iconRow}>
                   {RACES.map(r => (
                     <IconChip

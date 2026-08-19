@@ -11,13 +11,15 @@ import { loadStats, resetStats } from '@/lib/stats/storage';
 import { PlayerStats } from '@/lib/stats/types';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL } from '@/components/ui/design-tokens';
 
-const ELEMENT_META: Record<string, { color: string; emoji: string; label: string }> = {
-  fire: { color: '#ef4444', emoji: '🔥', label: 'نار' },
-  ice: { color: '#38bdf8', emoji: '❄️', label: 'جليد' },
-  water: { color: '#3b82f6', emoji: '💧', label: 'ماء' },
-  earth: { color: '#84cc16', emoji: '🌍', label: 'أرض' },
-  lightning: { color: '#facc15', emoji: '⚡', label: 'برق' },
-  wind: { color: '#a78bfa', emoji: '🌪️', label: 'ريح' },
+const FACTION_META: Record<string, { color: string; emoji: string; label: string }> = {
+  human: { color: '#60a5fa', emoji: '👤', label: 'بشر' },
+  elf: { color: '#34d399', emoji: '🧝', label: 'ألف' },
+  orc: { color: '#f59e0b', emoji: '👹', label: 'أورك' },
+  dragon: { color: '#ef4444', emoji: '🐉', label: 'تنين' },
+  demon: { color: '#a78bfa', emoji: '😈', label: 'شيطان' },
+  undead: { color: '#94a3b8', emoji: '💀', label: 'ميت' },
+  monster: { color: '#ec4899', emoji: '👾', label: 'وحش' },
+  robot: { color: '#22d3ee', emoji: '🤖', label: 'روبوت' },
 };
 
 function StatCard({ value, label, color, emoji }: { value: string | number; label: string; color: string; emoji: string }) {
@@ -68,8 +70,8 @@ export default function StatsScreen() {
     ? ((stats.totalWins / stats.totalMatches) * 100).toFixed(1)
     : '0.0';
 
-  const elements = stats
-    ? Object.values(stats.elementStats).sort((a, b) => b.timesUsed - a.timesUsed)
+  const factions = stats
+    ? Object.values(stats.factionStats).sort((a, b) => b.timesUsed - a.timesUsed)
     : [];
 
   // ─ Left column (landscape) / single column (portrait)
@@ -109,21 +111,21 @@ export default function StatsScreen() {
   // ─ Right column (landscape) / continue column (portrait)
   const rightContent = (
     <>
-      {/* Elements */}
-      {elements.length > 0 && (
+      {/* Factions */}
+      {factions.length > 0 && (
         <View style={styles.panel}>
-          <Text style={styles.panelTitle}>🌟 إحصائيات العناصر</Text>
-          {elements.map((el) => {
-            const meta = ELEMENT_META[el.element] ?? { color: COLOR.gold, emoji: '✦', label: el.element };
-            const frac = el.timesUsed > 0 ? el.wins / el.timesUsed : 0;
+          <Text style={styles.panelTitle}>🌟 إحصائيات الفصائل</Text>
+          {factions.map((faction) => {
+            const meta = FACTION_META[faction.faction] ?? { color: COLOR.gold, emoji: '✦', label: faction.faction };
+            const frac = faction.timesUsed > 0 ? faction.wins / faction.timesUsed : 0;
             return (
-              <View key={el.element} style={styles.elRow}>
+              <View key={faction.faction} style={styles.elRow}>
                 <Text style={styles.elEmoji}>{meta.emoji}</Text>
                 <Text style={[styles.elName, { color: meta.color }]}>{meta.label}</Text>
                 <View style={styles.elTrack}>
                   <View style={[styles.elFill, { width: `${frac * 100}%` as any, backgroundColor: meta.color }]} />
                 </View>
-                <Text style={styles.elStats}>{el.wins}W/{el.losses}L</Text>
+                <Text style={styles.elStats}>{faction.wins}W/{faction.losses}L</Text>
               </View>
             );
           })}

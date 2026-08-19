@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Card, GameState, RoundResult, Effect, AbilityType, Side, ElementAdvantage, Element, MatchMode } from './types';
+import { Card, GameState, RoundResult, Effect, AbilityType, Side, FactionAdvantage, Race, MatchMode } from './types';
 import { getRandomAbilities } from './abilities';
 import type { DifficultyLevel } from './difficulty-types';
 import { determineRoundWinner } from './cards-data-exports';
@@ -257,22 +257,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         botDamage: number;
         playerBaseDamage: number;
         botBaseDamage: number;
-        playerElementAdvantage: ElementAdvantage;
-        botElementAdvantage: ElementAdvantage;
+        playerFactionAdvantage: FactionAdvantage;
+        botFactionAdvantage: FactionAdvantage;
         playerHealthDelta: number;
         botHealthDelta: number;
       };
 
       if (absoluteDominanceEffect) {
         // السيطرة المطلقة — أعلى أولوية، تتجاوز حتى تورين والنتائج المضمونة
-        result = { winner: absoluteDominanceEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
+        result = { winner: absoluteDominanceEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
       } else if (turinForcedLoss) {
-        result = { winner: 'bot', playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
+        result = { winner: 'bot', playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
       } else if (forcedOutcomeEffect) {
         const forcedData = forcedOutcomeEffect.data as { outcome?: 'draw' } | undefined;
-        result = { winner: forcedData?.outcome === 'draw' ? 'draw' : forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
+        result = { winner: forcedData?.outcome === 'draw' ? 'draw' : forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
       } else if (starAdvantageEffect) {
-        result = { winner: starAdvantageEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerElementAdvantage: 'neutral' as ElementAdvantage, botElementAdvantage: 'neutral' as ElementAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
+        result = { winner: starAdvantageEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
       } else {
         result = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
       }
@@ -479,7 +479,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             case 'doublePoints': {
               effectsToRemove.add(effect.id); break;
             }
-            case 'elementalMastery': {
+            case 'factionMastery': {
               effectsToRemove.add(effect.id); break;
             }
             case 'absoluteDominance': {
@@ -526,8 +526,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         botDamage: result.botDamage,
         playerBaseDamage: result.playerBaseDamage,
         botBaseDamage: result.botBaseDamage,
-        playerElementAdvantage: result.playerElementAdvantage,
-        botElementAdvantage: result.botElementAdvantage,
+        playerFactionAdvantage: result.playerFactionAdvantage,
+        botFactionAdvantage: result.botFactionAdvantage,
         playerHealthDelta: playerRoundHealthDelta,
         botHealthDelta: botRoundHealthDelta,
         botAbilityUsed: state.botAbilityUsedThisRound,
@@ -953,11 +953,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           break;
         }
         case 'AddElement': {
-          const chosenElement = data?.element as Element;
-          if (chosenElement) {
+          const chosenFaction = data?.faction as Race;
+          if (chosenFaction) {
             const currentCard = side === 'player' ? state.playerDeck[state.currentRound] : state.botDeck[state.currentRound];
             if (currentCard) {
-              const updatedCard = { ...currentCard, element: chosenElement };
+              const updatedCard = { ...currentCard, race: chosenFaction };
               if (side === 'player') {
                 const d = [...state.playerDeck];
                 d[state.currentRound] = updatedCard;
@@ -1002,7 +1002,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         case 'ElementalMastery': {
           nextEffects = [...nextEffects, {
             id: makeEffectId('ElementalMastery', side, roundNumber),
-            kind: 'elementalMastery',
+            kind: 'factionMastery',
             sourceSide: side,
             targetSide: side,
             createdAtRound: roundNumber,
@@ -1281,8 +1281,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       botDamage: 0,
       playerBaseDamage: 0,
       botBaseDamage: 0,
-      playerElementAdvantage: 'neutral' as ElementAdvantage,
-      botElementAdvantage: 'neutral' as ElementAdvantage,
+      playerFactionAdvantage: 'neutral' as FactionAdvantage,
+      botFactionAdvantage: 'neutral' as FactionAdvantage,
       playerHealthDelta: 0,
       botHealthDelta: 0,
     };

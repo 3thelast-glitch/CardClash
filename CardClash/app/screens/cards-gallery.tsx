@@ -12,7 +12,7 @@ import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-
 import { ALL_CARDS } from '@/lib/game/cards-data-exports';
 import {
   Card, CardRarity, CardClass, Element, Race, Tag, RageModeData,
-  ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI,
+  RACE_EMOJI, CLASS_EMOJI, GENDER_EMOJI,
 } from '@/lib/game/types';
 import { getRarityConfig, getRarityFromStars } from '@/lib/game/card-rarity';
 import { useLandscapeLayout, useCardSize, GRID_GAP, LAYOUT_PADDING } from '@/utils/layout';
@@ -59,10 +59,9 @@ type GalleryFilters = {
   cardClass: CardClass | null;
   race: Race | null;
   gender: 'male' | 'female' | null;
-  element: Element | null;
 };
 const DEFAULT_GALLERY_FILTERS: GalleryFilters = {
-  rarity: 'All', cardClass: null, race: null, gender: null, element: null,
+  rarity: 'All', cardClass: null, race: null, gender: null,
 };
 
 function isVideoUri(uri: string): boolean {
@@ -97,14 +96,6 @@ const RARITY_OPTIONS: { value: CardRarity; labelAr: string; color: string; stars
   { value: 'epic', labelAr: 'ملحمي', color: '#8b5cf6', stars: 4 },
   { value: 'legendary', labelAr: 'أسطوري', color: '#ef4444', stars: 5 },
   { value: 'special', labelAr: 'خاص', color: '#ec4899', stars: 5 },
-];
-const ELEMENT_OPTIONS: { value: Element | null; label: string; icon: string; name: string }[] = [
-  { value: null, label: '✕ بدون', icon: '✕', name: 'بدون' },
-  { value: 'fire', label: `${ELEMENT_EMOJI.fire} نار`, icon: ELEMENT_EMOJI.fire, name: 'نار' },
-  { value: 'water', label: `${ELEMENT_EMOJI.water} ماء`, icon: ELEMENT_EMOJI.water, name: 'ماء' },
-  { value: 'earth', label: `${ELEMENT_EMOJI.earth} أرض`, icon: ELEMENT_EMOJI.earth, name: 'أرض' },
-  { value: 'lightning', label: `${ELEMENT_EMOJI.lightning} برق`, icon: ELEMENT_EMOJI.lightning, name: 'برق' },
-  { value: 'wind', label: `${ELEMENT_EMOJI.wind} ريح`, icon: ELEMENT_EMOJI.wind, name: 'ريح' },
 ];
 const RACE_OPTIONS: { value: Race | null; label: string; icon: string; name: string }[] = [
   { value: null, label: '✕ بدون', icon: '✕', name: 'بدون' },
@@ -501,14 +492,6 @@ function GalleryFilterModal({ visible, filters, onApply, onClose }: {
                 );
               })}
             </View>
-            <RNText style={fm.sectionLabel}>🔥 العنصر</RNText>
-            <View style={fm.chipsRow}>
-              {ELEMENT_OPTIONS.map(opt => (
-                <FilterChip key={String(opt.value)} icon={opt.icon} name={opt.name}
-                  active={local.element === opt.value} color={opt.value === null ? '#f87171' : '#f59e0b'}
-                  onPress={() => patch({ element: opt.value as Element | null })} />
-              ))}
-            </View>
             <RNText style={fm.sectionLabel}>👤 الجنس / الفصيلة</RNText>
             <View style={fm.chipsRow}>
               {RACE_OPTIONS.map(opt => (
@@ -722,7 +705,6 @@ export default function CardsGalleryScreen() {
 
   const filteredCards = cards.filter(card => {
     if (galleryFilters.rarity !== 'All' && (card.rarity ?? 'common').toLowerCase() !== galleryFilters.rarity) return false;
-    if (galleryFilters.element !== null && (card.element ?? null) !== galleryFilters.element) return false;
     if (galleryFilters.race !== null && (card.race ?? null) !== galleryFilters.race) return false;
     if (galleryFilters.cardClass !== null && ((card as any).cardClass ?? null) !== galleryFilters.cardClass) return false;
     if (galleryFilters.gender !== null) {
@@ -745,7 +727,6 @@ export default function CardsGalleryScreen() {
 
   const activeFilterCount = [
     galleryFilters.rarity !== 'All',
-    galleryFilters.element !== null,
     galleryFilters.race !== null,
     galleryFilters.cardClass !== null,
     galleryFilters.gender !== null,
@@ -874,10 +855,7 @@ export default function CardsGalleryScreen() {
                   <View style={ep.divider} />
 
                   <RNText style={ep.sectionHeader}>🏷️ أيقونات المنتصف</RNText>
-                  <IconPicker label="🔥 العنصر" options={ELEMENT_OPTIONS as any} value={edits.element} color={rarityColor}
-                    onChange={v => patch({ element: v as Element | null })} />
-                  <View style={ep.divider} />
-                  <IconPicker label="👤 الجنس / الفصيلة" options={RACE_OPTIONS as any} value={edits.race} color={rarityColor}
+                  <IconPicker label="👥 الفصيلة" options={RACE_OPTIONS as any} value={edits.race} color={rarityColor}
                     onChange={v => patch({ race: v as Race | null })} />
                   <View style={ep.divider} />
                   <IconPicker label="⚔️ الفئة" options={CLASS_OPTIONS as any} value={edits.cardClass} color={rarityColor}

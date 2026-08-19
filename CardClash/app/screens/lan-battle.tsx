@@ -14,16 +14,16 @@ import type { Effect, Side } from '@/lib/game/types';
 import { useBattleLayout } from '@/utils/layout';
 
 function getRoundExplanation(result: NonNullable<ReturnType<typeof useLanMultiplayer>['match']['lastResult']>): string {
-  if (result.winner === 'draw') return 'تعادل الكرتان: لم تمنح العناصر أفضلية فاصلة وتساوت نتيجة المقارنة بعد تطبيق التأثيرات.';
+  if (result.winner === 'draw') return 'تعادل الكرتان: لم تمنح الفصائل أفضلية فاصلة وتساوت نتيجة المقارنة بعد تطبيق التأثيرات.';
   const winner = result.winner === 'host' ? result.hostCard : result.guestCard;
   const loser = result.winner === 'host' ? result.guestCard : result.hostCard;
-  if (result.advantage === 'element') return `فاز ${winner.name} بأفضلية العنصر على ${loser.name} قبل مقارنة الهجوم والدفاع.`;
+  if (result.advantage === 'faction') return `فاز ${winner.name} بأفضلية الفصيلة على ${loser.name} قبل مقارنة الهجوم والدفاع.`;
   const winnerNet = Math.max(0, (winner.attack ?? 0) - (loser.defense ?? 0));
   const loserNet = Math.max(0, (loser.attack ?? 0) - (winner.defense ?? 0));
   return `فاز ${winner.name}: قوة الهجوم بعد دفاع الخصم ${winnerNet} مقابل ${loserNet} للكرت الآخر، بعد تطبيق القدرات والتأثيرات.`;
 }
 
-function getElementLabel(advantage: 'strong' | 'weak' | 'neutral'): string {
+function getFactionLabel(advantage: 'strong' | 'weak' | 'neutral' | undefined): string {
   return advantage === 'strong' ? 'أفضلية قوية' : advantage === 'weak' ? 'أفضلية ضعيفة' : 'دون أفضلية';
 }
 
@@ -54,7 +54,7 @@ function getActiveCardEffectBadges(effects: Effect[], side: Side, currentRound: 
         forcedOutcome: { id: effect.id, label: 'نتيجة مضمونة لهذه الجولة', tone: 'utility' },
         starAdvantage: { id: effect.id, label: 'تعزيز: تفوق النجوم', tone: 'buff' },
         absoluteDominance: { id: effect.id, label: 'خاص: السيطرة المطلقة', tone: 'utility' },
-        elementalMastery: { id: effect.id, label: 'تعزيز: إتقان العناصر', tone: 'buff' },
+        factionMastery: { id: effect.id, label: 'تعزيز: إتقان الفصائل', tone: 'buff' },
         trap: { id: effect.id, label: 'إضعاف: فخ فعّال', tone: 'debuff' },
         doubleOrNothing: { id: effect.id, label: 'خاص: دبل أو نثنق', tone: 'utility' },
         phantomBlade: { id: effect.id, label: 'تعزيز: شفرة الوهم', tone: 'buff' },
@@ -213,7 +213,7 @@ export default function LanBattleScreen() {
           {resultComparison && <View style={styles.resultMetrics}>
             <Text style={styles.resultMetricText}>⚔️ الضرر بعد الدفاع: {result.hostCard.name} {resultComparison.hostDamage} — {resultComparison.guestDamage} {result.guestCard.name}</Text>
             <Text style={styles.resultMetricText}>📈 القوة قبل الدفاع: {resultComparison.hostBaseDamage} — {resultComparison.guestBaseDamage}</Text>
-            <Text style={styles.resultMetricText}>🌊 العناصر: {getElementLabel(resultComparison.hostElementAdvantage)} — {getElementLabel(resultComparison.guestElementAdvantage)}</Text>
+            <Text style={styles.resultMetricText}>👥 الفصائل: {getFactionLabel(resultComparison.hostFactionAdvantage)} — {getFactionLabel(resultComparison.guestFactionAdvantage)}</Text>
             {(resultComparison.hostHealthDelta > 0 || resultComparison.guestHealthDelta > 0) && <Text style={styles.resultMetricText}>💚 علاج/استعادة: +{resultComparison.hostHealthDelta} — +{resultComparison.guestHealthDelta}</Text>}
           </View>}
         </View>}

@@ -32,6 +32,7 @@ const validAbility = {
 describe('custom-content-store', () => {
   it('validates supported custom card and ability shapes', () => {
     expect(validateCustomCard(validCard)).toBe(true);
+    expect(validateCustomCard({ ...validCard, element: undefined })).toBe(true);
     expect(validateCustomAbility(validAbility)).toBe(true);
     expect(validateCustomCard({ ...validCard, attack: 0 })).toBe(false);
     expect(validateCustomAbility({ ...validAbility, runtimeType: 'unsupported' })).toBe(false);

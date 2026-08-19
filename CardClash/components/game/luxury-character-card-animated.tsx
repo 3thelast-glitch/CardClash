@@ -2,7 +2,7 @@
  * LuxuryCharacterCardAnimated
  * ✨ MetaStrip: sits BETWEEN attack & defense badges (same row)
  * ✨ Chips = icon only, no background, no border — pure clean icons
- * ✨ Element has NO visual effect on card colors — rarity theme only
+ * ✨ Faction and class metadata are shown without any elemental system
  * ✨ StatBadge shows effective value with ▲/▼ diff indicator when buffs/debuffs active
  */
 import React, { useCallback, useEffect, useRef } from 'react';
@@ -15,17 +15,9 @@ import Animated, {
     type SharedValue,
 } from 'react-native-reanimated';
 import { Svg, Circle, Line, Ellipse, Path, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { Card, CardClass, CardRarity, Element, Race, ELEMENT_EMOJI, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
+import { Card, CardClass, CardRarity, Race, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
 import { getCardImage } from '../../lib/game/get-card-image';
 import { useSettings } from '@/lib/game/hooks/useSettings';
-
-const ELEMENT_LABELS: Record<Element, string> = {
-    fire: 'نار',
-    water: 'ماء',
-    earth: 'أرض',
-    lightning: 'برق',
-    wind: 'ريح',
-};
 
 const RACE_LABELS: Record<Race, string> = {
     human: 'بشر', elf: 'إلف', orc: 'أورك', dragon: 'تنين',
@@ -70,7 +62,7 @@ function isAnimatedUri(uri: string): boolean {
 }
 function isLocalAsset(value: any): value is number { return typeof value === 'number'; }
 
-// Tag elements removed as per user request to rely purely on Element, Race, and Class
+// Tags removed from this compact strip; it presents faction and class only.
 
 // ─────────────────────────────────────────────
 // MetaStrip — icon-only, no bg/border, sits BETWEEN atk & def
@@ -80,8 +72,6 @@ const MetaStrip = ({ card, sc }: { card: Card; sc: number }) => {
     const gap = Math.max(2, Math.min(6, 4 * sc));
 
     const icons: string[] = [];
-    const el = card.element;
-    if (el && ELEMENT_EMOJI[el]) icons.push(ELEMENT_EMOJI[el]);
     const race = card.race;
     if (race && RACE_EMOJI[race]) icons.push(RACE_EMOJI[race]);
     const cls = card.cardClass;
@@ -555,9 +545,6 @@ const TacticalRarityCard = ({
     const basePower = Math.max(0, baseAttack + baseDefense);
     const powerDelta = effectivePower - basePower;
     const powerDeltaText = powerDelta === 0 ? '' : ` ${powerDelta > 0 ? '+' : ''}${powerDelta}`;
-    const elementEmoji = card.element ? ELEMENT_EMOJI[card.element] : undefined;
-    const elementLabel = card.element ? ELEMENT_LABELS[card.element] : undefined;
-    const hasElement = Boolean(elementEmoji && elementLabel);
     type MetaItem = { key: 'race' | 'class'; label: string };
     const raceLabel = card.race ? RACE_LABELS[card.race] : undefined;
     const classLabel = card.cardClass ? CLASS_LABELS[card.cardClass] : undefined;
@@ -580,13 +567,7 @@ const TacticalRarityCard = ({
                 <LinearGradient colors={['rgba(2,4,8,0.03)', 'rgba(2,4,8,0.08)', palette.overlayBottom]} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
 
                 <View style={[styles.tacticalLegendaryFrame, { borderRadius: Math.round(8 * sc), borderColor: palette.frame }]} pointerEvents="none" />
-                <View style={[styles.tacticalLegendaryTopRow, { top: pad, left: pad, right: pad, justifyContent: hasElement ? 'space-between' : 'flex-end' }]}>
-                    {hasElement && (
-                        <View style={[styles.tacticalLegendaryChip, isCompact && styles.tacticalLegendaryChipCompact, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
-                            <Text style={{ fontSize: badgeFont + 2 }}>{elementEmoji}</Text>
-                            <Text style={[styles.tacticalLegendaryChipText, { color: palette.chipText, fontSize: badgeFont }]}>{elementLabel}</Text>
-                        </View>
-                    )}
+                <View style={[styles.tacticalLegendaryTopRow, { top: pad, left: pad, right: pad, justifyContent: 'flex-end' }]}>
                     <View style={[styles.tacticalLegendaryRarityChip, isCompact && styles.tacticalLegendaryChipCompact, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
                         <Text style={[styles.tacticalLegendaryChipText, { color: palette.chipText, fontSize: badgeFont }]}>{palette.symbol} {palette.label}</Text>
                     </View>

@@ -40,14 +40,13 @@ import Animated, {
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { StatusBar } from 'expo-status-bar';
-import { ElementEffect } from '@/components/game/element-effect';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { DamageNumber, DamageNumberVariant } from '@/components/game/damage-number';
 import { BattleResultOverlay } from '@/components/game/BattleResultOverlay';
 import { useBattleLayout } from '@/utils/layout';
 import { useOrientationTransition } from '@/utils/orientation-transition';
 import { useGame } from '@/lib/game/game-context';
-import { ELEMENT_EMOJI, ElementAdvantage, Element, CardClass, AbilityType, RoundResult, Side } from '@/lib/game/types';
+import { RACE_EMOJI, RACE_LABELS, FactionAdvantage, Race, CardClass, AbilityType, RoundResult, Side } from '@/lib/game/types';
 import { getAbilityNameAr, getAbilityNameOnly, getAbilityDescription } from '@/lib/game/ability-names';
 import { AbilityCard } from '@/components/game/ability-card';
 import { abilities as ALL_ABILITIES } from '@/data/abilities';
@@ -80,16 +79,12 @@ import { buildRoundEventLog, getActiveEffectPreview } from '@/lib/game/round-ins
 type BattlePhase = 'selection' | 'action' | 'combat' | 'result' | 'waiting';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
-const advantageColor = (a: ElementAdvantage) =>
+const advantageColor = (a: FactionAdvantage) =>
   a === 'strong' ? '#4ade80' : a === 'weak' ? '#f87171' : '#a0a0a0';
-const advantageLabel = (a: ElementAdvantage) =>
+const advantageLabel = (a: FactionAdvantage) =>
   a === 'strong' ? '⬆️ قوي' : a === 'weak' ? '⬇️ ضعيف' : '';
 
-const ALL_ELEMENTS: Element[] = ['fire', 'water', 'earth', 'lightning', 'wind'];
-const ELEMENT_LABELS: Record<Element, string> = {
-  fire: '🔥 نار', water: '💧 ماء',
-  earth: '🌍 أرض', lightning: '⚡ برق', wind: '💨 ريح',
-};
+const ALL_FACTIONS: Race[] = ['human', 'elf', 'orc', 'dragon', 'demon', 'undead', 'monster', 'robot'];
 
 // ✅ الفصائل المعتمدة فقط (حسب الفلتر)
 const ALL_CLASSES: CardClass[] = ['swordsman', 'fighter', 'guardian', 'healer'];
@@ -209,13 +204,13 @@ const sb = StyleSheet.create({
 });
 
 // ─── Advantage chip ─────────────────────────────────────────────────────────
-function AdvantageChip({ advantage, element }: { advantage: ElementAdvantage; element: string }) {
+function AdvantageChip({ advantage, faction }: { advantage: FactionAdvantage; faction: Race }) {
   if (advantage === 'neutral') return null;
   const c = advantageColor(advantage);
   return (
     <View style={[ac.chip, { borderColor: c + '55', backgroundColor: c + '14' }]}>
       <Text style={[ac.text, { color: c }]}>
-        {ELEMENT_EMOJI[element as keyof typeof ELEMENT_EMOJI]} {advantageLabel(advantage)}
+        {RACE_EMOJI[faction]} {advantageLabel(advantage)}
       </Text>
     </View>
   );
@@ -599,7 +594,7 @@ export default function BattleScreen() {
     setChoiceModal({ visible: true, title: '🎙️ بروباغاندا — اختر فئة الخصم', options: ALL_CLASSES.map(c => ({ value: c, label: CLASS_LABELS[c] })), abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'AddElement') {
-      setChoiceModal({ visible: true, title: '🧪 إضافة عنصر — اختر العنصر', options: ALL_ELEMENTS.map(e => ({ value: e, label: ELEMENT_LABELS[e] })), abilityType, ownerSide: abilityOwnerSide });
+      setChoiceModal({ visible: true, title: '👥 تغيير الفصيلة — اختر الفصيلة', options: ALL_FACTIONS.map(faction => ({ value: faction, label: `${RACE_EMOJI[faction]} ${RACE_LABELS[faction]}` })), abilityType, ownerSide: abilityOwnerSide });
 
     } else if (abilityType === 'SwapClass') {
       setChoiceModal({ visible: true, title: '🔀 تبديل الفئة — اختر فئتك', options: ALL_CLASSES.map(c => ({ value: c, label: CLASS_LABELS[c] })), abilityType, ownerSide: abilityOwnerSide });
@@ -660,7 +655,7 @@ export default function BattleScreen() {
     } else if (abilityType === 'Subhan') {
       activateAbility(abilityType as any, { guessedAttack: Number(value) }, ownerSide === 'player');
     } else {
-      activateAbility(abilityType as any, { selection: value, targetClass: value, element: value }, ownerSide === 'player');
+      activateAbility(abilityType as any, { selection: value, targetClass: value, faction: value }, ownerSide === 'player');
     }
 
     setIsAbilitiesModalOpen(false);
@@ -709,8 +704,8 @@ export default function BattleScreen() {
       });
 
       if (settings.showDamageNumbers) {
-        if (lastRoundResult.botDamage > 0) spawnDmg('bot', lastRoundResult.botDamage, lastRoundResult.playerElementAdvantage === 'strong' ? 'critical' : 'damage');
-        if (lastRoundResult.playerDamage > 0) spawnDmg('player', lastRoundResult.playerDamage, lastRoundResult.botElementAdvantage === 'strong' ? 'critical' : 'damage');
+        if (lastRoundResult.botDamage > 0) spawnDmg('bot', lastRoundResult.botDamage, lastRoundResult.playerFactionAdvantage === 'strong' ? 'critical' : 'damage');
+        if (lastRoundResult.playerDamage > 0) spawnDmg('player', lastRoundResult.playerDamage, lastRoundResult.botFactionAdvantage === 'strong' ? 'critical' : 'damage');
       }
     } catch (error) {
       console.error('Error processing round result:', error);
@@ -912,15 +907,12 @@ export default function BattleScreen() {
                   }
                 />
               </Animated.View>
-              {showPlayerEffect && (
-                <ElementEffect element={displayPlayerCard.element} isActive position="bottom" />
-              )}
               {activeDamageNumbers.filter(n => n.side === 'player').map(n => (
                 <DamageNumber key={n.id} value={n.value} variant={n.variant} onComplete={() => removeDmg(n.id)} />
               ))}
               <AdvantageChip
-                advantage={lastRoundResult?.playerElementAdvantage ?? 'neutral'}
-                element={displayPlayerCard.element}
+                advantage={lastRoundResult?.playerFactionAdvantage ?? 'neutral'}
+                faction={displayPlayerCard.race}
               />
               {isLandscape && <ActiveEffectsBar effects={state.activeEffects} side="player" />}
             </View>
@@ -1051,15 +1043,12 @@ export default function BattleScreen() {
                   }
                 />
               </Animated.View>
-              {showBotEffect && (
-                <ElementEffect element={displayBotCard.element} isActive position="top" />
-              )}
               {activeDamageNumbers.filter(n => n.side === 'bot').map(n => (
                 <DamageNumber key={n.id} value={n.value} variant={n.variant} onComplete={() => removeDmg(n.id)} />
               ))}
               <AdvantageChip
-                advantage={lastRoundResult?.botElementAdvantage ?? 'neutral'}
-                element={displayBotCard.element}
+                advantage={lastRoundResult?.botFactionAdvantage ?? 'neutral'}
+                faction={displayBotCard.race}
               />
               {isLandscape && <ActiveEffectsBar effects={state.activeEffects} side="bot" />}
             </View>

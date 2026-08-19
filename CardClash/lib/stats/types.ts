@@ -7,12 +7,12 @@ export interface MatchHistory {
   botScore: number;
   totalRounds: number;
   winner: 'player' | 'bot' | 'draw';
-  elementsUsed: string[];
+  factionsUsed: string[];
   difficulty: 1 | 2 | 3 | 4 | 5;
 }
 
-export interface ElementStats {
-  element: string;
+export interface FactionStats {
+  faction: string;
   timesUsed: number;
   wins: number;
   losses: number;
@@ -30,8 +30,8 @@ export interface PlayerStats {
   currentWinStreak: number;
   highestScore: number;
 
-  // إحصائيات العناصر
-  elementStats: Record<string, ElementStats>;
+  // إحصائيات الفصائل
+  factionStats: Record<string, FactionStats>;
 
   // سجل المباريات (آخر 10)
   matchHistory: MatchHistory[];
@@ -48,7 +48,7 @@ export const DEFAULT_STATS: PlayerStats = {
   bestWinStreak: 0,
   currentWinStreak: 0,
   highestScore: 0,
-  elementStats: {},
+  factionStats: {},
   matchHistory: [],
   lastUpdated: new Date().toISOString(),
 };

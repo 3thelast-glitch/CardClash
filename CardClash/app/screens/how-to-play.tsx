@@ -12,12 +12,15 @@ import { GuideMechanicsDemo } from '@/components/game/guide-mechanics-demo';
 import { GuideSketchBoard } from '@/components/game/guide-sketch-board';
 import { COLOR, FONT, RADIUS, SPACE } from '@/components/ui/design-tokens';
 
-const ELEMENTS = [
-  { emoji: '🔥', title: 'النار', strong: 'الأرض', weak: 'الماء والريح', color: '#ef4444' },
-  { emoji: '💧', title: 'الماء', strong: 'النار', weak: 'الأرض والبرق', color: '#3b82f6' },
-  { emoji: '🌍', title: 'الأرض', strong: 'البرق والماء', weak: 'الريح', color: '#a3e635' },
-  { emoji: '⚡', title: 'البرق', strong: 'الماء والريح', weak: 'الأرض', color: '#facc15' },
-  { emoji: '💨', title: 'الريح', strong: 'الأرض', weak: 'النار والبرق', color: '#a78bfa' },
+const FACTIONS = [
+  { emoji: '👤', title: 'بشر', strong: 'ألف', weak: 'روبوت', color: '#60a5fa' },
+  { emoji: '🧝', title: 'ألف', strong: 'أورك', weak: 'بشر', color: '#34d399' },
+  { emoji: '👹', title: 'أورك', strong: 'تنين', weak: 'ألف', color: '#f59e0b' },
+  { emoji: '🐉', title: 'تنين', strong: 'شيطان', weak: 'أورك', color: '#ef4444' },
+  { emoji: '😈', title: 'شيطان', strong: 'ميت', weak: 'تنين', color: '#a78bfa' },
+  { emoji: '💀', title: 'ميت', strong: 'وحش', weak: 'شيطان', color: '#94a3b8' },
+  { emoji: '👾', title: 'وحش', strong: 'روبوت', weak: 'ميت', color: '#ec4899' },
+  { emoji: '🤖', title: 'روبوت', strong: 'بشر', weak: 'وحش', color: '#22d3ee' },
 ];
 
 const STEPS = [
@@ -28,7 +31,7 @@ const STEPS = [
 
 const TIPS = [
   { emoji: '🛡️', title: 'الدفاع مهم', text: 'هجوم مرتفع لا يكفي دائماً؛ الدفاع يخصم من الضرر الوارد.' },
-  { emoji: '🌈', title: 'راقب العنصر', text: 'التفوق العنصري يرفع الهجوم بنسبة 25%، والضعف يخفضه بنسبة 25%.' },
+  { emoji: '🔁', title: 'راقب الفصيلة', text: 'الأفضلية الفصيلية ترفع الهجوم بنسبة 25%، والضعف الفصيلي يخفضه بنسبة 25%.' },
   { emoji: '✨', title: 'لا تهدر القدرات', text: 'بعض القدرات تمنح درعاً أو تعدّل الإحصاءات أو تؤثر في النقاط؛ استخدمها في الجولة المناسبة.' },
 ];
 
@@ -79,7 +82,7 @@ export default function HowToPlayScreen() {
           <View style={[s.hero, isLandscape && s.heroLandscape]}>
             <View style={s.heroBadge}><Text style={s.heroBadgeText}>📖 دليل اللاعب</Text></View>
             <Text style={s.heroTitle}>افهم المواجهة. خطّط بذكاء. وانتصر.</Text>
-            <Text style={s.heroText}>Card Clash هي مواجهة بطاقات سريعة تعتمد على ترتيب بطاقاتك، إحصاءاتها، عناصرها، وقدراتك الخاصة.</Text>
+            <Text style={s.heroText}>Card Clash هي مواجهة بطاقات سريعة تعتمد على ترتيب بطاقاتك، إحصاءاتها، فصائلها، وقدراتك الخاصة.</Text>
             <TouchableOpacity style={s.heroButton} onPress={() => router.push('/screens/game-mode' as any)} activeOpacity={0.85}>
               <Text style={s.heroButtonText}>ابدأ مباراة الآن  ⚔️</Text>
             </TouchableOpacity>
@@ -99,7 +102,7 @@ export default function HowToPlayScreen() {
 
           <SectionTitle eyebrow="قلب المعركة" title="كيف تُحسم الجولة؟" text="يفوز صاحب الضرر الأعلى في الجولة؛ التعادل لا يخصم نقطة من أي طرف." />
           <View style={[s.rulesGrid, isLandscape && s.rulesGridLandscape]}>
-            <InfoCard emoji="⚔️" title="الهجوم" text="ابدأ بقيمة هجوم البطاقة، ثم يطبّق النظام تأثير العنصر والقدرات النشطة." accent="#f87171" />
+            <InfoCard emoji="⚔️" title="الهجوم" text="ابدأ بقيمة هجوم البطاقة، ثم يطبّق النظام معامل أفضلية الفصيلة والقدرات النشطة." accent="#f87171" />
             <InfoCard emoji="🛡️" title="الدفاع" text="يُخصم دفاع الخصم من الضرر الخام؛ لا يمكن أن ينخفض الضرر عن صفر." accent="#60a5fa" />
             <InfoCard emoji="❤️" title="النقاط" text="تبدأ النقاط بعدد الجولات المختار. الفوز المعتاد في الجولة يخفض نقطة الخصم بمقدار واحد." accent="#34d399" />
             <InfoCard emoji="🏆" title="الفوز" text="بعد انتهاء الجولات، اللاعب صاحب النقاط المتبقية الأعلى هو الفائز بالمباراة." accent={COLOR.gold} />
@@ -107,7 +110,7 @@ export default function HowToPlayScreen() {
 
           <View style={s.formulaCard}>
             <Text style={s.formulaLabel}>معادلة مبسطة للضرر</Text>
-            <Text style={s.formula}>الضرر = أقصى قيمة بين 0 و (الهجوم × معامل العنصر − دفاع الخصم)</Text>
+            <Text style={s.formula}>الضرر = أقصى قيمة بين 0 و (الهجوم × معامل الفصيلة − دفاع الخصم)</Text>
             <Text style={s.formulaNote}>تُطبّق القدرات والتأثيرات الخاصة قبل المقارنة النهائية عند وجودها.</Text>
           </View>
 
@@ -120,9 +123,9 @@ export default function HowToPlayScreen() {
           <SectionTitle eyebrow="خلاصة مرسومة" title="سكتشات تساعدك على التذكر" text="احفظ هذه الخرائط البصرية السريعة لتتخذ قرارك داخل الجولة بثقة." />
           <GuideSketchBoard />
 
-          <SectionTitle eyebrow="خمس قوى" title="نظام العناصر" text="ميزة العنصر تمنح ×1.25 للهجوم، وضعف العنصر يطبّق ×0.75." />
+          <SectionTitle eyebrow="دورة المواجهات" title="نظام الفصائل" text="كل فصيلة تتفوق على الفصيلة التالية في الدورة: الأفضلية تمنح ×1.25 للهجوم والضعف يطبّق ×0.75." />
           <Animated.View layout={layoutTransition} style={[s.elementGrid, isLandscape && s.elementGridLandscape]}>
-            {ELEMENTS.map(element => (
+            {FACTIONS.map(element => (
               <View key={element.title} style={[s.elementCard, { borderColor: `${element.color}50` }]}>
                 <View style={[s.elementIcon, { backgroundColor: `${element.color}20` }]}><Text style={s.elementEmoji}>{element.emoji}</Text></View>
                 <View style={s.elementTextWrap}>

@@ -6,12 +6,12 @@
  *  1  سهل      — عشوائي تماماً، قدرات نادرة وعشوائية
  *  2  متوسط    — أفضل نصف الكروت، قدرات عشوائية خفيفة
  *  3  صعب      — نفس الكروت لكن يحسب التوقيت + threshold أعلى + noise أقل
- *  4  خيالي    — Utility AI كامل + ذاكرة عناصر + عشوائية كروت خفيفة (5؉)
+ *  4  خيالي    — Utility AI كامل + ذاكرة فصائل + عشوائية كروت خفيفة (5؉)
  *  5  أسطوري   — كل ما سبق + ذاكرة شاملة + mode أسرع + يحتفظ بأقوى قدرة للنهاية + عشوائية كروت (3؉)
  */
 
-import { Card, GameState, AbilityType, AbilityState, RoundResult, Element, CardClass, Race } from './types';
-import { ALL_CARDS, getElementAdvantage } from './cards-data-exports';
+import { Card, GameState, AbilityType, AbilityState, RoundResult, CardClass, Race } from './types';
+import { ALL_CARDS, getFactionAdvantage } from './cards-data-exports';
 import type { DifficultyLevel } from '@/app/screens/difficulty';
 
 // ──────────────────────────────── Types ────────────────────────────────
@@ -20,7 +20,7 @@ export type BotMode = 'aggressive' | 'balanced' | 'safe';
 export interface UtilityBreakdown {
   winChance: number;
   damage: number;
-  element: number;
+  faction: number;
   roundPressure: number;
   saveAbility: number;
   risk: number;
@@ -29,7 +29,7 @@ export interface UtilityBreakdown {
 export interface BotMemory {
   playerWinStreak: number;
   playerUsedAbilities: AbilityType[];
-  playerFavoredElements: Record<string, number>;
+  playerFavoredFactions: Record<string, number>;
   botLossStreak: number;
   totalRoundsPlayed: number;
   strongestBotAbility: AbilityType | null;
@@ -46,7 +46,7 @@ export interface BotDecision {
 }
 
 export interface PlayerMovePrediction {
-  element: Element | null;
+  faction: Race | null;
   cardClass: CardClass | null;
   race: Race | null;
   confidence: number;
@@ -58,16 +58,16 @@ export interface PlayerMovePrediction {
 type WeightMap = Record<keyof UtilityBreakdown, number>;
 
 const WEIGHTS: Record<BotMode, WeightMap> = {
-  aggressive: { winChance: 0.30, damage: 0.28, element: 0.14, roundPressure: 0.14, saveAbility: 0.04, risk: 0.10 },
-  balanced:   { winChance: 0.34, damage: 0.22, element: 0.14, roundPressure: 0.12, saveAbility: 0.10, risk: 0.08 },
-  safe:       { winChance: 0.36, damage: 0.16, element: 0.14, roundPressure: 0.10, saveAbility: 0.16, risk: 0.08 },
+  aggressive: { winChance: 0.30, damage: 0.28, faction: 0.14, roundPressure: 0.14, saveAbility: 0.04, risk: 0.10 },
+  balanced:   { winChance: 0.34, damage: 0.22, faction: 0.14, roundPressure: 0.12, saveAbility: 0.10, risk: 0.08 },
+  safe:       { winChance: 0.36, damage: 0.16, faction: 0.14, roundPressure: 0.10, saveAbility: 0.16, risk: 0.08 },
 };
 
 // ──────────────────────────────── Memory ────────────────────────────────
 let _memory: BotMemory = {
   playerWinStreak: 0,
   playerUsedAbilities: [],
-  playerFavoredElements: {},
+  playerFavoredFactions: {},
   botLossStreak: 0,
   totalRoundsPlayed: 0,
   strongestBotAbility: null,
@@ -88,8 +88,8 @@ export function updateBotMemory(
     _memory.playerWinStreak = 0;
     _memory.botLossStreak = 0;
   }
-  const el = result.playerCard.element;
-  _memory.playerFavoredElements[el] = (_memory.playerFavoredElements[el] ?? 0) + 1;
+  const faction = result.playerCard.race;
+  _memory.playerFavoredFactions[faction] = (_memory.playerFavoredFactions[faction] ?? 0) + 1;
   if (playerUsedAbility) _memory.playerUsedAbilities.push(playerUsedAbility);
 
   if (botAbilities) {
@@ -116,7 +116,7 @@ export function updateBotMemory(
 export function resetBotMemory(): void {
   _memory = {
     playerWinStreak: 0, playerUsedAbilities: [],
-    playerFavoredElements: {}, botLossStreak: 0,
+    playerFavoredFactions: {}, botLossStreak: 0,
     totalRoundsPlayed: 0, strongestBotAbility: null,
   };
 }
@@ -132,16 +132,16 @@ function weightedMode<T extends string>(values: T[], weights: number[]): { value
 
 /** يتنبأ بفئة الحركة من آخر خمس بطاقات مرئية فقط، ولا يقرأ الرزمة المستقبلية. */
 export function predictPlayerMove(gameState: GameState, difficulty: DifficultyLevel = 3): PlayerMovePrediction {
-  if (difficulty < 3) return { element: null, cardClass: null, race: null, confidence: 0, sampleCount: 0 };
+  if (difficulty < 3) return { faction: null, cardClass: null, race: null, confidence: 0, sampleCount: 0 };
   const recent = gameState.roundResults.slice(-5);
   const weights = recent.map((_, index) => index + 1);
-  const element = weightedMode(recent.map(result => result.playerCard.element), weights);
+  const faction = weightedMode(recent.map(result => result.playerCard.race), weights);
   const cardClass = weightedMode(recent.map(result => result.playerCard.cardClass), weights);
   const race = weightedMode(recent.map(result => result.playerCard.race), weights);
-  const confidence = Math.min(0.95, Math.max(element.confidence, cardClass.confidence, race.confidence)
+  const confidence = Math.min(0.95, Math.max(faction.confidence, cardClass.confidence, race.confidence)
     * Math.min(1, recent.length / 3));
   return {
-    element: element.value,
+    faction: faction.value,
     cardClass: cardClass.value,
     race: race.value,
     confidence,
@@ -156,7 +156,7 @@ function cardPower(c: Card): number { return c.attack + c.defense; }
 
 function cardPowerAgainst(attacker: Card, defender: Card): number {
   const base = cardPower(attacker);
-  const adv = getElementAdvantage(attacker.element, defender.element);
+  const adv = getFactionAdvantage(attacker.race, defender.race);
   if (adv === 'strong') return base * 1.5;
   if (adv === 'weak')   return base * 0.7;
   return base;
@@ -182,7 +182,7 @@ export function chooseBotMode(
 // ──────────────────────────────── Utility scoring ────────────────────────────────
 function scoreUtility(b: UtilityBreakdown, mode: BotMode): number {
   const w = WEIGHTS[mode];
-  return b.winChance * w.winChance + b.damage * w.damage + b.element * w.element
+  return b.winChance * w.winChance + b.damage * w.damage + b.faction * w.faction
     + b.roundPressure * w.roundPressure + b.saveAbility * w.saveAbility + b.risk * w.risk;
 }
 
@@ -193,14 +193,14 @@ function evaluateCardVs(
 ): UtilityBreakdown {
   const botPower   = cardPowerAgainst(botCard, playerCard);
   const playerPower = cardPowerAgainst(playerCard, botCard);
-  const adv        = getElementAdvantage(botCard.element, playerCard.element);
+  const adv        = getFactionAdvantage(botCard.race, playerCard.race);
   const roundsLeft = totalRounds - currentRound;
   const totalPower = botPower + playerPower;
 
   const winChance     = totalPower > 0 ? clamp(botPower / totalPower) : 0.5;
   const maxPossible   = Math.max(...ALL_CARDS.map(c => c.attack + c.defense)) * 1.5;
   const damage        = clamp(botPower / maxPossible);
-  const element       = adv === 'strong' ? 1.0 : adv === 'weak' ? 0.0 : 0.5;
+  const faction       = adv === 'strong' ? 1.0 : adv === 'weak' ? 0.0 : 0.5;
   const scoreDiff     = Math.abs(botScore - playerScore);
   const urgencyBase   = scoreDiff >= 2 && roundsLeft <= 2 ? 1.0
     : scoreDiff >= 1 && roundsLeft <= 3 ? 0.75
@@ -209,7 +209,7 @@ function evaluateCardVs(
   const saveAbility   = winChance > 0.70 ? 0.8 : winChance > 0.55 ? 0.5 : 0.2;
   const risk          = mode === 'aggressive' ? clamp(1 - winChance + 0.3) : clamp(1 - winChance);
 
-  return { winChance, damage, element, roundPressure, saveAbility, risk };
+  return { winChance, damage, faction, roundPressure, saveAbility, risk };
 }
 
 // ──────────────────────────────── Ability timing ────────────────────────────────
@@ -324,12 +324,12 @@ export function buildBotAbilityData(
   }
 
   if (abilityType === 'AddElement') {
-    const allElements: Element[] = ['fire', 'water', 'earth', 'lightning', 'wind'];
-    const targetElement = prediction.element ?? playerCard.element;
-    const strongEl = allElements.find(
-      e => getElementAdvantage(e, targetElement) === 'strong'
-    ) ?? 'fire';
-    return { element: strongEl };
+    const factions: Race[] = ['human', 'elf', 'orc', 'dragon', 'demon', 'undead', 'monster', 'robot'];
+    const targetFaction = prediction.faction ?? playerCard.race;
+    const strongFaction = factions.find(
+      faction => getFactionAdvantage(faction, targetFaction) === 'strong'
+    ) ?? 'human';
+    return { faction: strongFaction };
   }
 
   if (abilityType === 'SwapClass') {
@@ -470,8 +470,8 @@ function pickSmart(count: number, playerCards: Card[], randomnessFraction: numbe
     const scored = pool.map(card => ({
       card,
       score: cardPowerAgainst(card, playerCard)
-        + (card.element !== playerCard.element
-          && (memory.playerFavoredElements[playerCard.element] ?? 0) >= 2 ? 10 : 0),
+        + (card.race !== playerCard.race
+          && (memory.playerFavoredFactions[playerCard.race] ?? 0) >= 2 ? 10 : 0),
     }));
     scored.sort((a, b) => b.score - a.score);
 

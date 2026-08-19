@@ -41,7 +41,9 @@ export interface RoundResult {
   winner: 'player1' | 'player2' | 'draw';
   p1Score: number;
   p2Score: number;
-  advantage: 'element' | 'attack' | 'draw';
+  advantage: 'faction' | 'attack' | 'draw';
+  p1FactionAdvantage: 'strong' | 'weak' | 'neutral';
+  p2FactionAdvantage: 'strong' | 'weak' | 'neutral';
 }
 
 // ─── Room ────────────────────────────────────────────────────────────────────────
@@ -62,35 +64,39 @@ export interface Room {
   currentTurnPlayerId: string | null;
 }
 
-// ─── Element Advantage ────────────────────────────────────────────────────────────
-const ELEMENT_BEATS: Record<string, string> = {
-  fire: 'ice',
-  ice: 'water',
-  water: 'fire',
-  earth: 'lightning',
-  lightning: 'wind',
-  wind: 'earth',
+// ─── Faction Advantage ────────────────────────────────────────────────────────────
+const FACTION_BEATS: Record<string, string> = {
+  human: 'elf',
+  elf: 'orc',
+  orc: 'dragon',
+  dragon: 'demon',
+  demon: 'undead',
+  undead: 'monster',
+  monster: 'robot',
+  robot: 'human',
 };
 
-function getElementAdvantage(e1: string, e2: string): 'player1' | 'player2' | 'none' {
-  if (ELEMENT_BEATS[e1] === e2) return 'player1';
-  if (ELEMENT_BEATS[e2] === e1) return 'player2';
-  return 'none';
+function getFactionAdvantage(faction: string, opponentFaction: string): 'strong' | 'weak' | 'neutral' {
+  if (FACTION_BEATS[faction] === opponentFaction) return 'strong';
+  if (FACTION_BEATS[opponentFaction] === faction) return 'weak';
+  return 'neutral';
 }
 
 function resolveCards(roundIndex: number, p1Card: any, p2Card: any, p1Score: number, p2Score: number): RoundResult {
-  const elAdv = getElementAdvantage(p1Card.element ?? '', p2Card.element ?? '');
-  let p1Atk = (p1Card.attack ?? 0) + (elAdv === 'player1' ? 2 : 0);
-  let p2Atk = (p2Card.attack ?? 0) + (elAdv === 'player2' ? 2 : 0);
-  const p1Net = p1Atk - (p2Card.defense ?? 0);
-  const p2Net = p2Atk - (p1Card.defense ?? 0);
+  const p1FactionAdvantage = getFactionAdvantage(p1Card.race ?? '', p2Card.race ?? '');
+  const p2FactionAdvantage = getFactionAdvantage(p2Card.race ?? '', p1Card.race ?? '');
+  const p1Multiplier = p1FactionAdvantage === 'strong' ? 1.25 : p1FactionAdvantage === 'weak' ? 0.75 : 1;
+  const p2Multiplier = p2FactionAdvantage === 'strong' ? 1.25 : p2FactionAdvantage === 'weak' ? 0.75 : 1;
+  const p1Raw = (p1Card.attack ?? 0) * p1Multiplier;
+  const p2Raw = (p2Card.attack ?? 0) * p2Multiplier;
+  const p1Net = Math.max(0, Math.floor(p1Raw - (p2Card.defense ?? 0)));
+  const p2Net = Math.max(0, Math.floor(p2Raw - (p1Card.defense ?? 0)));
 
   let winner: 'player1' | 'player2' | 'draw';
-  let advantage: 'element' | 'attack' | 'draw' = 'draw';
+  let advantage: 'faction' | 'attack' | 'draw' = 'draw';
 
-  if (elAdv !== 'none') { winner = elAdv; advantage = 'element'; }
-  else if (p1Net > p2Net) { winner = 'player1'; advantage = 'attack'; }
-  else if (p2Net > p1Net) { winner = 'player2'; advantage = 'attack'; }
+  if (p1Net > p2Net) { winner = 'player1'; advantage = p1FactionAdvantage === 'strong' ? 'faction' : 'attack'; }
+  else if (p2Net > p1Net) { winner = 'player2'; advantage = p2FactionAdvantage === 'strong' ? 'faction' : 'attack'; }
   else { winner = 'draw'; advantage = 'draw'; }
 
   return {
@@ -101,6 +107,8 @@ function resolveCards(roundIndex: number, p1Card: any, p2Card: any, p1Score: num
     p1Score: Math.max(0, p1Score - (winner === 'player2' ? 1 : 0)),
     p2Score: Math.max(0, p2Score - (winner === 'player1' ? 1 : 0)),
     advantage,
+    p1FactionAdvantage,
+    p2FactionAdvantage,
   };
 }
 

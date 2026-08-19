@@ -62,7 +62,7 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(battle).toContain('معاينة النتيجة — كيف حُسمت الجولة؟');
     expect(battle).toContain('الضرر بعد الدفاع');
     expect(battle).toContain('القوة قبل الدفاع');
-    expect(battle).toContain('getElementLabel');
+    expect(battle).toContain('getFactionLabel');
     expect(battle).toContain('confirmNextRound()');
     expect(battle).toContain('يجب أن يؤكد الطرفان للانتقال');
     expect(battle).toContain('finishMatch()');
