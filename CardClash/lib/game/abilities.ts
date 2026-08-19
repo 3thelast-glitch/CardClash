@@ -104,3 +104,12 @@ export function getRandomAbilities(count: number): AbilityType[] {
   const shuffled = [...available].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, Math.min(count, shuffled.length));
 }
+
+/** يختار من مجموعة محددة، ويُستخدم عندما لا يدعم نمط لعب ما قدرات الاختيار المركب بعد. */
+export function getRandomAbilitiesFromPool(pool: AbilityType[], count: number): AbilityType[] {
+  const disabled = getDisabledAbilitiesCache();
+  const available = [...new Set(pool)].filter(ability => !disabled.has(ability));
+  if (available.length === 0) return [];
+  const shuffled = [...available].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, shuffled.length));
+}

@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import type { Card } from '@/lib/game/types';
+import type { AbilityState, AbilityType, Card, Effect, RoundResult } from '@/lib/game/types';
 import { LanSession } from './lan-session';
-import { isLanGameOver, resolveLanRound, type LanPlayerRole, type LanRoundResult } from './lan-match-engine';
+import { isLanGameOver, type LanPlayerRole, type LanRoundResult } from './lan-match-engine';
+import { applyLanAbility, createLanAbilities, resolveLanAbilityRound, type LanAbilitySnapshot } from './lan-ability-adapter';
 import type { LanRoom, LanWireMessage } from './lan-protocol';
 
 type LanState = 'idle' | 'hosting' | 'discovering' | 'connecting' | 'connected' | 'failed';
@@ -40,6 +41,10 @@ export type LanMatchState = {
   guestRevealed: boolean;
   hostNextReady: boolean;
   guestNextReady: boolean;
+  hostAbilities: AbilityState[];
+  guestAbilities: AbilityState[];
+  activeEffects: Effect[];
+  roundResults: RoundResult[];
   lastResult: LanRoundResult | null;
   results: LanRoundResult[];
 };
@@ -63,6 +68,10 @@ const emptyMatch = (): LanMatchState => ({
   guestRevealed: false,
   hostNextReady: false,
   guestNextReady: false,
+  hostAbilities: [],
+  guestAbilities: [],
+  activeEffects: [],
+  roundResults: [],
   lastResult: null,
   results: [],
 });
@@ -82,6 +91,7 @@ type LanContextValue = {
   configureMatch: (rounds: number, abilitiesEnabled: boolean, rarityWeights: LanRarityWeights) => void;
   submitArrangement: (deck: Card[]) => void;
   revealCurrentCard: () => void;
+  useAbility: (abilityType: AbilityType) => void;
   confirmNextRound: () => void;
   finishMatch: () => void;
   sendGameEvent: (event: string, data: Record<string, unknown>) => boolean;
@@ -92,6 +102,14 @@ const LanContext = createContext<LanContextValue | null>(null);
 
 function asCards(value: unknown): Card[] {
   return Array.isArray(value) ? value as Card[] : [];
+}
+
+function asAbilitySnapshot(value: unknown): LanAbilitySnapshot | null {
+  if (!value || typeof value !== 'object') return null;
+  const snapshot = value as Partial<LanAbilitySnapshot>;
+  if (!Array.isArray(snapshot.hostDeck) || !Array.isArray(snapshot.guestDeck) || !Array.isArray(snapshot.hostAbilities) || !Array.isArray(snapshot.guestAbilities) || !Array.isArray(snapshot.activeEffects) || !Array.isArray(snapshot.roundResults)) return null;
+  if (typeof snapshot.hostScore !== 'number' || typeof snapshot.guestScore !== 'number') return null;
+  return snapshot as LanAbilitySnapshot;
 }
 
 function asFiniteRoundCount(value: unknown): number {
@@ -138,6 +156,10 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
       guestRevealed: false,
       hostNextReady: false,
       guestNextReady: false,
+      hostAbilities: createLanAbilities(next.abilitiesEnabled),
+      guestAbilities: createLanAbilities(next.abilitiesEnabled),
+      activeEffects: [],
+      roundResults: [],
       lastResult: null,
       results: [],
     };
@@ -150,6 +172,8 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
       guestName: started.guestName,
       hostDeck: started.hostDeck,
       guestDeck: started.guestDeck,
+      hostAbilities: started.hostAbilities,
+      guestAbilities: started.guestAbilities,
     });
   }, [sendDirectEvent, updateMatch]);
 
@@ -173,12 +197,26 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
 
   const resolveIfReady = useCallback((next: LanMatchState) => {
     if (next.role !== 'host' || !next.hostRevealed || !next.guestRevealed || next.phase !== 'playing') return;
-    const hostCard = next.hostDeck[next.currentRound];
-    const guestCard = next.guestDeck[next.currentRound];
-    if (!hostCard || !guestCard) return;
-    const result = resolveLanRound(next.currentRound, hostCard, guestCard, next.hostScore, next.guestScore);
+    const { snapshot, roundResult } = resolveLanAbilityRound(next);
+    if (!roundResult) return;
+    const winner = roundResult.winner === 'player' ? 'host' : roundResult.winner === 'bot' ? 'guest' : 'draw';
+    const advantage = winner === 'draw'
+      ? 'draw'
+      : roundResult.playerElementAdvantage === 'strong' || roundResult.botElementAdvantage === 'strong'
+        ? 'element'
+        : 'attack';
+    const result: LanRoundResult = {
+      roundIndex: next.currentRound,
+      hostCard: roundResult.playerCard,
+      guestCard: roundResult.botCard,
+      winner,
+      hostScore: snapshot.hostScore,
+      guestScore: snapshot.guestScore,
+      advantage,
+    };
     const resolved: LanMatchState = {
       ...next,
+      ...snapshot,
       phase: 'result',
       hostScore: result.hostScore,
       guestScore: result.guestScore,
@@ -188,7 +226,7 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
       results: [...next.results, result],
     };
     updateMatch(() => resolved);
-    sendDirectEvent('LAN_ROUND_RESULT', { result });
+    sendDirectEvent('LAN_ROUND_RESULT', { result, snapshot });
   }, [sendDirectEvent, updateMatch]);
 
   const handleGameEvent = useCallback((event: string, data: Record<string, unknown>) => {
@@ -229,6 +267,8 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
       const totalRounds = asFiniteRoundCount(data.totalRounds);
       const hostDeck = asCards(data.hostDeck);
       const guestDeck = asCards(data.guestDeck);
+      const hostAbilities = Array.isArray(data.hostAbilities) ? data.hostAbilities as AbilityState[] : [];
+      const guestAbilities = Array.isArray(data.guestAbilities) ? data.guestAbilities as AbilityState[] : [];
       if (!totalRounds || hostDeck.length !== totalRounds || guestDeck.length !== totalRounds) return;
       updateMatch(previous => ({
         ...previous,
@@ -250,6 +290,10 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
         guestRevealed: false,
         hostNextReady: false,
         guestNextReady: false,
+        hostAbilities,
+        guestAbilities,
+        activeEffects: [],
+        roundResults: [],
         lastResult: null,
         results: [],
       }));
@@ -273,8 +317,30 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
 
     if (event === 'LAN_ROUND_RESULT') {
       const result = data.result as LanRoundResult | undefined;
+      const snapshot = asAbilitySnapshot(data.snapshot);
       if (!result || typeof result.roundIndex !== 'number') return;
-      updateMatch(previous => ({ ...previous, phase: 'result', hostScore: result.hostScore, guestScore: result.guestScore, hostNextReady: false, guestNextReady: false, lastResult: result, results: [...previous.results, result] }));
+      updateMatch(previous => ({ ...previous, ...(snapshot ?? {}), phase: 'result', hostScore: result.hostScore, guestScore: result.guestScore, hostNextReady: false, guestNextReady: false, lastResult: result, results: [...previous.results, result] }));
+      return;
+    }
+
+    if (event === 'LAN_ABILITY_REQUEST') {
+      const abilityType = data.abilityType as AbilityType | undefined;
+      const roundIndex = typeof data.roundIndex === 'number' ? data.roundIndex : -1;
+      if (roleRef.current !== 'host' || !abilityType) return;
+      updateMatch(previous => {
+        if (previous.phase !== 'playing' || previous.currentRound !== roundIndex || previous.guestRevealed) return previous;
+        const snapshot = applyLanAbility(previous, 'guest', abilityType);
+        const next = { ...previous, ...snapshot };
+        queueMicrotask(() => sendDirectEvent('LAN_ABILITY_APPLIED', { abilityType, owner: 'guest', snapshot }));
+        return next;
+      });
+      return;
+    }
+
+    if (event === 'LAN_ABILITY_APPLIED') {
+      const snapshot = asAbilitySnapshot(data.snapshot);
+      if (!snapshot) return;
+      updateMatch(previous => ({ ...previous, ...snapshot }));
       return;
     }
 
@@ -378,6 +444,27 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
     sendDirectEvent('LAN_REVEAL', { roundIndex: current.currentRound, card });
   }, [sendDirectEvent, updateMatch]);
 
+  const useAbility = useCallback((abilityType: AbilityType) => {
+    const current = matchRef.current;
+    const role = roleRef.current;
+    if (!role || !current.abilitiesEnabled || current.phase !== 'playing') return;
+    if (role === 'host' ? current.hostRevealed : current.guestRevealed) return;
+    const abilities = role === 'host' ? current.hostAbilities : current.guestAbilities;
+    if (!abilities.some(ability => ability.type === abilityType && !ability.used)) return;
+
+    if (role === 'guest') {
+      sendDirectEvent('LAN_ABILITY_REQUEST', { abilityType, roundIndex: current.currentRound });
+      return;
+    }
+
+    updateMatch(previous => {
+      const snapshot = applyLanAbility(previous, 'host', abilityType);
+      const next = { ...previous, ...snapshot };
+      queueMicrotask(() => sendDirectEvent('LAN_ABILITY_APPLIED', { abilityType, owner: 'host', snapshot }));
+      return next;
+    });
+  }, [sendDirectEvent, updateMatch]);
+
   const confirmNextRound = useCallback(() => {
     const current = matchRef.current;
     const role = roleRef.current;
@@ -420,7 +507,7 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
 
   return <LanContext.Provider value={{
     rooms, hostedRoom, state, notice, peer, lastGameEvent, isSupported: Platform.OS !== 'web', match,
-    hostRoom, refreshRooms, joinRoom, configureMatch, submitArrangement, revealCurrentCard, confirmNextRound, finishMatch, sendGameEvent, leave,
+    hostRoom, refreshRooms, joinRoom, configureMatch, submitArrangement, revealCurrentCard, useAbility, confirmNextRound, finishMatch, sendGameEvent, leave,
   }}>{children}</LanContext.Provider>;
 }
 

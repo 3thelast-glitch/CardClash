@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { LuxuryBackground } from '@/components/game/luxury-background';
@@ -8,12 +8,14 @@ import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { COLOR, FONT, RADIUS, SPACE } from '@/components/ui/design-tokens';
 import { useLanMultiplayer } from '@/lib/lan/lan-context';
 import { isLanGameOver } from '@/lib/lan/lan-match-engine';
+import { ABILITY_DETAILS, CATEGORY_CONFIG } from '@/lib/game/ability-details';
 import { useBattleLayout } from '@/utils/layout';
 
 /** ساحة Wi‑Fi تتبع ترتيب اللعب الفردي: الخصم في الأعلى، الأمر والنتيجة في الوسط، وكرت اللاعب في الأسفل. */
 export default function LanBattleScreen() {
   const router = useRouter();
-  const { state: connectionState, match, revealCurrentCard, confirmNextRound, finishMatch, leave } = useLanMultiplayer();
+  const { state: connectionState, match, revealCurrentCard, useAbility, confirmNextRound, finishMatch, leave } = useLanMultiplayer();
+  const [isAbilitiesOpen, setIsAbilitiesOpen] = useState(false);
   const { cardWidth, cardHeight, arenaPadding, arenaGap, centerWidth, actionButtonWidth, actionButtonHeight, isCompact, isLandscape } = useBattleLayout();
   const isHost = match.role === 'host';
   const myName = isHost ? match.hostName : match.guestName;
@@ -26,6 +28,7 @@ export default function LanBattleScreen() {
   const opponentRevealed = isHost ? match.guestRevealed : match.hostRevealed;
   const iNextReady = isHost ? match.hostNextReady : match.guestNextReady;
   const opponentNextReady = isHost ? match.guestNextReady : match.hostNextReady;
+  const myAbilities = isHost ? match.hostAbilities : match.guestAbilities;
   const result = match.lastResult;
   const gameOver = !!result && isLanGameOver(result, match.totalRounds);
   const iWonRound = result?.winner === (isHost ? 'host' : 'guest');
@@ -98,6 +101,15 @@ export default function LanBattleScreen() {
         <Text style={[styles.vs, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
         <Text style={[styles.status, result && (iWonRound ? styles.statusWin : result.winner === 'draw' ? styles.statusDraw : styles.statusLoss)]}>{roundLabel}</Text>
         {nextHint && <Text style={styles.nextHint}>{nextHint}</Text>}
+        {match.phase === 'playing' && match.abilitiesEnabled && (
+          <TouchableOpacity
+            disabled={iRevealed || myAbilities.every(ability => ability.used)}
+            style={[styles.abilityButton, (iRevealed || myAbilities.every(ability => ability.used)) && styles.disabledButton]}
+            onPress={() => setIsAbilitiesOpen(true)}
+          >
+            <Text style={styles.abilityButtonText}>✨ قدراتي {myAbilities.filter(ability => !ability.used).length}/{myAbilities.length}</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity disabled={!canAct} style={[styles.actionButton, { width: actionButtonWidth, minHeight: actionButtonHeight }, !canAct && styles.disabledButton, match.phase === 'result' && styles.nextButton]} onPress={action}>
           <Text style={styles.actionText}>{actionLabel}</Text>
         </TouchableOpacity>
@@ -109,6 +121,30 @@ export default function LanBattleScreen() {
         {opponentCard ? <LuxuryCharacterCardAnimated card={opponentCard} style={{ width: cardWidth, height: cardHeight }} isOpenedView={opponentRevealed || match.phase === 'result'} winnerState={result?.winner === (isHost ? 'guest' : 'host') ? 'winner' : null} /> : <View style={[styles.hiddenCard, { width: cardWidth, height: cardHeight }]}><Text style={styles.hiddenMark}>?</Text></View>}
       </View>
     </View>
+    <Modal visible={isAbilitiesOpen} transparent animationType="fade" onRequestClose={() => setIsAbilitiesOpen(false)}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.abilitiesModal}>
+          <View style={styles.modalHeader}><Text style={styles.modalTitle}>✨ قدرات {myName || 'اللاعب'}</Text><TouchableOpacity onPress={() => setIsAbilitiesOpen(false)}><Text style={styles.closeText}>إغلاق</Text></TouchableOpacity></View>
+          <Text style={styles.modalHint}>اختر قدرة واحدة قبل تأكيد المواجهة. تستخدم كل قدرة مرة واحدة وتُزامن للطرفين.</Text>
+          <ScrollView contentContainerStyle={styles.abilityList} showsVerticalScrollIndicator={false}>
+            {myAbilities.map((ability, index) => {
+              const detail = ABILITY_DETAILS[ability.type];
+              const category = CATEGORY_CONFIG[detail.category];
+              return <TouchableOpacity
+                key={`${ability.type}-${index}`}
+                disabled={ability.used || iRevealed}
+                style={[styles.abilityCard, { borderColor: category.color }, (ability.used || iRevealed) && styles.abilityCardUsed]}
+                onPress={() => { useAbility(ability.type); setIsAbilitiesOpen(false); }}
+              >
+                <Text style={[styles.abilityName, { color: category.color }]}>{category.emoji} {detail.nameAr}</Text>
+                <Text style={styles.abilityDescription}>{detail.effectAr}</Text>
+                <Text style={styles.abilityState}>{ability.used ? 'اُستخدمت' : 'اضغط للاستخدام'}</Text>
+              </TouchableOpacity>;
+            })}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
     {connectionState !== 'connected' && <View style={styles.disconnectBar}><Text style={styles.disconnectText}>انقطع الاتصال المحلي. ارجع وأنشئ الغرفة من جديد.</Text></View>}
   </View>;
 }
@@ -119,7 +155,8 @@ const styles = StyleSheet.create({
   hudSide: { flex: 1, gap: 2 }, hudSideRight: { alignItems: 'flex-end' }, hudCenter: { alignItems: 'center', gap: 2 }, lanBadge: { color: '#c4b5fd', fontSize: FONT.xs, fontWeight: '900' }, round: { color: '#e5e7eb', fontSize: FONT.sm, fontWeight: '800' }, myScore: { color: '#86efac', fontSize: FONT.xxl, fontWeight: '900' }, opponentScore: { color: '#fca5a5', fontSize: FONT.xxl, fontWeight: '900' }, myName: { color: '#86efac', fontSize: FONT.sm, fontWeight: '800', textAlign: 'right' }, opponentName: { color: '#fca5a5', fontSize: FONT.sm, fontWeight: '800', textAlign: 'left' },
   arena: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: SPACE.sm }, cardPanel: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, minHeight: 0 }, cardPanelPortrait: { flex: 0, width: '100%' }, centerPanel: { alignItems: 'center', justifyContent: 'center' }, vs: { color: COLOR.gold }, status: { color: '#cbd5e1', fontSize: FONT.xs, textAlign: 'center', maxWidth: 220, lineHeight: 18 }, statusWin: { color: '#86efac' }, statusDraw: { color: '#facc15' }, statusLoss: { color: '#fca5a5' }, nextHint: { color: '#c4b5fd', fontSize: 10, textAlign: 'center', maxWidth: 220, lineHeight: 15 },
   hiddenCard: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(17,24,39,0.82)', borderRadius: RADIUS.lg, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(167,139,250,0.55)' }, hiddenMark: { color: '#a78bfa', fontSize: 48, fontWeight: '900' },
-  actionButton: { borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(74,222,128,0.14)', borderWidth: 1.5, borderColor: '#4ade80', paddingHorizontal: SPACE.md }, nextButton: { backgroundColor: 'rgba(96,165,250,0.14)', borderColor: '#60a5fa' }, disabledButton: { backgroundColor: 'rgba(71,85,105,0.28)', borderColor: '#475569' }, actionText: { color: '#f8fafc', fontSize: FONT.xs, fontWeight: '900', textAlign: 'center' }, hostControls: { color: '#94a3b8', fontSize: 10, textAlign: 'center' },
+  actionButton: { borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(74,222,128,0.14)', borderWidth: 1.5, borderColor: '#4ade80', paddingHorizontal: SPACE.md }, abilityButton: { minHeight: 34, borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(167,139,250,0.14)', borderWidth: 1, borderColor: '#a78bfa', paddingHorizontal: SPACE.md }, abilityButtonText: { color: '#ddd6fe', fontSize: 10, fontWeight: '900' }, nextButton: { backgroundColor: 'rgba(96,165,250,0.14)', borderColor: '#60a5fa' }, disabledButton: { backgroundColor: 'rgba(71,85,105,0.28)', borderColor: '#475569' }, actionText: { color: '#f8fafc', fontSize: FONT.xs, fontWeight: '900', textAlign: 'center' }, hostControls: { color: '#94a3b8', fontSize: 10, textAlign: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(2,6,23,0.84)', justifyContent: 'center', padding: SPACE.lg }, abilitiesModal: { maxHeight: '78%', backgroundColor: '#0f172a', borderWidth: 1, borderColor: 'rgba(167,139,250,0.65)', borderRadius: RADIUS.lg, padding: SPACE.md, gap: SPACE.sm }, modalHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' }, modalTitle: { color: '#f8fafc', fontWeight: '900', fontSize: FONT.md }, closeText: { color: '#c4b5fd', fontWeight: '800', fontSize: FONT.xs }, modalHint: { color: '#cbd5e1', fontSize: 11, lineHeight: 17, textAlign: 'right' }, abilityList: { gap: SPACE.sm }, abilityCard: { borderWidth: 1, borderRadius: RADIUS.md, backgroundColor: 'rgba(15,23,42,0.94)', padding: SPACE.sm, gap: 4 }, abilityCardUsed: { opacity: 0.45 }, abilityName: { fontSize: FONT.sm, fontWeight: '900', textAlign: 'right' }, abilityDescription: { color: '#e2e8f0', fontSize: 11, textAlign: 'right', lineHeight: 17 }, abilityState: { color: '#94a3b8', fontSize: 10, textAlign: 'right' },
   disconnectBar: { paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md, backgroundColor: 'rgba(127,29,29,0.92)', alignItems: 'center' }, disconnectText: { color: '#fecaca', fontSize: FONT.xs, textAlign: 'center' },
   finalBox: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.xl, gap: SPACE.md }, finalIcon: { fontSize: 68 }, finalTitle: { fontSize: FONT.xxl, fontWeight: '900', textAlign: 'center' }, finalScore: { color: '#e2e8f0', fontSize: FONT.md, textAlign: 'center', lineHeight: 26 }, finalHint: { color: '#c4b5fd', fontSize: FONT.xs, textAlign: 'center' }, homeButton: { width: 210, minHeight: 48, borderColor: COLOR.gold, backgroundColor: 'rgba(228,165,42,0.16)', marginTop: SPACE.md },
 });
