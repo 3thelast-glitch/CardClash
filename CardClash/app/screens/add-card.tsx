@@ -82,6 +82,7 @@ const RACE_ICON_SOURCES: Partial<Record<Race, ImageSourcePropType>> = {
   elf: require('../../assets/icons/factions/elf.png'),
   orc: require('../../assets/icons/factions/orc.png'),
   demon: require('../../assets/icons/factions/demon.png'),
+  undead: require('../../assets/icons/factions/undead.png'),
 };
 
 const CLASS_ICON_SOURCES: Partial<Record<CardClass, ImageSourcePropType>> = {
