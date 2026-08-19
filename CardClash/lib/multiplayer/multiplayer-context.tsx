@@ -185,7 +185,7 @@ interface MultiplayerContextType {
   revealCard: (roundIndex: number, card: Card) => void;
   advanceToNextRound: () => void;
   sendMatchSettings: (settings: MatchSettings) => void;
-  sendArrangementReady: (cards: Card[]) => void;
+  sendArrangementReady: (cards: Card[]) => boolean;
   queueRankedMatch: (playerName: string) => void;
   cancelMatchmaking: () => void;
 }
@@ -250,8 +250,8 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
     dispatch({ type: 'SET_CONNECTED', payload: false });
   }, []);
 
-  const send = useCallback((msg: MPMessage) => {
-    wsClientRef.current?.send(msg.type, msg.payload);
+  const send = useCallback((msg: MPMessage): boolean => {
+    return wsClientRef.current?.send(msg.type, msg.payload) ?? false;
   }, []);
 
   // ─── Message Handler ───────────────────────────────────────────────────────
@@ -419,9 +419,15 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
     send({ type: 'MATCH_SETTINGS', payload: { playerId: state.playerId, ...settings } });
   }, [state.playerId, send]);
 
-  const sendArrangementReady = useCallback((cards: Card[]) => {
+  const sendArrangementReady = useCallback((cards: Card[]): boolean => {
+    const sent = send({ type: 'ARRANGEMENT_READY', payload: { playerId: state.playerId, cards } });
+    if (!sent) {
+      dispatch({ type: 'SET_PLAYER_READY', payload: false });
+      dispatch({ type: 'SET_ERROR', payload: 'انقطع الاتصال قبل تأكيد تشكيلتك. أعد الاتصال ثم حاول مرة أخرى.' });
+      return false;
+    }
     dispatch({ type: 'SET_PLAYER_READY', payload: true });
-    send({ type: 'ARRANGEMENT_READY', payload: { playerId: state.playerId, cards } });
+    return true;
   }, [state.playerId, send]);
 
   const queueRankedMatch = useCallback((playerName: string) => {

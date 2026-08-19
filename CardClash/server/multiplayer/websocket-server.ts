@@ -238,17 +238,18 @@ export class MultiplayerWebSocketServer {
   }
 
   private startBattle(room: Room) {
-    if (!room.player1 || !room.player2) return;
+    const startedRoom = roomManager.startMatch(room.id);
+    if (!startedRoom?.player1 || !startedRoom.player2) return;
     const payload = {
-      player1: { id: room.player1.id, name: room.player1.name, cards: room.player1.cards },
-      player2: { id: room.player2.id, name: room.player2.name, cards: room.player2.cards },
-      totalRounds: room.totalRounds || (room.player1.rounds ?? 5),
-      p1Score: room.p1Score,
-      p2Score: room.p2Score,
-      turnPlayerId: room.currentTurnPlayerId,
+      player1: { id: startedRoom.player1.id, name: startedRoom.player1.name, cards: startedRoom.player1.cards },
+      player2: { id: startedRoom.player2.id, name: startedRoom.player2.name, cards: startedRoom.player2.cards },
+      totalRounds: startedRoom.totalRounds,
+      p1Score: startedRoom.p1Score,
+      p2Score: startedRoom.p2Score,
+      turnPlayerId: startedRoom.currentTurnPlayerId,
     };
-    this.broadcastToRoom(room.id, { type: 'BATTLE_START', payload });
-    console.log(`[Multiplayer] Battle started in room ${room.id}`);
+    this.broadcastToRoom(startedRoom.id, { type: 'BATTLE_START', payload });
+    console.log(`[Multiplayer] Battle started in room ${startedRoom.id}`);
   }
 
   // ─── جديد: Match Settings ────────────────────────────────────────────────────────────────
@@ -308,8 +309,8 @@ export class MultiplayerWebSocketServer {
 
     console.log(`[Multiplayer] Room ${room.id}: ${readySet.size}/${totalPlayers} ready`);
 
-    // إذا الاثنين جاهزين → ابدأ المعركة
-    if (readySet.size >= totalPlayers) {
+    // يبدأ الخادم المباراة فقط عندما تتحقق الجاهزية والتشكيلتان معاً، وليس بمجرد عدّ ضغطات الواجهة.
+    if (readySet.size >= totalPlayers && roomManager.areBothPlayersReady(room.id)) {
       this.arrangementReady.delete(room.id);
       this.startBattle(room);
     }

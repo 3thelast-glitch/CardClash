@@ -19,6 +19,7 @@ import { ElementEffect } from '@/components/game/element-effect';
 import { useBattleLayout } from '@/utils/layout';
 import { useOrientationTransition } from '@/utils/orientation-transition';
 import { mpClient, MPMessage } from '@/lib/multiplayer/websocket-client';
+import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 import { COLOR, SPACE, RADIUS, FONT } from '@/components/ui/design-tokens';
 
@@ -31,6 +32,7 @@ type MPBattlePhase =
 
 export default function MultiplayerBattleScreen() {
   const router = useRouter();
+  const multiplayer = useMultiplayer();
   const insets = useSafeAreaInsets();
   const {
     cardWidth,
@@ -72,6 +74,7 @@ export default function MultiplayerBattleScreen() {
   const [isPlayer1, setIsPlayer1] = useState(true);
   const [endBattleClicked, setEndBattleClicked] = useState(false);
   const [turnPlayerId, setTurnPlayerId] = useState<string | null>(null);
+  const playerId = multiplayer.state.playerId || params.playerId;
 
   // ─── Animations ─────────────────────────────────────────────────────────────
   const myCardAnim = useSharedValue(0);
@@ -87,24 +90,54 @@ export default function MultiplayerBattleScreen() {
     oppCardAnim.value = withDelay(240, withTiming(1, { duration: 280 }));
   }, []);
 
+  const hydrateBattle = useCallback((payload: {
+    player1: { id: string; cards?: any[] };
+    player2: { id: string; cards?: any[] };
+    totalRounds: number;
+    p1Score: number;
+    p2Score: number;
+    turnPlayerId?: string | null;
+  }) => {
+    const iAmP1 = payload.player1.id === playerId;
+    setIsPlayer1(iAmP1);
+    setMyCards(iAmP1 ? payload.player1.cards ?? [] : payload.player2.cards ?? []);
+    setOpponentCards(iAmP1 ? payload.player2.cards ?? [] : payload.player1.cards ?? []);
+    setTotalRounds(payload.totalRounds);
+    setMyScore(iAmP1 ? payload.p1Score : payload.p2Score);
+    setOppScore(iAmP1 ? payload.p2Score : payload.p1Score);
+    setTurnPlayerId(payload.turnPlayerId ?? payload.player1.id);
+    setCurrentRound(0);
+    setEndBattleClicked(false);
+    setPhase('selection');
+    enterCards();
+  }, [enterCards, playerId]);
+
+  // إذا وصل BATTLE_START قبل تثبيت شاشة الساحة، تُستعاد الحالة من MultiplayerProvider بدلاً من ضياع الرسالة.
+  useEffect(() => {
+    if (multiplayer.state.status !== 'playing' || !multiplayer.state.totalRounds || !multiplayer.state.playerCards.length || !multiplayer.state.opponentCards.length) return;
+    const p1IsMe = multiplayer.state.isHost;
+    hydrateBattle({
+      player1: {
+        id: p1IsMe ? multiplayer.state.playerId : multiplayer.state.opponentId ?? 'opponent',
+        cards: p1IsMe ? multiplayer.state.playerCards : multiplayer.state.opponentCards,
+      },
+      player2: {
+        id: p1IsMe ? multiplayer.state.opponentId ?? 'opponent' : multiplayer.state.playerId,
+        cards: p1IsMe ? multiplayer.state.opponentCards : multiplayer.state.playerCards,
+      },
+      totalRounds: multiplayer.state.totalRounds,
+      p1Score: p1IsMe ? multiplayer.state.playerScore : multiplayer.state.opponentScore,
+      p2Score: p1IsMe ? multiplayer.state.opponentScore : multiplayer.state.playerScore,
+      turnPlayerId: multiplayer.state.isHost ? multiplayer.state.playerId : multiplayer.state.opponentId,
+    });
+  }, [hydrateBattle, multiplayer.state.isHost, multiplayer.state.opponentCards, multiplayer.state.opponentId, multiplayer.state.opponentScore, multiplayer.state.playerCards, multiplayer.state.playerId, multiplayer.state.playerScore, multiplayer.state.status, multiplayer.state.totalRounds]);
+
   // ─── WebSocket listeners ─────────────────────────────────────────────────────
   useEffect(() => {
     const unsubs: (() => void)[] = [];
 
     unsubs.push(mpClient.on('BATTLE_START', (msg: MPMessage) => {
-      const { player1, player2, totalRounds: tr, p1Score, p2Score, turnPlayerId: initialTurnPlayerId } = msg.payload;
-      const iAmP1 = player1.id === params.playerId;
-      setIsPlayer1(iAmP1);
-      setMyCards(iAmP1 ? player1.cards : player2.cards);
-      setOpponentCards(iAmP1 ? player2.cards : player1.cards);
-      setTotalRounds(tr);
-      setMyScore(iAmP1 ? p1Score : p2Score);
-      setOppScore(iAmP1 ? p2Score : p1Score);
-      setTurnPlayerId(initialTurnPlayerId ?? player1.id);
-      setCurrentRound(0);
-      setEndBattleClicked(false);
-      setPhase('selection');
-      enterCards();
+      hydrateBattle(msg.payload);
     }));
 
     unsubs.push(mpClient.on('TURN_CHANGED', (msg: MPMessage) => {
@@ -160,7 +193,7 @@ export default function MultiplayerBattleScreen() {
     }));
 
     return () => unsubs.forEach(u => u());
-  }, [params.playerId, isPlayer1, enterCards]);
+  }, [hydrateBattle, isPlayer1, router]);
 
   useEffect(() => {
     if (gameOver && endBattleClicked) {
@@ -183,10 +216,10 @@ export default function MultiplayerBattleScreen() {
 
   // ─── كشف كرتي ────────────────────────────────────────────────────────────────
   const handleReveal = useCallback(() => {
-    if (!myCurrentCard || turnPlayerId !== params.playerId) return;
-    mpClient.revealCard(params.playerId, currentRound, myCurrentCard);
+    if (!myCurrentCard || turnPlayerId !== playerId) return;
+    mpClient.revealCard(playerId, currentRound, myCurrentCard);
     setPhase('waiting_opponent');
-  }, [myCurrentCard, params.playerId, currentRound, turnPlayerId]);
+  }, [myCurrentCard, playerId, currentRound, turnPlayerId]);
 
   // ─── التالي ──────────────────────────────────────────────────────────────────
   const handleNext = useCallback(() => {

@@ -192,7 +192,8 @@ export default function CardSelectionScreen() {
   useEffect(() => {
     if (!isOnlineMultiplayer) return;
     if (mp?.state?.status === 'playing') {
-      router.push('/screens/battle' as any);
+      // المعركة الجماعية لها حالة WebSocket مستقلة وتستعيد BATTLE_START حتى إن وصلت قبل فتح الشاشة.
+      router.replace('/screens/multiplayer-battle' as any);
     }
   }, [mp?.state?.status, isOnlineMultiplayer, router]);
 
@@ -244,8 +245,7 @@ export default function CardSelectionScreen() {
       setWaitingForOpponent(true);
     } else if (isMultiplayer && mp?.sendArrangementReady) {
       setPlayerDeck(sorted);
-      mp.sendArrangementReady(sorted);
-      setWaitingForOpponent(true);
+      setWaitingForOpponent(mp.sendArrangementReady(sorted));
     } else {
       setPlayerDeck(sorted);
       startBattle(sorted, assignedAbilities);
@@ -393,6 +393,11 @@ export default function CardSelectionScreen() {
         />
 
         <View style={styles.bottomBar}>
+          {isOnlineMultiplayer && mp?.state?.lastError && (
+            <View style={styles.multiplayerErrorBanner}>
+              <Text style={styles.multiplayerErrorText}>{mp.state.lastError}</Text>
+            </View>
+          )}
           {isMultiplayer && waitingForOpponent && !opponentArrangementReady && (
             <View style={styles.waitingBanner}>
               <ActivityIndicator size="small" color="#d4af37" />
@@ -593,6 +598,8 @@ const styles = StyleSheet.create({
   bottomBar: { padding: SPACE.md, backgroundColor: 'rgba(5,5,10,0.9)', borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.2)', alignItems: 'center', gap: SPACE.sm },
   waitingBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: RADIUS.md, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   waitingBannerText: { color: '#d4af37', fontSize: 12, fontWeight: '700' },
+  multiplayerErrorBanner: { alignSelf: 'stretch', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(248,113,113,0.5)', backgroundColor: 'rgba(127,29,29,0.28)', paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm },
+  multiplayerErrorText: { color: '#fecaca', fontSize: 12, fontWeight: '800', textAlign: 'center', writingDirection: 'rtl' },
   allReadyBanner: { backgroundColor: 'rgba(74,222,128,0.08)', borderColor: 'rgba(74,222,128,0.30)' },
   localHandoverOverlay: { flex: 1, backgroundColor: 'rgba(3,7,18,0.96)', alignItems: 'center', justifyContent: 'center', padding: SPACE.xl },
   localHandoverCard: { width: '100%', maxWidth: 460, gap: SPACE.lg, padding: SPACE.xl, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(56,189,248,0.45)', backgroundColor: 'rgba(14,25,43,0.98)' },

@@ -150,9 +150,8 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
     if (!room || room.status !== 'waiting' || room.player2) return null;
     room.player2 = player;
-    room.status = 'playing';
-    // يبدأ الدور بالمضيف، ثم يتناوب بعد كل جولة.
-    room.currentTurnPlayerId = room.player1?.id ?? player.id;
+    // تبقى الغرفة في الانتظار حتى يؤكد الطرفان ترتيبهما؛ لا يسمح بكشف الكروت قبل BATTLE_START.
+    room.currentTurnPlayerId = null;
     this.playerToRoom.set(player.id, roomId);
     return room;
   }
@@ -203,6 +202,25 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
     if (!room || !room.player1 || !room.player2) return false;
     return room.player1.isReady && room.player2.isReady;
+  }
+
+  /** يبدأ المباراة مرة واحدة فقط بعد اكتمال التشكيلتين والجاهزية على الخادم. */
+  startMatch(roomId: string): Room | null {
+    const room = this.rooms.get(roomId);
+    if (!room || room.status !== 'waiting' || !room.player1 || !room.player2) return null;
+    if (!this.areBothPlayersReady(roomId)) return null;
+
+    const totalRounds = Math.max(room.totalRounds, room.player1.rounds ?? 0, room.player2.rounds ?? 0);
+    if (!totalRounds || room.player1.cards?.length !== totalRounds || room.player2.cards?.length !== totalRounds) return null;
+
+    room.totalRounds = totalRounds;
+    room.status = 'playing';
+    room.currentRound = { roundIndex: 0, p1Card: null, p2Card: null, resolved: false };
+    room.currentTurnPlayerId = room.player1.id;
+    room.p1Score = totalRounds;
+    room.p2Score = totalRounds;
+    room.roundHistory = [];
+    return room;
   }
 
   revealCard(playerId: string, roundIndex: number, card: any): RoundResult | null {
