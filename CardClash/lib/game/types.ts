@@ -304,27 +304,27 @@ export interface RoundResult {
 }
 
 export const RACE_EMOJI: Record<Race, string> = {
-  human: '\u{1F464}',
+  human: '\u{1F9D1}',
   elf: '\u{1F9DD}',
-  orc: '\u{1F479}',
-  dragon: '\u{1F409}',
-  demon: '\u{1F608}',
-  undead: '\u{1F480}',
+  orc: '\u{1F47A}',
+  dragon: '\u{1F432}',
+  demon: '\u{1F47F}',
+  undead: '\u2620\ufe0f',
   monster: '\u{1F47E}',
   robot: '\u{1F916}',
 };
 
 export const CLASS_EMOJI: Record<CardClass, string> = {
-  warrior: '\u2694\ufe0f',       // ⚔️  محارب
-  knight: '\u{1F6E1}\ufe0f',   // 🛡️  فارس
-  mage: '\u{1F52E}',          // 🔮  ساحر
-  archer: '\u{1F3F9}',          // 🏹  رامي
-  berserker: '\u{1F5E1}\ufe0f',   // 🗡️  ضاري
-  paladin: '\u{1F4AA}',          // 💪  بالادين
-  swordsman: '\u{1F93A}',          // 🤺  سياف
-  fighter: '\u{1F94A}',          // 🥊  مقاتل
-  guardian: '\u{1F916}',          // 🤖  روبوت (robot)
-  healer: '\u2695\ufe0f',       // ⚕️  طبيب
+  warrior: '\u2694\ufe0f',        // ⚔️ محارب
+  knight: '\u{1F6E1}\ufe0f',      // 🛡️ فارس
+  mage: '\u{1FA84}',               // 🪄 ساحر
+  archer: '\u{1F3F9}',             // 🏹 رامي
+  berserker: '\u{1FA93}',          // 🪓 ضاري
+  paladin: '\u2728',               // ✨ بالادين
+  swordsman: '\u{1F5E1}\ufe0f',   // 🗡️ سياف
+  fighter: '\u{1F94A}',            // 🥊 مقاتل
+  guardian: '\u{1F3F0}',           // 🏰 حارس
+  healer: '\u{1FA7A}',             // 🩺 طبيب
 };
 
 export const GENDER_EMOJI: Record<Gender, string> = {

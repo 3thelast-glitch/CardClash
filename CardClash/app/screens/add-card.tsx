@@ -19,8 +19,8 @@ import { getRarityFromStars } from '@/lib/game/card-rarity';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const RACE_AR: Record<Race, string> = {
-  human: 'بشري', elf: 'إلف', orc: 'أورك',
-  dragon: 'تنين', demon: 'شيطان', undead: 'حي ميت',
+  human: 'بشر', elf: 'إلف', orc: 'أورك',
+  dragon: 'تنين', demon: 'شيطان', undead: 'ميت',
   monster: 'وحش', robot: 'روبوت',
 };
 
@@ -30,7 +30,7 @@ const CLASS_AR: Partial<Record<CardClass, string>> = {
   archer: 'رامي',
   swordsman: 'سياف',
   fighter: 'مقاتل',
-  guardian: 'روبوت',
+  guardian: 'حارس',
   healer: 'طبيب',
 };
 
@@ -117,7 +117,9 @@ const IconChip = ({ icon, label, selected, color, onPress, onClear }: {
       onPress={onPress}
       style={[IC.btn, selected && { borderColor: color, backgroundColor: color + '20' }]}
     >
-      <Text style={IC.icon}>{icon}</Text>
+      <View style={[IC.iconWell, { borderColor: selected ? color + '75' : 'rgba(255,255,255,0.10)', backgroundColor: selected ? color + '28' : 'rgba(255,255,255,0.05)' }]}>
+        <Text style={IC.icon}>{icon}</Text>
+      </View>
       <Text style={[IC.lbl, selected && { color }]}>{label}</Text>
     </TouchableOpacity>
     {selected && onClear && (
@@ -129,9 +131,10 @@ const IconChip = ({ icon, label, selected, color, onPress, onClear }: {
 );
 const IC = StyleSheet.create({
   wrapper: { position: 'relative', margin: 3 },
-  btn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.5, borderColor: '#2D3748', backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', minWidth: 52 },
-  icon: { fontSize: 18, textAlign: 'center' },
-  lbl: { fontSize: 10, color: '#6B7280', fontWeight: '700', marginTop: 2, textAlign: 'center' },
+  btn: { minWidth: 94, minHeight: 42, paddingLeft: 10, paddingRight: 7, borderRadius: 21, borderWidth: 1.5, borderColor: '#2D3748', backgroundColor: 'rgba(255,255,255,0.03)', flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'flex-start', gap: 6 },
+  iconWell: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  icon: { fontSize: 15, textAlign: 'center' },
+  lbl: { flexShrink: 1, fontSize: 11, color: '#94A3B8', fontWeight: '800', textAlign: 'right' },
   clearBtn: { position: 'absolute', top: -6, right: -6, backgroundColor: '#EF4444', borderRadius: 8, width: 16, height: 16, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   clearTxt: { color: '#fff', fontSize: 9, fontWeight: '900', lineHeight: 16 },
 });
