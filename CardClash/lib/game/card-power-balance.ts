@@ -13,6 +13,14 @@ export const RARITY_POWER_RANGES: Record<CardRarity, { minStat: number; maxStat:
   special: { minStat: 0, maxStat: Number.POSITIVE_INFINITY },
 };
 
+/** نطاقات القوة الأصلية في بيانات الشخصيات، وتستخدم لحفظ ترتيب قوتها النسبي داخل الندرة. */
+const RARITY_SOURCE_STAT_RANGES: Record<Exclude<CardRarity, 'special'>, { attack: readonly [number, number]; defense: readonly [number, number] }> = {
+  common: { attack: [1, 15], defense: [1, 14] },
+  rare: { attack: [3, 18], defense: [4, 16] },
+  epic: { attack: [10, 20], defense: [5, 18] },
+  legendary: { attack: [16, 25], defense: [14, 25] },
+};
+
 export function getCardBalanceRarity(card: Pick<Card, 'rarity' | 'stars'>): CardRarity {
   return card.rarity === 'special' ? 'special' : (card.rarity ?? getRarityFromStars(card.stars));
 }
@@ -22,16 +30,25 @@ export function getCardStatCap(card: Pick<Card, 'rarity' | 'stars'>): number {
   return getCardBalanceRarity(card) === 'special' ? Number.POSITIVE_INFINITY : MAX_CARD_STAT;
 }
 
-function toStat(value: number | undefined, minimum: number, maximum: number): number {
-  return Math.min(maximum, Math.max(minimum, Math.round(value ?? 0)));
+function scaleStatIntoRarityRange(value: number | undefined, sourceRange: readonly [number, number], targetRange: { minStat: number; maxStat: number }): number {
+  const rawValue = Math.round(value ?? 0);
+  if (!Number.isFinite(targetRange.maxStat)) return Math.max(targetRange.minStat, rawValue);
+  const [sourceMin, sourceMax] = sourceRange;
+  const bounded = Math.min(sourceMax, Math.max(sourceMin, rawValue));
+  const progress = sourceMax === sourceMin ? 1 : (bounded - sourceMin) / (sourceMax - sourceMin);
+  return Math.round(targetRange.minStat + progress * (targetRange.maxStat - targetRange.minStat));
 }
 
 /** يعيد نسخة متوازنة من الكرت، ولا يغير مرجع البيانات الأصلي. */
 export function normalizeCardPower<T extends Card>(card: T): T {
   const rarity = getCardBalanceRarity(card);
   const rule = RARITY_POWER_RANGES[rarity];
-  const attack = toStat(card.attack, rule.minStat, rule.maxStat);
-  const defense = toStat(card.defense, rule.minStat, rule.maxStat);
+  if (rarity === 'special') {
+    return { ...card, rarity, attack: Math.max(0, Math.round(card.attack)), defense: Math.max(0, Math.round(card.defense)) };
+  }
+  const sourceRule = RARITY_SOURCE_STAT_RANGES[rarity];
+  const attack = scaleStatIntoRarityRange(card.attack, sourceRule.attack, rule);
+  const defense = scaleStatIntoRarityRange(card.defense, sourceRule.defense, rule);
 
   return { ...card, rarity, attack, defense };
 }

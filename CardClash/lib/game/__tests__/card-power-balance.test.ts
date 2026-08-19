@@ -37,6 +37,21 @@ describe('card power balance by rarity', () => {
     expect(normalized.defense).toBeLessThanOrEqual(rule.maxStat);
   });
 
+  it('preserves each character’s relative ranking inside a rarity range', () => {
+    const weakerCommon = normalizeCardPower(makeCard({ rarity: 'common', stars: 1, attack: 1, defense: 1 }));
+    const strongerCommon = normalizeCardPower(makeCard({ rarity: 'common', stars: 1, attack: 15, defense: 14 }));
+    const weakerEpic = normalizeCardPower(makeCard({ rarity: 'epic', stars: 4, attack: 10, defense: 5 }));
+    const strongerEpic = normalizeCardPower(makeCard({ rarity: 'epic', stars: 4, attack: 20, defense: 18 }));
+    expect(weakerCommon.attack).toBe(0);
+    expect(weakerCommon.defense).toBe(0);
+    expect(strongerCommon.attack).toBe(6);
+    expect(strongerCommon.defense).toBe(6);
+    expect(weakerEpic.attack).toBe(11);
+    expect(weakerEpic.defense).toBe(11);
+    expect(strongerEpic.attack).toBe(15);
+    expect(strongerEpic.defense).toBe(15);
+  });
+
   it('exempts special cards from the standard 20-stat cap while retaining their values', () => {
     const special = makeCard({ rarity: 'special', stars: 5, attack: 27, defense: 24 });
     const normalized = normalizeCardPower(special);
