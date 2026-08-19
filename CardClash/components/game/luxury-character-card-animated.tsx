@@ -7,6 +7,7 @@
  */
 import React, { useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Image, ViewStyle } from 'react-native';
+import type { ImageSourcePropType } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS, Video, ResizeMode } from 'expo-av';
 import Animated, {
@@ -28,6 +29,10 @@ const CLASS_LABELS: Record<CardClass, string> = {
     warrior: 'محارب', knight: 'فارس', mage: 'ساحر', archer: 'رامي',
     berserker: 'مقاتل', paladin: 'بلادين', swordsman: 'سياف', fighter: 'مقاتل',
     guardian: 'حارس', healer: 'طبيب',
+};
+
+const FACTION_MEDALLIONS: Partial<Record<Race, ImageSourcePropType>> = {
+    human: require('../../assets/icons/factions/human_clean.png'),
 };
 
 const BASE_W = 220;
@@ -71,19 +76,22 @@ const MetaStrip = ({ card, sc }: { card: Card; sc: number }) => {
     const iconFs = Math.max(9, Math.min(15, 12 * sc));
     const gap = Math.max(2, Math.min(6, 4 * sc));
 
-    const icons: string[] = [];
     const race = card.race;
-    if (race && RACE_EMOJI[race]) icons.push(RACE_EMOJI[race]);
     const cls = card.cardClass;
-    if (cls && CLASS_EMOJI[cls]) icons.push(CLASS_EMOJI[cls]);
+    const factionMedallion = race ? FACTION_MEDALLIONS[race] : undefined;
+    const raceEmoji = race ? RACE_EMOJI[race] : undefined;
+    const classEmoji = cls ? CLASS_EMOJI[cls] : undefined;
 
-    if (!icons.length) return null;
+    if (!factionMedallion && !raceEmoji && !classEmoji) return null;
 
     return (
-        <View style={[ms.row, { gap }]}>
-            {icons.map((ico, i) => (
-                <Text key={i} style={{ fontSize: iconFs, lineHeight: iconFs * 1.3 }}>{ico}</Text>
-            ))}
+        <View style={[ms.row, { gap: gap }]}>
+            {factionMedallion ? (
+                <Image source={factionMedallion} style={{ width: iconFs * 1.35, height: iconFs * 1.35 }} resizeMode="contain" />
+            ) : raceEmoji ? (
+                <Text style={{ fontSize: iconFs, lineHeight: iconFs * 1.3 }}>{raceEmoji}</Text>
+            ) : null}
+            {classEmoji ? <Text style={{ fontSize: iconFs, lineHeight: iconFs * 1.3 }}>{classEmoji}</Text> : null}
         </View>
     );
 };

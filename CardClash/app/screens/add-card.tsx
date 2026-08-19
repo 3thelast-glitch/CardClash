@@ -3,10 +3,11 @@
  */
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, TextInput, ScrollView, TouchableOpacity,
+  View, Text, TextInput, ScrollView, TouchableOpacity, Image,
   StyleSheet, Alert, Platform, KeyboardAvoidingView,
   Clipboard,
 } from 'react-native';
+import type { ImageSourcePropType } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -75,6 +76,13 @@ const CLASS_COLORS: Partial<Record<CardClass, string>> = {
   guardian: '#38BDF8',
   healer: '#86EFAC',
 };
+
+const RACE_ICON_SOURCES: Partial<Record<Race, ImageSourcePropType>> = {
+  human: require('../../assets/icons/factions/human_clean.png'),
+};
+
+const CLASS_ICON_SOURCES: Partial<Record<CardClass, ImageSourcePropType>> = {
+};
 const TAGS: string[] = ['sword', 'shield', 'magic', 'bow', 'crown'];
 
 const defaultForm = { nameAr: '', nameEn: '', attack: '18', defense: '16', specialAbility: '' };
@@ -108,8 +116,8 @@ const Chip = ({ label, selected, color, onPress }: {
   </TouchableOpacity>
 );
 
-const IconChip = ({ icon, label, selected, color, onPress, onClear }: {
-  icon: string; label: string; selected: boolean; color: string;
+const IconChip = ({ icon, iconSource, label, selected, color, onPress, onClear }: {
+  icon: string; iconSource?: ImageSourcePropType; label: string; selected: boolean; color: string;
   onPress: () => void; onClear?: () => void;
 }) => (
   <View style={IC.wrapper}>
@@ -118,7 +126,7 @@ const IconChip = ({ icon, label, selected, color, onPress, onClear }: {
       style={[IC.btn, selected && { borderColor: color, backgroundColor: color + '20' }]}
     >
       <View style={[IC.iconWell, { borderColor: selected ? color + '75' : 'rgba(255,255,255,0.10)', backgroundColor: selected ? color + '28' : 'rgba(255,255,255,0.05)' }]}>
-        <Text style={IC.icon}>{icon}</Text>
+        {iconSource ? <Image source={iconSource} style={IC.imageIcon} resizeMode="contain" /> : <Text style={IC.icon}>{icon}</Text>}
       </View>
       <Text style={[IC.lbl, selected && { color }]}>{label}</Text>
     </TouchableOpacity>
@@ -134,6 +142,7 @@ const IC = StyleSheet.create({
   btn: { minWidth: 94, minHeight: 42, paddingLeft: 10, paddingRight: 7, borderRadius: 21, borderWidth: 1.5, borderColor: '#2D3748', backgroundColor: 'rgba(255,255,255,0.03)', flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'flex-start', gap: 6 },
   iconWell: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   icon: { fontSize: 15, textAlign: 'center' },
+  imageIcon: { width: 23, height: 23 },
   lbl: { flexShrink: 1, fontSize: 11, color: '#94A3B8', fontWeight: '800', textAlign: 'right' },
   clearBtn: { position: 'absolute', top: -6, right: -6, backgroundColor: '#EF4444', borderRadius: 8, width: 16, height: 16, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   clearTxt: { color: '#fff', fontSize: 9, fontWeight: '900', lineHeight: 16 },
@@ -358,6 +367,7 @@ export default function AddCardScreen() {
                     <IconChip
                       key={r}
                       icon={RACE_EMOJI[r]}
+                      iconSource={RACE_ICON_SOURCES[r]}
                       label={RACE_AR[r]}
                       selected={race === r}
                       color={RACE_COLORS[r]}
@@ -388,6 +398,7 @@ export default function AddCardScreen() {
                     <IconChip
                       key={c}
                       icon={CLASS_EMOJI[c]}
+                      iconSource={CLASS_ICON_SOURCES[c]}
                       label={CLASS_AR[c] ?? c}
                       selected={cls === c}
                       color={CLASS_COLORS[c] ?? '#fff'}
