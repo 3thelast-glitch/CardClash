@@ -49,6 +49,10 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(battle).toContain('قدرات');
     expect(battle).toContain('useAbility(ability.type)');
     expect(battle).toContain('getDynamicAudioWinner');
+    expect(battle).toContain('match.hostDeck[match.currentRound]');
+    expect(battle).toContain('match.guestDeck[match.currentRound]');
+    expect(battle).toContain('match.activeEffects.filter');
+    expect(battle).toContain('determineRoundWinner');
     expect(battle).toContain('playAudio={myCardAudio}');
     expect(battle).toContain('playAudio={opponentCardAudio}');
     expect(battle).toContain('معاينة النتيجة — كيف حُسمت الجولة؟');
