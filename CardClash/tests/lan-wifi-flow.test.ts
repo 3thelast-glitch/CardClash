@@ -68,6 +68,18 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(battle).toContain('finishMatch()');
   });
 
+  it('synchronizes the used ability and renders its Arabic effect badges above affected Wi-Fi cards', () => {
+    const context = source('lib/lan/lan-context.tsx');
+    const battle = source('app/screens/lan-battle.tsx');
+    expect(context).toContain('lastAbilityUse');
+    expect(context).toContain("roundIndex, snapshot");
+    expect(context).toContain("LAN_ABILITY_APPLIED");
+    expect(battle).toContain('getActiveCardEffectBadges');
+    expect(battle).toContain('القدرة المستخدمة');
+    expect(battle).toContain('تعزيز:');
+    expect(battle).toContain('إضعاف:');
+  });
+
   it('lets the host request a rematch, lets the guest accept it, then sends both players back to card arrangement', () => {
     const context = source('lib/lan/lan-context.tsx');
     const battle = source('app/screens/lan-battle.tsx');

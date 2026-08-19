@@ -10,6 +10,7 @@ import { useLanMultiplayer } from '@/lib/lan/lan-context';
 import { isLanGameOver } from '@/lib/lan/lan-match-engine';
 import { ABILITY_DETAILS, CATEGORY_CONFIG } from '@/lib/game/ability-details';
 import { determineRoundWinner } from '@/lib/game/cards-data-exports';
+import type { Effect, Side } from '@/lib/game/types';
 import { useBattleLayout } from '@/utils/layout';
 
 function getRoundExplanation(result: NonNullable<ReturnType<typeof useLanMultiplayer>['match']['lastResult']>): string {
@@ -24,6 +25,42 @@ function getRoundExplanation(result: NonNullable<ReturnType<typeof useLanMultipl
 
 function getElementLabel(advantage: 'strong' | 'weak' | 'neutral'): string {
   return advantage === 'strong' ? 'أفضلية قوية' : advantage === 'weak' ? 'أفضلية ضعيفة' : 'دون أفضلية';
+}
+
+type ActiveCardEffectBadge = { id: string; label: string; tone: 'buff' | 'debuff' | 'utility' };
+
+function getActiveCardEffectBadges(effects: Effect[], side: Side, currentRound: number): ActiveCardEffectBadge[] {
+  const roundNumber = currentRound + 1;
+  return effects
+    .filter(effect => effect.targetSide === side || effect.targetSide === 'all')
+    .filter(effect => effect.createdAtRound <= roundNumber && (effect.expiresAtRound === undefined || roundNumber <= effect.expiresAtRound) && (effect.charges === undefined || effect.charges > 0))
+    .filter(effect => {
+      const appliesToRound = (effect.data as { appliesToRound?: number } | undefined)?.appliesToRound;
+      return appliesToRound === undefined || appliesToRound === roundNumber;
+    })
+    .map(effect => {
+      const data = effect.data as { stat?: 'attack' | 'defense' | 'all_stats'; amount?: number; double?: boolean } | undefined;
+      if (effect.kind === 'statModifier') {
+        if (data?.double) return { id: effect.id, label: 'تعزيز: الهجوم ×2', tone: 'buff' };
+        const stat = data?.stat === 'defense' ? 'الدفاع' : data?.stat === 'all_stats' ? 'الهجوم والدفاع' : 'الهجوم';
+        const amount = data?.amount ?? 0;
+        return { id: effect.id, label: `${amount >= 0 ? 'تعزيز' : 'إضعاف'}: ${stat} ${amount >= 0 ? '+' : ''}${amount}`, tone: amount >= 0 ? 'buff' : 'debuff' };
+      }
+      const labels: Partial<Record<Effect['kind'], ActiveCardEffectBadge>> = {
+        protection: { id: effect.id, label: 'حماية من خسارة نقطة', tone: 'buff' },
+        shieldGuard: { id: effect.id, label: 'درع: حجب الخسارة والإضعاف', tone: 'buff' },
+        silenceAbilities: { id: effect.id, label: 'إضعاف: القدرات مختومة', tone: 'debuff' },
+        halvePoints: { id: effect.id, label: 'إضعاف: تنصيف النقاط', tone: 'debuff' },
+        forcedOutcome: { id: effect.id, label: 'نتيجة مضمونة لهذه الجولة', tone: 'utility' },
+        starAdvantage: { id: effect.id, label: 'تعزيز: تفوق النجوم', tone: 'buff' },
+        absoluteDominance: { id: effect.id, label: 'خاص: السيطرة المطلقة', tone: 'utility' },
+        elementalMastery: { id: effect.id, label: 'تعزيز: إتقان العناصر', tone: 'buff' },
+        trap: { id: effect.id, label: 'إضعاف: فخ فعّال', tone: 'debuff' },
+        doubleOrNothing: { id: effect.id, label: 'خاص: دبل أو نثنق', tone: 'utility' },
+        phantomBlade: { id: effect.id, label: 'تعزيز: شفرة الوهم', tone: 'buff' },
+      };
+      return labels[effect.kind] ?? { id: effect.id, label: 'تأثير خاص فعّال', tone: 'utility' };
+    });
 }
 
 function getDynamicAudioWinner(match: ReturnType<typeof useLanMultiplayer>['match']): 'host' | 'guest' | null {
@@ -68,6 +105,13 @@ export default function LanBattleScreen() {
   const iNextReady = isHost ? match.hostNextReady : match.guestNextReady;
   const opponentNextReady = isHost ? match.guestNextReady : match.hostNextReady;
   const myAbilities = isHost ? match.hostAbilities : match.guestAbilities;
+  const mySide: Side = isHost ? 'player' : 'bot';
+  const opponentSide: Side = isHost ? 'bot' : 'player';
+  const myEffectBadges = getActiveCardEffectBadges(match.activeEffects, mySide, match.currentRound);
+  const opponentEffectBadges = getActiveCardEffectBadges(match.activeEffects, opponentSide, match.currentRound);
+  const lastAbilityDetail = match.lastAbilityUse ? ABILITY_DETAILS[match.lastAbilityUse.abilityType] : null;
+  const lastAbilityCategory = lastAbilityDetail ? CATEGORY_CONFIG[lastAbilityDetail.category] : null;
+  const lastAbilityOwnerName = match.lastAbilityUse?.owner === (isHost ? 'host' : 'guest') ? (myName || 'أنت') : (opponentName || 'الخصم');
   const result = match.lastResult;
   const gameOver = !!result && isLanGameOver(result, match.totalRounds);
   const iWonRound = result?.winner === (isHost ? 'host' : 'guest');
@@ -155,12 +199,14 @@ export default function LanBattleScreen() {
     <View style={[styles.arena, { flexDirection: isLandscape ? 'row' : 'column-reverse', paddingHorizontal: arenaPadding, gap: arenaGap }]}>
       <View style={[styles.cardPanel, !isLandscape && styles.cardPanelPortrait]}>
         <Text style={styles.myName}>{myName || 'أنت'}</Text>
+        {myEffectBadges.length > 0 && <View style={styles.effectBadgeList}>{myEffectBadges.map(effect => <View key={effect.id} style={[styles.effectBadge, effect.tone === 'buff' ? styles.effectBadgeBuff : effect.tone === 'debuff' ? styles.effectBadgeDebuff : styles.effectBadgeUtility]}><Text style={styles.effectBadgeText}>{effect.label}</Text></View>)}</View>}
         {myCard ? <LuxuryCharacterCardAnimated card={myCard} style={{ width: cardWidth, height: cardHeight }} isOpenedView={iRevealed || match.phase === 'result'} playAudio={myCardAudio} winnerState={result?.winner === (isHost ? 'host' : 'guest') ? 'winner' : null} /> : <View style={[styles.hiddenCard, { width: cardWidth, height: cardHeight }]}><Text style={styles.hiddenMark}>?</Text></View>}
       </View>
 
       <View style={[styles.centerPanel, { width: isLandscape ? centerWidth : undefined, minHeight: isLandscape ? undefined : 94, gap: Math.max(6, arenaGap) }]}>
         <Text style={[styles.vs, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
         <Text style={[styles.status, result && (iWonRound ? styles.statusWin : result.winner === 'draw' ? styles.statusDraw : styles.statusLoss)]}>{roundLabel}</Text>
+        {lastAbilityDetail && lastAbilityCategory && <View style={[styles.abilityUsedBanner, { borderColor: lastAbilityCategory.color }]}><Text style={[styles.abilityUsedTitle, { color: lastAbilityCategory.color }]}>{lastAbilityCategory.emoji} القدرة المستخدمة: {lastAbilityOwnerName} — {lastAbilityDetail.nameAr}</Text><Text style={styles.abilityUsedDescription}>{lastAbilityDetail.effectAr}</Text></View>}
         {resultExplanation && <View style={styles.resultExplanation}>
           <Text style={styles.resultExplanationTitle}>📋 معاينة النتيجة — كيف حُسمت الجولة؟</Text>
           <Text style={styles.resultExplanationText}>{resultExplanation}</Text>
@@ -189,6 +235,7 @@ export default function LanBattleScreen() {
 
       <View style={[styles.cardPanel, !isLandscape && styles.cardPanelPortrait]}>
         <Text style={styles.opponentName}>{opponentName || 'الخصم'}</Text>
+        {opponentEffectBadges.length > 0 && <View style={styles.effectBadgeList}>{opponentEffectBadges.map(effect => <View key={effect.id} style={[styles.effectBadge, effect.tone === 'buff' ? styles.effectBadgeBuff : effect.tone === 'debuff' ? styles.effectBadgeDebuff : styles.effectBadgeUtility]}><Text style={styles.effectBadgeText}>{effect.label}</Text></View>)}</View>}
         {opponentCard ? <LuxuryCharacterCardAnimated card={opponentCard} style={{ width: cardWidth, height: cardHeight }} isOpenedView={opponentRevealed || match.phase === 'result'} playAudio={opponentCardAudio} winnerState={result?.winner === (isHost ? 'guest' : 'host') ? 'winner' : null} /> : <View style={[styles.hiddenCard, { width: cardWidth, height: cardHeight }]}><Text style={styles.hiddenMark}>?</Text></View>}
       </View>
     </View>
@@ -226,6 +273,7 @@ const styles = StyleSheet.create({
   hudSide: { flex: 1, gap: 2 }, hudSideRight: { alignItems: 'flex-end' }, hudCenter: { alignItems: 'center', gap: 2 }, lanBadge: { color: '#c4b5fd', fontSize: FONT.xs, fontWeight: '900' }, round: { color: '#e5e7eb', fontSize: FONT.sm, fontWeight: '800' }, myScore: { color: '#86efac', fontSize: FONT.xxl, fontWeight: '900' }, opponentScore: { color: '#fca5a5', fontSize: FONT.xxl, fontWeight: '900' }, myName: { color: '#86efac', fontSize: FONT.sm, fontWeight: '800', textAlign: 'right' }, opponentName: { color: '#fca5a5', fontSize: FONT.sm, fontWeight: '800', textAlign: 'left' },
   arena: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: SPACE.sm }, cardPanel: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, minHeight: 0 }, cardPanelPortrait: { flex: 0, width: '100%' }, centerPanel: { alignItems: 'center', justifyContent: 'center' }, vs: { color: COLOR.gold }, status: { color: '#cbd5e1', fontSize: FONT.xs, textAlign: 'center', maxWidth: 220, lineHeight: 18 }, statusWin: { color: '#86efac' }, statusDraw: { color: '#facc15' }, statusLoss: { color: '#fca5a5' }, nextHint: { color: '#c4b5fd', fontSize: 10, textAlign: 'center', maxWidth: 220, lineHeight: 15 },
   hiddenCard: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(17,24,39,0.82)', borderRadius: RADIUS.lg, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(167,139,250,0.55)' }, hiddenMark: { color: '#a78bfa', fontSize: 48, fontWeight: '900' },
+  effectBadgeList: { alignItems: 'center', gap: 4, maxWidth: 250 }, effectBadge: { borderRadius: RADIUS.pill, borderWidth: 1, paddingHorizontal: SPACE.sm, paddingVertical: 3 }, effectBadgeBuff: { borderColor: 'rgba(74,222,128,0.85)', backgroundColor: 'rgba(20,83,45,0.72)' }, effectBadgeDebuff: { borderColor: 'rgba(248,113,113,0.88)', backgroundColor: 'rgba(127,29,29,0.7)' }, effectBadgeUtility: { borderColor: 'rgba(96,165,250,0.88)', backgroundColor: 'rgba(30,58,138,0.68)' }, effectBadgeText: { color: '#f8fafc', fontSize: 10, fontWeight: '900', textAlign: 'center', writingDirection: 'rtl' }, abilityUsedBanner: { width: '100%', maxWidth: 280, borderWidth: 1, borderRadius: RADIUS.md, backgroundColor: 'rgba(15,23,42,0.94)', paddingHorizontal: SPACE.sm, paddingVertical: 6, gap: 2 }, abilityUsedTitle: { fontSize: 10, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' }, abilityUsedDescription: { color: '#e2e8f0', fontSize: 9, lineHeight: 14, textAlign: 'right', writingDirection: 'rtl' },
   actionButton: { borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(74,222,128,0.14)', borderWidth: 1.5, borderColor: '#4ade80', paddingHorizontal: SPACE.md }, abilityButton: { minHeight: 34, borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(167,139,250,0.14)', borderWidth: 1, borderColor: '#a78bfa', paddingHorizontal: SPACE.md }, abilityButtonText: { color: '#ddd6fe', fontSize: 10, fontWeight: '900' }, nextButton: { backgroundColor: 'rgba(96,165,250,0.14)', borderColor: '#60a5fa' }, disabledButton: { backgroundColor: 'rgba(71,85,105,0.28)', borderColor: '#475569' }, actionText: { color: '#f8fafc', fontSize: FONT.xs, fontWeight: '900', textAlign: 'center' }, hostControls: { color: '#94a3b8', fontSize: 10, textAlign: 'center' }, resultExplanation: { width: '100%', maxWidth: 270, backgroundColor: 'rgba(15,23,42,0.9)', borderWidth: 1, borderColor: 'rgba(250,204,21,0.5)', borderRadius: RADIUS.md, padding: SPACE.sm, gap: 3 }, resultExplanationTitle: { color: '#fde68a', fontSize: 10, fontWeight: '900', textAlign: 'right' }, resultExplanationText: { color: '#e2e8f0', fontSize: 10, lineHeight: 15, textAlign: 'right' }, resultMetrics: { borderTopWidth: 1, borderTopColor: 'rgba(148,163,184,0.25)', paddingTop: 5, gap: 2 }, resultMetricText: { color: '#cbd5e1', fontSize: 9, lineHeight: 14, textAlign: 'right' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(2,6,23,0.84)', justifyContent: 'center', padding: SPACE.lg }, abilitiesModal: { maxHeight: '78%', backgroundColor: '#0f172a', borderWidth: 1, borderColor: 'rgba(167,139,250,0.65)', borderRadius: RADIUS.lg, padding: SPACE.md, gap: SPACE.sm }, modalHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' }, modalTitle: { color: '#f8fafc', fontWeight: '900', fontSize: FONT.md }, closeText: { color: '#c4b5fd', fontWeight: '800', fontSize: FONT.xs }, modalHint: { color: '#cbd5e1', fontSize: 11, lineHeight: 17, textAlign: 'right' }, abilityList: { gap: SPACE.sm }, abilityCard: { borderWidth: 1, borderRadius: RADIUS.md, backgroundColor: 'rgba(15,23,42,0.94)', padding: SPACE.sm, gap: 4 }, abilityCardUsed: { opacity: 0.45 }, abilityName: { fontSize: FONT.sm, fontWeight: '900', textAlign: 'right' }, abilityDescription: { color: '#e2e8f0', fontSize: 11, textAlign: 'right', lineHeight: 17 }, abilityState: { color: '#94a3b8', fontSize: 10, textAlign: 'right' },
   disconnectBar: { paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md, backgroundColor: 'rgba(127,29,29,0.92)', alignItems: 'center' }, disconnectText: { color: '#fecaca', fontSize: FONT.xs, textAlign: 'center' },
