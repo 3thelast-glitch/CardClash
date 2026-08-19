@@ -16,7 +16,7 @@ import Animated, {
     type SharedValue,
 } from 'react-native-reanimated';
 import { Svg, Circle, Line, Ellipse, Path, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { Card, CardClass, CardRarity, Race, RACE_EMOJI, CLASS_EMOJI } from '@/lib/game/types';
+import { Card, CardClass, CardRarity, Race, RACE_EMOJI, RACE_LABELS, CLASS_EMOJI } from '@/lib/game/types';
 import { getCardImage } from '../../lib/game/get-card-image';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 
@@ -93,17 +93,24 @@ const FactionCornerMedallion = ({ card, sc }: { card: Card; sc: number }) => {
     const race = card.race;
     const medallion = race ? FACTION_MEDALLIONS[race] : undefined;
     const fallbackEmoji = race ? RACE_EMOJI[race] : undefined;
-    if (!medallion && !fallbackEmoji) return null;
+    const fallbackLabel = race ? RACE_LABELS[race] : undefined;
+    if (!race || (!medallion && !fallbackEmoji)) return null;
 
     const size = Math.max(22, Math.min(43, 38 * sc));
+    const position = { top: Math.max(3, 7 * sc), right: Math.max(3, 7 * sc) };
     return (
-        <View style={[styles.factionCornerMedallion, { width: size, height: size, borderRadius: size / 2, top: Math.max(3, 7 * sc), right: Math.max(3, 7 * sc) }]}>
+        <>
             {medallion ? (
+                <View style={[styles.factionCornerMedallion, { width: size, height: size, borderRadius: size / 2 }, position]}>
                 <Image source={medallion} style={{ width: size, height: size }} resizeMode="contain" />
+                </View>
             ) : (
-                <Text style={{ fontSize: size * 0.52, lineHeight: size * 0.72 }}>{fallbackEmoji}</Text>
+                <View style={[styles.factionFallbackChip, position]}>
+                    <Text style={{ fontSize: size * 0.44, lineHeight: size * 0.68 }}>{fallbackEmoji}</Text>
+                    <Text style={{ color: '#F8FAFC', fontSize: Math.max(8, size * 0.28), fontWeight: '800', writingDirection: 'rtl' }}>{fallbackLabel}</Text>
+                </View>
             )}
-        </View>
+        </>
     );
 };
 
@@ -523,7 +530,7 @@ const TACTICAL_RARITY_PALETTES: Record<CardRarity, TacticalRarityPalette> = {
 const TacticalRarityCard = ({
     card, style, cardW, cardH, sc, cardImage, videoAsset, customUri,
     isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate,
-    attack, defense, baseAttack, baseDefense, selectionLabel, rarity,
+    attack, defense, selectionLabel, rarity,
 }: {
     card: Card;
     style?: ViewStyle;
@@ -540,8 +547,6 @@ const TacticalRarityCard = ({
     shouldAnimate: boolean;
     attack: number;
     defense: number;
-    baseAttack: number;
-    baseDefense: number;
     selectionLabel?: string;
     rarity: CardRarity;
 }) => {
@@ -557,10 +562,6 @@ const TacticalRarityCard = ({
     const showEnglishName = !isCompact && !!card.nameEn;
     const starCount = Math.max(0, Math.min(5, card.stars ?? 5));
     const abilityText = card.specialAbility?.trim();
-    const effectivePower = Math.max(0, attack + defense);
-    const basePower = Math.max(0, baseAttack + baseDefense);
-    const powerDelta = effectivePower - basePower;
-    const powerDeltaText = powerDelta === 0 ? '' : ` ${powerDelta > 0 ? '+' : ''}${powerDelta}`;
     type MetaItem = { key: 'class'; label: string };
     const classLabel = card.cardClass ? CLASS_LABELS[card.cardClass] : undefined;
     const metaItems: MetaItem[] = [
@@ -588,18 +589,13 @@ const TacticalRarityCard = ({
                 </View>
                 <FactionCornerMedallion card={card} sc={sc} />
 
-                <View style={[styles.tacticalContextRail, { top: pad + (isCompact ? 25 : 31), left: pad, right: pad }]}>
-                    <View style={[styles.tacticalPowerChip, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
-                        <Text style={[styles.tacticalPowerChipText, { color: powerDelta < 0 ? '#FCA5A5' : powerDelta > 0 ? '#86EFAC' : palette.chipText, fontSize: Math.max(7, badgeFont - 1) }]}>
-                            ⚡ {effectivePower}{powerDeltaText}
-                        </Text>
-                    </View>
-                    {!!selectionLabel && (
+                {!!selectionLabel && (
+                    <View style={[styles.tacticalContextRail, { top: pad + (isCompact ? 25 : 31), left: pad, right: pad }]}>
                         <View style={[styles.tacticalSelectionChip, { backgroundColor: palette.abilityBg, borderColor: palette.abilityBorder }]}>
                             <Text style={[styles.tacticalSelectionChipText, { color: palette.text, fontSize: Math.max(7, badgeFont - 1) }]}>{selectionLabel}</Text>
                         </View>
-                    )}
-                </View>
+                    </View>
+                )}
 
                 <View style={[styles.tacticalLegendaryNameBlock, { bottom: nameBottom, paddingHorizontal: pad }]}>
                     <View style={[styles.tacticalLegendaryNamePlate, { backgroundColor: palette.nameBg }]}>
@@ -759,8 +755,6 @@ export function LuxuryCharacterCardAnimated({
             shouldAnimate={enableVisualEffects}
             attack={displayAttack}
             defense={displayDefense}
-            baseAttack={baseAttack}
-            baseDefense={baseDefense}
             selectionLabel={selectionLabel}
             rarity={rarity}
         />;
@@ -897,6 +891,7 @@ const styles = StyleSheet.create({
     rarityBadge: { position: 'absolute', borderWidth: 1, zIndex: 10 },
     rarityBadgeText: { fontWeight: '700', letterSpacing: 0.5 },
     factionCornerMedallion: { position: 'absolute', zIndex: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(2,4,12,0.76)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.74)', shadowColor: '#5B4BFF', shadowOpacity: 0.65, shadowRadius: 6, elevation: 8 },
+    factionFallbackChip: { position: 'absolute', zIndex: 15, flexDirection: 'row-reverse', alignItems: 'center', gap: 3, minHeight: 24, paddingHorizontal: 6, borderRadius: 14, backgroundColor: 'rgba(2,4,12,0.86)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.74)', shadowColor: '#5B4BFF', shadowOpacity: 0.55, shadowRadius: 5, elevation: 7 },
 
     nameContainer: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 8 },
     legendaryNameBar: { position: 'absolute', top: -4, left: -10, right: -10, bottom: -4 },

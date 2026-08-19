@@ -6,6 +6,10 @@ const characterCardSource = readFileSync(
     resolve(process.cwd(), 'components/game/luxury-character-card-animated.tsx'),
     'utf8',
 );
+const fullArtCardSource = readFileSync(
+    resolve(process.cwd(), 'components/game/full-art-tactical-card.tsx'),
+    'utf8',
+);
 
 describe('character card optional metadata', () => {
     it('does not render an element chip or visible faction text, and uses a corner medallion instead', () => {
@@ -19,5 +23,16 @@ describe('character card optional metadata', () => {
         expect(characterCardSource).toContain('const hasMeta = metaItems.length > 0;');
         expect(characterCardSource).toContain('{hasMeta && (');
         expect(characterCardSource).toContain('const metaHeight = hasMeta ?');
+    });
+
+    it('keeps a text fallback only for factions without a generated medallion', () => {
+        expect(characterCardSource).toContain('const fallbackLabel = race ? RACE_LABELS[race] : undefined;');
+        expect(characterCardSource).toContain('styles.factionFallbackChip');
+        expect(fullArtCardSource).toContain('styles.factionFallbackLabel');
+    });
+
+    it('does not display an attack-plus-defense total power chip', () => {
+        expect(characterCardSource).not.toContain('const effectivePower =');
+        expect(characterCardSource).not.toContain('⚡ {effectivePower}');
     });
 });

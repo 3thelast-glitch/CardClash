@@ -100,7 +100,10 @@ export function FullArtTacticalCard({
           {factionMedallion ? (
             <Image source={factionMedallion} style={styles.factionMedallionImage} resizeMode="contain" />
           ) : (
-            <Text style={styles.factionFallbackEmoji}>{RACE_EMOJI[card.race]}</Text>
+            <View style={styles.factionFallbackChip}>
+              <Text style={styles.factionFallbackEmoji}>{RACE_EMOJI[card.race]}</Text>
+              <Text style={styles.factionFallbackLabel}>{RACE_LABELS[card.race]}</Text>
+            </View>
           )}
         </View>
       </View>
@@ -192,7 +195,9 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   factionMedallionImage: { width: 42, height: 42 },
-  factionFallbackEmoji: { fontSize: 22, lineHeight: 28 },
+  factionFallbackChip: { flexDirection: 'row-reverse', alignItems: 'center', gap: 3, paddingHorizontal: 5 },
+  factionFallbackEmoji: { fontSize: 18, lineHeight: 24 },
+  factionFallbackLabel: { color: '#F8FAFC', fontSize: 9, fontWeight: '800', writingDirection: 'rtl' },
   titleBlock: { alignItems: 'center', paddingHorizontal: 12, paddingBottom: 8 },
   nameAr: {
     color: '#FFFFFF',
