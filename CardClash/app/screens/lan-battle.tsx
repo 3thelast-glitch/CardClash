@@ -43,6 +43,8 @@ export default function LanBattleScreen() {
   const gameOver = !!result && isLanGameOver(result, match.totalRounds);
   const iWonRound = result?.winner === (isHost ? 'host' : 'guest');
   const resultExplanation = result ? getRoundExplanation(result) : null;
+  const myCardWon = match.phase === 'result' && iWonRound;
+  const opponentCardWon = match.phase === 'result' && !!result && result.winner !== 'draw' && !iWonRound;
 
   useEffect(() => {
     if (match.phase === 'idle') router.replace('/screens/game-mode' as any);
@@ -105,13 +107,13 @@ export default function LanBattleScreen() {
     <View style={[styles.arena, { flexDirection: isLandscape ? 'row' : 'column-reverse', paddingHorizontal: arenaPadding, gap: arenaGap }]}>
       <View style={[styles.cardPanel, !isLandscape && styles.cardPanelPortrait]}>
         <Text style={styles.myName}>{myName || 'أنت'}</Text>
-        {myCard ? <LuxuryCharacterCardAnimated card={myCard} style={{ width: cardWidth, height: cardHeight }} isOpenedView={iRevealed || match.phase === 'result'} playAudio={iRevealed && match.phase === 'playing'} winnerState={result?.winner === (isHost ? 'host' : 'guest') ? 'winner' : null} /> : <View style={[styles.hiddenCard, { width: cardWidth, height: cardHeight }]}><Text style={styles.hiddenMark}>?</Text></View>}
+        {myCard ? <LuxuryCharacterCardAnimated card={myCard} style={{ width: cardWidth, height: cardHeight }} isOpenedView={iRevealed || match.phase === 'result'} playAudio={myCardWon} winnerState={result?.winner === (isHost ? 'host' : 'guest') ? 'winner' : null} /> : <View style={[styles.hiddenCard, { width: cardWidth, height: cardHeight }]}><Text style={styles.hiddenMark}>?</Text></View>}
       </View>
 
       <View style={[styles.centerPanel, { width: isLandscape ? centerWidth : undefined, minHeight: isLandscape ? undefined : 94, gap: Math.max(6, arenaGap) }]}>
         <Text style={[styles.vs, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
         <Text style={[styles.status, result && (iWonRound ? styles.statusWin : result.winner === 'draw' ? styles.statusDraw : styles.statusLoss)]}>{roundLabel}</Text>
-        {resultExplanation && <View style={styles.resultExplanation}><Text style={styles.resultExplanationTitle}>📋 كيف حُسمت الجولة؟</Text><Text style={styles.resultExplanationText}>{resultExplanation}</Text></View>}
+        {resultExplanation && <View style={styles.resultExplanation}><Text style={styles.resultExplanationTitle}>📋 معاينة النتيجة — كيف حُسمت الجولة؟</Text><Text style={styles.resultExplanationText}>{resultExplanation}</Text></View>}
         {nextHint && <Text style={styles.nextHint}>{nextHint}</Text>}
         {match.phase === 'playing' && match.abilitiesEnabled && (
           <TouchableOpacity
@@ -130,7 +132,7 @@ export default function LanBattleScreen() {
 
       <View style={[styles.cardPanel, !isLandscape && styles.cardPanelPortrait]}>
         <Text style={styles.opponentName}>{opponentName || 'الخصم'}</Text>
-        {opponentCard ? <LuxuryCharacterCardAnimated card={opponentCard} style={{ width: cardWidth, height: cardHeight }} isOpenedView={opponentRevealed || match.phase === 'result'} winnerState={result?.winner === (isHost ? 'guest' : 'host') ? 'winner' : null} /> : <View style={[styles.hiddenCard, { width: cardWidth, height: cardHeight }]}><Text style={styles.hiddenMark}>?</Text></View>}
+        {opponentCard ? <LuxuryCharacterCardAnimated card={opponentCard} style={{ width: cardWidth, height: cardHeight }} isOpenedView={opponentRevealed || match.phase === 'result'} playAudio={opponentCardWon} winnerState={result?.winner === (isHost ? 'guest' : 'host') ? 'winner' : null} /> : <View style={[styles.hiddenCard, { width: cardWidth, height: cardHeight }]}><Text style={styles.hiddenMark}>?</Text></View>}
       </View>
     </View>
     <Modal visible={isAbilitiesOpen} transparent animationType="fade" onRequestClose={() => setIsAbilitiesOpen(false)}>
