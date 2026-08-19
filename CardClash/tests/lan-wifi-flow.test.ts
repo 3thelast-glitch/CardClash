@@ -27,7 +27,7 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(transport).toContain("wss:");
   });
 
-  it('requires both arrangements, then synchronizes reveals and the host-authoritative result', () => {
+  it('requires both arrangements, synchronizes reveals, and waits for both players before the next round', () => {
     const context = source('lib/lan/lan-context.tsx');
     const selection = source('app/screens/card-selection.tsx');
     const battle = source('app/screens/lan-battle.tsx');
@@ -35,7 +35,13 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(context).toContain("LAN_MATCH_START");
     expect(context).toContain("LAN_REVEAL");
     expect(context).toContain("LAN_ROUND_RESULT");
+    expect(context).toContain("LAN_NEXT_ROUND_READY");
+    expect(context).toContain('hostNextReady');
+    expect(context).toContain('guestNextReady');
+    expect(context).toContain('confirmNextRound');
     expect(battle).toContain('revealCurrentCard()');
+    expect(battle).toContain('confirmNextRound()');
+    expect(battle).toContain('يجب أن يؤكد الطرفان للانتقال');
     expect(battle).toContain('finishMatch()');
   });
 });
