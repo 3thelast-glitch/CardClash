@@ -12,6 +12,7 @@ import { loadCustomCards } from './custom-cards-store';
 import { loadImage } from './image-storage';
 import { Card } from './types';
 import { getRageOverrides } from './rage-store';
+import { normalizeCardPower } from './card-power-balance';
 
 export const CARD_EDITS_KEY = 'card_edits_v1';
 
@@ -80,7 +81,7 @@ export async function getCardsWithEdits(): Promise<Card[]> {
       }
 
       if (rageMap[c.id]) merged = { ...merged, rageMode: rageMap[c.id] };
-      return merged;
+      return normalizeCardPower(merged);
     });
   } catch {
     return dedup(ALL_CARDS);

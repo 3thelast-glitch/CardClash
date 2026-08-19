@@ -4,6 +4,7 @@
  */
 import type { Card, RageModeData } from './types';
 import { getCharacterAbility, matchesCharacterAbilityTarget } from './character-abilities';
+import { MAX_CARD_STAT } from './card-power-balance';
 
 // ─────────────────────────────────────────────
 // RAGE STATE
@@ -45,8 +46,8 @@ export function applyRageToCard(card: Card, rageState: RageState): Card {
     isRagedVersion: true,
     originalAttack: card.attack,
     originalDefense: card.defense,
-    attack:  card.attack  + (rm.rageAttackBoost  ?? 0),
-    defense: card.defense + (rm.rageDefenseBoost ?? 0),
+    attack:  Math.min(MAX_CARD_STAT, card.attack  + (rm.rageAttackBoost  ?? 0)),
+    defense: Math.min(MAX_CARD_STAT, card.defense + (rm.rageDefenseBoost ?? 0)),
     nameAr:  rm.rageNameAr ?? card.nameAr,
     imageUrl: newImageUrl,
     videoUrl: newVideoUrl,

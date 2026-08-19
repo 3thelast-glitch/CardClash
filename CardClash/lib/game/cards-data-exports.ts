@@ -29,6 +29,7 @@ import { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive } fr
 import { applyCombatCharacterSpecials } from './ui-helpers';
 
 import { getRarityFromStars } from './card-rarity';
+import { normalizeCardPower } from './card-power-balance';
 
 // re-export so callers can use them directly from this module if needed
 export { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive };
@@ -44,8 +45,7 @@ export const ALL_CARDS: Card[] = [
   ...CARDS_BATCH_7,
   ...CARDS_BATCH_8,
 ].map(card => ({
-  ...card,
-  rarity: getRarityFromStars(card.stars)
+  ...normalizeCardPower({ ...card, rarity: card.rarity === 'special' ? 'special' : getRarityFromStars(card.stars) }),
 }));
 
 // ─── getElementAdvantage ─────────────────────────────────────────────────────
