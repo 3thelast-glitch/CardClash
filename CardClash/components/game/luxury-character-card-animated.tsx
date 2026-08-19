@@ -20,11 +20,6 @@ import { Card, CardClass, CardRarity, Race, RACE_EMOJI, CLASS_EMOJI } from '@/li
 import { getCardImage } from '../../lib/game/get-card-image';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 
-const RACE_LABELS: Record<Race, string> = {
-    human: 'بشر', elf: 'إلف', orc: 'أورك', dragon: 'تنين',
-    demon: 'شيطان', undead: 'ميت', monster: 'وحش', robot: 'روبوت',
-};
-
 const CLASS_LABELS: Record<CardClass, string> = {
     warrior: 'محارب', knight: 'فارس', mage: 'ساحر', archer: 'رامي',
     berserker: 'مقاتل', paladin: 'بلادين', swordsman: 'سياف', fighter: 'مقاتل',
@@ -75,34 +70,42 @@ function isLocalAsset(value: any): value is number { return typeof value === 'nu
 // Tags removed from this compact strip; it presents faction and class only.
 
 // ─────────────────────────────────────────────
-// MetaStrip — icon-only, no bg/border, sits BETWEEN atk & def
+// MetaStrip — class icon only, sits BETWEEN atk & def
 // ─────────────────────────────────────────────
 const MetaStrip = ({ card, sc }: { card: Card; sc: number }) => {
     const iconFs = Math.max(9, Math.min(15, 12 * sc));
-    const gap = Math.max(2, Math.min(6, 4 * sc));
-
-    const race = card.race;
     const cls = card.cardClass;
-    const factionMedallion = race ? FACTION_MEDALLIONS[race] : undefined;
-    const raceEmoji = race ? RACE_EMOJI[race] : undefined;
     const classEmoji = cls ? CLASS_EMOJI[cls] : undefined;
 
-    if (!factionMedallion && !raceEmoji && !classEmoji) return null;
+    if (!classEmoji) return null;
 
     return (
-        <View style={[ms.row, { gap: gap }]}>
-            {factionMedallion ? (
-                <Image source={factionMedallion} style={{ width: iconFs * 1.35, height: iconFs * 1.35 }} resizeMode="contain" />
-            ) : raceEmoji ? (
-                <Text style={{ fontSize: iconFs, lineHeight: iconFs * 1.3 }}>{raceEmoji}</Text>
-            ) : null}
-            {classEmoji ? <Text style={{ fontSize: iconFs, lineHeight: iconFs * 1.3 }}>{classEmoji}</Text> : null}
+        <View style={ms.row}>
+            <Text style={{ fontSize: iconFs, lineHeight: iconFs * 1.3 }}>{classEmoji}</Text>
         </View>
     );
 };
 const ms = StyleSheet.create({
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
 });
+
+const FactionCornerMedallion = ({ card, sc }: { card: Card; sc: number }) => {
+    const race = card.race;
+    const medallion = race ? FACTION_MEDALLIONS[race] : undefined;
+    const fallbackEmoji = race ? RACE_EMOJI[race] : undefined;
+    if (!medallion && !fallbackEmoji) return null;
+
+    const size = Math.max(22, Math.min(43, 38 * sc));
+    return (
+        <View style={[styles.factionCornerMedallion, { width: size, height: size, borderRadius: size / 2, top: Math.max(3, 7 * sc), right: Math.max(3, 7 * sc) }]}>
+            {medallion ? (
+                <Image source={medallion} style={{ width: size, height: size }} resizeMode="contain" />
+            ) : (
+                <Text style={{ fontSize: size * 0.52, lineHeight: size * 0.72 }}>{fallbackEmoji}</Text>
+            )}
+        </View>
+    );
+};
 
 // ─────────────────────────────────────────────
 // RARITY THEMES
@@ -558,11 +561,9 @@ const TacticalRarityCard = ({
     const basePower = Math.max(0, baseAttack + baseDefense);
     const powerDelta = effectivePower - basePower;
     const powerDeltaText = powerDelta === 0 ? '' : ` ${powerDelta > 0 ? '+' : ''}${powerDelta}`;
-    type MetaItem = { key: 'race' | 'class'; label: string };
-    const raceLabel = card.race ? RACE_LABELS[card.race] : undefined;
+    type MetaItem = { key: 'class'; label: string };
     const classLabel = card.cardClass ? CLASS_LABELS[card.cardClass] : undefined;
     const metaItems: MetaItem[] = [
-        raceLabel ? { key: 'race', label: raceLabel } : null,
         classLabel ? { key: 'class', label: classLabel } : null,
     ].filter((item): item is MetaItem => item !== null);
     const hasMeta = metaItems.length > 0;
@@ -580,11 +581,12 @@ const TacticalRarityCard = ({
                 <LinearGradient colors={['rgba(2,4,8,0.03)', 'rgba(2,4,8,0.08)', palette.overlayBottom]} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
 
                 <View style={[styles.tacticalLegendaryFrame, { borderRadius: Math.round(8 * sc), borderColor: palette.frame }]} pointerEvents="none" />
-                <View style={[styles.tacticalLegendaryTopRow, { top: pad, left: pad, right: pad, justifyContent: 'flex-end' }]}>
+                <View style={[styles.tacticalLegendaryTopRow, { top: pad, left: pad, right: pad, justifyContent: 'flex-start' }]}>
                     <View style={[styles.tacticalLegendaryRarityChip, isCompact && styles.tacticalLegendaryChipCompact, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
                         <Text style={[styles.tacticalLegendaryChipText, { color: palette.chipText, fontSize: badgeFont }]}>{palette.symbol} {palette.label}</Text>
                     </View>
                 </View>
+                <FactionCornerMedallion card={card} sc={sc} />
 
                 <View style={[styles.tacticalContextRail, { top: pad + (isCompact ? 25 : 31), left: pad, right: pad }]}>
                     <View style={[styles.tacticalPowerChip, { backgroundColor: palette.chipBg, borderColor: palette.chipBorder }]}>
@@ -825,6 +827,7 @@ export function LuxuryCharacterCardAnimated({
                             {rarity === 'special' ? '☠️ ' : '✦ '}{theme.label}{rarity === 'special' ? ' ☠️' : ' ✦'}
                         </Text>
                     </View>
+                    <FactionCornerMedallion card={card} sc={sc} />
 
                     {/* name + stars */}
                     <View style={[styles.nameContainer, { bottom: nameBottom, paddingHorizontal: Math.max(4, 10 * scW) }]}>
@@ -893,6 +896,7 @@ const styles = StyleSheet.create({
 
     rarityBadge: { position: 'absolute', borderWidth: 1, zIndex: 10 },
     rarityBadgeText: { fontWeight: '700', letterSpacing: 0.5 },
+    factionCornerMedallion: { position: 'absolute', zIndex: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(2,4,12,0.76)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.74)', shadowColor: '#5B4BFF', shadowOpacity: 0.65, shadowRadius: 6, elevation: 8 },
 
     nameContainer: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 8 },
     legendaryNameBar: { position: 'absolute', top: -4, left: -10, right: -10, bottom: -4 },
