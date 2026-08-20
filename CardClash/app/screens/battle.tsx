@@ -239,12 +239,12 @@ const ac = StyleSheet.create({
 });
 
 // ─── Active Effects Bar ─────────────────────────────────────────────────────
-function ActiveEffectsBar({ effects, side }: { effects: any[]; side: 'player' | 'bot' }) {
+function ActiveEffectsBar({ effects, side, compact = false, roundNumber }: { effects: any[]; side: 'player' | 'bot'; compact?: boolean; roundNumber?: number }) {
   const mine = effects.filter(e => e.targetSide === side || e.targetSide === 'all');
   if (!mine.length) return null;
   const BUFF_KINDS = new Set(['greedBuff', 'lifesteal', 'revengeBuff', 'compensationBuff', 'consecutiveLoss', 'shieldGuard', 'doubleBuffs', 'protection', 'fortify', 'starAdvantage']);
   return (
-    <View style={eff.row}>
+    <View testID={`active-effects-${side}`} style={[eff.row, compact && eff.sideColumn]}>
       {mine.map((e, i) => {
         let isBuff = BUFF_KINDS.has(e.kind);
         let isDebuff = false;
@@ -256,11 +256,11 @@ function ActiveEffectsBar({ effects, side }: { effects: any[]; side: 'player' | 
           isDebuff = true;
         }
         const color = isBuff ? '#4ade80' : isDebuff ? '#f87171' : '#fbbf24';
-        const roundsLeft = e.expiresAtRound !== undefined ? Math.max(0, e.expiresAtRound - (e.createdAtRound ?? 0)) : null;
+        const roundsLeft = e.expiresAtRound !== undefined ? Math.max(0, e.expiresAtRound - (roundNumber ?? e.createdAtRound ?? 0) + 1) : null;
         const label = getEffectLabel(e);
         return (
-          <View key={i} style={[eff.chip, { borderColor: color + '66', backgroundColor: color + '18' }]}>
-            <Text style={[eff.label, { color }]}>{label}</Text>
+          <View key={i} style={[eff.chip, compact && eff.sideChip, { borderColor: color + '66', backgroundColor: color + '18' }]}>
+            <Text numberOfLines={compact ? 2 : 1} style={[eff.label, compact && eff.sideLabel, { color }]}>{label}</Text>
             {roundsLeft !== null && roundsLeft > 0 && (
               <View style={[eff.badge, { backgroundColor: color + '33' }]}>
                 <Text style={[eff.badgeText, { color }]}>{roundsLeft}ج</Text>
@@ -278,6 +278,9 @@ const eff = StyleSheet.create({
   label: { fontSize: 9.5, letterSpacing: 0.2 },
   badge: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 5, minWidth: 16, alignItems: 'center' },
   badgeText: { fontSize: 8, fontVariant: ['tabular-nums'] } as any,
+  sideColumn: { width: 76, flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch', gap: 5, marginTop: 0 },
+  sideChip: { minHeight: 27, justifyContent: 'center', paddingHorizontal: 5, paddingVertical: 3, gap: 2 },
+  sideLabel: { flex: 1, fontSize: 8.5, lineHeight: 11, textAlign: 'center', writingDirection: 'rtl' },
 });
 
 // ─── Choice Modal (generic list picker) ───────────────────────────────────
@@ -946,21 +949,6 @@ export default function BattleScreen() {
             </View>
           </View>
 
-          {/* ══ ACTIVE EFFECTS BAR ══ */}
-          {state.activeEffects.length > 0 && (
-            <View style={S.effectsBar}>
-              <View style={S.effectsBarSide}>
-                <Text style={S.effectsBarLabel}>{isLocalTwoPlayer ? 'تأثيرات المضيف' : 'تأثيراتك'}</Text>
-                <ActiveEffectsBar effects={state.activeEffects} side="player" />
-              </View>
-              <View style={S.effectsBarDivider} />
-              <View style={[S.effectsBarSide, { alignItems: 'flex-end' }]}>
-                <Text style={[S.effectsBarLabel, { textAlign: 'right' }]}>{isLocalTwoPlayer ? 'تأثيرات الضيف' : 'تأثيرات البوت'}</Text>
-                <ActiveEffectsBar effects={state.activeEffects} side="bot" />
-              </View>
-            </View>
-          )}
-
           {/* ══ ARENA — في الوضع العمودي: البوت ← الأوامر ← اللاعب ══ */}
           <Animated.View
             testID="battle-arena"
@@ -980,22 +968,25 @@ export default function BattleScreen() {
             {/* PLAYER PANEL */}
             <View testID="battle-player-panel" style={[S.playerPanel, !isLandscape && S.panelPortrait]}>
               <Text style={S.panelLabel}>{playerLabel}</Text>
-              <Animated.View style={playerStyle}>
-                <LuxuryCharacterCardAnimated
-                  card={displayPlayerCard}
-                  style={{ width: cardWidth, height: cardHeight }}
-                  isOpenedView={playerWinnerVideoAudio}
-                  playAudio={playerWinnerVideoAudio}
-                  effectiveAttack={playerEffective.attack}
-                  effectiveDefense={playerEffective.defense}
-                  slashEffect={botZoroCutActive}
-                  winnerState={
-                    computedWinner === 'player'
-                      ? (phase === 'result' ? 'winner' : 'leading')
-                      : null
-                  }
-                />
-              </Animated.View>
+              <View style={S.cardWithSideEffects}>
+                <ActiveEffectsBar effects={state.activeEffects} side="player" compact roundNumber={activeRoundNumber} />
+                <Animated.View style={playerStyle}>
+                  <LuxuryCharacterCardAnimated
+                    card={displayPlayerCard}
+                    style={{ width: cardWidth, height: cardHeight }}
+                    isOpenedView={playerWinnerVideoAudio}
+                    playAudio={playerWinnerVideoAudio}
+                    effectiveAttack={playerEffective.attack}
+                    effectiveDefense={playerEffective.defense}
+                    slashEffect={botZoroCutActive}
+                    winnerState={
+                      computedWinner === 'player'
+                        ? (phase === 'result' ? 'winner' : 'leading')
+                        : null
+                    }
+                  />
+                </Animated.View>
+              </View>
               {activeDamageNumbers.filter(n => n.side === 'player').map(n => (
                 <DamageNumber key={n.id} value={n.value} variant={n.variant} onComplete={() => removeDmg(n.id)} />
               ))}
@@ -1003,7 +994,6 @@ export default function BattleScreen() {
                 advantage={lastRoundResult?.playerFactionAdvantage ?? 'neutral'}
                 faction={displayPlayerCard.race}
               />
-              {isLandscape && <ActiveEffectsBar effects={state.activeEffects} side="player" />}
             </View>
 
             {/* CENTER PANEL */}
@@ -1117,22 +1107,25 @@ export default function BattleScreen() {
             {/* BOT PANEL */}
             <View testID="battle-bot-panel" style={[S.botPanel, !isLandscape && S.panelPortrait]}>
               <Text style={[S.panelLabel, { textAlign: 'right' }]}>{opponentLabel}</Text>
-              <Animated.View style={botStyle}>
-                <LuxuryCharacterCardAnimated
-                  card={displayBotCard}
-                  style={{ width: cardWidth, height: cardHeight }}
-                  isOpenedView={botWinnerVideoAudio}
-                  playAudio={botWinnerVideoAudio}
-                  effectiveAttack={botEffective.attack}
-                  effectiveDefense={botEffective.defense}
-                  slashEffect={playerZoroCutActive}
-                  winnerState={
-                    computedWinner === 'bot'
-                      ? (phase === 'result' ? 'winner' : 'leading')
-                      : null
-                  }
-                />
-              </Animated.View>
+              <View style={S.cardWithSideEffects}>
+                <Animated.View style={botStyle}>
+                  <LuxuryCharacterCardAnimated
+                    card={displayBotCard}
+                    style={{ width: cardWidth, height: cardHeight }}
+                    isOpenedView={botWinnerVideoAudio}
+                    playAudio={botWinnerVideoAudio}
+                    effectiveAttack={botEffective.attack}
+                    effectiveDefense={botEffective.defense}
+                    slashEffect={playerZoroCutActive}
+                    winnerState={
+                      computedWinner === 'bot'
+                        ? (phase === 'result' ? 'winner' : 'leading')
+                        : null
+                    }
+                  />
+                </Animated.View>
+                <ActiveEffectsBar effects={state.activeEffects} side="bot" compact roundNumber={activeRoundNumber} />
+              </View>
               {activeDamageNumbers.filter(n => n.side === 'bot').map(n => (
                 <DamageNumber key={n.id} value={n.value} variant={n.variant} onComplete={() => removeDmg(n.id)} />
               ))}
@@ -1140,7 +1133,6 @@ export default function BattleScreen() {
                 advantage={lastRoundResult?.botFactionAdvantage ?? 'neutral'}
                 faction={displayBotCard.race}
               />
-              {isLandscape && <ActiveEffectsBar effects={state.activeEffects} side="bot" />}
             </View>
           </Animated.View>
         </View>
@@ -1310,14 +1302,10 @@ const S = StyleSheet.create({
   historyBtnText: { color: '#BFFAF2', fontSize: FONT.xs - 1 },
   abilityHistoryBtn: { backgroundColor: 'rgba(232,121,249,0.12)', borderColor: 'rgba(232,121,249,0.35)' },
 
-  effectsBar: { flexDirection: 'row', paddingHorizontal: SPACE.lg, paddingVertical: SPACE.xs, gap: SPACE.sm, backgroundColor: 'rgba(5,15,20,0.56)' },
-  effectsBarSide: { flex: 1 },
-  effectsBarDivider: { width: 1, backgroundColor: 'rgba(57,230,208,0.13)' },
-  effectsBarLabel: { color: 'rgba(203,221,221,0.64)', fontSize: 9, letterSpacing: 0.3 },
-
   arena: { flex: 1, gap: SPACE.sm },
   playerPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
   botPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
+  cardWithSideEffects: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, maxWidth: '100%' },
   // الوضع العمودي يوزع البوت أعلى شريط الأوامر واللاعب أسفله.
   panelPortrait: { minHeight: 0 },
   centerPanel: { width: 120, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },

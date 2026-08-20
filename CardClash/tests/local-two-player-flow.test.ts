@@ -42,4 +42,11 @@ describe('local two-player match flow', () => {
     expect(botAbilityBlock?.[0]).toBeDefined();
     expect(botAbilityBlock?.[0]).not.toContain('playAbility()');
   });
+
+  it('places active effects beside each card instead of above the battle header', () => {
+    expect(battle).toContain('cardWithSideEffects');
+    expect(battle).toContain('compact roundNumber={activeRoundNumber}');
+    expect(battle).not.toContain('effectsBar:');
+    expect(battle).not.toContain('effectsBarLabel');
+  });
 });
