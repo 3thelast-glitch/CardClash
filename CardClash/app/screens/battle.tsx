@@ -556,9 +556,10 @@ export default function BattleScreen() {
 
     if (decision.useAbility && decision.abilityType) {
       activateAbility(decision.abilityType, decision.abilityData ?? {}, false);
-      playAbility();
+      // لا نشغّل نغمة قدرة البوت هنا؛ هذا المسار يبدأ فقط بعد ضغط الهجوم.
+      // يبقى صوت كرت الفائز هو الصوت القتالي الوحيد بعد الحسم.
     }
-  }, [currentPlayerCard, state, activateAbility, playAbility, isLocalTwoPlayer]);
+  }, [currentPlayerCard, state, activateAbility, isLocalTwoPlayer]);
 
   // 🔥 Rage Mode: تحديث الكرت الحالي في الملعب قبل الهجوم
   const handleRageActivate = useCallback((rageCard: any) => {

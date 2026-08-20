@@ -36,4 +36,10 @@ describe('local two-player match flow', () => {
     expect(battle).toContain('كروت القدرات المستخدمة');
     expect(battle).toContain('usedLocalAbilities');
   });
+
+  it('does not trigger an automatic ability sound from the attack-driven bot action', () => {
+    const botAbilityBlock = battle.match(/const runBotAbility[\s\S]*?const handleRageActivate/);
+    expect(botAbilityBlock?.[0]).toBeDefined();
+    expect(botAbilityBlock?.[0]).not.toContain('playAbility()');
+  });
 });
