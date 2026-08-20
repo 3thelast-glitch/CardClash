@@ -141,7 +141,7 @@ type GameAction =
   | { type: 'SET_TOTAL_ROUNDS'; payload: number }
   | { type: 'START_BATTLE'; payload?: { playerDeck?: Card[]; playerAbilities?: AbilityType[]; botDeck?: Card[]; botAbilities?: AbilityType[] } }
   | { type: 'PLAY_ROUND' }
-  | { type: 'NEXT_ROUND' }
+  | { type: 'NEXT_ROUND'; payload?: { fromRound: number } }
   | { type: 'RESET_GAME' }
   | { type: 'ADD_EFFECT'; payload: Effect }
   | { type: 'REMOVE_EFFECTS'; payload: { targetSide?: Side | 'all'; sourceSide?: Side | 'all' } }
@@ -179,9 +179,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, playerAbilities };
     }
 
-    case 'NEXT_ROUND':
+    case 'NEXT_ROUND': {
+      // إذا وصل ضغط/مؤقت متأخر لجولة سابقة فلا نسمح له بتحريك الجولة الحالية مرة أخرى.
+      if (action.payload && action.payload.fromRound !== state.currentRound) return state;
       // لا نتجاوز فهرس آخر كرت؛ نهاية المباراة تُعالَج في شاشة المعركة من نتيجة الجولة الأخيرة.
       return { ...state, currentRound: Math.min(state.currentRound + 1, Math.max(0, state.totalRounds - 1)) };
+    }
 
     case 'START_BATTLE': {
       const assignedAbilities = action.payload?.playerAbilities;
@@ -1226,7 +1229,7 @@ type GameContextType = {
   setDifficulty: (level: DifficultyLevel) => void;
   setAbilitiesEnabled: (enabled: boolean) => void;
   playRound: () => void;
-  nextRound: () => void;
+  nextRound: (fromRound?: number) => void;
   resetGame: () => void;
   useAbility: (abilityType: AbilityType, data?: Record<string, unknown>, isPlayer?: boolean) => void;
   grantDeveloperNothingHappened: () => AbilityType | null;
@@ -1289,8 +1292,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'PLAY_ROUND' });
   }, []);
 
-  const nextRound = useCallback(() => {
-    dispatch({ type: 'NEXT_ROUND' });
+  const nextRound = useCallback((fromRound?: number) => {
+    dispatch({ type: 'NEXT_ROUND', payload: fromRound === undefined ? undefined : { fromRound } });
   }, []);
 
   const resetGame = useCallback(() => {

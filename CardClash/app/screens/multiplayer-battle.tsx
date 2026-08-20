@@ -2,7 +2,7 @@
  * MultiplayerBattleScreen
  * معركة أونلاين — لاعب ضد لاعب عبر WebSocket
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
@@ -73,6 +73,7 @@ export default function MultiplayerBattleScreen() {
   const [isPlayer1, setIsPlayer1] = useState(true);
   const [endBattleClicked, setEndBattleClicked] = useState(false);
   const [turnPlayerId, setTurnPlayerId] = useState<string | null>(null);
+  const isAdvancingRound = useRef(false);
   const playerId = multiplayer.state.playerId || params.playerId;
 
   // ─── Animations ─────────────────────────────────────────────────────────────
@@ -98,6 +99,7 @@ export default function MultiplayerBattleScreen() {
     turnPlayerId?: string | null;
   }) => {
     const iAmP1 = payload.player1.id === playerId;
+    isAdvancingRound.current = false;
     setIsPlayer1(iAmP1);
     setMyCards(iAmP1 ? payload.player1.cards ?? [] : payload.player2.cards ?? []);
     setOpponentCards(iAmP1 ? payload.player2.cards ?? [] : payload.player1.cards ?? []);
@@ -149,6 +151,7 @@ export default function MultiplayerBattleScreen() {
 
     unsubs.push(mpClient.on('ROUND_RESULT', (msg: MPMessage) => {
       const r = msg.payload;
+      isAdvancingRound.current = false;
       const myWin = (isPlayer1 && r.winner === 'player1') || (!isPlayer1 && r.winner === 'player2');
       
       const p1WinState = r.winner === 'player1' ? 'win' : r.winner === 'player2' ? 'lose' : 'draw';
@@ -222,11 +225,13 @@ export default function MultiplayerBattleScreen() {
 
   // ─── التالي ──────────────────────────────────────────────────────────────────
   const handleNext = useCallback(() => {
+    if (isAdvancingRound.current || phase !== 'result' || currentRound >= totalRounds - 1) return;
+    isAdvancingRound.current = true;
     setCurrentRound(r => r + 1);
     setLastResult(null);
     setPhase('selection');
     enterCards();
-  }, [enterCards]);
+  }, [currentRound, enterCards, phase, totalRounds]);
 
 
   // ─── Game Over ───────────────────────────────────────────────────────────────

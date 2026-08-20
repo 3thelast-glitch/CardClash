@@ -1,0 +1,59 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { gameReducer } from '../lib/game/game-context';
+import type { Card, GameState } from '../lib/game/types';
+
+const card: Card = {
+  id: 'round-guard-card',
+  name: 'Round Guard',
+  nameAr: 'حارس الجولة',
+  attack: 10,
+  defense: 5,
+  race: 'human',
+  cardClass: 'warrior',
+  element: 'fire',
+};
+
+const makeState = (currentRound = 0): GameState => ({
+  playerDeck: [card, { ...card, id: 'p2' }, { ...card, id: 'p3' }],
+  botDeck: [card, { ...card, id: 'b2' }, { ...card, id: 'b3' }],
+  currentRound,
+  totalRounds: 3,
+  playerScore: 3,
+  botScore: 3,
+  playerMaxHealth: 3,
+  botMaxHealth: 3,
+  roundResults: [],
+  difficulty: 2,
+  abilitiesEnabled: true,
+  activeEffects: [],
+  playerAbilities: [],
+  botAbilities: [],
+  usedAbilities: [],
+});
+
+describe('Round advance guards', () => {
+  it('ignores a delayed duplicate NEXT_ROUND action for a previously resolved round', () => {
+    const advanced = gameReducer(makeState(), { type: 'NEXT_ROUND', payload: { fromRound: 0 } });
+    const duplicate = gameReducer(advanced, { type: 'NEXT_ROUND', payload: { fromRound: 0 } });
+
+    expect(advanced.currentRound).toBe(1);
+    expect(duplicate.currentRound).toBe(1);
+  });
+
+  it('keeps legacy NEXT_ROUND behavior available for existing game engine callers', () => {
+    expect(gameReducer(makeState(1), { type: 'NEXT_ROUND' }).currentRound).toBe(2);
+  });
+
+  it('cancels the local result timer and passes the expected round to the game engine', () => {
+    const battleSource = readFileSync(resolve(process.cwd(), 'app/screens/battle.tsx'), 'utf8');
+    const multiplayerSource = readFileSync(resolve(process.cwd(), 'app/screens/multiplayer-battle.tsx'), 'utf8');
+
+    expect(battleSource).toContain('const isAdvancingRound = useRef(false);');
+    expect(battleSource).toContain('clearTimeout(nextRoundTimeout.current);');
+    expect(battleSource).toContain('nextRound(state.currentRound);');
+    expect(multiplayerSource).toContain("phase !== 'result'");
+    expect(multiplayerSource).toContain('isAdvancingRound.current = true;');
+  });
+});

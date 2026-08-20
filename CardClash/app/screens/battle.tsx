@@ -415,6 +415,7 @@ export default function BattleScreen() {
 
   // ── Transition Lock & Timers ──
   const isTransitioning = useRef(false);
+  const isAdvancingRound = useRef(false);
   const nextRoundTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // ✅ FIX: guard against startBattle being called more than once
@@ -526,6 +527,8 @@ export default function BattleScreen() {
 
   useEffect(() => {
     if (currentPlayerCard && currentBotCard && phase === 'selection') {
+      isAdvancingRound.current = false;
+      isTransitioning.current = false;
       playerAnim.value = 0; botAnim.value = 0; vsOpacity.value = 0; resultOp.value = 0;
       setShowResult(false); setShowPlayerEffect(false); setShowBotEffect(false);
       setIsBattleFinished(false);
@@ -608,6 +611,12 @@ export default function BattleScreen() {
   }, [hapticImpact]);
 
   const handleNextRound = useCallback(() => {
+    if (isAdvancingRound.current) return;
+    isAdvancingRound.current = true;
+    if (nextRoundTimeout.current) {
+      clearTimeout(nextRoundTimeout.current);
+      nextRoundTimeout.current = null;
+    }
     hapticImpact(Haptics.ImpactFeedbackStyle.Light);
     const isFinalRound = state.currentRound >= Math.max(0, state.totalRounds - 1);
     if (isGameOver || isFinalRound) {
@@ -615,7 +624,8 @@ export default function BattleScreen() {
     } else {
       playNextRound();
       setPhase('selection');
-      nextRound();
+      nextRound(state.currentRound);
+      isTransitioning.current = false;
     }
   }, [isGameOver, state.currentRound, state.totalRounds, nextRound, hapticImpact, playNextRound, handleEndBattle]);
 
@@ -782,19 +792,23 @@ export default function BattleScreen() {
         if (nextRoundTimeout.current) clearTimeout(nextRoundTimeout.current);
         nextRoundTimeout.current = setTimeout(() => {
           handleEndBattle();
+          nextRoundTimeout.current = null;
           isTransitioning.current = false;
         }, BATTLE_TIMINGS.autoNextRound) as unknown as NodeJS.Timeout;
       } else {
         hapticImpact(Haptics.ImpactFeedbackStyle.Light);
         if (nextRoundTimeout.current) clearTimeout(nextRoundTimeout.current);
         nextRoundTimeout.current = setTimeout(() => {
+          if (isAdvancingRound.current) return;
+          isAdvancingRound.current = true;
           setPhase('selection');
-          nextRound();
+          nextRound(state.currentRound);
+          nextRoundTimeout.current = null;
           isTransitioning.current = false;
         }, BATTLE_TIMINGS.autoNextRound) as unknown as NodeJS.Timeout;
       }
     }
-  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers, isLocalTwoPlayer, state.botAbilities, state.totalRounds, handleEndBattle]);
+  }, [phase, lastRoundResult, isGameOver, settings.showDamageNumbers, isLocalTwoPlayer, state.botAbilities, state.currentRound, state.totalRounds, nextRound, handleEndBattle]);
 
   const spawnDmg = useCallback((side: 'player' | 'bot', value: number, variant: DamageNumberVariant) => {
     const id = `${Date.now()}-${Math.random()}`;
