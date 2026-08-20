@@ -28,7 +28,7 @@ describe('card power balance by rarity', () => {
     expect(normalized.defense).toBeGreaterThanOrEqual(rule.minStat);
   });
 
-  it('normalizes each common stat into the 0–6 range', () => {
+  it('normalizes each common stat into the 0–12 range', () => {
     const normalized = normalizeCardPower(makeCard({ rarity: 'common', stars: 1, attack: 1, defense: 2 }));
     const rule = RARITY_POWER_RANGES.common;
     expect(normalized.attack).toBeGreaterThanOrEqual(rule.minStat);
@@ -44,15 +44,15 @@ describe('card power balance by rarity', () => {
     const strongerEpic = normalizeCardPower(makeCard({ rarity: 'epic', stars: 4, attack: 20, defense: 18 }));
     expect(weakerCommon.attack).toBe(0);
     expect(weakerCommon.defense).toBe(0);
-    expect(strongerCommon.attack).toBe(6);
-    expect(strongerCommon.defense).toBe(6);
-    expect(weakerEpic.attack).toBe(11);
-    expect(weakerEpic.defense).toBe(11);
-    expect(strongerEpic.attack).toBe(15);
-    expect(strongerEpic.defense).toBe(15);
+    expect(strongerCommon.attack).toBe(12);
+    expect(strongerCommon.defense).toBe(12);
+    expect(weakerEpic.attack).toBe(21);
+    expect(weakerEpic.defense).toBe(21);
+    expect(strongerEpic.attack).toBe(30);
+    expect(strongerEpic.defense).toBe(30);
   });
 
-  it('exempts special cards from the standard 20-stat cap while retaining their values', () => {
+  it('exempts special cards from the standard 40-stat cap while retaining their values', () => {
     const special = makeCard({ rarity: 'special', stars: 5, attack: 27, defense: 24 });
     const normalized = normalizeCardPower(special);
     expect(getCardStatCap(special)).toBe(Number.POSITIVE_INFINITY);

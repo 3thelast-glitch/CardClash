@@ -12,6 +12,10 @@ export type RebalanceableCard = {
 
 type StatPair = { attack: number; defense: number };
 
+function statPairKey(attack: number, defense: number): string {
+  return `${attack}-${defense}`;
+}
+
 export function getRebalanceRarity(card: Pick<RebalanceableCard, 'rarity' | 'stars'>): CardRarity {
   return card.rarity === 'special' ? 'special' : (card.rarity ?? getRarityFromStars(card.stars));
 }
@@ -40,6 +44,7 @@ function getStatPairs(rarity: Exclude<CardRarity, 'special'>): StatPair[] {
 export function rebalanceCardStats<T extends RebalanceableCard>(cards: T[]): T[] {
   const balanced = new Map<string, T>();
   const groups = new Map<Exclude<CardRarity, 'special'>, T[]>();
+  const usedPairs = new Set<string>();
 
   for (const card of cards) {
     const rarity = getRebalanceRarity(card);
@@ -47,11 +52,18 @@ export function rebalanceCardStats<T extends RebalanceableCard>(cards: T[]): T[]
       const attack = Math.max(0, Math.round(card.attack));
       const defense = Math.max(0, Math.round(card.defense));
       const attackHeavy = [...card.id].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 2 === 0;
+      let nextAttack = attack === defense && attackHeavy ? attack + 1 : attack;
+      let nextDefense = attack === defense && !attackHeavy ? defense + 1 : defense;
+      while (usedPairs.has(statPairKey(nextAttack, nextDefense))) {
+        if (nextAttack < nextDefense) nextAttack += 2;
+        else nextDefense += 2;
+      }
+      usedPairs.add(statPairKey(nextAttack, nextDefense));
       balanced.set(card.id, {
         ...card,
         rarity,
-        attack: attack === defense && attackHeavy ? attack + 1 : attack,
-        defense: attack === defense && !attackHeavy ? defense + 1 : defense,
+        attack: nextAttack,
+        defense: nextDefense,
       });
       continue;
     }
@@ -61,7 +73,7 @@ export function rebalanceCardStats<T extends RebalanceableCard>(cards: T[]): T[]
   }
 
   for (const [rarity, group] of groups) {
-    const pairs = getStatPairs(rarity);
+    const pairs = getStatPairs(rarity).filter(pair => !usedPairs.has(statPairKey(pair.attack, pair.defense)));
     const ranked = [...group].sort((a, b) => {
       const totalDifference = (a.attack + a.defense) - (b.attack + b.defense);
       if (totalDifference !== 0) return totalDifference;
@@ -77,6 +89,7 @@ export function rebalanceCardStats<T extends RebalanceableCard>(cards: T[]): T[]
         ? Math.floor((pairs.length - 1) / 2)
         : Math.round((index * (pairs.length - 1)) / (ranked.length - 1));
       const pair = pairs[pairIndex];
+      usedPairs.add(statPairKey(pair.attack, pair.defense));
       balanced.set(card.id, { ...card, rarity, attack: pair.attack, defense: pair.defense });
     });
   }

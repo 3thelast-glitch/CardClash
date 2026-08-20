@@ -1,11 +1,13 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
 const ranges = {
-  common: { minStat: 0, maxStat: 6 },
-  rare: { minStat: 7, maxStat: 10 },
-  epic: { minStat: 11, maxStat: 15 },
-  legendary: { minStat: 16, maxStat: 20 },
+  common: { minStat: 0, maxStat: 12 },
+  rare: { minStat: 13, maxStat: 20 },
+  epic: { minStat: 21, maxStat: 30 },
+  legendary: { minStat: 31, maxStat: 40 },
 };
+
+const statPairKey = (attack, defense) => `${attack}-${defense}`;
 
 function getRarity(card) {
   if (card.rarity === 'special') return 'special';
@@ -31,17 +33,25 @@ function getPairs(rarity) {
 function rebalanceCardStats(cards) {
   const results = new Map();
   const groups = new Map();
+  const usedPairs = new Set();
   for (const card of cards) {
     const rarity = getRarity(card);
     if (rarity === 'special') {
       const attack = Math.max(0, Math.round(card.attack));
       const defense = Math.max(0, Math.round(card.defense));
       const attackHeavy = [...card.id].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 2 === 0;
+      let nextAttack = attack === defense && attackHeavy ? attack + 1 : attack;
+      let nextDefense = attack === defense && !attackHeavy ? defense + 1 : defense;
+      while (usedPairs.has(statPairKey(nextAttack, nextDefense))) {
+        if (nextAttack < nextDefense) nextAttack += 2;
+        else nextDefense += 2;
+      }
+      usedPairs.add(statPairKey(nextAttack, nextDefense));
       results.set(card.id, {
         ...card,
         rarity,
-        attack: attack === defense && attackHeavy ? attack + 1 : attack,
-        defense: attack === defense && !attackHeavy ? defense + 1 : defense,
+        attack: nextAttack,
+        defense: nextDefense,
       });
       continue;
     }
@@ -50,7 +60,7 @@ function rebalanceCardStats(cards) {
     groups.set(rarity, group);
   }
   for (const [rarity, group] of groups) {
-    const pairs = getPairs(rarity);
+    const pairs = getPairs(rarity).filter(pair => !usedPairs.has(statPairKey(pair.attack, pair.defense)));
     const ranked = [...group].sort((a, b) => (a.attack + a.defense) - (b.attack + b.defense)
       || a.attack - b.attack || a.defense - b.defense || a.id.localeCompare(b.id));
     ranked.forEach((card, index) => {
@@ -58,6 +68,7 @@ function rebalanceCardStats(cards) {
         ? Math.floor((pairs.length - 1) / 2)
         : Math.round((index * (pairs.length - 1)) / (ranked.length - 1));
       const pair = pairs[pairIndex];
+      usedPairs.add(statPairKey(pair.attack, pair.defense));
       results.set(card.id, { ...card, rarity, attack: pair.attack, defense: pair.defense });
     });
   }

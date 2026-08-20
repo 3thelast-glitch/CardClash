@@ -20,13 +20,13 @@ describe('Card Collection stat rebalancing', () => {
 
     balanced.forEach(item => expect(item.attack).not.toBe(item.defense));
     expect(balanced[0].attack).toBeGreaterThanOrEqual(0);
-    expect(balanced[0].defense).toBeLessThanOrEqual(6);
-    expect(balanced[1].attack).toBeGreaterThanOrEqual(7);
-    expect(balanced[1].defense).toBeLessThanOrEqual(10);
-    expect(balanced[2].attack).toBeGreaterThanOrEqual(11);
-    expect(balanced[2].defense).toBeLessThanOrEqual(15);
-    expect(balanced[3].attack).toBeGreaterThanOrEqual(16);
-    expect(balanced[3].defense).toBeLessThanOrEqual(20);
+    expect(balanced[0].defense).toBeLessThanOrEqual(12);
+    expect(balanced[1].attack).toBeGreaterThanOrEqual(13);
+    expect(balanced[1].defense).toBeLessThanOrEqual(20);
+    expect(balanced[2].attack).toBeGreaterThanOrEqual(21);
+    expect(balanced[2].defense).toBeLessThanOrEqual(30);
+    expect(balanced[3].attack).toBeGreaterThanOrEqual(31);
+    expect(balanced[3].defense).toBeLessThanOrEqual(40);
   });
 
   it('spreads cards with identical source values across available stat pairs', () => {
@@ -36,10 +36,10 @@ describe('Card Collection stat rebalancing', () => {
     for (const item of balanced) {
       const key = `${item.attack}-${item.defense}`;
       counts.set(key, (counts.get(key) ?? 0) + 1);
-      expect(item.attack).toBeGreaterThanOrEqual(11);
-      expect(item.attack).toBeLessThanOrEqual(15);
-      expect(item.defense).toBeGreaterThanOrEqual(11);
-      expect(item.defense).toBeLessThanOrEqual(15);
+      expect(item.attack).toBeGreaterThanOrEqual(21);
+      expect(item.attack).toBeLessThanOrEqual(30);
+      expect(item.defense).toBeGreaterThanOrEqual(21);
+      expect(item.defense).toBeLessThanOrEqual(30);
       expect(item.attack).not.toBe(item.defense);
     }
 
@@ -68,5 +68,17 @@ describe('Card Collection stat rebalancing', () => {
 
     expect(balanced.some(item => item.attack > item.defense)).toBe(true);
     expect(balanced.some(item => item.defense > item.attack)).toBe(true);
+  });
+
+  it('keeps stat pairs unique when a special card overlaps a normal range', () => {
+    const cards = [
+      card('Turin_Turambar', 'special', 0, 0),
+      ...Array.from({ length: 13 }, (_, index) => card(`common-${index}`, 'common', 4, 4)),
+    ];
+    const balanced = rebalanceCardStats(cards);
+    const pairs = balanced.map(item => `${item.attack}-${item.defense}`);
+
+    expect(new Set(pairs).size).toBe(pairs.length);
+    expect(balanced.every(item => item.attack !== item.defense)).toBe(true);
   });
 });
