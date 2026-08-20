@@ -170,28 +170,30 @@ const toastSt = StyleSheet.create({
 });
 
 // ─── FilterChip ──────────────────────────────────────────────────────
-function FilterChip({ icon, name, active, color, onPress }: {
-  icon: FilterIcon; name: string; active: boolean; color: string; onPress: () => void;
+function FilterChip({ icon, name, active, color, onPress, iconOnly = false }: {
+  icon: FilterIcon; name: string; active: boolean; color: string; onPress: () => void; iconOnly?: boolean;
 }) {
   const isArtworkIcon = typeof icon !== 'string';
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}
-      style={[fc.chip, active
+      accessibilityRole="button" accessibilityLabel={name}
+      style={[fc.chip, iconOnly && fc.iconOnlyChip, active
         ? { borderColor: color, backgroundColor: color + '18', shadowColor: color, shadowOpacity: 0.4, shadowRadius: 6, elevation: 5 }
         : { borderColor: '#1e1e2a', backgroundColor: '#0d0d14' }]}
     >
       {isArtworkIcon
-        ? <Image source={icon} style={[fc.artIcon, active && fc.artIconActive]} resizeMode="contain" accessibilityLabel={`أيقونة ${name}`} />
-        : <RNText style={fc.icon}>{icon || '□'}</RNText>}
-      <RNText style={[fc.name, { color: active ? color : '#4a4a5a' }]} numberOfLines={1}>{name}</RNText>
-      {active && <View style={[fc.dot, { backgroundColor: color }]} />}
+        ? <Image source={icon} style={[fc.artIcon, iconOnly && fc.categoryArtIcon, active && !iconOnly && fc.artIconActive]} resizeMode="contain" accessibilityLabel={`أيقونة ${name}`} />
+        : <RNText style={[fc.icon, iconOnly && fc.categoryEmojiIcon]}>{icon || '□'}</RNText>}
+      {!iconOnly && <RNText style={[fc.name, { color: active ? color : '#4a4a5a' }]} numberOfLines={1}>{name}</RNText>}
+      {active && <View style={[fc.dot, iconOnly && fc.iconOnlyDot, { backgroundColor: color }]} />}
     </TouchableOpacity>
   );
 }
 const fc = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1.5, marginRight: 6, marginBottom: 6 },
-  icon: { fontSize: 14 }, artIcon: { width: 18, height: 18, borderRadius: 6 }, artIconActive: { width: 20, height: 20 }, name: { fontSize: 11, fontWeight: '700' },
-  dot: { width: 5, height: 5, borderRadius: 3, marginLeft: 2 },
+  iconOnlyChip: { width: 42, height: 42, paddingHorizontal: 4, paddingVertical: 4, justifyContent: 'center', position: 'relative' },
+  icon: { fontSize: 14 }, categoryEmojiIcon: { fontSize: 21 }, artIcon: { width: 18, height: 18, borderRadius: 6 }, categoryArtIcon: { width: 26, height: 26, borderRadius: 8 }, artIconActive: { width: 20, height: 20 }, name: { fontSize: 11, fontWeight: '700' },
+  dot: { width: 5, height: 5, borderRadius: 3, marginLeft: 2 }, iconOnlyDot: { position: 'absolute', top: 5, right: 5, marginLeft: 0 },
 });
 
 // ─── GridTile ────────────────────────────────────────────────────────
@@ -531,12 +533,11 @@ function GalleryFilterModal({ visible, filters, onApply, onClose }: {
                   onPress={() => patch({ race: opt.value as Race | null })} />
               ))}
             </View>
-            <RNText style={fm.sectionLabel}>⚔️ الفئة</RNText>
-            <View style={fm.chipsRow}>
+            <View style={[fm.chipsRow, fm.categoryChipsRow]}>
               {CLASS_FILTER_OPTIONS.map(opt => (
                 <FilterChip key={String(opt.value)} icon={opt.icon} name={opt.name}
                   active={local.cardClass === opt.value} color={opt.value === null ? '#f87171' : '#a78bfa'}
-                  onPress={() => patch({ cardClass: opt.value as CardClass | null })} />
+                  onPress={() => patch({ cardClass: opt.value as CardClass | null })} iconOnly />
               ))}
             </View>
             <RNText style={fm.sectionLabel}>⚧ الجنس البيولوجي</RNText>
@@ -570,6 +571,7 @@ const fm = StyleSheet.create({
   sectionLabel: { fontSize: 11, color: '#888', fontWeight: '700', textAlign: 'right', marginBottom: 8, marginTop: 10 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 },
+  categoryChipsRow: { marginTop: -2, marginBottom: 8 },
   pill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1.5 },
   pillTxt: { fontSize: 11, fontWeight: '800' },
   footer: { flexDirection: 'row', gap: 10, marginTop: 14 },

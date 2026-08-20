@@ -44,4 +44,13 @@ describe('الأيقونات المصورة في فلتر الفئات والف�
     expect(source).toContain('resizeMode="contain"');
     expect(source).toContain('artIcon: { width: 18, height: 18');
   });
+
+  it('يعرض الفئات كأيقونات فقط مباشرة بعد الفصائل', () => {
+    expect(source).toContain('iconOnly = false');
+    expect(source).toContain('iconOnly && fc.iconOnlyChip');
+    expect(source).toContain('!iconOnly && <RNText');
+    expect(source).toContain('categoryArtIcon: { width: 26, height: 26');
+    expect(source).toContain('categoryChipsRow: { marginTop: -2, marginBottom: 8 }');
+    expect(source).toContain('onPress={() => patch({ cardClass: opt.value as CardClass | null })} iconOnly');
+  });
 });
