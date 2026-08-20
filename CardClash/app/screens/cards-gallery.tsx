@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, TouchableOpacity, StyleSheet, ScrollView, Modal,
-  TextInput, Switch, Text as RNText, Image, Platform,
+  TextInput, Switch, Text as RNText, Image, Platform, type ImageSourcePropType,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
@@ -61,6 +61,7 @@ type GalleryFilters = {
   race: Race | null;
   gender: 'male' | 'female' | null;
 };
+type FilterIcon = string | ImageSourcePropType;
 const DEFAULT_GALLERY_FILTERS: GalleryFilters = {
   rarity: 'All', cardClass: null, race: null, gender: null,
 };
@@ -109,6 +110,7 @@ const RACE_OPTIONS: { value: Race | null; label: string; icon: string; name: str
   { value: 'monster', label: `${RACE_EMOJI.monster} وحش`, icon: RACE_EMOJI.monster, name: 'وحش' },
   { value: 'robot', label: `${RACE_EMOJI.robot} روبوت`, icon: RACE_EMOJI.robot, name: 'روبوت' },
 ];
+const WIZARD_CATEGORY_ICON: ImageSourcePropType = require('../../assets/icons/classes/wizard-category.png');
 const CLASS_OPTIONS: { value: CardClass | null; label: string; icon: string; name: string }[] = [
   { value: null, label: '✕ بدون', icon: '✕', name: 'بدون' },
   { value: 'mage', label: `${CLASS_EMOJI.mage} ساحر`, icon: CLASS_EMOJI.mage, name: 'ساحر' },
@@ -118,6 +120,9 @@ const CLASS_OPTIONS: { value: CardClass | null; label: string; icon: string; nam
   { value: 'guardian', label: `${CLASS_EMOJI.guardian}'روبوت`, icon: CLASS_EMOJI.guardian, name: 'روبوت' },
   { value: 'healer', label: `${CLASS_EMOJI.healer} طبيب`, icon: CLASS_EMOJI.healer, name: 'طبيب' },
 ];
+const CLASS_FILTER_OPTIONS: { value: CardClass | null; label: string; icon: FilterIcon; name: string }[] = CLASS_OPTIONS.map(option => (
+  option.value === 'mage' ? { ...option, icon: WIZARD_CATEGORY_ICON } : option
+));
 const GENDER_OPTIONS: { value: 'male' | 'female' | null; label: string; icon: string; name: string }[] = [
   { value: null, label: '✕ بدون', icon: '✕', name: 'بدون' },
   { value: 'male', label: 'ذكر', icon: GENDER_EMOJI.male, name: 'ذكر' },
@@ -144,15 +149,18 @@ const toastSt = StyleSheet.create({
 
 // ─── FilterChip ──────────────────────────────────────────────────────
 function FilterChip({ icon, name, active, color, onPress }: {
-  icon: string; name: string; active: boolean; color: string; onPress: () => void;
+  icon: FilterIcon; name: string; active: boolean; color: string; onPress: () => void;
 }) {
+  const isArtworkIcon = typeof icon !== 'string';
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}
       style={[fc.chip, active
         ? { borderColor: color, backgroundColor: color + '18', shadowColor: color, shadowOpacity: 0.4, shadowRadius: 6, elevation: 5 }
         : { borderColor: '#1e1e2a', backgroundColor: '#0d0d14' }]}
     >
-      <RNText style={fc.icon}>{icon || '□'}</RNText>
+      {isArtworkIcon
+        ? <Image source={icon} style={[fc.artIcon, active && fc.artIconActive]} resizeMode="contain" accessibilityLabel={`أيقونة ${name}`} />
+        : <RNText style={fc.icon}>{icon || '□'}</RNText>}
       <RNText style={[fc.name, { color: active ? color : '#4a4a5a' }]} numberOfLines={1}>{name}</RNText>
       {active && <View style={[fc.dot, { backgroundColor: color }]} />}
     </TouchableOpacity>
@@ -160,7 +168,7 @@ function FilterChip({ icon, name, active, color, onPress }: {
 }
 const fc = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1.5, marginRight: 6, marginBottom: 6 },
-  icon: { fontSize: 14 }, name: { fontSize: 11, fontWeight: '700' },
+  icon: { fontSize: 14 }, artIcon: { width: 18, height: 18, borderRadius: 6 }, artIconActive: { width: 20, height: 20 }, name: { fontSize: 11, fontWeight: '700' },
   dot: { width: 5, height: 5, borderRadius: 3, marginLeft: 2 },
 });
 
@@ -503,7 +511,7 @@ function GalleryFilterModal({ visible, filters, onApply, onClose }: {
             </View>
             <RNText style={fm.sectionLabel}>⚔️ الفئة</RNText>
             <View style={fm.chipsRow}>
-              {CLASS_OPTIONS.map(opt => (
+              {CLASS_FILTER_OPTIONS.map(opt => (
                 <FilterChip key={String(opt.value)} icon={opt.icon} name={opt.name}
                   active={local.cardClass === opt.value} color={opt.value === null ? '#f87171' : '#a78bfa'}
                   onPress={() => patch({ cardClass: opt.value as CardClass | null })} />
