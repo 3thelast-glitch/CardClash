@@ -2,18 +2,33 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const screenPath = new URL('../app/screens/cards-gallery.tsx', import.meta.url).pathname;
-const wizardIconPath = new URL('../assets/icons/classes/wizard-category.png', import.meta.url).pathname;
+const filterArtworkPaths = [
+  '../assets/icons/classes/wizard-category.png',
+  '../assets/icons/classes/fighter-category.png',
+  '../assets/icons/classes/healer-category.png',
+  '../assets/icons/classes/robot-category.png',
+  '../assets/icons/factions/dragon.png',
+].map(path => new URL(path, import.meta.url).pathname);
 const source = readFileSync(screenPath, 'utf8');
 
-describe('أيقونة الساحر في فلتر الفئات', () => {
-  it('يربط زر ساحر بأصل مصور محلي', () => {
-    expect(existsSync(wizardIconPath)).toBe(true);
+describe('الأيقونات المصورة في فلتر الفئات والفصائل', () => {
+  it('يحتفظ بأصول محلية لأيقونات الساحر والمقاتل والطبيب والروبوت والتنين', () => {
+    filterArtworkPaths.forEach(path => expect(existsSync(path)).toBe(true));
     expect(source).toContain("require('../../assets/icons/classes/wizard-category.png')");
-    expect(source).toContain("option.value === 'mage' ? { ...option, icon: WIZARD_CATEGORY_ICON } : option");
+    expect(source).toContain("require('../../assets/icons/classes/fighter-category.png')");
+    expect(source).toContain("require('../../assets/icons/classes/healer-category.png')");
+    expect(source).toContain("require('../../assets/icons/classes/robot-category.png')");
+    expect(source).toContain("require('../../assets/icons/factions/dragon.png')");
   });
 
-  it('يعرض الأيقونة المصورة في الفلتر فقط ويحافظ على محرر البطاقات', () => {
+  it('يربط الأيقونات بخيارات الفلترة الصحيحة ويحافظ على محرر البطاقات', () => {
     expect(source).toContain('CLASS_FILTER_OPTIONS.map(opt =>');
+    expect(source).toContain('RACE_FILTER_OPTIONS.map(opt =>');
+    expect(source).toContain('mage: WIZARD_CATEGORY_ICON');
+    expect(source).toContain('fighter: FIGHTER_CATEGORY_ICON');
+    expect(source).toContain('healer: HEALER_CATEGORY_ICON');
+    expect(source).toContain('guardian: ROBOT_CATEGORY_ICON');
+    expect(source).toContain('dragon: DRAGON_FACTION_ICON');
     expect(source).toContain('CLASS_OPTIONS as any');
     expect(source).toContain("icon: CLASS_EMOJI.mage");
   });

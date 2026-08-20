@@ -111,6 +111,10 @@ const RACE_OPTIONS: { value: Race | null; label: string; icon: string; name: str
   { value: 'robot', label: `${RACE_EMOJI.robot} روبوت`, icon: RACE_EMOJI.robot, name: 'روبوت' },
 ];
 const WIZARD_CATEGORY_ICON: ImageSourcePropType = require('../../assets/icons/classes/wizard-category.png');
+const FIGHTER_CATEGORY_ICON: ImageSourcePropType = require('../../assets/icons/classes/fighter-category.png');
+const HEALER_CATEGORY_ICON: ImageSourcePropType = require('../../assets/icons/classes/healer-category.png');
+const ROBOT_CATEGORY_ICON: ImageSourcePropType = require('../../assets/icons/classes/robot-category.png');
+const DRAGON_FACTION_ICON: ImageSourcePropType = require('../../assets/icons/factions/dragon.png');
 const CLASS_OPTIONS: { value: CardClass | null; label: string; icon: string; name: string }[] = [
   { value: null, label: '✕ بدون', icon: '✕', name: 'بدون' },
   { value: 'mage', label: `${CLASS_EMOJI.mage} ساحر`, icon: CLASS_EMOJI.mage, name: 'ساحر' },
@@ -120,9 +124,23 @@ const CLASS_OPTIONS: { value: CardClass | null; label: string; icon: string; nam
   { value: 'guardian', label: `${CLASS_EMOJI.guardian}'روبوت`, icon: CLASS_EMOJI.guardian, name: 'روبوت' },
   { value: 'healer', label: `${CLASS_EMOJI.healer} طبيب`, icon: CLASS_EMOJI.healer, name: 'طبيب' },
 ];
-const CLASS_FILTER_OPTIONS: { value: CardClass | null; label: string; icon: FilterIcon; name: string }[] = CLASS_OPTIONS.map(option => (
-  option.value === 'mage' ? { ...option, icon: WIZARD_CATEGORY_ICON } : option
-));
+const CLASS_FILTER_ARTWORKS: Partial<Record<CardClass, ImageSourcePropType>> = {
+  mage: WIZARD_CATEGORY_ICON,
+  fighter: FIGHTER_CATEGORY_ICON,
+  healer: HEALER_CATEGORY_ICON,
+  guardian: ROBOT_CATEGORY_ICON,
+};
+const RACE_FILTER_ARTWORKS: Partial<Record<Race, ImageSourcePropType>> = {
+  dragon: DRAGON_FACTION_ICON,
+};
+const CLASS_FILTER_OPTIONS: { value: CardClass | null; label: string; icon: FilterIcon; name: string }[] = CLASS_OPTIONS.map(option => {
+  const artwork = option.value ? CLASS_FILTER_ARTWORKS[option.value] : undefined;
+  return artwork ? { ...option, icon: artwork } : option;
+});
+const RACE_FILTER_OPTIONS: { value: Race | null; label: string; icon: FilterIcon; name: string }[] = RACE_OPTIONS.map(option => {
+  const artwork = option.value ? RACE_FILTER_ARTWORKS[option.value] : undefined;
+  return artwork ? { ...option, icon: artwork } : option;
+});
 const GENDER_OPTIONS: { value: 'male' | 'female' | null; label: string; icon: string; name: string }[] = [
   { value: null, label: '✕ بدون', icon: '✕', name: 'بدون' },
   { value: 'male', label: 'ذكر', icon: GENDER_EMOJI.male, name: 'ذكر' },
@@ -503,7 +521,7 @@ function GalleryFilterModal({ visible, filters, onApply, onClose }: {
             </View>
             <RNText style={fm.sectionLabel}>👤 الجنس / الفصيلة</RNText>
             <View style={fm.chipsRow}>
-              {RACE_OPTIONS.map(opt => (
+              {RACE_FILTER_OPTIONS.map(opt => (
                 <FilterChip key={String(opt.value)} icon={opt.icon} name={opt.name}
                   active={local.race === opt.value} color={opt.value === null ? '#f87171' : '#60a5fa'}
                   onPress={() => patch({ race: opt.value as Race | null })} />
