@@ -48,6 +48,7 @@ const ALL_ABILITIES: AbilityType[] = [
   'Rescue','Trap','ConvertDebuffsToBuffs','Sniping','Merge','DoubleNextCards','Deprivation',
   'Greed','Dilemma','Propaganda','DoubleYourBuffs','Avatar','Penetration','Pool',
   'Conversion','Shield','SwapClass','TakeIt','Skip','Explosion','DoublePoints',
+  'ElementalMastery','AbsoluteDominance','InfinityLoop','PhantomBlade','NothingHappened',
 ];
 
 const RARITY_COLORS: Record<string, string> = {

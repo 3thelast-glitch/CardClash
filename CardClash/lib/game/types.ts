@@ -188,7 +188,8 @@ export type AbilityType =
   | 'LoseHalfRounds' // ← Turin: تخسر نصف الجولات الأولى إجباريًا
   | 'AbsoluteDominance'
   | 'InfinityLoop'
-  | 'PhantomBlade';
+  | 'PhantomBlade'
+  | 'NothingHappened';
 
 export type Side = 'player' | 'bot';
 

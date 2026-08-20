@@ -1106,6 +1106,23 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           }
           break;
         }
+        case 'NothingHappened': {
+          // لا شيء لا شيء — فرصة نجاة أخيرة، لا تعمل إلا عند آخر نقطة صحة.
+          const ownScore = side === 'player' ? state.playerScore : state.botScore;
+          if (ownScore !== 1) return state;
+          nextEffects = [...nextEffects, {
+            id: makeEffectId('NothingHappened', side, roundNumber),
+            kind: 'forcedOutcome',
+            sourceSide: side,
+            targetSide: side,
+            createdAtRound: roundNumber,
+            expiresAtRound: roundNumber,
+            charges: 1,
+            priority: EFFECT_PRIORITY.forcedOutcome,
+            data: { appliesToRound: roundNumber, outcome: 'draw' },
+          }];
+          break;
+        }
         default: break;
       }
 

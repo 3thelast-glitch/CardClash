@@ -106,6 +106,7 @@ const activationCases: Array<{
   ability: Exclude<AbilityType, 'LoseHalfRounds'>;
   data?: Record<string, unknown>;
   effect?: EffectKind;
+  requiresCriticalHealth?: boolean;
 }> = [
   { ability: 'LogicalEncounter', data: { predictions: { 3: 'win' } }, effect: 'prediction' },
   { ability: 'Recall' },
@@ -160,6 +161,7 @@ const activationCases: Array<{
   { ability: 'AbsoluteDominance', effect: 'absoluteDominance' },
   { ability: 'InfinityLoop' },
   { ability: 'PhantomBlade', effect: 'phantomBlade' },
+  { ability: 'NothingHappened', effect: 'forcedOutcome', requiresCriticalHealth: true },
 ];
 
 describe('تدقيق تفعيل بطاقات القدرات', () => {
@@ -168,11 +170,11 @@ describe('تدقيق تفعيل بطاقات القدرات', () => {
     const testedAbilities = [...activationCases.map(({ ability }) => ability), 'LoseHalfRounds'].sort();
 
     expect(declaredAbilities).toEqual(testedAbilities);
-    expect(declaredAbilities).toHaveLength(54);
+    expect(declaredAbilities).toHaveLength(55);
   });
 
-  it.each(activationCases)('يفعّل $ability ويستهلكها مرة واحدة', ({ ability, data, effect }) => {
-    const next = usePlayerAbility(makeState(ability), ability, data);
+  it.each(activationCases)('يفعّل $ability ويستهلكها مرة واحدة', ({ ability, data, effect, requiresCriticalHealth }) => {
+    const next = usePlayerAbility(makeState(ability, requiresCriticalHealth ? { playerScore: 1 } : {}), ability, data);
 
     expect(next.playerAbilities).toContainEqual({ type: ability, used: true });
     expect(next.usedAbilities).toContain(ability);
@@ -289,6 +291,16 @@ describe('تدقيق تسوية آثار القدرات في الجولة', () =
     expect(result.roundResults.at(-1)?.winner).toBe('draw');
     expect(result.playerScore).toBe(5);
     expect(result.botScore).toBe(5);
+  });
+
+  it('لا تسمح لا شيء لا شيء بالتفعيل إلا عند آخر نقطة صحة وتحول الخسارة إلى تعادل', () => {
+    const notCritical = usePlayerAbility(losingState('NothingHappened'), 'NothingHappened');
+    expect(notCritical.playerAbilities[0]).toEqual({ type: 'NothingHappened', used: false });
+
+    const critical = playRound(usePlayerAbility(losingState('NothingHappened', { playerScore: 1 }), 'NothingHappened'));
+    expect(critical.roundResults.at(-1)?.winner).toBe('draw');
+    expect(critical.playerScore).toBe(1);
+    expect(critical.botScore).toBe(5);
   });
 
   it('يطبق DoublePoints وDoubleOrNothing وLifesteal مقدار خسارة HP الصحيح', () => {

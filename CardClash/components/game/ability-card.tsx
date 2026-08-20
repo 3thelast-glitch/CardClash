@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import * as LucideIcons from 'lucide-react-native';
 import Animated, {
     useSharedValue, useAnimatedStyle,
@@ -93,6 +94,27 @@ export const ABILITY_IMAGES: Record<string, any> = {
     'Wipe_Art': require('../../assets/abilities/Wipe_Art.png'),
 };
 
+const ABILITY_VIDEOS: Record<string, any> = {
+    'Nothing_Happened_Art': require('../../assets/abilities/Nothing_Happened_Art.mp4'),
+};
+
+function AbilityArtworkVideo({ source }: { source: any }) {
+    const player = useVideoPlayer(source, (instance) => {
+        instance.loop = true;
+        instance.muted = true;
+        instance.play();
+    });
+
+    return (
+        <VideoView
+            player={player}
+            style={[StyleSheet.absoluteFillObject, styles.artworkImage]}
+            contentFit="cover"
+            nativeControls={false}
+        />
+    );
+}
+
 // ─── Rarity config ─────────────────────────────────────────────────────────────────
 const RARITY_THEMES: Record<string, {
     primary: string; glow: string; border: string; badgeBg: string; label: string;
@@ -168,7 +190,8 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
     };
 
     const formattedName = ability.nameEn.replaceAll(' ', '_') + '_Art';
-    if (!ABILITY_IMAGES[formattedName]) {
+    const videoSource = ABILITY_VIDEOS[formattedName];
+    if (!ABILITY_IMAGES[formattedName] && !videoSource) {
         console.warn(`[Missing Art] "${ability.nameEn}" → key: "${formattedName}"`);
     }
     const imageSource = ABILITY_IMAGES[formattedName] || ABILITY_IMAGES['default'];
@@ -246,13 +269,16 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
             ]}>
                 {/* Section 1: Artwork (Top portion) */}
                 <View style={[styles.artworkSection, { flex: artworkFlex }]}>
-                                            <Image
+                    {videoSource ? (
+                        <AbilityArtworkVideo source={videoSource} />
+                    ) : (
+                        <Image
                             source={imageSource}
                             style={[StyleSheet.absoluteFillObject, styles.artworkImage]}
                             resizeMode="cover"
-
-                        accessibilityLabel={`${ability.nameAr} artwork`}
-                    />
+                            accessibilityLabel={`${ability.nameAr} artwork`}
+                        />
+                    )}
                     <View style={[StyleSheet.absoluteFillObject, styles.blackOverlay]} />
                     <LinearGradient
                         pointerEvents="none"

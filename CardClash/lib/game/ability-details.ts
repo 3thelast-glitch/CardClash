@@ -747,6 +747,22 @@ export const ABILITY_DETAILS: Record<AbilityType, AbilityDetail> = {
     cooldownAr: 'مرة واحدة فقط في المباراة',
     cooldownEn: 'Once per match only',
   },
+  NothingHappened: {
+    nameAr: 'لا شيء لا شيء',
+    nameEn: 'Nothing Happened',
+    triggerAr: 'فوري — عند صحة حرجة فقط',
+    triggerEn: 'Instant — critical health only',
+    effectAr: 'عند بقاء 1 HP لك: تحوّل نتيجة هذه الجولة إلى تعادل، فلا يخسر أي طرف نقاط صحة.',
+    effectEn: 'At 1 HP: turn this round into a draw, so neither side loses health.',
+    durationAr: 'هذه الجولة فقط',
+    durationEn: 'This round only',
+    category: 'special',
+    targetSide: 'both',
+    conditionAr: 'لا تُستخدم إلا عند 1 HP، ولا تتجاوز السيطرة المطلقة.',
+    conditionEn: 'Usable only at 1 HP and does not override Absolute Dominance.',
+    cooldownAr: 'مرة واحدة فقط في المباراة',
+    cooldownEn: 'Once per match only',
+  },
 };
 
 /**

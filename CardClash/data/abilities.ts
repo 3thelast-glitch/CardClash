@@ -530,4 +530,13 @@ export const abilities: Ability[] = [
     rarity: 'Special',
     icon: Swords,
   },
+  {
+    id: 55,
+    nameEn: 'Nothing Happened',
+    nameAr: 'لا شيء لا شيء',
+    description: 'عند بقاء 1 HP لك: حوّل خسارة هذه الجولة إلى تعادل (⚡ صحة حرجة فقط)',
+    descriptionWarning: 'يُستخدم مرة واحدة فقط في المباراة • لا يعمل قبل وصول صحتك إلى 1 HP • لا يتجاوز السيطرة المطلقة',
+    rarity: 'Special',
+    icon: HeartPulse,
+  },
 ];
