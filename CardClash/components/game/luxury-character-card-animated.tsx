@@ -53,6 +53,8 @@ interface Props {
     winnerState?: 'winner' | 'leading' | null;
     /** وسم سياقي قصير، مثل موضع الكرت في ترتيب الجولات. */
     selectionLabel?: string;
+    /** أثر مرئي يوضح أن كرت الخصم قُطع بقدرة زورو. */
+    slashEffect?: boolean;
 }
 
 function isVideoUri(uri: string): boolean {
@@ -530,7 +532,7 @@ const TACTICAL_RARITY_PALETTES: Record<CardRarity, TacticalRarityPalette> = {
 const TacticalRarityCard = ({
     card, style, cardW, cardH, sc, cardImage, videoAsset, customUri,
     isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate,
-    attack, defense, selectionLabel, rarity,
+    attack, defense, selectionLabel, rarity, slashEffect,
 }: {
     card: Card;
     style?: ViewStyle;
@@ -549,6 +551,7 @@ const TacticalRarityCard = ({
     defense: number;
     selectionLabel?: string;
     rarity: CardRarity;
+    slashEffect?: boolean;
 }) => {
     const hasMedia = !!cardImage || !!videoAsset || !!customUri;
     const palette = TACTICAL_RARITY_PALETTES[rarity];
@@ -580,6 +583,13 @@ const TacticalRarityCard = ({
                 {hasMedia && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imageFit={imageFit} imgStyle={imgStyle} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />}
                 {!hasMedia && <LinearGradient colors={palette.fallback} style={StyleSheet.absoluteFill} />}
                 <LinearGradient colors={['rgba(2,4,8,0.03)', 'rgba(2,4,8,0.08)', palette.overlayBottom]} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
+                {slashEffect && (
+                    <View pointerEvents="none" style={styles.zoroSlashOverlay}>
+                        <View style={[styles.zoroSlashLine, styles.zoroSlashLineOne]} />
+                        <View style={[styles.zoroSlashLine, styles.zoroSlashLineTwo]} />
+                        <View style={styles.zoroSlashLabel}><Text style={styles.zoroSlashLabelText}>⚔️ قطع زورو</Text></View>
+                    </View>
+                )}
 
                 <View style={[styles.tacticalLegendaryFrame, { borderRadius: Math.round(8 * sc), borderColor: palette.frame }]} pointerEvents="none" />
                 <View style={[styles.tacticalLegendaryTopRow, { top: pad, left: pad, right: pad, justifyContent: 'flex-start' }]}>
@@ -654,7 +664,7 @@ const TacticalRarityCard = ({
 // ─────────────────────────────────────────────
 export function LuxuryCharacterCardAnimated({
     card, style, imageOffsetY = 0, fitInsideBorder = false, isOpenedView = false,
-    effectiveAttack, effectiveDefense, playAudio = false, winnerState, selectionLabel,
+    effectiveAttack, effectiveDefense, playAudio = false, winnerState, selectionLabel, slashEffect = false,
 }: Props) {
     const { settings } = useSettings();
     // هذا الخيار يوقف الحركات المستمرة والفيديو المتكرر، وهي أعلى عناصر البطاقة كلفة على الأجهزة الضعيفة.
@@ -757,6 +767,7 @@ export function LuxuryCharacterCardAnimated({
             defense={displayDefense}
             selectionLabel={selectionLabel}
             rarity={rarity}
+            slashEffect={slashEffect}
         />;
     }
 
@@ -957,6 +968,12 @@ const styles = StyleSheet.create({
     tacticalLegendaryStatLabel: { color: '#FDE68A', fontWeight: '800', writingDirection: 'rtl' },
     tacticalLegendaryStatValue: { color: '#FFF7D6', fontWeight: '900' },
     tacticalLegendaryDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: 'rgba(253,230,138,0.55)', marginVertical: 5 },
+    zoroSlashOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 18, overflow: 'hidden' },
+    zoroSlashLine: { position: 'absolute', width: '142%', height: 4, left: '-21%', backgroundColor: 'rgba(255, 70, 70, 0.88)', borderRadius: 4, shadowColor: '#ff1f1f', shadowOpacity: 0.95, shadowRadius: 8, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
+    zoroSlashLineOne: { top: '37%', transform: [{ rotate: '-29deg' }] },
+    zoroSlashLineTwo: { top: '54%', transform: [{ rotate: '-29deg' }], backgroundColor: 'rgba(255, 190, 190, 0.72)', height: 2 },
+    zoroSlashLabel: { position: 'absolute', top: '11%', alignSelf: 'center', backgroundColor: 'rgba(73, 8, 8, 0.82)', borderWidth: 1, borderColor: 'rgba(255,120,120,0.82)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
+    zoroSlashLabelText: { color: '#ffe4e6', fontWeight: '900', fontSize: 10, writingDirection: 'rtl' },
     winnerBadge: {
         position: 'absolute',
         top: '40%',

@@ -18,6 +18,8 @@ export interface CharacterAbilityDefinition {
     cancelOpponentDefense?: boolean;
     opponentAttackPenalty?: number;
   };
+  /** يضيف فوزاً قسرياً للجولات التالية بعد ظهور البطاقة. */
+  cutNextRounds?: number;
   roundStartHealthBonus?: number;
   winHealthBonus?: number;
 }
@@ -30,7 +32,8 @@ type BuiltInCharacterAbilityId =
   | 'sakura_victory_heal'
   | 'ainz_death_king'
   | 'makima_control'
-  | 'kaido_dragon_strength';
+  | 'kaido_dragon_strength'
+  | 'zoro_three_round_cut';
 
 export const CHARACTER_ABILITY_DEFINITIONS: Record<BuiltInCharacterAbilityId, CharacterAbilityDefinition> = {
   mihawk_swordsman_mastery: {
@@ -81,6 +84,12 @@ export const CHARACTER_ABILITY_DEFINITIONS: Record<BuiltInCharacterAbilityId, Ch
     descriptionAr: '+2 هجوم و+4 دفاع في هذه الجولة.',
     statModifiers: { attackBonus: 2, defenseBonus: 4 },
   },
+  zoro_three_round_cut: {
+    id: 'zoro_three_round_cut',
+    nameAr: 'يقطع 3 الجولات القادمة',
+    descriptionAr: 'يفرض الفوز في الجولات الثلاث التالية بغض النظر عن قوة الكروت، مع أثر الشق على كرت الخصم.',
+    cutNextRounds: 3,
+  },
 };
 
 const LEGACY_ABILITY_IDS: Partial<Record<string, CharacterAbilityId>> = {
@@ -92,6 +101,7 @@ const LEGACY_ABILITY_IDS: Partial<Record<string, CharacterAbilityId>> = {
   ainz_ooal_gown: 'ainz_death_king',
   makima: 'makima_control',
   kaido: 'kaido_dragon_strength',
+  roronoa_zoro: 'zoro_three_round_cut',
 };
 
 export function getCharacterAbilityId(card: Card): CharacterAbilityId | undefined {

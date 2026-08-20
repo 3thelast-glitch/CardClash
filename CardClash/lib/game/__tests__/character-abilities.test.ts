@@ -42,10 +42,11 @@ const makeState = (playerCard: Card, botCard: Card, overrides: Partial<GameState
 });
 
 describe('سجل قدرات الشخصيات المنظم', () => {
-  it('يعرّف القدرات الثماني الحالية مع نص عربي وسلوك قابل للتنفيذ', () => {
-    expect(Object.keys(CHARACTER_ABILITY_DEFINITIONS)).toHaveLength(8);
+  it('يعرّف القدرات التسع الحالية مع نص عربي وسلوك قابل للتنفيذ', () => {
+    expect(Object.keys(CHARACTER_ABILITY_DEFINITIONS)).toHaveLength(9);
     expect(CHARACTER_ABILITY_DEFINITIONS.tsunade_medical_ninjutsu.roundStartHealthBonus).toBe(2);
     expect(CHARACTER_ABILITY_DEFINITIONS.makima_control.statModifiers?.attackBonus).toBe(4);
+    expect(CHARACTER_ABILITY_DEFINITIONS.zoro_three_round_cut.cutNextRounds).toBe(3);
   });
 
   it('يدعم تعريف قدرة منظمة لبطاقة مستقبلية من دون الاعتماد على معرّفها', () => {

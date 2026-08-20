@@ -54,6 +54,7 @@ export type CharacterAbilityId =
   | 'ainz_death_king'
   | 'makima_control'
   | 'kaido_dragon_strength'
+  | 'zoro_three_round_cut'
   | 'nami_weather_forecast'
   | 'chopper_medical_kit'
   | 'hinata_gentle_fist'
@@ -208,6 +209,8 @@ export interface AbilityData {
   appliesToRound?: number;
   /** يفرض التعادل النهائي للمباراة عند اكتمال الجولة الحالية. */
   forceMatchDraw?: boolean;
+  /** تأثير زورو: فوز قسري خلال الجولات التالية مع مؤشر الشق البصري. */
+  zoroCut?: boolean;
   lossCount?: number;
   penaltyRound?: number;
   rounds?: number;

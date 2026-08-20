@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Card, GameState, RoundResult, Effect, AbilityType, Side, FactionAdvantage, Race, MatchMode } from './types';
+import { Card, GameState, RoundResult, Effect, AbilityData, AbilityType, Side, FactionAdvantage, Race, MatchMode } from './types';
 import { getRandomAbilities } from './abilities';
 import type { DifficultyLevel } from './difficulty-types';
 import { determineRoundWinner } from './cards-data-exports';
@@ -14,6 +14,7 @@ import {
 import { useAbilityActivationOverlay } from '../../components/game/AbilityActivationOverlay';
 import { ABILITY_DETAILS } from './ability-details';
 import { getPostLossProfessionalBonus } from './professional-card-abilities';
+import { getCharacterAbility } from './character-abilities';
 
 // ─────────────────────────────────────────────────────────────────────────────────
 const initialState: GameState = {
@@ -350,6 +351,27 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (winner === 'bot') queueProfessionalPostLossBonus(playerCard, 'player');
       if (winner === 'player') queueProfessionalPostLossBonus(botCard, 'bot');
 
+      const queueZoroCut = (card: Card, side: Side) => {
+        const cutNextRounds = getCharacterAbility(card)?.cutNextRounds ?? 0;
+        if (cutNextRounds <= 0 || roundNumber >= state.totalRounds) return;
+        const firstAffectedRound = roundNumber + 1;
+        const lastAffectedRound = Math.min(state.totalRounds, roundNumber + cutNextRounds);
+        effectsToAdd.push({
+          id: `zoro-cut-${side}-${roundNumber}`,
+          kind: 'forcedOutcome',
+          sourceSide: side,
+          targetSide: getOppositeSide(side),
+          createdAtRound: firstAffectedRound,
+          expiresAtRound: lastAffectedRound,
+          priority: 95,
+          data: { zoroCut: true, rounds: lastAffectedRound - firstAffectedRound + 1 },
+        });
+      };
+
+      // زورو لا يحسم ظهوره الحالي؛ يبدأ أثر القطع في ثلاث جولات تالية فقط.
+      queueZoroCut(playerCard, 'player');
+      queueZoroCut(botCard, 'bot');
+
       if (!turinForcedLoss) {
         const orderedEffects = [...activeEffects].sort((a, b) => a.priority - b.priority);
         orderedEffects.forEach(effect => {
@@ -539,7 +561,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         .filter(e => !effectsToRemove.has(e.id))
         .map(e => effectsToReplace.get(e.id) ?? e);
       if (effectsToAdd.length > 0) nextEffects = [...nextEffects, ...effectsToAdd];
-      if (forcedOutcomeEffect) nextEffects = nextEffects.filter(e => e.id !== forcedOutcomeEffect.id);
+      const forcedData = forcedOutcomeEffect?.data as AbilityData | undefined;
+      if (forcedOutcomeEffect && !forcedData?.zoroCut) nextEffects = nextEffects.filter(e => e.id !== forcedOutcomeEffect.id);
       nextEffects = nextEffects.filter(e => !isEffectExpired(e, roundNumber));
       if (!state.abilitiesEnabled) nextEffects = [];
 

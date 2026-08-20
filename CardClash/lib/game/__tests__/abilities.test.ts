@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ABILITY_DETAILS } from '../ability-details';
 import { gameReducer, getTurinPenaltyRounds } from '../game-context';
-import type { AbilityType, Card, Effect, EffectKind, GameState, RoundResult } from '../types';
+import type { AbilityData, AbilityType, Card, Effect, EffectKind, GameState, RoundResult } from '../types';
 
 const makeCard = (id: string, overrides: Partial<Card> = {}): Card => ({
   id,
@@ -507,6 +507,32 @@ describe('اختصار المطوّر لكرت لا شيء لا شيء حدث', 
 
     const unchanged = gameReducer(granted, { type: 'GRANT_DEVELOPER_NOTHING_HAPPENED' });
     expect(unchanged).toBe(granted);
+  });
+});
+
+describe('قدرة رورونوا زورو: يقطع 3 الجولات القادمة', () => {
+  it('يفرض فوز صاحب زورو في الجولات الثلاث التالية مهما تفوقت كروت الخصم', () => {
+    const zoro = makeCard('roronoa_zoro', {
+      nameAr: 'رورونوا زورو',
+      specialAbility: 'يقطع 3 الجولات القادمة',
+      attack: 1,
+      defense: 1,
+    });
+    const playerDeck = [zoro, makeCard('p1', { attack: 1, defense: 1 }), makeCard('p2', { attack: 1, defense: 1 }), makeCard('p3', { attack: 1, defense: 1 })];
+    const botDeck = [makeCard('b0', { attack: 40, defense: 40 }), makeCard('b1', { attack: 40, defense: 40 }), makeCard('b2', { attack: 40, defense: 40 }), makeCard('b3', { attack: 40, defense: 40 })];
+    const started = makeState('Protection', { playerDeck, botDeck, currentRound: 0, totalRounds: 4, roundResults: [] });
+
+    const afterZoro = playRound(started);
+    const cutEffect = afterZoro.activeEffects.find(effect => (effect.data as AbilityData | undefined)?.zoroCut);
+    expect(cutEffect).toEqual(expect.objectContaining({
+      kind: 'forcedOutcome', sourceSide: 'player', createdAtRound: 2, expiresAtRound: 4,
+    }));
+
+    const roundTwo = playRound(nextRound(afterZoro));
+    const roundThree = playRound(nextRound(roundTwo));
+    const roundFour = playRound(nextRound(roundThree));
+    expect([roundTwo, roundThree, roundFour].map(state => state.roundResults.at(-1)?.winner)).toEqual(['player', 'player', 'player']);
+    expect(roundFour.activeEffects.some(effect => (effect.data as AbilityData | undefined)?.zoroCut)).toBe(false);
   });
 });
 

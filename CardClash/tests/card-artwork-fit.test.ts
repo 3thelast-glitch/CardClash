@@ -56,4 +56,14 @@ describe('card artwork fit policy', () => {
       expect(source, relativePath).not.toMatch(/contentFit="stretch"/);
     }
   });
+
+  it('renders Zoro cut slashes over the affected opposing character card', () => {
+    const battle = readComponent('app/screens/battle.tsx');
+    const characterCard = readComponent('components/game/luxury-character-card-animated.tsx');
+
+    expect(battle).toMatch(/slashEffect=\{botZoroCutActive\}/);
+    expect(battle).toMatch(/slashEffect=\{playerZoroCutActive\}/);
+    expect(characterCard).toMatch(/zoroSlashOverlay/);
+    expect(characterCard).toMatch(/قطع زورو/);
+  });
 });

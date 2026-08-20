@@ -420,6 +420,17 @@ export default function BattleScreen() {
   const isDeveloperVariant = isDeveloperBuild(Constants.expoConfig?.extra);
   const playerLabel = isLocalTwoPlayer ? 'المضيف' : 'لاعب';
   const opponentLabel = isLocalTwoPlayer ? 'الضيف' : 'بوت';
+  const activeRoundNumber = state.currentRound + 1;
+  const hasZoroCutForSide = useCallback((side: Side) => state.activeEffects.some(effect => {
+    const data = effect.data as { zoroCut?: boolean } | undefined;
+    return effect.kind === 'forcedOutcome'
+      && effect.sourceSide === side
+      && data?.zoroCut === true
+      && effect.createdAtRound <= activeRoundNumber
+      && (effect.expiresAtRound === undefined || activeRoundNumber <= effect.expiresAtRound);
+  }), [activeRoundNumber, state.activeEffects]);
+  const playerZoroCutActive = hasZoroCutForSide('player');
+  const botZoroCutActive = hasZoroCutForSide('bot');
   const usedLocalAbilities = useMemo(() => {
     if (!isLocalTwoPlayer) return [];
     return [
@@ -977,6 +988,7 @@ export default function BattleScreen() {
                   playAudio={playerWinnerVideoAudio}
                   effectiveAttack={playerEffective.attack}
                   effectiveDefense={playerEffective.defense}
+                  slashEffect={botZoroCutActive}
                   winnerState={
                     computedWinner === 'player'
                       ? (phase === 'result' ? 'winner' : 'leading')
@@ -1113,6 +1125,7 @@ export default function BattleScreen() {
                   playAudio={botWinnerVideoAudio}
                   effectiveAttack={botEffective.attack}
                   effectiveDefense={botEffective.defense}
+                  slashEffect={playerZoroCutActive}
                   winnerState={
                     computedWinner === 'bot'
                       ? (phase === 'result' ? 'winner' : 'leading')
