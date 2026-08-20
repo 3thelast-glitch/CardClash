@@ -27,6 +27,20 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(transport).toContain("wss:");
   });
 
+  it('uses a responsive one-column phone layout and a balanced wide-screen room layout', () => {
+    const lobby = source('app/screens/local-lan.tsx');
+    expect(lobby).toContain('useWindowDimensions');
+    expect(lobby).toContain('const isWideLayout = width >= 720;');
+    expect(lobby).toContain('testID="lan-room-layout"');
+    expect(lobby).toContain('columnsWide');
+    expect(lobby).toContain('leftPaneWide');
+    expect(lobby).toContain('rightPaneWide');
+    expect(lobby).toContain('ScrollView');
+    expect(lobby).toContain('emptyState');
+    expect(lobby).toContain('rooms.map(renderRoom)');
+    expect(lobby).not.toContain('FlatList');
+  });
+
   it('gives each player independent abilities, synchronizes their activation, and waits for both players before the next round', () => {
     const context = source('lib/lan/lan-context.tsx');
     const selection = source('app/screens/card-selection.tsx');
