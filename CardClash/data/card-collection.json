@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-08-19T21:37:27.280Z",
+  "exportedAt": "2026-08-20T08:55:41.198Z",
   "cardEdits": {
     "storm-titan": {
       "stars": 0,
@@ -1686,7 +1686,6 @@
       "nameAr": "كايدو",
       "stars": 5,
       "rarity": "legendary",
-      "specialAbility": "قوة التنين — +2 هجوم و+4 دفاع هذه الجولة",
       "attack": 18,
       "defense": 18,
       "hasCustomImage": false,
@@ -2002,6 +2001,136 @@
       "cardClass": "archer",
       "gender": "male",
       "tags": []
+    },
+    "makima": {
+      "nameAr": "ماكيما",
+      "stars": 5,
+      "rarity": "legendary",
+      "specialAbility": "السيطرة — +4 هجوم وتخفيض هجوم الخصم بمقدار 4 ( ذا كان الخصم شيطان )",
+      "attack": 17,
+      "defense": 17,
+      "hasCustomImage": false,
+      "isVideo": false,
+      "imageOffsetY": 0,
+      "fitInsideBorder": false,
+      "element": "wind",
+      "race": "demon",
+      "cardClass": "mage",
+      "gender": "female",
+      "tags": [
+        "crown"
+      ]
+    },
+    "klein_moretti": {
+      "nameAr": "كلاين موريتي",
+      "stars": 5,
+      "rarity": "legendary",
+      "specialAbility": "التنبؤ- كشف قدرات الخصم ",
+      "attack": 18,
+      "defense": 18,
+      "hasCustomImage": false,
+      "isVideo": false,
+      "imageOffsetY": 0,
+      "fitInsideBorder": false,
+      "element": "wind",
+      "race": "human",
+      "cardClass": "mage",
+      "gender": "male",
+      "tags": [
+        "crown"
+      ]
+    },
+    "feanor": {
+      "nameAr": "فيانور",
+      "stars": 5,
+      "rarity": "legendary",
+      "specialAbility": "القسم المشؤوم - زياده جميع الكروت +3 و لكن الخسراه تكون مضاعفه ",
+      "attack": 17,
+      "defense": 17,
+      "hasCustomImage": false,
+      "isVideo": false,
+      "imageOffsetY": 0,
+      "fitInsideBorder": false,
+      "element": "fire",
+      "race": "elf",
+      "cardClass": "swordsman",
+      "gender": "male",
+      "tags": [
+        "crown"
+      ]
+    },
+    "sung_jinwoo": {
+      "nameAr": "سونغ جين-وو",
+      "stars": 5,
+      "rarity": "legendary",
+      "specialAbility": "في حال الخساره استدعاء كرت سابق واستبداله بكرت من الجولات التاليه ",
+      "attack": 15,
+      "defense": 14,
+      "hasCustomImage": false,
+      "isVideo": false,
+      "imageOffsetY": 0,
+      "fitInsideBorder": false,
+      "element": "wind",
+      "race": "human",
+      "cardClass": "warrior",
+      "gender": "male",
+      "tags": [
+        "crown"
+      ]
+    },
+    "satella": {
+      "nameAr": "ساتيلا",
+      "stars": 5,
+      "rarity": "legendary",
+      "attack": 15,
+      "defense": 13,
+      "hasCustomImage": false,
+      "isVideo": false,
+      "imageOffsetY": 0,
+      "fitInsideBorder": false,
+      "element": "wind",
+      "race": "elf",
+      "cardClass": "mage",
+      "gender": "female",
+      "tags": [
+        "crown"
+      ]
+    },
+    "satoru_gojo": {
+      "nameAr": "ساتورو غوجو",
+      "stars": 5,
+      "rarity": "legendary",
+      "attack": 18,
+      "defense": 18,
+      "hasCustomImage": false,
+      "isVideo": false,
+      "imageOffsetY": 0,
+      "fitInsideBorder": false,
+      "element": "wind",
+      "race": "human",
+      "cardClass": "mage",
+      "gender": "male",
+      "tags": [
+        "crown"
+      ]
+    },
+    "ryomen_sukuna": {
+      "nameAr": "ريومين سوكونا",
+      "stars": 5,
+      "rarity": "legendary",
+      "attack": 16,
+      "defense": 15,
+      "hasCustomImage": false,
+      "isVideo": false,
+      "imageOffsetY": 0,
+      "fitInsideBorder": false,
+      "element": "fire",
+      "race": "demon",
+      "cardClass": "warrior",
+      "gender": "male",
+      "tags": [
+        "crown"
+      ]
     }
   },
   "deletedCards": [
@@ -2665,6 +2794,48 @@
       "oncePer": "match"
     },
     "spike_spiegel": {
+      "enabled": false,
+      "rageAttackBoost": 0,
+      "rageDefenseBoost": 0,
+      "oncePer": "match"
+    },
+    "makima": {
+      "enabled": false,
+      "rageAttackBoost": 0,
+      "rageDefenseBoost": 0,
+      "oncePer": "match"
+    },
+    "klein_moretti": {
+      "enabled": false,
+      "rageAttackBoost": 0,
+      "rageDefenseBoost": 0,
+      "oncePer": "match"
+    },
+    "feanor": {
+      "enabled": false,
+      "rageAttackBoost": 0,
+      "rageDefenseBoost": 0,
+      "oncePer": "match"
+    },
+    "sung_jinwoo": {
+      "enabled": false,
+      "rageAttackBoost": 0,
+      "rageDefenseBoost": 0,
+      "oncePer": "match"
+    },
+    "satella": {
+      "enabled": false,
+      "rageAttackBoost": 0,
+      "rageDefenseBoost": 0,
+      "oncePer": "match"
+    },
+    "satoru_gojo": {
+      "enabled": false,
+      "rageAttackBoost": 0,
+      "rageDefenseBoost": 0,
+      "oncePer": "match"
+    },
+    "ryomen_sukuna": {
       "enabled": false,
       "rageAttackBoost": 0,
       "rageDefenseBoost": 0,
