@@ -32,10 +32,8 @@ describe('card collection project export', () => {
   });
 
   it('loads the Git-tracked project collection with the same validated format', () => {
-    expect(loadProjectCardCollection()).toMatchObject({
-      version: CARD_COLLECTION_EXPORT_VERSION,
-      cardEdits: {},
-      deletedCards: [],
-    });
+    const projectCollection = loadProjectCardCollection();
+    expect(validateCardCollectionExport(projectCollection)).toBe(true);
+    expect(projectCollection.version).toBe(CARD_COLLECTION_EXPORT_VERSION);
   });
 });
