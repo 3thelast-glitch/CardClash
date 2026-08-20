@@ -13,10 +13,12 @@ import Animated, {
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { useSettings } from '@/lib/game/hooks/useSettings';
+import { isDeveloperBuild } from '@/lib/build-variant';
 import { useOrientationTransition } from '@/utils/orientation-transition';
 import { loadStats } from '@/lib/stats/storage';
 import { PlayerStats } from '@/lib/stats/types';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
+import Constants from 'expo-constants';
 
 // ─── Animated entrance wrapper ────────────────────────────────────────────────
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -87,6 +89,7 @@ export default function SplashScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+  const isDeveloper = isDeveloperBuild(Constants.expoConfig?.extra);
   const { settings } = useSettings();
   const { animatedStyle: orientationStyle, layoutTransition } = useOrientationTransition(
     isLandscape,
@@ -169,7 +172,7 @@ export default function SplashScreen() {
       <FadeIn delay={400}>
         <View style={styles.navRow}>
           <NavBtn icon="📊" label="الإحصائيات" onPress={() => router.push('/screens/stats' as any)} />
-          <NavBtn icon="🃏" label="المجموعة" onPress={() => router.push('/screens/cards-gallery' as any)} />
+          {isDeveloper && <NavBtn icon="🃏" label="المجموعة" onPress={() => router.push('/screens/cards-gallery' as any)} />}
           <NavBtn icon="⚙️" label="الإعدادات" onPress={() => router.push('/screens/settings' as any)} />
         </View>
       </FadeIn>
