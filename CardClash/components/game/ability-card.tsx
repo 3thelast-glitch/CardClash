@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, Image, TouchableOpacity,
+    View, Text, StyleSheet, Image, TouchableOpacity, Platform,
 } from 'react-native';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -92,6 +92,7 @@ export const ABILITY_IMAGES: Record<string, any> = {
     'Trap_Art': require('../../assets/abilities/Trap_Art.png'),
     'Weakening_Art': require('../../assets/abilities/Weakening_Art.png'),
     'Wipe_Art': require('../../assets/abilities/Wipe_Art.png'),
+    'Nothing_Happened_Art': require('../../assets/abilities/Nothing_Happened_Art.png'),
 };
 
 const ABILITY_VIDEOS: Record<string, any> = {
@@ -191,6 +192,7 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
 
     const formattedName = ability.nameEn.replaceAll(' ', '_') + '_Art';
     const videoSource = ABILITY_VIDEOS[formattedName];
+    const shouldRenderVideo = Platform.OS !== 'web' && Boolean(videoSource);
     if (!ABILITY_IMAGES[formattedName] && !videoSource) {
         console.warn(`[Missing Art] "${ability.nameEn}" → key: "${formattedName}"`);
     }
@@ -269,7 +271,7 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
             ]}>
                 {/* Section 1: Artwork (Top portion) */}
                 <View style={[styles.artworkSection, { flex: artworkFlex }]}>
-                    {videoSource ? (
+                    {shouldRenderVideo ? (
                         <AbilityArtworkVideo source={videoSource} />
                     ) : (
                         <Image
