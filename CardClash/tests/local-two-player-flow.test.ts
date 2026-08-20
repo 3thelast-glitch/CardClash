@@ -49,6 +49,14 @@ describe('local two-player match flow', () => {
     expect(battleSound).not.toContain('playAttack');
   });
 
+  it('keeps ability previews silent and starts the activation sound only after a card is used', () => {
+    const abilityCard = source('components/game/ability-card.tsx');
+    expect(abilityCard).toContain('instance.muted = !playAudio');
+    expect(battle).toContain("onPress={() => { setAbilityOwnerSide('player'); setIsAbilitiesModalOpen(true); }}");
+    const plainActivation = battle.match(/activateAbility\(ab\.type, \{\}, abilityOwnerSide === 'player'\);[\s\S]{0,240}playAbility\(\);/);
+    expect(plainActivation?.[0]).toBeDefined();
+  });
+
   it('places active effects beside each card instead of above the battle header', () => {
     expect(battle).toContain('cardWithSideEffects');
     expect(battle).toContain('compact roundNumber={activeRoundNumber}');

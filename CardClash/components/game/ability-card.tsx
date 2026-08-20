@@ -99,10 +99,11 @@ const ABILITY_VIDEOS: Record<string, any> = {
     'Nothing_Happened_Art': require('../../assets/abilities/Nothing_Happened_Art.mp4'),
 };
 
-function AbilityArtworkVideo({ source }: { source: any }) {
+function AbilityArtworkVideo({ source, playAudio = false }: { source: any; playAudio?: boolean }) {
     const player = useVideoPlayer(source, (instance) => {
         instance.loop = true;
-        instance.muted = false;
+        // معاينة الكرت لا تشغّل صوتاً؛ مؤثر التفعيل يعمل فقط بعد اختيار القدرة فعلياً.
+        instance.muted = !playAudio;
         instance.play();
     });
 

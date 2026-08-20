@@ -19,4 +19,10 @@ describe('developer nothing happened shortcut', () => {
     expect(battle).toContain('developer-nothing-happened-shortcut');
     expect(battle).toContain('grantDeveloperNothingHappened');
   });
+
+  it('does not display a toast notification when the developer shortcut is used', () => {
+    const shortcutBlock = battle.match(/const handleDeveloperAbilityGrant[\s\S]*?\n  }, \[grantDeveloperNothingHappened, hapticImpact\]\);/);
+    expect(shortcutBlock?.[0]).toBeDefined();
+    expect(shortcutBlock?.[0]).not.toContain('showToast');
+  });
 });

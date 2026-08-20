@@ -453,25 +453,8 @@ export default function BattleScreen() {
   }, [isLocalTwoPlayer, state.playerAbilities, state.botAbilities]);
   const handleDeveloperAbilityGrant = useCallback(() => {
     const replacedAbility = grantDeveloperNothingHappened();
-    if (!replacedAbility) {
-      showToast({
-        title: '🧪 لا يمكن منح الكرت',
-        subtitle: 'إما أن الكرت موجود بالفعل أو أن جميع القدرات استُخدمت.',
-        target: 'player',
-        kind: 'info',
-        duration: 3200,
-      });
-      return;
-    }
-    hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
-    showToast({
-      title: '🧪 تم منح لا شيء لا شيء حدث',
-      subtitle: `استُبدلت قدرة ${getAbilityNameOnly(replacedAbility)} غير المستخدمة.`,
-      target: 'player',
-      kind: 'info',
-      duration: 4200,
-    });
-  }, [grantDeveloperNothingHappened, hapticImpact, showToast]);
+    if (replacedAbility) hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
+  }, [grantDeveloperNothingHappened, hapticImpact]);
 
   // تهيئة الصوت ليعمل حتى لو كان الهاتف صامتاً (iOS)
   useEffect(() => {
@@ -1220,6 +1203,7 @@ export default function BattleScreen() {
                         activateAbility(ab.type, {}, abilityOwnerSide === 'player');
                         setIsAbilitiesModalOpen(false);
                         hapticImpact(Haptics.ImpactFeedbackStyle.Light);
+                        playAbility();
                       }
                     }}
                     disabled={ab.used}
