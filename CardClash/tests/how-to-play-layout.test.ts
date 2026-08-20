@@ -33,4 +33,16 @@ describe('How to play guide layout', () => {
     expect(guide).toContain('معادلة مبسطة للضرر');
     expect(guide).toContain('الهجوم × معامل الفصيلة');
   });
+
+  it('explains recent updates, card classes, and the relationship between faction, class, and ability', () => {
+    const guide = source();
+    expect(guide).toContain('const RECENT_UPDATES');
+    expect(guide).toContain('معاينة القدرات');
+    expect(guide).toContain('فلاتر مصوّرة');
+    expect(guide).toContain('const CARD_CLASSES');
+    expect(guide).toContain("title: 'سياف'");
+    expect(guide).toContain("title: 'طبيب'");
+    expect(guide).toContain('الفصيلة والفئة والقدرة');
+    expect(guide).toContain('لا توجد دورة تضاد بين الفئات');
+  });
 });

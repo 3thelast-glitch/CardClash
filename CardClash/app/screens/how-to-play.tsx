@@ -42,6 +42,21 @@ const TIPS = [
   { emoji: '✨', title: 'لا تهدر القدرات', text: 'بعض القدرات تمنح درعاً أو تعدّل الإحصاءات أو تؤثر في النقاط؛ استخدمها في الجولة المناسبة.' },
 ];
 
+const RECENT_UPDATES = [
+  { icon: '⚡', title: 'معاينة القدرات', text: 'قبل تثبيت الجولات، تظهر كروت القدرات كاملة. على الهاتف اسحب أفقياً لمشاهدة كل الكروت.', accent: '#facc15' },
+  { icon: '📜', title: 'سجل القدرة', text: 'في مباريات Wi‑Fi تستطيع العودة إلى سجل القدرات لمعرفة ما استعمله المضيف والضيف.', accent: '#a78bfa' },
+  { icon: '◉', title: 'فلاتر مصوّرة', text: 'أضفنا أيقونات للفئات والفصائل لتسهيل الوصول إلى البطاقات المطابقة داخل المجموعة.', accent: '#38bdf8' },
+];
+
+const CARD_CLASSES = [
+  { icon: '🗡️', title: 'سياف', text: 'بطاقات تعتمد هوية السيف، وقد تتفاعل بعض قدرات الشخصيات معها.', accent: '#c4b5fd' },
+  { icon: '🏹', title: 'رامي', text: 'بطاقات الرماية والطلقات؛ الفئة تساعدك على الفرز وتظهر في شروط قدرات محددة.', accent: '#67e8f9' },
+  { icon: '🪄', title: 'ساحر', text: 'بطاقات السحر والتحكم؛ لا تمنح أفضلية فصيلية ذاتية من دون قدرة مكتوبة.', accent: '#d8b4fe' },
+  { icon: '🥊', title: 'مقاتل', text: 'بطاقات مواجهة مباشرة؛ قارن هجومها ودفاعها مع الفصيلة والقدرات النشطة.', accent: '#fb923c' },
+  { icon: '◉', title: 'روبوت', text: 'فئة تقنية منفصلة عن فصيلة الروبوت؛ قد تكون البطاقة روبوتاً بالفئة أو بالفصيلة أو كليهما.', accent: '#22d3ee' },
+  { icon: '🩺', title: 'طبيب', text: 'بطاقات علاج أو دعم؛ دورها النهائي يتحدد بإحصاءات البطاقة ونص قدرتها.', accent: '#6ee7b7' },
+];
+
 function SectionTitle({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
   return (
     <View style={s.sectionHead}>
@@ -60,6 +75,16 @@ function InfoCard({ emoji, title, text, accent = COLOR.gold }: { emoji: string; 
         <Text style={s.infoTitle}>{title}</Text>
         <Text style={s.infoText}>{text}</Text>
       </View>
+    </View>
+  );
+}
+
+function GuideTile({ icon, title, text, accent, wide = false }: { icon: string; title: string; text: string; accent: string; wide?: boolean }) {
+  return (
+    <View style={[s.guideTile, wide && s.guideTileWide, { borderColor: `${accent}48` }]}>
+      <View style={[s.guideTileIcon, { backgroundColor: `${accent}20` }]}><Text style={s.guideTileEmoji}>{icon}</Text></View>
+      <Text style={s.guideTileTitle}>{title}</Text>
+      <Text style={s.guideTileText}>{text}</Text>
     </View>
   );
 }
@@ -102,6 +127,11 @@ export default function HowToPlayScreen() {
               <Text style={s.heroButtonText}>ابدأ مباراة الآن</Text>
             </TouchableOpacity>
           </View>
+
+          <SectionTitle eyebrow="تحديثات الدليل" title="ما الذي تغيّر مؤخراً؟" text="هذه التحسينات تسهّل قراءة البطاقات والقدرات واتخاذ القرار قبل الجولة." />
+          <Animated.View layout={layoutTransition} style={[s.guideGrid, isWideLayout && s.guideGridWide]}>
+            {RECENT_UPDATES.map(update => <GuideTile key={update.title} {...update} wide={isWideLayout} />)}
+          </Animated.View>
 
           <SectionTitle eyebrow="اختر طريقتك" title="أنماط اللعب" text="تبدأ القواعد نفسها في كل الأنماط، بينما تختلف طريقة الاتصال وتجهيز اللاعبين." />
           <Animated.View layout={layoutTransition} style={[s.modes, isWideLayout && s.modesWide]}>
@@ -160,6 +190,23 @@ export default function HowToPlayScreen() {
                 </View>
               </View>
             ))}
+          </Animated.View>
+
+          <SectionTitle eyebrow="خريطتك التكتيكية" title="الفصيلة والفئة والقدرة" text="كل بطاقة تحمل فصيلة وفئة معاً، لكن لكل منهما مهمة مختلفة داخل المواجهة." />
+          <View style={s.relationshipCard}>
+            <View style={[s.relationshipRow, !isWideLayout && s.relationshipColumn]}>
+              <View style={s.relationshipStep}><Text style={s.relationshipMark}>01</Text><Text style={s.relationshipTitle}>الفصيلة</Text><Text style={s.relationshipText}>تحدد أفضلية المواجهة ومضاعف الهجوم.</Text></View>
+              <View style={s.relationshipArrow}><Text style={s.relationshipArrowText}>{isWideLayout ? '←' : '↓'}</Text></View>
+              <View style={s.relationshipStep}><Text style={s.relationshipMark}>02</Text><Text style={s.relationshipTitle}>الفئة</Text><Text style={s.relationshipText}>تصف نمط البطاقة وتستخدم في الفرز وبعض شروط القدرات.</Text></View>
+              <View style={s.relationshipArrow}><Text style={s.relationshipArrowText}>{isWideLayout ? '←' : '↓'}</Text></View>
+              <View style={s.relationshipStep}><Text style={s.relationshipMark}>03</Text><Text style={s.relationshipTitle}>القدرة</Text><Text style={s.relationshipText}>تضيف التأثير المكتوب عندما تتحقق شروط التفعيل.</Text></View>
+            </View>
+            <Text style={s.relationshipNote}>لا توجد دورة تضاد بين الفئات. تضاد القوة يأتي من الفصائل فقط؛ أما الفئة فقد تصبح مهمة عندما تنص قدرة بطاقة أو لاعب على فئة بعينها.</Text>
+          </View>
+
+          <SectionTitle eyebrow="هوية البطاقة" title="فئات البطاقات" text="الفئات الآتية تظهر في فلاتر المجموعة لتساعدك على البحث، ولا تستبدل فصيلة البطاقة أو معاملها." />
+          <Animated.View layout={layoutTransition} style={[s.guideGrid, isWideLayout && s.guideGridWide]}>
+            {CARD_CLASSES.map(cardClass => <GuideTile key={cardClass.title} {...cardClass} wide={isWideLayout} />)}
           </Animated.View>
 
           <SectionTitle eyebrow="الخيارات الذكية" title="البطاقات والقدرات" />
@@ -224,6 +271,14 @@ const s = StyleSheet.create({
   elementTextWrap: { flex: 1, gap: 2 },
   elementTitle: { fontSize: FONT.sm, fontWeight: '900', textAlign: 'right' },
   elementLine: { color: '#94a3b8', fontSize: FONT.xs, lineHeight: 17, textAlign: 'right' },
+  guideGrid: { gap: SPACE.sm }, guideGridWide: { flexDirection: 'row-reverse', flexWrap: 'wrap' },
+  guideTile: { minWidth: 0, backgroundColor: 'rgba(10,12,28,0.8)', borderWidth: 1, borderRadius: RADIUS.lg, padding: SPACE.md, gap: 6, alignItems: 'flex-end' }, guideTileWide: { width: '31.9%' },
+  guideTileIcon: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' }, guideTileEmoji: { fontSize: 18 },
+  guideTileTitle: { color: '#e2e8f0', fontSize: FONT.sm, fontWeight: '900', textAlign: 'right' }, guideTileText: { color: '#94a3b8', fontSize: FONT.xs, lineHeight: 18, textAlign: 'right' },
+  relationshipCard: { backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(129,140,248,0.28)', borderRadius: RADIUS.lg, padding: SPACE.md, gap: SPACE.md },
+  relationshipRow: { flexDirection: 'row-reverse', alignItems: 'stretch', gap: SPACE.xs }, relationshipColumn: { flexDirection: 'column', alignItems: 'stretch' }, relationshipStep: { flex: 1, minWidth: 0, gap: 4, alignItems: 'flex-end' },
+  relationshipMark: { color: '#a5b4fc', fontSize: 10, fontWeight: '900' }, relationshipTitle: { color: '#e0e7ff', fontSize: FONT.sm, fontWeight: '900', textAlign: 'right' }, relationshipText: { color: '#a5b4fc', fontSize: 10, lineHeight: 16, textAlign: 'right' },
+  relationshipArrow: { alignSelf: 'center', paddingHorizontal: 1 }, relationshipArrowText: { color: '#818cf8', fontSize: FONT.base, fontWeight: '900' }, relationshipNote: { color: '#c7d2fe', fontSize: FONT.xs, lineHeight: 19, textAlign: 'right', borderTopWidth: 1, borderTopColor: 'rgba(129,140,248,0.22)', paddingTop: SPACE.sm },
   tipsCard: { backgroundColor: 'rgba(10,12,28,0.84)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(148,163,184,0.16)', overflow: 'hidden' },
   tipRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: SPACE.md, padding: SPACE.md },
   tipDivider: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
