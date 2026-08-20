@@ -21,7 +21,7 @@ function getStatPairs(rarity: Exclude<CardRarity, 'special'>): StatPair[] {
   const pairs: StatPair[] = [];
   for (let attack = minStat; attack <= maxStat; attack += 1) {
     for (let defense = minStat; defense <= maxStat; defense += 1) {
-      pairs.push({ attack, defense });
+      if (attack !== defense) pairs.push({ attack, defense });
     }
   }
   return pairs.sort((a, b) => {
@@ -44,7 +44,15 @@ export function rebalanceCardStats<T extends RebalanceableCard>(cards: T[]): T[]
   for (const card of cards) {
     const rarity = getRebalanceRarity(card);
     if (rarity === 'special') {
-      balanced.set(card.id, { ...card, rarity, attack: Math.max(0, Math.round(card.attack)), defense: Math.max(0, Math.round(card.defense)) });
+      const attack = Math.max(0, Math.round(card.attack));
+      const defense = Math.max(0, Math.round(card.defense));
+      const attackHeavy = [...card.id].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 2 === 0;
+      balanced.set(card.id, {
+        ...card,
+        rarity,
+        attack: attack === defense && attackHeavy ? attack + 1 : attack,
+        defense: attack === defense && !attackHeavy ? defense + 1 : defense,
+      });
       continue;
     }
     const group = groups.get(rarity) ?? [];

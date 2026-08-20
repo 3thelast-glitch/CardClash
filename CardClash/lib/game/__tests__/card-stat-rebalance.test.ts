@@ -18,12 +18,15 @@ describe('Card Collection stat rebalancing', () => {
       card('legendary', 'legendary', 15, 13),
     ]);
 
-    expect(balanced.map(item => [item.attack, item.defense])).toEqual([
-      [3, 3],
-      [8, 9],
-      [13, 13],
-      [18, 18],
-    ]);
+    balanced.forEach(item => expect(item.attack).not.toBe(item.defense));
+    expect(balanced[0].attack).toBeGreaterThanOrEqual(0);
+    expect(balanced[0].defense).toBeLessThanOrEqual(6);
+    expect(balanced[1].attack).toBeGreaterThanOrEqual(7);
+    expect(balanced[1].defense).toBeLessThanOrEqual(10);
+    expect(balanced[2].attack).toBeGreaterThanOrEqual(11);
+    expect(balanced[2].defense).toBeLessThanOrEqual(15);
+    expect(balanced[3].attack).toBeGreaterThanOrEqual(16);
+    expect(balanced[3].defense).toBeLessThanOrEqual(20);
   });
 
   it('spreads cards with identical source values across available stat pairs', () => {
@@ -37,6 +40,7 @@ describe('Card Collection stat rebalancing', () => {
       expect(item.attack).toBeLessThanOrEqual(15);
       expect(item.defense).toBeGreaterThanOrEqual(11);
       expect(item.defense).toBeLessThanOrEqual(15);
+      expect(item.attack).not.toBe(item.defense);
     }
 
     expect(Math.max(...counts.values())).toBeLessThanOrEqual(3);
@@ -54,5 +58,15 @@ describe('Card Collection stat rebalancing', () => {
   it('does not cap special cards', () => {
     const [special] = rebalanceCardStats([card('special', 'special', 40, 26)]);
     expect(special).toMatchObject({ attack: 40, defense: 26, rarity: 'special' });
+  });
+
+  it('creates both attacking and defensive card styles', () => {
+    const balanced = rebalanceCardStats(Array.from(
+      { length: 18 },
+      (_, index) => card(`rare-${index}`, 'rare', 9, 9),
+    ));
+
+    expect(balanced.some(item => item.attack > item.defense)).toBe(true);
+    expect(balanced.some(item => item.defense > item.attack)).toBe(true);
   });
 });

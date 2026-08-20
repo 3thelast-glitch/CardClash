@@ -20,7 +20,9 @@ function getPairs(rarity) {
   const { minStat, maxStat } = ranges[rarity];
   const pairs = [];
   for (let attack = minStat; attack <= maxStat; attack += 1) {
-    for (let defense = minStat; defense <= maxStat; defense += 1) pairs.push({ attack, defense });
+    for (let defense = minStat; defense <= maxStat; defense += 1) {
+      if (attack !== defense) pairs.push({ attack, defense });
+    }
   }
   return pairs.sort((a, b) => (a.attack + a.defense) - (b.attack + b.defense)
     || a.attack - b.attack || a.defense - b.defense);
@@ -32,7 +34,15 @@ function rebalanceCardStats(cards) {
   for (const card of cards) {
     const rarity = getRarity(card);
     if (rarity === 'special') {
-      results.set(card.id, { ...card, rarity, attack: Math.max(0, Math.round(card.attack)), defense: Math.max(0, Math.round(card.defense)) });
+      const attack = Math.max(0, Math.round(card.attack));
+      const defense = Math.max(0, Math.round(card.defense));
+      const attackHeavy = [...card.id].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 2 === 0;
+      results.set(card.id, {
+        ...card,
+        rarity,
+        attack: attack === defense && attackHeavy ? attack + 1 : attack,
+        defense: attack === defense && !attackHeavy ? defense + 1 : defense,
+      });
       continue;
     }
     const group = groups.get(rarity) ?? [];
