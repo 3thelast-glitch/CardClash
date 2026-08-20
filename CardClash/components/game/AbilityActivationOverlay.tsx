@@ -10,7 +10,7 @@
  *   showAbilityCard({ abilityType: 'Protection', target: 'player' });
  */
 import React, { useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, ImageBackground, useWindowDimensions, ScrollView } from 'react-native';
+import { View, StyleSheet, ImageBackground, useWindowDimensions, ScrollView, TouchableOpacity } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -27,7 +27,7 @@ import { ABILITY_IMAGES } from '@/components/game/ability-card';
 export interface AbilityCardPayload {
   abilityType: AbilityType;
   target?: 'player' | 'bot' | 'all';
-  /** Auto-dismiss after ms, default 3200 */
+  /** Auto-dismiss after ms, default 3200 (15s in local two-player matches). */
   duration?: number;
 }
 
@@ -113,6 +113,8 @@ export function AbilityActivationOverlay() {
   const progressWidth = useSharedValue(100);
 
   const dismiss = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
     opacity.value = withTiming(0, { duration: 320 });
     scale.value = withTiming(0.7, { duration: 320 });
     overlayOpacity.value = withTiming(0, { duration: 320 });
@@ -217,8 +219,16 @@ export function AbilityActivationOverlay() {
           S.centerWrap,
           containerStyle,
         ]}
-        pointerEvents="none"
       >
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="تخطي عرض كرت القدرة"
+          style={S.skipButton}
+          onPress={dismiss}
+          activeOpacity={0.8}
+        >
+          <Text style={S.skipButtonText}>تخطي ⏭</Text>
+        </TouchableOpacity>
         <View style={[
           S.cardContainer,
           {
@@ -431,6 +441,24 @@ const S = StyleSheet.create({
     zIndex: 999,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  skipButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    zIndex: 30,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.46)',
+    backgroundColor: 'rgba(4,8,18,0.88)',
+  },
+  skipButtonText: {
+    color: '#f8fafc',
+    fontSize: 12,
+    fontWeight: '800',
+    writingDirection: 'rtl',
   },
   cardContainer: {
     borderRadius: 20,

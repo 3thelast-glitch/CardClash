@@ -86,6 +86,22 @@ const advantageLabel = (a: FactionAdvantage) =>
 
 const ALL_FACTIONS: Race[] = ['human', 'elf', 'orc', 'dragon', 'demon', 'undead', 'monster', 'robot'];
 
+function buildAbilityCardData(abilityType: AbilityType, isActive = true) {
+  const match = ALL_ABILITIES.find(
+    ability => ability.nameEn.replace(/\s+/g, '').toLowerCase() === abilityType.replace(/\s+/g, '').toLowerCase()
+  );
+  return {
+    id: abilityType,
+    nameEn: match?.nameEn ?? getAbilityNameOnly(abilityType),
+    nameAr: match?.nameAr ?? getAbilityNameAr(abilityType),
+    description: match?.description ?? getAbilityDescription(abilityType),
+    descriptionWarning: match?.descriptionWarning,
+    rarity: match?.rarity ?? 'Common',
+    icon: match?.icon,
+    isActive,
+  };
+}
+
 // ✅ الفصائل المعتمدة فقط (حسب الفلتر)
 const ALL_CLASSES: CardClass[] = ['swordsman', 'fighter', 'guardian', 'healer'];
 const CLASS_LABELS: Record<CardClass, string> = {
@@ -368,6 +384,7 @@ export default function BattleScreen() {
   const [showBotEffect, setShowBotEffect] = useState(false);
   const [roundHistory, setRoundHistory] = useState<RoundResult[]>([]);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isUsedAbilitiesModalOpen, setIsUsedAbilitiesModalOpen] = useState(false);
   const [isAbilitiesModalOpen, setIsAbilitiesModalOpen] = useState(false);
   const [abilityOwnerSide, setAbilityOwnerSide] = useState<Side>('player');
   const [showPredictionModal, setShowPredictionModal] = useState(false);
@@ -400,6 +417,23 @@ export default function BattleScreen() {
   const isLocalTwoPlayer = state.matchMode === 'local';
   const playerLabel = isLocalTwoPlayer ? 'المضيف' : 'لاعب';
   const opponentLabel = isLocalTwoPlayer ? 'الضيف' : 'بوت';
+  const usedLocalAbilities = useMemo(() => {
+    if (!isLocalTwoPlayer) return [];
+    return [
+      ...state.playerAbilities.filter(ability => ability.used).map((ability, index) => ({
+        id: `host-${ability.type}-${index}`,
+        owner: 'المضيف',
+        ownerColor: '#4ade80',
+        ability: buildAbilityCardData(ability.type),
+      })),
+      ...state.botAbilities.filter(ability => ability.used).map((ability, index) => ({
+        id: `guest-${ability.type}-${index}`,
+        owner: 'الضيف',
+        ownerColor: '#60a5fa',
+        ability: buildAbilityCardData(ability.type),
+      })),
+    ];
+  }, [isLocalTwoPlayer, state.playerAbilities, state.botAbilities]);
 
   // تهيئة الصوت ليعمل حتى لو كان الهاتف صامتاً (iOS)
   useEffect(() => {
@@ -844,9 +878,16 @@ export default function BattleScreen() {
             <View style={S.hudCenter}>
               <Text style={S.hudRound}>جولة {state.currentRound + 1} / {state.totalRounds}</Text>
               <RoundBar current={state.currentRound} total={state.totalRounds} />
-              <TouchableOpacity style={S.historyBtn} onPress={() => setIsHistoryModalOpen(true)} activeOpacity={0.75}>
-                <Text style={S.historyBtnText}>سجل ↗️</Text>
-              </TouchableOpacity>
+              <View style={S.hudHistoryRow}>
+                <TouchableOpacity style={S.historyBtn} onPress={() => setIsHistoryModalOpen(true)} activeOpacity={0.75}>
+                  <Text style={S.historyBtnText}>سجل الجولة ↗️</Text>
+                </TouchableOpacity>
+                {isLocalTwoPlayer && (
+                  <TouchableOpacity style={[S.historyBtn, S.abilityHistoryBtn]} onPress={() => setIsUsedAbilitiesModalOpen(true)} activeOpacity={0.75}>
+                    <Text style={S.historyBtnText}>⚡ كروت القدرات</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
             <View style={[S.hudSide, S.hudSideRight]}>
               <Text style={[S.hudScore, { color: '#f87171' }]}>{state.botScore}</Text>
@@ -1080,6 +1121,31 @@ export default function BattleScreen() {
         </TouchableOpacity>
       </Modal>
 
+      {/* ── Used abilities history — local two-player only ── */}
+      <Modal visible={isUsedAbilitiesModalOpen} transparent animationType="slide" onRequestClose={() => setIsUsedAbilitiesModalOpen(false)}>
+        <TouchableOpacity style={cm.overlay} activeOpacity={1} onPress={() => setIsUsedAbilitiesModalOpen(false)}>
+          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[S.abilitiesBox, { padding: modalPadding }]}>
+            <Text style={[cm.title, { marginBottom: modalTitleMargin }]}>⚡ كروت القدرات المستخدمة</Text>
+            <Text style={S.usedAbilityHint}>يمكن الرجوع هنا إلى كروت المضيف والضيف التي فُعّلت في هذه المباراة.</Text>
+            {usedLocalAbilities.length === 0 ? (
+              <Text style={S.emptyAbilityHistory}>لا توجد كروت قدرات مستخدمة بعد</Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={S.usedAbilitiesScroll}>
+                {usedLocalAbilities.map(entry => (
+                  <View key={entry.id} style={S.usedAbilityEntry}>
+                    <Text style={[S.usedAbilityOwner, { color: entry.ownerColor }]}>استعملها {entry.owner}</Text>
+                    <AbilityCard ability={entry.ability} showActionButtons={false} style={{ width: modalAbilityCardW, height: modalAbilityCardH }} />
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+            <TouchableOpacity style={[cm.cancel, { marginTop: modalCancelMargin }]} onPress={() => setIsUsedAbilitiesModalOpen(false)}>
+              <Text style={cm.cancelText}>إغلاق</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
       {/* ── Abilities Modal ── */}
       <Modal visible={isAbilitiesModalOpen} transparent animationType="slide" onRequestClose={() => setIsAbilitiesModalOpen(false)}>
         <TouchableOpacity style={cm.overlay} activeOpacity={1} onPress={() => setIsAbilitiesModalOpen(false)}>
@@ -1091,19 +1157,7 @@ export default function BattleScreen() {
               contentContainerStyle={{ flexDirection: 'row', gap: modalGap, paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center' }}
             >
               {(abilityOwnerSide === 'player' ? state.playerAbilities : state.botAbilities).map((ab, i) => {
-                const match = ALL_ABILITIES.find(
-                  a => a.nameEn.replace(/\s+/g, '').toLowerCase() === ab.type.replace(/\s+/g, '').toLowerCase()
-                );
-                const abilityData = {
-                  id: ab.type,
-                  nameEn: match?.nameEn ?? getAbilityNameOnly(ab.type),
-                  nameAr: match?.nameAr ?? getAbilityNameAr(ab.type),
-                  description: match?.description ?? getAbilityDescription(ab.type),
-                  descriptionWarning: match?.descriptionWarning,
-                  rarity: match?.rarity ?? 'Common',
-                  icon: match?.icon,
-                  isActive: !ab.used,
-                };
+                const abilityData = buildAbilityCardData(ab.type, !ab.used);
 
                 return (
                   <TouchableOpacity
@@ -1201,8 +1255,10 @@ const S = StyleSheet.create({
   hudScore: { fontSize: FONT.xl, fontWeight: '900', minWidth: 28, textAlign: 'center', fontVariant: ['tabular-nums'] } as any,
   hudCenter: { flex: 1.2, alignItems: 'center', gap: 3 },
   hudRound: { color: COLOR.gold, fontSize: FONT.xs, fontWeight: '700', letterSpacing: 0.4 },
+  hudHistoryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   historyBtn: { paddingHorizontal: SPACE.sm, paddingVertical: 2, borderRadius: RADIUS.sm, backgroundColor: 'rgba(57,230,208,0.08)', borderWidth: 1, borderColor: 'rgba(57,230,208,0.20)' },
   historyBtnText: { color: '#BFFAF2', fontSize: FONT.xs - 1 },
+  abilityHistoryBtn: { backgroundColor: 'rgba(232,121,249,0.12)', borderColor: 'rgba(232,121,249,0.35)' },
 
   effectsBar: { flexDirection: 'row', paddingHorizontal: SPACE.lg, paddingVertical: SPACE.xs, gap: SPACE.sm, backgroundColor: 'rgba(5,15,20,0.56)' },
   effectsBarSide: { flex: 1 },
@@ -1316,4 +1372,9 @@ const S = StyleSheet.create({
     alignSelf: 'center',
     justifyContent: 'center',
   },
+  usedAbilityHint: { color: '#94a3b8', fontSize: 11, textAlign: 'center', writingDirection: 'rtl', marginBottom: 8 },
+  emptyAbilityHistory: { color: '#94a3b8', textAlign: 'center', paddingVertical: 24, writingDirection: 'rtl' },
+  usedAbilitiesScroll: { flexDirection: 'row', gap: 12, paddingHorizontal: 12, paddingVertical: 8, alignItems: 'flex-start' },
+  usedAbilityEntry: { alignItems: 'center', gap: 6 },
+  usedAbilityOwner: { fontSize: 11, fontWeight: '800', writingDirection: 'rtl' },
 });

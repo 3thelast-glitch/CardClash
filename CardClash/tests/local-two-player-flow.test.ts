@@ -7,6 +7,7 @@ const gameContext = source('lib/game/game-context.tsx');
 const gameMode = source('app/screens/game-mode.tsx');
 const cardSelection = source('app/screens/card-selection.tsx');
 const battle = source('app/screens/battle.tsx');
+const abilityOverlay = source('components/game/AbilityActivationOverlay.tsx');
 
 describe('local two-player match flow', () => {
   it('keeps the engine slots while exposing an explicit local match mode', () => {
@@ -27,5 +28,12 @@ describe('local two-player match flow', () => {
     expect(battle).toContain("setAbilityOwnerSide('bot')");
     expect(battle).toContain('قدرة الضيف');
     expect(battle).toContain("state.botAbilities");
+  });
+
+  it('presents local abilities for fifteen seconds with skip and a used-card history', () => {
+    expect(gameContext).toContain("state.matchMode === 'local' ? 15000 : 3200");
+    expect(abilityOverlay).toContain('تخطي ⏭');
+    expect(battle).toContain('كروت القدرات المستخدمة');
+    expect(battle).toContain('usedLocalAbilities');
   });
 });

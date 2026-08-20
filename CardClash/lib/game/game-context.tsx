@@ -1271,13 +1271,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
         showAbilityCard({
           abilityType,
           target: isPlayer ? 'player' : 'bot',
-          duration: 3200,
+          duration: state.matchMode === 'local' ? 15000 : 3200,
         });
       }
     } catch (e) {
       console.warn('Ability card overlay trigger error in useAbility:', e);
     }
-  }, [showAbilityCard]);
+  }, [showAbilityCard, state.matchMode]);
 
   // ── derived state ──
   const isGameOver = useMemo(() =>
