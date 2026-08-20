@@ -26,6 +26,7 @@ import { loadCustomCards, deleteCustomCard } from '@/lib/game/custom-cards-store
 import { exportBackup, importBackup } from '@/lib/game/backup-restore';
 import { loadProjectCardCollection } from '@/lib/game/project-card-collection';
 import { sortCardCollectionByStrength } from '@/lib/game/card-collection-sort';
+import { rebalanceCardStats } from '@/lib/game/card-stat-rebalance';
 
 export const CARD_EDITS_KEY = 'card_edits_v1';
 export const DELETED_CARDS_KEY = 'deleted_cards_v1';
@@ -625,7 +626,7 @@ export default function CardsGalleryScreen() {
     const VISIBLE = UNIQUE.filter(c => !deletedIds.has(c.id));
     const localEdits: Record<string, any> = rawEdits ? JSON.parse(rawEdits) : {};
     const mergedEdits = { ...projectCollection.cardEdits, ...localEdits };
-    if (Object.keys(mergedEdits).length === 0) { setCards(VISIBLE.map(c => ({ ...c, _isCustom: customIds.has(c.id) }))); return; }
+    if (Object.keys(mergedEdits).length === 0) { setCards(rebalanceCardStats(VISIBLE.map(c => ({ ...c, _isCustom: customIds.has(c.id) })))); return; }
     try {
       const map: Record<string, any> = mergedEdits;
       const entries = await Promise.all(
@@ -642,9 +643,9 @@ export default function CardsGalleryScreen() {
       );
       const fullMap = Object.fromEntries(entries);
       setSavedMap(Object.fromEntries(entries.map(([id, d]) => [id, toStoreSafe(d)])));
-      setCards(VISIBLE.map((c: Card) => ({ ...c, ...(fullMap[c.id] ?? {}), _isCustom: customIds.has(c.id) })));
+      setCards(rebalanceCardStats(VISIBLE.map((c: Card) => ({ ...c, ...(fullMap[c.id] ?? {}), _isCustom: customIds.has(c.id) }))));
     } catch {
-      setCards(VISIBLE.map(c => ({ ...c, _isCustom: customIds.has(c.id) })));
+      setCards(rebalanceCardStats(VISIBLE.map(c => ({ ...c, _isCustom: customIds.has(c.id) }))));
     }
   };
 

@@ -6,10 +6,10 @@ export const MAX_CARD_STAT = 40;
 
 /** نطاق كل إحصاء منفرداً (الهجوم أو الدفاع) حسب الندرة. */
 export const RARITY_POWER_RANGES: Record<CardRarity, { minStat: number; maxStat: number }> = {
-  common: { minStat: 0, maxStat: 12 },
-  rare: { minStat: 13, maxStat: 20 },
-  epic: { minStat: 21, maxStat: 30 },
-  legendary: { minStat: 31, maxStat: MAX_CARD_STAT },
+  common: { minStat: 0, maxStat: 6 },
+  rare: { minStat: 7, maxStat: 14 },
+  epic: { minStat: 15, maxStat: 26 },
+  legendary: { minStat: 27, maxStat: MAX_CARD_STAT },
   special: { minStat: 0, maxStat: Number.POSITIVE_INFINITY },
 };
 

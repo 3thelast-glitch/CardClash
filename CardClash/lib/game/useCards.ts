@@ -13,6 +13,7 @@ import { loadImage } from './image-storage';
 import { Card } from './types';
 import { getRageOverrides } from './rage-store';
 import { normalizeCardPower } from './card-power-balance';
+import { rebalanceCardStats } from './card-stat-rebalance';
 
 export const CARD_EDITS_KEY = 'card_edits_v1';
 
@@ -70,7 +71,7 @@ export async function getCardsWithEdits(): Promise<Card[]> {
       imageEntries.filter(([, img]) => !!img)
     );
 
-    return unique.map(c => {
+    return rebalanceCardStats(unique.map(c => {
       const edit = editsMap[c.id];
       let merged: Card = edit ? { ...c, ...edit } : { ...c };
 
@@ -82,9 +83,9 @@ export async function getCardsWithEdits(): Promise<Card[]> {
 
       if (rageMap[c.id]) merged = { ...merged, rageMode: rageMap[c.id] };
       return normalizeCardPower(merged);
-    });
+    }));
   } catch {
-    return dedup(ALL_CARDS);
+    return rebalanceCardStats(dedup(ALL_CARDS));
   }
 }
 

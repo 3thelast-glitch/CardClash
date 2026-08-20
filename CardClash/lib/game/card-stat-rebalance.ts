@@ -11,6 +11,7 @@ export type RebalanceableCard = {
 };
 
 type StatPair = { attack: number; defense: number };
+const RARITY_ORDER: Exclude<CardRarity, 'special'>[] = ['common', 'rare', 'epic', 'legendary'];
 
 function statPairKey(attack: number, defense: number): string {
   return `${attack}-${defense}`;
@@ -72,7 +73,9 @@ export function rebalanceCardStats<T extends RebalanceableCard>(cards: T[]): T[]
     groups.set(rarity, group);
   }
 
-  for (const [rarity, group] of groups) {
+  for (const rarity of RARITY_ORDER) {
+    const group = groups.get(rarity);
+    if (!group?.length) continue;
     const pairs = getStatPairs(rarity).filter(pair => !usedPairs.has(statPairKey(pair.attack, pair.defense)));
     const ranked = [...group].sort((a, b) => {
       const totalDifference = (a.attack + a.defense) - (b.attack + b.defense);

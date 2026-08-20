@@ -19,6 +19,15 @@ describe('card power balance by rarity', () => {
     });
   });
 
+  it('gives every base card a unique non-equal attack and defense pair', () => {
+    const pairs = ALL_CARDS.map(card => `${card.attack}-${card.defense}`);
+
+    expect(new Set(pairs).size).toBe(ALL_CARDS.length);
+    expect(ALL_CARDS.every(card => card.attack !== card.defense)).toBe(true);
+    expect(ALL_CARDS.some(card => card.attack > card.defense)).toBe(true);
+    expect(ALL_CARDS.some(card => card.defense > card.attack)).toBe(true);
+  });
+
   it('caps excessive values and keeps each legendary stat inside its configured range', () => {
     const normalized = normalizeCardPower(makeCard());
     const rule = RARITY_POWER_RANGES.legendary;
@@ -28,7 +37,7 @@ describe('card power balance by rarity', () => {
     expect(normalized.defense).toBeGreaterThanOrEqual(rule.minStat);
   });
 
-  it('normalizes each common stat into the 0–12 range', () => {
+  it('normalizes each common stat into the 0–6 range', () => {
     const normalized = normalizeCardPower(makeCard({ rarity: 'common', stars: 1, attack: 1, defense: 2 }));
     const rule = RARITY_POWER_RANGES.common;
     expect(normalized.attack).toBeGreaterThanOrEqual(rule.minStat);
@@ -44,12 +53,12 @@ describe('card power balance by rarity', () => {
     const strongerEpic = normalizeCardPower(makeCard({ rarity: 'epic', stars: 4, attack: 20, defense: 18 }));
     expect(weakerCommon.attack).toBe(0);
     expect(weakerCommon.defense).toBe(0);
-    expect(strongerCommon.attack).toBe(12);
-    expect(strongerCommon.defense).toBe(12);
-    expect(weakerEpic.attack).toBe(21);
-    expect(weakerEpic.defense).toBe(21);
-    expect(strongerEpic.attack).toBe(30);
-    expect(strongerEpic.defense).toBe(30);
+    expect(strongerCommon.attack).toBe(6);
+    expect(strongerCommon.defense).toBe(6);
+    expect(weakerEpic.attack).toBe(15);
+    expect(weakerEpic.defense).toBe(15);
+    expect(strongerEpic.attack).toBe(26);
+    expect(strongerEpic.defense).toBe(26);
   });
 
   it('exempts special cards from the standard 40-stat cap while retaining their values', () => {

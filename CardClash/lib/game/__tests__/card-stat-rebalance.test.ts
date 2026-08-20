@@ -20,12 +20,12 @@ describe('Card Collection stat rebalancing', () => {
 
     balanced.forEach(item => expect(item.attack).not.toBe(item.defense));
     expect(balanced[0].attack).toBeGreaterThanOrEqual(0);
-    expect(balanced[0].defense).toBeLessThanOrEqual(12);
-    expect(balanced[1].attack).toBeGreaterThanOrEqual(13);
-    expect(balanced[1].defense).toBeLessThanOrEqual(20);
-    expect(balanced[2].attack).toBeGreaterThanOrEqual(21);
-    expect(balanced[2].defense).toBeLessThanOrEqual(30);
-    expect(balanced[3].attack).toBeGreaterThanOrEqual(31);
+    expect(balanced[0].defense).toBeLessThanOrEqual(6);
+    expect(balanced[1].attack).toBeGreaterThanOrEqual(7);
+    expect(balanced[1].defense).toBeLessThanOrEqual(14);
+    expect(balanced[2].attack).toBeGreaterThanOrEqual(15);
+    expect(balanced[2].defense).toBeLessThanOrEqual(26);
+    expect(balanced[3].attack).toBeGreaterThanOrEqual(27);
     expect(balanced[3].defense).toBeLessThanOrEqual(40);
   });
 
@@ -36,10 +36,10 @@ describe('Card Collection stat rebalancing', () => {
     for (const item of balanced) {
       const key = `${item.attack}-${item.defense}`;
       counts.set(key, (counts.get(key) ?? 0) + 1);
-      expect(item.attack).toBeGreaterThanOrEqual(21);
-      expect(item.attack).toBeLessThanOrEqual(30);
-      expect(item.defense).toBeGreaterThanOrEqual(21);
-      expect(item.defense).toBeLessThanOrEqual(30);
+      expect(item.attack).toBeGreaterThanOrEqual(15);
+      expect(item.attack).toBeLessThanOrEqual(26);
+      expect(item.defense).toBeGreaterThanOrEqual(15);
+      expect(item.defense).toBeLessThanOrEqual(26);
       expect(item.attack).not.toBe(item.defense);
     }
 

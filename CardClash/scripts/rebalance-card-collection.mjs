@@ -1,10 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
 const ranges = {
-  common: { minStat: 0, maxStat: 12 },
-  rare: { minStat: 13, maxStat: 20 },
-  epic: { minStat: 21, maxStat: 30 },
-  legendary: { minStat: 31, maxStat: 40 },
+  common: { minStat: 0, maxStat: 6 },
+  rare: { minStat: 7, maxStat: 14 },
+  epic: { minStat: 15, maxStat: 26 },
+  legendary: { minStat: 27, maxStat: 40 },
 };
 
 const statPairKey = (attack, defense) => `${attack}-${defense}`;
