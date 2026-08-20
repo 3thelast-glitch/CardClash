@@ -7,17 +7,21 @@ const filterArtworkPaths = [
   '../assets/icons/classes/fighter-category.png',
   '../assets/icons/classes/healer-category.png',
   '../assets/icons/classes/robot-category.png',
+  '../assets/icons/classes/swordsman-category.png',
+  '../assets/icons/classes/archer-category.png',
   '../assets/icons/factions/dragon.png',
 ].map(path => new URL(path, import.meta.url).pathname);
 const source = readFileSync(screenPath, 'utf8');
 
 describe('الأيقونات المصورة في فلتر الفئات والفصائل', () => {
-  it('يحتفظ بأصول محلية لأيقونات الساحر والمقاتل والطبيب والروبوت والتنين', () => {
+  it('يحتفظ بأصول محلية لأيقونات الساحر والسياف والرامي والمقاتل والطبيب والروبوت والتنين', () => {
     filterArtworkPaths.forEach(path => expect(existsSync(path)).toBe(true));
     expect(source).toContain("require('../../assets/icons/classes/wizard-category.png')");
     expect(source).toContain("require('../../assets/icons/classes/fighter-category.png')");
     expect(source).toContain("require('../../assets/icons/classes/healer-category.png')");
     expect(source).toContain("require('../../assets/icons/classes/robot-category.png')");
+    expect(source).toContain("require('../../assets/icons/classes/swordsman-category.png')");
+    expect(source).toContain("require('../../assets/icons/classes/archer-category.png')");
     expect(source).toContain("require('../../assets/icons/factions/dragon.png')");
   });
 
@@ -25,6 +29,8 @@ describe('الأيقونات المصورة في فلتر الفئات والف�
     expect(source).toContain('CLASS_FILTER_OPTIONS.map(opt =>');
     expect(source).toContain('RACE_FILTER_OPTIONS.map(opt =>');
     expect(source).toContain('mage: WIZARD_CATEGORY_ICON');
+    expect(source).toContain('swordsman: SWORDSMAN_CATEGORY_ICON');
+    expect(source).toContain('archer: ARCHER_CATEGORY_ICON');
     expect(source).toContain('fighter: FIGHTER_CATEGORY_ICON');
     expect(source).toContain('healer: HEALER_CATEGORY_ICON');
     expect(source).toContain('guardian: ROBOT_CATEGORY_ICON');

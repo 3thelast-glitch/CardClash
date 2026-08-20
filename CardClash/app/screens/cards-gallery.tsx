@@ -114,6 +114,8 @@ const WIZARD_CATEGORY_ICON: ImageSourcePropType = require('../../assets/icons/cl
 const FIGHTER_CATEGORY_ICON: ImageSourcePropType = require('../../assets/icons/classes/fighter-category.png');
 const HEALER_CATEGORY_ICON: ImageSourcePropType = require('../../assets/icons/classes/healer-category.png');
 const ROBOT_CATEGORY_ICON: ImageSourcePropType = require('../../assets/icons/classes/robot-category.png');
+const SWORDSMAN_CATEGORY_ICON: ImageSourcePropType = require('../../assets/icons/classes/swordsman-category.png');
+const ARCHER_CATEGORY_ICON: ImageSourcePropType = require('../../assets/icons/classes/archer-category.png');
 const DRAGON_FACTION_ICON: ImageSourcePropType = require('../../assets/icons/factions/dragon.png');
 const CLASS_OPTIONS: { value: CardClass | null; label: string; icon: string; name: string }[] = [
   { value: null, label: '✕ بدون', icon: '✕', name: 'بدون' },
@@ -126,6 +128,8 @@ const CLASS_OPTIONS: { value: CardClass | null; label: string; icon: string; nam
 ];
 const CLASS_FILTER_ARTWORKS: Partial<Record<CardClass, ImageSourcePropType>> = {
   mage: WIZARD_CATEGORY_ICON,
+  swordsman: SWORDSMAN_CATEGORY_ICON,
+  archer: ARCHER_CATEGORY_ICON,
   fighter: FIGHTER_CATEGORY_ICON,
   healer: HEALER_CATEGORY_ICON,
   guardian: ROBOT_CATEGORY_ICON,
