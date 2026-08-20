@@ -293,14 +293,22 @@ describe('تدقيق تسوية آثار القدرات في الجولة', () =
     expect(result.botScore).toBe(5);
   });
 
-  it('لا تسمح لا شيء لا شيء بالتفعيل إلا عند آخر نقطة صحة وتحول الخسارة إلى تعادل', () => {
+  it('لا تسمح لا شيء لا شيء حدث بالتفعيل إلا عند 1 HP أو الجولة الأخيرة وتنهي المباراة بتعادل', () => {
     const notCritical = usePlayerAbility(losingState('NothingHappened'), 'NothingHappened');
     expect(notCritical.playerAbilities[0]).toEqual({ type: 'NothingHappened', used: false });
 
     const critical = playRound(usePlayerAbility(losingState('NothingHappened', { playerScore: 1 }), 'NothingHappened'));
     expect(critical.roundResults.at(-1)?.winner).toBe('draw');
-    expect(critical.playerScore).toBe(1);
-    expect(critical.botScore).toBe(5);
+    expect(critical.forcedMatchOutcome).toBe('draw');
+    expect(critical.playerScore).toBe(critical.botScore);
+
+    const finalRound = makeState('NothingHappened', { currentRound: 4, totalRounds: 5, playerScore: 3, botScore: 5 });
+    finalRound.playerDeck[4] = makeCard('final-weak-player', { attack: 2, defense: 0 });
+    finalRound.botDeck[4] = makeCard('final-strong-bot', { attack: 20, defense: 0, element: 'fire' });
+    const finalDraw = playRound(usePlayerAbility(finalRound, 'NothingHappened'));
+    expect(finalDraw.roundResults.at(-1)?.winner).toBe('draw');
+    expect(finalDraw.forcedMatchOutcome).toBe('draw');
+    expect(finalDraw.playerScore).toBe(finalDraw.botScore);
   });
 
   it('يطبق DoublePoints وDoubleOrNothing وLifesteal مقدار خسارة HP الصحيح', () => {

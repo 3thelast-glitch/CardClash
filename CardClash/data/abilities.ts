@@ -533,9 +533,9 @@ export const abilities: Ability[] = [
   {
     id: 55,
     nameEn: 'Nothing Happened',
-    nameAr: 'لا شيء لا شيء',
-    description: 'عند بقاء 1 HP لك: حوّل خسارة هذه الجولة إلى تعادل (⚡ صحة حرجة فقط)',
-    descriptionWarning: 'يُستخدم مرة واحدة فقط في المباراة • لا يعمل قبل وصول صحتك إلى 1 HP • لا يتجاوز السيطرة المطلقة',
+    nameAr: 'لا شيء لا شيء حدث',
+    description: 'عند 1 HP أو في الجولة الأخيرة: أنهِ المباراة بتعادل (⚡ فوري)',
+    descriptionWarning: 'يوحّد نقاط الصحة للطرفين وينهي المباراة فوراً • يُستخدم مرة واحدة فقط • لا يتجاوز السيطرة المطلقة',
     rarity: 'Special',
     icon: HeartPulse,
   },

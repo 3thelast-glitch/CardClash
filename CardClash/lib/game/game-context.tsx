@@ -205,6 +205,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         playerMaxHealth: deckWithPassives.length,
         botMaxHealth: botDeckWithPassives.length,
         roundResults: [],
+        forcedMatchOutcome: undefined,
         activeEffects: turinEffects,
         playerAbilities: state.abilitiesEnabled
           ? (assignedAbilities
@@ -546,6 +547,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const botRoundHealthDelta = botHpDelta + botSpawnHealthBonus + botPostBattleHealthBonus;
       const nextPlayerScore = Math.max(0, state.playerScore + playerRoundHealthDelta);
       const nextBotScore = Math.max(0, state.botScore + botRoundHealthDelta);
+      const forcedOutcomeData = forcedOutcomeEffect?.data as { forceMatchDraw?: boolean } | undefined;
+      const forceMatchDraw = forcedOutcomeData?.forceMatchDraw === true;
+      const equalizedScore = Math.min(nextPlayerScore, nextBotScore);
       const roundResult: RoundResult = {
         round: state.currentRound + 1,
         playerCard: updatedPlayerCard,
@@ -567,11 +571,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         playerDeck: updatedPlayerDeck,
         botDeck: updatedBotDeck,
         // لا نضع سقفاً أعلى: العلاج الفائز في الجولة الأولى يحتفظ بزيادته فوق الصحة الابتدائية.
-        playerScore: nextPlayerScore,
-        botScore: nextBotScore,
-        playerMaxHealth: Math.max(state.playerMaxHealth, nextPlayerScore),
-        botMaxHealth: Math.max(state.botMaxHealth, nextBotScore),
+        playerScore: forceMatchDraw ? equalizedScore : nextPlayerScore,
+        botScore: forceMatchDraw ? equalizedScore : nextBotScore,
+        playerMaxHealth: Math.max(state.playerMaxHealth, forceMatchDraw ? equalizedScore : nextPlayerScore),
+        botMaxHealth: Math.max(state.botMaxHealth, forceMatchDraw ? equalizedScore : nextBotScore),
         roundResults: [...state.roundResults, roundResult],
+        forcedMatchOutcome: forceMatchDraw ? 'draw' : state.forcedMatchOutcome,
         activeEffects: nextEffects,
         usedAbilities: [],
         botAbilityUsedThisRound: undefined,
@@ -1107,9 +1112,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           break;
         }
         case 'NothingHappened': {
-          // لا شيء لا شيء — فرصة نجاة أخيرة، لا تعمل إلا عند آخر نقطة صحة.
+          // لا شيء لا شيء حدث — نجاة أخيرة عند 1 HP أو في الجولة النهائية.
           const ownScore = side === 'player' ? state.playerScore : state.botScore;
-          if (ownScore !== 1) return state;
+          const isFinalRound = state.currentRound === state.totalRounds - 1;
+          if (ownScore !== 1 && !isFinalRound) return state;
           nextEffects = [...nextEffects, {
             id: makeEffectId('NothingHappened', side, roundNumber),
             kind: 'forcedOutcome',
@@ -1119,7 +1125,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             expiresAtRound: roundNumber,
             charges: 1,
             priority: EFFECT_PRIORITY.forcedOutcome,
-            data: { appliesToRound: roundNumber, outcome: 'draw' },
+            data: { appliesToRound: roundNumber, outcome: 'draw', forceMatchDraw: true },
           }];
           break;
         }
@@ -1275,8 +1281,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   // ── derived state ──
   const isGameOver = useMemo(() =>
-    state.totalRounds > 0 && state.roundResults.length >= state.totalRounds,
-    [state.totalRounds, state.roundResults.length]
+    state.forcedMatchOutcome === 'draw' || (state.totalRounds > 0 && state.roundResults.length >= state.totalRounds),
+    [state.forcedMatchOutcome, state.totalRounds, state.roundResults.length]
   );
 
   const currentPlayerCard = useMemo(() =>

@@ -206,6 +206,8 @@ export interface AbilityData {
   penaltyHp?: number;
   rewardHp?: number;
   appliesToRound?: number;
+  /** يفرض التعادل النهائي للمباراة عند اكتمال الجولة الحالية. */
+  forceMatchDraw?: boolean;
   lossCount?: number;
   penaltyRound?: number;
   rounds?: number;
@@ -303,6 +305,8 @@ export interface GameState {
   playerAbilities: AbilityState[];
   botAbilities: AbilityState[];
   usedAbilities: AbilityType[];
+  /** نتيجة نهائية يفرضها كرت خاص وتُنهي المباراة قبل اكتمال كل الجولات. */
+  forcedMatchOutcome?: 'draw';
   /** تُسجل مؤقتاً حتى تُربط قدرة البوت بنتيجة الجولة الحالية. */
   botAbilityUsedThisRound?: AbilityType;
 }
