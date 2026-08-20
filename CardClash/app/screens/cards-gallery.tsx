@@ -25,6 +25,7 @@ import { getRageOverrides, saveRageOverride, RageOverridesMap } from '@/lib/game
 import { loadCustomCards, deleteCustomCard } from '@/lib/game/custom-cards-store';
 import { exportBackup, importBackup } from '@/lib/game/backup-restore';
 import { loadProjectCardCollection } from '@/lib/game/project-card-collection';
+import { sortCardCollectionByStrength } from '@/lib/game/card-collection-sort';
 
 export const CARD_EDITS_KEY = 'card_edits_v1';
 export const DELETED_CARDS_KEY = 'deleted_cards_v1';
@@ -44,8 +45,6 @@ function buildUniqueCards(base: Card[], custom: Card[]): Card[] {
   for (const c of custom) map[c.id] = c;
   return Object.values(map);
 }
-
-const RARITY_ORDER: Record<string, number> = { special: 0, legendary: 1, epic: 2, rare: 3, common: 4 };
 
 type CardEdits = {
   nameAr: string; stars: number; hasAbility: boolean; specialAbility: string;
@@ -731,12 +730,7 @@ export default function CardsGalleryScreen() {
     }
     return true;
   });
-  const sortedCards = [...filteredCards].sort((a, b) => {
-    const ra = RARITY_ORDER[a.rarity ?? 'common'] ?? 5;
-    const rb = RARITY_ORDER[b.rarity ?? 'common'] ?? 5;
-    if (ra !== rb) return ra - rb;
-    return (a.nameAr || a.name).localeCompare(b.nameAr || b.name, 'ar');
-  });
+  const sortedCards = sortCardCollectionByStrength(filteredCards);
 
   const rarityColor = edits
     ? getRarityConfig(edits.rarity).badgeColor
