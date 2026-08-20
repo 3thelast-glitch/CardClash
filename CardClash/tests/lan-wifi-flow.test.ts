@@ -68,16 +68,31 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(battle).toContain('finishMatch()');
   });
 
-  it('synchronizes the used ability and renders its Arabic effect badges above affected Wi-Fi cards', () => {
+  it('synchronizes the used ability and renders active effect badges beside the Wi-Fi cards', () => {
     const context = source('lib/lan/lan-context.tsx');
     const battle = source('app/screens/lan-battle.tsx');
     expect(context).toContain('lastAbilityUse');
     expect(context).toContain("roundIndex, snapshot");
     expect(context).toContain("LAN_ABILITY_APPLIED");
     expect(battle).toContain('getActiveCardEffectBadges');
-    expect(battle).toContain('القدرة المستخدمة');
+    expect(battle).toContain('AbilityActivationOverlay');
     expect(battle).toContain('تعزيز:');
     expect(battle).toContain('إضعاف:');
+  });
+
+  it('presents the synchronized Wi-Fi ability as a full card for fifteen seconds and keeps a used-card history', () => {
+    const battle = source('app/screens/lan-battle.tsx');
+    expect(battle).toContain('AbilityActivationOverlay');
+    expect(battle).toContain('useAbilityActivationOverlay');
+    expect(battle).toContain('duration: 15000');
+    expect(battle).toContain('presentedAbilityRef');
+    expect(battle).toContain('showAbilityCard({');
+    expect(battle).toContain('buildLanAbilityCardData');
+    expect(battle).toContain('fullAbilityCard');
+    expect(battle).toContain('سجل القدرات');
+    expect(battle).toContain('كروت القدرات المستخدمة');
+    expect(battle).toContain('hostAbilities.filter(ability => ability.used)');
+    expect(battle).toContain('guestAbilities.filter(ability => ability.used)');
   });
 
   it('lets the host request a rematch, lets the guest accept it, then sends both players back to card arrangement', () => {
