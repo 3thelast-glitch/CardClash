@@ -19,12 +19,13 @@ describe('card artwork fit policy', () => {
     expect(activationOverlay).not.toMatch(/resizeMode="stretch"/);
   });
 
-  it('uses the nothing happened poster on web while retaining the mobile video source', () => {
+  it('uses the nothing happened video on all card platforms with the poster retained as a fallback asset', () => {
     const abilityCard = readComponent('components/game/ability-card.tsx');
 
     expect(abilityCard).toMatch(/Nothing_Happened_Art\.png/);
     expect(abilityCard).toMatch(/Nothing_Happened_Art\.mp4/);
-    expect(abilityCard).toMatch(/Platform\.OS !== 'web'/);
+    expect(abilityCard).toMatch(/instance\.muted = false/);
+    expect(abilityCard).not.toMatch(/Platform\.OS !== 'web'/);
   });
 
   it('preserves full silhouettes for the character cards with narrow transparent artwork', () => {

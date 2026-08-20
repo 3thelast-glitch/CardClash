@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, Image, TouchableOpacity, Platform,
+    View, Text, StyleSheet, Image, TouchableOpacity,
 } from 'react-native';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -102,7 +102,7 @@ const ABILITY_VIDEOS: Record<string, any> = {
 function AbilityArtworkVideo({ source }: { source: any }) {
     const player = useVideoPlayer(source, (instance) => {
         instance.loop = true;
-        instance.muted = true;
+        instance.muted = false;
         instance.play();
     });
 
@@ -192,7 +192,6 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
 
     const formattedName = ability.nameEn.replaceAll(' ', '_') + '_Art';
     const videoSource = ABILITY_VIDEOS[formattedName];
-    const shouldRenderVideo = Platform.OS !== 'web' && Boolean(videoSource);
     if (!ABILITY_IMAGES[formattedName] && !videoSource) {
         console.warn(`[Missing Art] "${ability.nameEn}" → key: "${formattedName}"`);
     }
@@ -271,7 +270,7 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
             ]}>
                 {/* Section 1: Artwork (Top portion) */}
                 <View style={[styles.artworkSection, { flex: artworkFlex }]}>
-                    {shouldRenderVideo ? (
+                    {videoSource ? (
                         <AbilityArtworkVideo source={videoSource} />
                     ) : (
                         <Image
