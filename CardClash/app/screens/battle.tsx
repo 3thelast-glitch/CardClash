@@ -40,6 +40,7 @@ import Animated, {
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { StatusBar } from 'expo-status-bar';
+import Constants from 'expo-constants';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { DamageNumber, DamageNumberVariant } from '@/components/game/damage-number';
 import { BattleResultOverlay } from '@/components/game/BattleResultOverlay';
@@ -75,6 +76,7 @@ import { shouldTriggerRage, applyRageToCard, buildRageTriggerEvent, buildRageSta
 import { RageModeOverlay } from '@/components/game/rage-mode-overlay';
 import { RoundInsightPanel } from '@/components/game/RoundInsightPanel';
 import { buildRoundEventLog, getActiveEffectPreview } from '@/lib/game/round-insights';
+import { isDeveloperBuild } from '@/lib/build-variant';
 
 type BattlePhase = 'selection' | 'action' | 'combat' | 'result' | 'waiting';
 
@@ -374,7 +376,7 @@ export default function BattleScreen() {
   const {
     state, playRound, isGameOver, currentPlayerCard, currentBotCard,
     lastRoundResult, expectedRoundResult, useAbility: activateAbility,
-    resetGame, nextRound, startBattle, setPlayerDeck, syncDecks,
+    resetGame, nextRound, startBattle, setPlayerDeck, syncDecks, grantDeveloperNothingHappened,
   } = useGame();
 
   const [phase, setPhase] = useState<BattlePhase>('selection');
@@ -415,6 +417,7 @@ export default function BattleScreen() {
   // ✅ FIX: guard against startBattle being called more than once
   const battleStarted = useRef(false);
   const isLocalTwoPlayer = state.matchMode === 'local';
+  const isDeveloperVariant = isDeveloperBuild(Constants.expoConfig?.extra);
   const playerLabel = isLocalTwoPlayer ? 'المضيف' : 'لاعب';
   const opponentLabel = isLocalTwoPlayer ? 'الضيف' : 'بوت';
   const usedLocalAbilities = useMemo(() => {
@@ -434,6 +437,27 @@ export default function BattleScreen() {
       })),
     ];
   }, [isLocalTwoPlayer, state.playerAbilities, state.botAbilities]);
+  const handleDeveloperAbilityGrant = useCallback(() => {
+    const replacedAbility = grantDeveloperNothingHappened();
+    if (!replacedAbility) {
+      showToast({
+        title: '🧪 لا يمكن منح الكرت',
+        subtitle: 'إما أن الكرت موجود بالفعل أو أن جميع القدرات استُخدمت.',
+        target: 'player',
+        kind: 'info',
+        duration: 3200,
+      });
+      return;
+    }
+    hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
+    showToast({
+      title: '🧪 تم منح لا شيء لا شيء حدث',
+      subtitle: `استُبدلت قدرة ${getAbilityNameOnly(replacedAbility)} غير المستخدمة.`,
+      target: 'player',
+      kind: 'info',
+      duration: 4200,
+    });
+  }, [grantDeveloperNothingHappened, hapticImpact, showToast]);
 
   // تهيئة الصوت ليعمل حتى لو كان الهاتف صامتاً (iOS)
   useEffect(() => {
@@ -868,7 +892,18 @@ export default function BattleScreen() {
           {/* ══ TOP HUD ══ */}
           <View style={[S.topHud, { paddingHorizontal: hudPadding }]}>
             <View style={S.hudSide}>
-              <View style={[S.avatar, { borderColor: '#4ade80' }]}><Text style={{ fontSize: 18 }}>👤</Text></View>
+              {isDeveloperVariant ? (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="منح كرت لا شيء لا شيء حدث للمطوّر"
+                  testID="developer-nothing-happened-shortcut"
+                  style={[S.avatar, S.developerAvatar, { borderColor: '#e879f9' }]}
+                  onPress={handleDeveloperAbilityGrant}
+                  activeOpacity={0.78}
+                >
+                  <Text style={{ fontSize: 18 }}>👤</Text>
+                </TouchableOpacity>
+              ) : <View style={[S.avatar, { borderColor: '#4ade80' }]}><Text style={{ fontSize: 18 }}>👤</Text></View>}
               <View style={S.hudInfo}>
                 <Text style={[S.hudName, { color: '#4ade80' }]}>{playerLabel}</Text>
                 <ScoreBar score={state.playerScore} maxScore={maxScore} color="#4ade80" />
@@ -1250,6 +1285,7 @@ const S = StyleSheet.create({
   hudSide: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   hudSideRight: { flexDirection: 'row-reverse' },
   avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, backgroundColor: 'rgba(7,20,27,0.88)', alignItems: 'center', justifyContent: 'center' },
+  developerAvatar: { borderStyle: 'dashed', backgroundColor: 'rgba(232,121,249,0.16)' },
   hudInfo: { flex: 1, gap: 3 },
   hudName: { fontSize: FONT.xs, fontWeight: '700', letterSpacing: 0.5 },
   hudScore: { fontSize: FONT.xl, fontWeight: '900', minWidth: 28, textAlign: 'center', fontVariant: ['tabular-nums'] } as any,

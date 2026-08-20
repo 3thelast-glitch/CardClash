@@ -147,6 +147,7 @@ type GameAction =
   | { type: 'SET_DIFFICULTY'; payload: DifficultyLevel }
   | { type: 'SET_ABILITIES_ENABLED'; payload: boolean }
   | { type: 'USE_ABILITY'; payload: { abilityType: AbilityType; isPlayer: boolean; data?: Record<string, unknown> } }
+  | { type: 'GRANT_DEVELOPER_NOTHING_HAPPENED' }
   | { type: 'SYNC_DECKS'; payload: { playerDeck: Card[]; botDeck: Card[] } };
 
 // ─────────────────────────────────────────────────────────────────────────────────
@@ -167,6 +168,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'SET_TOTAL_ROUNDS':
       return { ...state, totalRounds: action.payload };
+
+    case 'GRANT_DEVELOPER_NOTHING_HAPPENED': {
+      if (state.playerAbilities.some(ability => ability.type === 'NothingHappened')) return state;
+      const replacementIndex = state.playerAbilities.findIndex(ability => !ability.used);
+      if (replacementIndex < 0) return state;
+      const playerAbilities = [...state.playerAbilities];
+      playerAbilities[replacementIndex] = { type: 'NothingHappened', used: false };
+      return { ...state, playerAbilities };
+    }
 
     case 'NEXT_ROUND':
       // لا نتجاوز فهرس آخر كرت؛ نهاية المباراة تُعالَج في شاشة المعركة من نتيجة الجولة الأخيرة.
@@ -1196,6 +1206,7 @@ type GameContextType = {
   nextRound: () => void;
   resetGame: () => void;
   useAbility: (abilityType: AbilityType, data?: Record<string, unknown>, isPlayer?: boolean) => void;
+  grantDeveloperNothingHappened: () => AbilityType | null;
   // ── derived state ──
   isGameOver: boolean;
   currentPlayerCard: Card | null;
@@ -1278,6 +1289,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
       console.warn('Ability card overlay trigger error in useAbility:', e);
     }
   }, [showAbilityCard, state.matchMode]);
+
+  const grantDeveloperNothingHappened = useCallback((): AbilityType | null => {
+    if (state.playerAbilities.some(ability => ability.type === 'NothingHappened')) return null;
+    const replaced = state.playerAbilities.find(ability => !ability.used);
+    if (!replaced) return null;
+    dispatch({ type: 'GRANT_DEVELOPER_NOTHING_HAPPENED' });
+    return replaced.type;
+  }, [state.playerAbilities]);
 
   // ── derived state ──
   const isGameOver = useMemo(() =>
@@ -1366,7 +1385,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setRarityWeights: (w: RarityWeights) => { setRarityWeights(w); saveRarityWeights(w); },
       setPlayerDeck, setMatchMode, setTotalRounds, startBattle, syncDecks,
       setDifficulty, setAbilitiesEnabled,
-      playRound, nextRound, resetGame, useAbility,
+      playRound, nextRound, resetGame, useAbility, grantDeveloperNothingHappened,
       isGameOver, currentPlayerCard, currentBotCard,
       lastRoundResult, expectedRoundResult,
     }}>

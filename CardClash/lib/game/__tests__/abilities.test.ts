@@ -488,6 +488,28 @@ describe('قدرة Turin التلقائية', () => {
   });
 });
 
+describe('اختصار المطوّر لكرت لا شيء لا شيء حدث', () => {
+  it('يستبدل أول قدرة غير مستخدمة فقط ويحافظ على القدرة الخاصة إن كانت موجودة', () => {
+    const state = makeState('Protection', {
+      playerAbilities: [
+        { type: 'Protection', used: true },
+        { type: 'Reduction', used: false },
+        { type: 'Shield', used: false },
+      ],
+    });
+
+    const granted = gameReducer(state, { type: 'GRANT_DEVELOPER_NOTHING_HAPPENED' });
+    expect(granted.playerAbilities).toEqual([
+      { type: 'Protection', used: true },
+      { type: 'NothingHappened', used: false },
+      { type: 'Shield', used: false },
+    ]);
+
+    const unchanged = gameReducer(granted, { type: 'GRANT_DEVELOPER_NOTHING_HAPPENED' });
+    expect(unchanged).toBe(granted);
+  });
+});
+
 
 describe('استخدام البوت للقدرات قبل الهجوم', () => {
   it('يسجل قدرة البوت المفعلة في نتيجة الجولة', () => {
