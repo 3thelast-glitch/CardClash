@@ -13,6 +13,7 @@ import {
 } from './rage-engine';
 import { useAbilityActivationOverlay } from '../../components/game/AbilityActivationOverlay';
 import { ABILITY_DETAILS } from './ability-details';
+import { getPostLossProfessionalBonus } from './professional-card-abilities';
 
 // ─────────────────────────────────────────────────────────────────────────────────
 const initialState: GameState = {
@@ -274,7 +275,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       } else if (starAdvantageEffect) {
         result = { winner: starAdvantageEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
       } else {
-        result = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
+        result = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled, {
+          playerScore: state.playerScore,
+          botScore: state.botScore,
+        });
       }
 
       const winner = result.winner;
@@ -310,6 +314,30 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const effectsToRemove  = new Set<string>();
       const effectsToReplace = new Map<string, Effect>();
       const effectsToAdd: Effect[] = [];
+
+      const queueProfessionalPostLossBonus = (card: Card, side: Side) => {
+        const bonus = getPostLossProfessionalBonus(card);
+        if (!bonus || roundNumber >= state.totalRounds) return;
+        if (bonus.health) {
+          if (side === 'player') playerHpDelta += bonus.health;
+          else botHpDelta += bonus.health;
+        }
+        if (bonus.attack) effectsToAdd.push({
+          id: `professional-post-loss-attack-${side}-${roundNumber}`,
+          kind: 'statModifier', sourceSide: side, targetSide: side,
+          createdAtRound: roundNumber + 1, expiresAtRound: roundNumber + 1,
+          priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'attack', amount: bonus.attack },
+        });
+        if (bonus.defense) effectsToAdd.push({
+          id: `professional-post-loss-defense-${side}-${roundNumber}`,
+          kind: 'statModifier', sourceSide: side, targetSide: side,
+          createdAtRound: roundNumber + 1, expiresAtRound: roundNumber + 1,
+          priority: EFFECT_PRIORITY.statModifiers, data: { stat: 'defense', amount: bonus.defense },
+        });
+      };
+
+      if (winner === 'bot') queueProfessionalPostLossBonus(playerCard, 'player');
+      if (winner === 'player') queueProfessionalPostLossBonus(botCard, 'bot');
 
       if (!turinForcedLoss) {
         const orderedEffects = [...activeEffects].sort((a, b) => a.priority - b.priority);

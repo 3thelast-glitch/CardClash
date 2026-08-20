@@ -29,12 +29,13 @@ import { applyCombatCharacterSpecials } from './ui-helpers';
 import { getRarityFromStars } from './card-rarity';
 import { normalizeCardPower } from './card-power-balance';
 import { rebalanceCardStats } from './card-stat-rebalance';
+import { attachProfessionalCardAbilities } from './professional-card-abilities';
 
 // re-export so callers can use them directly from this module if needed
 export { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive };
 
 // ─── ALL_CARDS ────────────────────────────────────────────────────────────────
-export const ALL_CARDS: Card[] = rebalanceCardStats([
+export const ALL_CARDS: Card[] = rebalanceCardStats(attachProfessionalCardAbilities([
   ...CARDS_BATCH_1,
   ...CARDS_BATCH_2,
   ...CARDS_BATCH_3,
@@ -45,7 +46,7 @@ export const ALL_CARDS: Card[] = rebalanceCardStats([
   ...CARDS_BATCH_8,
 ].map(card => ({
   ...normalizeCardPower({ ...card, rarity: card.rarity === 'special' ? 'special' : getRarityFromStars(card.stars) }),
-})));
+}))));
 
 // ─── getFactionAdvantage ─────────────────────────────────────────────────────
 export function getFactionAdvantage(
@@ -77,6 +78,7 @@ export function determineRoundWinner(
   playerEffects: Effect[] = [],
   botEffects: Effect[] = [],
   _abilitiesEnabled = true,
+  combatContext: { playerScore?: number; botScore?: number } = {},
 ): RoundWinnerResult {
   const playerHasMastery = playerEffects.some(e => e.kind === 'factionMastery');
   const botHasMastery = botEffects.some(e => e.kind === 'factionMastery');
@@ -122,18 +124,47 @@ export function determineRoundWinner(
   const b = { attack: botCard.attack,    defense: botCard.defense,    hp: botCard.hp };
 
   // Apply card special abilities (Ainz, Gojo, Sukuna, Makima, Kaido)
-  applyCombatCharacterSpecials(playerCard, botCard, p, b);
+  const professionalHealth = applyCombatCharacterSpecials(
+    playerCard,
+    botCard,
+    p,
+    b,
+    { ownScore: combatContext.playerScore, opponentScore: combatContext.botScore },
+    { ownScore: combatContext.botScore, opponentScore: combatContext.playerScore },
+  );
 
   const playerShield = playerEffects.some(e => e.kind === 'shieldGuard');
   const botShield = botEffects.some(e => e.kind === 'shieldGuard');
 
-  const applySideEffects = (baseAtk: number, baseDef: number, effects: Effect[], cardClass: string, isShielded: boolean) => {
+  const applySideEffects = (
+    baseAtk: number,
+    baseDef: number,
+    effects: Effect[],
+    cardClass: string,
+    isShielded: boolean,
+    protections: { ignoreFirstDefensePenalty?: boolean; ignoreFirstStatPenalty?: boolean; cancelFirstAttackBuff?: boolean } = {},
+  ) => {
     let atk = baseAtk;
     let def = baseDef;
+    let ignoredDefensePenalty = false;
+    let ignoredStatPenalty = false;
+    let cancelledAttackBuff = false;
     for (const e of effects) {
       const d = e.data as any;
       const amount = d?.amount ?? 0;
       if (isShielded && amount < 0) continue;
+      if (amount < 0 && protections.ignoreFirstStatPenalty && !ignoredStatPenalty) {
+        ignoredStatPenalty = true;
+        continue;
+      }
+      if (amount < 0 && d?.stat === 'defense' && protections.ignoreFirstDefensePenalty && !ignoredDefensePenalty) {
+        ignoredDefensePenalty = true;
+        continue;
+      }
+      if (amount > 0 && d?.stat === 'attack' && protections.cancelFirstAttackBuff && !cancelledAttackBuff) {
+        cancelledAttackBuff = true;
+        continue;
+      }
       switch (e.kind) {
         case 'statModifier':
           if (d?.stat === 'all_stats' && d.targetClass === cardClass) {
@@ -163,11 +194,19 @@ export function determineRoundWinner(
   };
 
   // تسجل القدرات الخاصة أي زيادة صحة فعلية للمباراة.
-  const playerHealthDelta = Math.max(0, (p.hp ?? 0) - (playerCard.hp ?? 0));
-  const botHealthDelta = Math.max(0, (b.hp ?? 0) - (botCard.hp ?? 0));
+  const playerHealthDelta = Math.max(0, (p.hp ?? 0) - (playerCard.hp ?? 0)) + professionalHealth.playerHealthBonus;
+  const botHealthDelta = Math.max(0, (b.hp ?? 0) - (botCard.hp ?? 0)) + professionalHealth.botHealthBonus;
 
-  const pStats = applySideEffects(p.attack, p.defense, playerEffects, playerCard.cardClass, playerShield);
-  const bStats = applySideEffects(b.attack, b.defense, botEffects, botCard.cardClass, botShield);
+  const pStats = applySideEffects(p.attack, p.defense, playerEffects, playerCard.cardClass, playerShield, {
+    ignoreFirstDefensePenalty: professionalHealth.playerIgnoreFirstDefensePenalty,
+    ignoreFirstStatPenalty: professionalHealth.playerIgnoreFirstStatPenalty,
+    cancelFirstAttackBuff: professionalHealth.botCancelOpponentAttackBuff,
+  });
+  const bStats = applySideEffects(b.attack, b.defense, botEffects, botCard.cardClass, botShield, {
+    ignoreFirstDefensePenalty: professionalHealth.botIgnoreFirstDefensePenalty,
+    ignoreFirstStatPenalty: professionalHealth.botIgnoreFirstStatPenalty,
+    cancelFirstAttackBuff: professionalHealth.playerCancelOpponentAttackBuff,
+  });
 
   const playerRaw = pStats.atk * FACTION_MULTIPLIER[playerAdv];
   const botRaw    = bStats.atk * FACTION_MULTIPLIER[botAdv];

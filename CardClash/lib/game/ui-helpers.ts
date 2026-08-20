@@ -1,5 +1,9 @@
 import { Effect, Side, Card } from './types';
 import { getCharacterAbility } from './character-abilities';
+import {
+  getProfessionalCombatModifiers,
+  type ProfessionalCombatContext,
+} from './professional-card-abilities';
 
 export type PredictionSelections = Record<number, 'win' | 'loss'>;
 
@@ -40,8 +44,9 @@ export function applySpecialAbilityModifications(
   ownCard: Card,
   opponentCard: Card | null,
   ownStats: { attack: number; defense: number },
-  oppStats?: { attack: number; defense: number }
-) {
+  oppStats?: { attack: number; defense: number },
+  context: ProfessionalCombatContext = {},
+): ProfessionalCombatContext & ReturnType<typeof getProfessionalCombatModifiers> {
   const ownModifiers = getCharacterAbility(ownCard)?.statModifiers;
   const opponentModifiers = opponentCard
     ? getCharacterAbility(opponentCard)?.statModifiers
@@ -66,6 +71,18 @@ export function applySpecialAbilityModifications(
   if (!oppStats && opponentModifiers?.opponentAttackPenalty) {
     ownStats.attack = Math.max(0, ownStats.attack - opponentModifiers.opponentAttackPenalty);
   }
+
+  if (opponentCard) {
+    const professional = getProfessionalCombatModifiers(ownCard, opponentCard, ownStats, oppStats ?? { attack: 0, defense: 0 }, context);
+    ownStats.attack = Math.max(0, ownStats.attack + (professional.attackBonus ?? 0) - (professional.ownAttackPenalty ?? 0));
+    ownStats.defense = Math.max(0, ownStats.defense + (professional.defenseBonus ?? 0) - (professional.ownDefensePenalty ?? 0));
+    if (oppStats) {
+      oppStats.attack = Math.max(0, oppStats.attack - (professional.opponentAttackPenalty ?? 0));
+      oppStats.defense = Math.max(0, oppStats.defense - (professional.opponentDefensePenalty ?? 0));
+    }
+    return professional;
+  }
+  return {};
 }
 
 /**
@@ -77,9 +94,21 @@ export function applyCombatCharacterSpecials(
   botCard: Card,
   playerStats: { attack: number; defense: number },
   botStats: { attack: number; defense: number },
+  playerContext: ProfessionalCombatContext = {},
+  botContext: ProfessionalCombatContext = {},
 ) {
-  applySpecialAbilityModifications(playerCard, botCard, playerStats, botStats);
-  applySpecialAbilityModifications(botCard, playerCard, botStats, playerStats);
+  const playerProfessional = applySpecialAbilityModifications(playerCard, botCard, playerStats, botStats, playerContext);
+  const botProfessional = applySpecialAbilityModifications(botCard, playerCard, botStats, playerStats, botContext);
+  return {
+    playerHealthBonus: playerProfessional.ownHealthBonus ?? 0,
+    botHealthBonus: botProfessional.ownHealthBonus ?? 0,
+    playerIgnoreFirstDefensePenalty: playerProfessional.ignoreFirstDefensePenalty,
+    botIgnoreFirstDefensePenalty: botProfessional.ignoreFirstDefensePenalty,
+    playerIgnoreFirstStatPenalty: playerProfessional.ignoreFirstStatPenalty,
+    botIgnoreFirstStatPenalty: botProfessional.ignoreFirstStatPenalty,
+    playerCancelOpponentAttackBuff: playerProfessional.cancelFirstOpponentAttackBuff,
+    botCancelOpponentAttackBuff: botProfessional.cancelFirstOpponentAttackBuff,
+  };
 }
 
 /**

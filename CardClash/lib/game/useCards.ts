@@ -16,6 +16,7 @@ import { normalizeCardPower } from './card-power-balance';
 import { rebalanceCardStats } from './card-stat-rebalance';
 import { loadProjectCardCollection } from './project-card-collection';
 import type { CardCollectionExport } from './card-collection-export-format';
+import { attachProfessionalCardAbilities } from './professional-card-abilities';
 
 export const CARD_EDITS_KEY = 'card_edits_v1';
 
@@ -51,13 +52,13 @@ export function mergeCardCollectionEdits(
   const editsMap = { ...projectCollection.cardEdits, ...localEdits } as Record<string, any>;
   const rageMap = { ...projectCollection.rageOverrides, ...localRageOverrides } as Record<string, any>;
 
-  return rebalanceCardStats(cards
+  return attachProfessionalCardAbilities(rebalanceCardStats(cards
     .filter(card => !deletedIds.has(card.id))
     .map(card => {
       let merged: Card = editsMap[card.id] ? { ...card, ...editsMap[card.id] } : { ...card };
       if (rageMap[card.id]) merged = { ...merged, rageMode: rageMap[card.id] };
       return normalizeCardPower(merged);
-    }));
+    })));
 }
 
 /**

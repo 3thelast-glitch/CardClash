@@ -1,4 +1,5 @@
 import type { Card, CharacterAbilityId, Gender, Race } from './types';
+import { PROFESSIONAL_CARD_ABILITIES } from './professional-card-abilities';
 
 export type CharacterMatchupTarget = 'swordsman' | 'monster' | 'female';
 
@@ -21,7 +22,17 @@ export interface CharacterAbilityDefinition {
   winHealthBonus?: number;
 }
 
-export const CHARACTER_ABILITY_DEFINITIONS: Record<CharacterAbilityId, CharacterAbilityDefinition> = {
+type BuiltInCharacterAbilityId =
+  | 'mihawk_swordsman_mastery'
+  | 'gehrman_monster_hunter'
+  | 'sanji_chivalry'
+  | 'tsunade_medical_ninjutsu'
+  | 'sakura_victory_heal'
+  | 'ainz_death_king'
+  | 'makima_control'
+  | 'kaido_dragon_strength';
+
+export const CHARACTER_ABILITY_DEFINITIONS: Record<BuiltInCharacterAbilityId, CharacterAbilityDefinition> = {
   mihawk_swordsman_mastery: {
     id: 'mihawk_swordsman_mastery',
     nameAr: 'تفوق السياف',
@@ -84,12 +95,17 @@ const LEGACY_ABILITY_IDS: Partial<Record<string, CharacterAbilityId>> = {
 };
 
 export function getCharacterAbilityId(card: Card): CharacterAbilityId | undefined {
-  return card.characterAbilityId ?? LEGACY_ABILITY_IDS[card.id];
+  return card.characterAbilityId
+    ?? LEGACY_ABILITY_IDS[card.id]
+    ?? PROFESSIONAL_CARD_ABILITIES[card.id]?.id;
 }
 
 export function getCharacterAbility(card: Card): CharacterAbilityDefinition | undefined {
   const abilityId = getCharacterAbilityId(card);
-  return abilityId ? CHARACTER_ABILITY_DEFINITIONS[abilityId] : undefined;
+  if (!abilityId) return undefined;
+  const existing = (CHARACTER_ABILITY_DEFINITIONS as Partial<Record<CharacterAbilityId, CharacterAbilityDefinition>>)[abilityId];
+  if (existing) return existing;
+  return PROFESSIONAL_CARD_ABILITIES[card.id];
 }
 
 export function matchesCharacterAbilityTarget(
