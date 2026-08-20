@@ -61,4 +61,15 @@ describe('card selection round picker', () => {
     expect(cardSelectionSource).toContain('🔀 ترتيب الكروت عشوائياً');
     expect(cardSelectionSource).toContain('!isCompactMobile && <TouchableOpacity style={styles.shuffleBtn}');
   });
+
+  it('shows every pre-match ability card through a full-card horizontal phone rail', () => {
+    expect(cardSelectionSource).toContain('const abilityPreviewHorizontal = !isLandscape && width < 520;');
+    expect(cardSelectionSource).toContain('horizontal={abilityPreviewHorizontal}');
+    expect(cardSelectionSource).toContain('showsHorizontalScrollIndicator={abilityPreviewHorizontal && assignedAbilities.length > 1}');
+    expect(cardSelectionSource).toContain('styles.abilitiesModalRailHorizontal');
+    expect(cardSelectionSource).toContain('اسحب جانبياً لمشاهدة كل كروت القدرات');
+    expect(cardSelectionSource).toContain('abilityPreviewCardW');
+    expect(cardSelectionSource).toContain('abilityPreviewCardH');
+    expect(cardSelectionSource).toContain('assignedAbilities.map((abilityType, index) =>');
+  });
 });

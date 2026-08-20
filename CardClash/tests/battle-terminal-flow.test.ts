@@ -8,10 +8,13 @@ const battle = source('app/screens/battle.tsx');
 const gameContext = source('lib/game/game-context.tsx');
 
 describe('ability preview and terminal battle flow', () => {
-  it('lays all selected abilities out in a visible wrapping grid instead of a hidden horizontal rail', () => {
+  it('uses a complete horizontal phone rail and a wrapping grid on wider displays for selected abilities', () => {
     expect(cardSelection).toContain("flexWrap: 'wrap'");
     expect(cardSelection).toContain("justifyContent: 'center'");
-    expect(cardSelection).toContain('showsVerticalScrollIndicator={assignedAbilities.length > abilityGridColumns}');
+    expect(cardSelection).toContain('const abilityPreviewHorizontal = !isLandscape && width < 520;');
+    expect(cardSelection).toContain('horizontal={abilityPreviewHorizontal}');
+    expect(cardSelection).toContain('styles.abilitiesModalRailHorizontal');
+    expect(cardSelection).toContain('اسحب جانبياً لمشاهدة كل كروت القدرات');
   });
 
   it('treats the final resolved round as terminal and preserves the last valid card index', () => {
