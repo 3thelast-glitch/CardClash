@@ -52,8 +52,6 @@ export type CharacterAbilityId =
   | 'tsunade_medical_ninjutsu'
   | 'sakura_victory_heal'
   | 'ainz_death_king'
-  | 'gojo_infinity'
-  | 'sukuna_curse_king'
   | 'makima_control'
   | 'kaido_dragon_strength';
 

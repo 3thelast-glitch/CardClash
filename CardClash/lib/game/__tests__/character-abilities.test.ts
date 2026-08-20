@@ -42,16 +42,16 @@ const makeState = (playerCard: Card, botCard: Card, overrides: Partial<GameState
 });
 
 describe('سجل قدرات الشخصيات المنظم', () => {
-  it('يعرّف القدرات العشر الحالية مع نص عربي وسلوك قابل للتنفيذ', () => {
-    expect(Object.keys(CHARACTER_ABILITY_DEFINITIONS)).toHaveLength(10);
+  it('يعرّف القدرات الثماني الحالية مع نص عربي وسلوك قابل للتنفيذ', () => {
+    expect(Object.keys(CHARACTER_ABILITY_DEFINITIONS)).toHaveLength(8);
     expect(CHARACTER_ABILITY_DEFINITIONS.tsunade_medical_ninjutsu.roundStartHealthBonus).toBe(2);
-    expect(CHARACTER_ABILITY_DEFINITIONS.gojo_infinity.statModifiers?.defenseOverride).toBe(99);
+    expect(CHARACTER_ABILITY_DEFINITIONS.makima_control.statModifiers?.attackBonus).toBe(4);
   });
 
   it('يدعم تعريف قدرة منظمة لبطاقة مستقبلية من دون الاعتماد على معرّفها', () => {
-    const futureCard = makeCard('future-character', { characterAbilityId: 'sukuna_curse_king' });
+    const futureCard = makeCard('future-character', { characterAbilityId: 'makima_control' });
 
-    expect(getCharacterAbility(futureCard)?.statModifiers?.attackBonus).toBe(6);
+    expect(getCharacterAbility(futureCard)?.statModifiers?.attackBonus).toBe(4);
   });
 });
 
@@ -90,18 +90,18 @@ describe('تدقيق قدرات الشخصيات: تعديل الإحصاءات'
     expect(opponentStats.defense).toBe(0);
   });
 
-  it('يطبق دفاع Gojo على الخصم عندما تكون بطاقة Gojo في جهة البوت', () => {
+  it('لا يطبق دفاع Gojo الخاص بعد إزالة القدرة', () => {
     const player = makeCard('player', { attack: 80, defense: 0 });
     const gojo = makeCard('satoru_gojo', { attack: 1, defense: 0 });
 
-    expect(determineRoundWinner(player, gojo).winner).toBe('bot');
+    expect(determineRoundWinner(player, gojo).winner).toBe('player');
   });
 
-  it('يطبق هجوم Sukuna الإضافي عندما تكون بطاقته في جهة البوت', () => {
+  it('لا يطبق هجوم Sukuna الإضافي بعد إزالة القدرة', () => {
     const player = makeCard('player', { attack: 24, defense: 0 });
     const sukuna = makeCard('ryomen_sukuna', { attack: 20, defense: 0 });
 
-    expect(determineRoundWinner(player, sukuna).winner).toBe('bot');
+    expect(determineRoundWinner(player, sukuna).winner).toBe('player');
   });
 
   it('يطبق تحكم Makima في الهجوم على كلا الطرفين عندما تكون في جهة البوت', () => {
@@ -118,13 +118,13 @@ describe('تدقيق قدرات الشخصيات: تعديل الإحصاءات'
     expect(determineRoundWinner(player, kaido).winner).toBe('bot');
   });
 
-  it('يعرض getEffectiveStats نفس التعديلات للشخصية في أي جانب', () => {
+  it('يعرض getEffectiveStats التعديلات النشطة فقط بعد إزالة قدرات غوجو وسوكونا', () => {
     const gojo = makeCard('satoru_gojo', { attack: 1, defense: 0 });
     const player = makeCard('player', { attack: 10, defense: 8 });
     const ainz = makeCard('ainz_ooal_gown');
     const makima = makeCard('makima');
 
-    expect(getEffectiveStats(gojo.attack, gojo.defense, [], 'bot', gojo.cardClass, player, gojo)).toEqual({ attack: 1, defense: 99 });
+    expect(getEffectiveStats(gojo.attack, gojo.defense, [], 'bot', gojo.cardClass, player, gojo)).toEqual({ attack: 1, defense: 0 });
     expect(getEffectiveStats(player.attack, player.defense, [], 'player', player.cardClass, ainz, player)).toEqual({ attack: 10, defense: 0 });
     expect(getEffectiveStats(player.attack, player.defense, [], 'player', player.cardClass, makima, player)).toEqual({ attack: 6, defense: 8 });
   });

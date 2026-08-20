@@ -58,18 +58,6 @@ export const CHARACTER_ABILITY_DEFINITIONS: Record<CharacterAbilityId, Character
     descriptionAr: 'يلغي دفاع الخصم في هذه الجولة.',
     statModifiers: { cancelOpponentDefense: true },
   },
-  gojo_infinity: {
-    id: 'gojo_infinity',
-    nameAr: 'اللانهاية',
-    descriptionAr: 'يضبط الدفاع على 99 في هذه الجولة.',
-    statModifiers: { defenseOverride: 99 },
-  },
-  sukuna_curse_king: {
-    id: 'sukuna_curse_king',
-    nameAr: 'ملك اللعنات',
-    descriptionAr: '+6 هجوم في هذه الجولة.',
-    statModifiers: { attackBonus: 6 },
-  },
   makima_control: {
     id: 'makima_control',
     nameAr: 'السيطرة',
@@ -91,8 +79,6 @@ const LEGACY_ABILITY_IDS: Partial<Record<string, CharacterAbilityId>> = {
   tsunade: 'tsunade_medical_ninjutsu',
   sakura_haruno: 'sakura_victory_heal',
   ainz_ooal_gown: 'ainz_death_king',
-  satoru_gojo: 'gojo_infinity',
-  ryomen_sukuna: 'sukuna_curse_king',
   makima: 'makima_control',
   kaido: 'kaido_dragon_strength',
 };
