@@ -8,14 +8,13 @@
  *
  * الاستخدام:
  *   const sound = useBattleSound(settings.soundEnabled);
- *   sound.playAttack();
+ *   sound.playWin();
  */
 import { useEffect, useRef, useCallback } from 'react';
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 
 // مؤثرات محلية مضمنة في التطبيق. تجنب روابط CDN المتغيرة أو المحجوبة على Android.
 const SOUND_FILES = {
-  attack: require('../../../assets/sounds/attack.mp3'),
   win: require('../../../assets/sounds/win.mp3'),
   loss: require('../../../assets/sounds/loss.mp3'),
   ability: require('../../../assets/sounds/ability.mp3'),
@@ -87,12 +86,11 @@ export function useBattleSound(enabled: boolean) {
     }
   }, [enabled]);
 
-  const playAttack = useCallback(() => { void play('attack'); }, [play]);
   const playWin = useCallback(() => { void play('win'); }, [play]);
   const playLoss = useCallback(() => { void play('loss'); }, [play]);
   const playAbility = useCallback(() => { void play('ability'); }, [play]);
   const playNextRound = useCallback(() => { void play('nextRound'); }, [play]);
   const playDraw = useCallback(() => { void play('draw'); }, [play]);
 
-  return { playAttack, playWin, playLoss, playAbility, playNextRound, playDraw };
+  return { playWin, playLoss, playAbility, playNextRound, playDraw };
 }

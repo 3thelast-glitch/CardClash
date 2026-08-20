@@ -8,6 +8,7 @@ const gameMode = source('app/screens/game-mode.tsx');
 const cardSelection = source('app/screens/card-selection.tsx');
 const battle = source('app/screens/battle.tsx');
 const abilityOverlay = source('components/game/AbilityActivationOverlay.tsx');
+const battleSound = source('lib/game/hooks/useBattleSound.ts');
 
 describe('local two-player match flow', () => {
   it('keeps the engine slots while exposing an explicit local match mode', () => {
@@ -41,6 +42,11 @@ describe('local two-player match flow', () => {
     const botAbilityBlock = battle.match(/const runBotAbility[\s\S]*?const handleRageActivate/);
     expect(botAbilityBlock?.[0]).toBeDefined();
     expect(botAbilityBlock?.[0]).not.toContain('playAbility()');
+  });
+
+  it('does not register a general attack-impact sound in the battle sound system', () => {
+    expect(battleSound).not.toContain("attack: require('../../../assets/sounds/attack.mp3')");
+    expect(battleSound).not.toContain('playAttack');
   });
 
   it('places active effects beside each card instead of above the battle header', () => {
