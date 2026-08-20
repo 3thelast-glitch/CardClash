@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL } from '@/components/ui/design-tokens';
+import { isDeveloperBuild } from '@/lib/build-variant';
 
 const COLLECTION_CATEGORIES = [
   {
@@ -37,6 +39,10 @@ export default function CollectionScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+
+  if (!isDeveloperBuild(Constants.expoConfig?.extra)) {
+    return <Redirect href="/screens/game-mode" />;
+  }
 
   const handleCategoryPress = (route: any) => {
     // Basic navigation, can add alerts for unhandled routes if needed

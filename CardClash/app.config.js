@@ -40,7 +40,7 @@ module.exports = {
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
-    bundleIdentifier: bundleId,
+    bundleIdentifier: isDeveloperBuild ? `${bundleId}.dev` : bundleId,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSLocalNetworkUsageDescription: 'يستخدم Card Battle الشبكة المحلية لاكتشاف غرف اللعب القريبة والاتصال بها عبر Wi‑Fi.',

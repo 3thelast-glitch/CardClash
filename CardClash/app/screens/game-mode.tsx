@@ -2,10 +2,12 @@ import React from 'react';
 import { View, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
 import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL } from '@/components/ui/design-tokens';
 import { useGame } from '@/lib/game/game-context';
+import { getVisibleMenuItems, isDeveloperBuild } from '@/lib/build-variant';
 
 const MODES = [
   {
@@ -39,6 +41,7 @@ const MODES = [
     route: '/screens/collection' as const,
     accentColor: '#4ADE80',
     matchMode: 'solo' as const,
+    developerOnly: true,
   },
   {
     icon: '📡',
@@ -55,6 +58,8 @@ export default function GameModeScreen() {
   const { setMatchMode } = useGame();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+  const isDeveloper = isDeveloperBuild(Constants.expoConfig?.extra);
+  const visibleModes = getVisibleMenuItems(MODES, Constants.expoConfig?.extra);
 
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
@@ -77,7 +82,7 @@ export default function GameModeScreen() {
 
           {/* Mode cards grid */}
           <View style={[styles.modeGrid, { flexDirection: isLandscape ? 'row' : 'column' }]}>
-            {MODES.map((mode) => (
+            {visibleModes.map((mode) => (
               <TouchableOpacity
                 key={mode.route}
                 style={[
@@ -110,18 +115,20 @@ export default function GameModeScreen() {
           </View>
 
           {/* ── زر البيئة التجريبية ── */}
-          <TouchableOpacity
-            style={styles.sandboxBtn}
-            onPress={() => router.push('/screens/sandbox' as any)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.sandboxIcon}>🧪</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.sandboxTitle}>البيئة التجريبية</Text>
-              <Text style={styles.sandboxSub}>حاكي المعارك واختبر القدرات بدون لعب</Text>
-            </View>
-            <Text style={styles.sandboxArrow}>→</Text>
-          </TouchableOpacity>
+          {isDeveloper && (
+            <TouchableOpacity
+              style={styles.sandboxBtn}
+              onPress={() => router.push('/screens/sandbox' as any)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.sandboxIcon}>🧪</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sandboxTitle}>البيئة التجريبية</Text>
+                <Text style={styles.sandboxSub}>حاكي المعارك واختبر القدرات بدون لعب</Text>
+              </View>
+              <Text style={styles.sandboxArrow}>→</Text>
+            </TouchableOpacity>
+          )}
 
         </View>
       </LuxuryBackground>

@@ -18,7 +18,8 @@ import {
   Image, useWindowDimensions,
 } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withTiming, withDelay, withSpring, withSequence,
@@ -34,6 +35,7 @@ import {
 } from '@/lib/game/types';
 import { getCardImage } from '@/lib/game/get-card-image';
 import { getAbilityNameAr, getAbilityDescription } from '@/lib/game/ability-names';
+import { isDeveloperBuild } from '@/lib/build-variant';
 
 // ─── الكروت والقدرات ────────────────────────────────────────────────────────
 const CARDS = ALL_CARDS;
@@ -356,6 +358,9 @@ interface RoundRecord {
 // ────────────────────────── MAIN SCREEN ──────────────────────────
 export default function SandboxScreen() {
   const router = useRouter();
+  if (!isDeveloperBuild(Constants.expoConfig?.extra)) {
+    return <Redirect href="/screens/game-mode" />;
+  }
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isCompactPhone = width < 520;
