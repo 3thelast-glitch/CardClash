@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const screenPath = fileURLToPath(new URL('../app/screens/cards-gallery.tsx', import.meta.url));
+const testDirectory = dirname(fileURLToPath(import.meta.url));
+const screenPath = resolve(testDirectory, '../app/screens/cards-gallery.tsx');
 const filterArtworkPaths = [
   '../assets/icons/classes/wizard-category.png',
   '../assets/icons/classes/fighter-category.png',
@@ -11,7 +13,7 @@ const filterArtworkPaths = [
   '../assets/icons/classes/swordsman-category.png',
   '../assets/icons/classes/archer-category.png',
   '../assets/icons/factions/dragon.png',
-].map(path => fileURLToPath(new URL(path, import.meta.url)));
+].map(path => resolve(testDirectory, path));
 const source = readFileSync(screenPath, 'utf8');
 
 describe('الأيقونات المصورة في فلتر الفئات والفصائل', () => {
