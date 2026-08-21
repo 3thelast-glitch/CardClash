@@ -17,9 +17,10 @@ import Animated, {
     type SharedValue,
 } from 'react-native-reanimated';
 import { Svg, Circle, Line, Ellipse, Path, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { Card, CardClass, CardRarity, Race, RACE_EMOJI, RACE_LABELS, CLASS_EMOJI } from '@/lib/game/types';
+import { Card, CardAlignment, CardClass, CardRarity, Race, RACE_EMOJI, RACE_LABELS, CLASS_EMOJI } from '@/lib/game/types';
 import { getCardImage } from '../../lib/game/get-card-image';
 import { useSettings } from '@/lib/game/hooks/useSettings';
+import { CARD_ALIGNMENT_META, getCardAlignment } from '@/lib/game/card-alignment';
 
 const CLASS_LABELS: Record<CardClass, string> = {
     warrior: 'محارب', knight: 'فارس', mage: 'ساحر', archer: 'رامي',
@@ -114,6 +115,28 @@ const FactionCornerMedallion = ({ card, sc }: { card: Card; sc: number }) => {
                 </View>
             )}
         </>
+    );
+};
+
+/** شارة سردية ثابتة: الخير، الشر، أو المحايد/الرمادي. */
+const CardAlignmentBadge = ({ card, sc, compact = false }: { card: Card; sc: number; compact?: boolean }) => {
+    const alignment: CardAlignment = getCardAlignment(card);
+    const meta = CARD_ALIGNMENT_META[alignment];
+    const iconSize = Math.max(8, Math.min(13, 11 * sc));
+    const textSize = Math.max(7, Math.min(10, 8.5 * sc));
+    return (
+        <View
+            testID={`card-alignment-${alignment}`}
+            style={[
+                styles.alignmentBadge,
+                compact && styles.alignmentBadgeCompact,
+                { backgroundColor: meta.backgroundColor, borderColor: meta.borderColor },
+            ]}
+            accessibilityLabel={`تصنيف الكرت: ${meta.label}`}
+        >
+            <Text style={[styles.alignmentBadgeSymbol, { color: meta.textColor, fontSize: iconSize }]}>{meta.symbol}</Text>
+            <Text style={[styles.alignmentBadgeText, { color: meta.textColor, fontSize: textSize }]} numberOfLines={1}>{compact ? meta.shortLabel : meta.label}</Text>
+        </View>
     );
 };
 
@@ -646,6 +669,9 @@ const TacticalRarityCard = ({
                         <Text style={[styles.tacticalLegendaryChipText, { color: palette.chipText, fontSize: badgeFont }]}>{palette.symbol} {palette.label}</Text>
                     </View>
                 </View>
+                <View style={[styles.tacticalAlignmentBadgeSlot, { top: pad, left: pad + (isCompact ? 54 : 72) }]}>
+                    <CardAlignmentBadge card={card} sc={sc} compact={isCompact} />
+                </View>
                 <FactionCornerMedallion card={card} sc={sc} />
 
                 {!!selectionLabel && (
@@ -883,6 +909,9 @@ export function LuxuryCharacterCardAnimated({
                             {rarity === 'special' ? '☠️ ' : '✦ '}{theme.label}{rarity === 'special' ? ' ☠️' : ' ✦'}
                         </Text>
                     </View>
+                    <View style={[styles.alignmentBadgeSlot, { top: badgeTop + Math.max(25, 29 * scH), left: badgeLeft }]}>
+                        <CardAlignmentBadge card={card} sc={sc} compact={sc < 0.78} />
+                    </View>
                     <FactionCornerMedallion card={card} sc={sc} />
 
                     {/* name + stars */}
@@ -952,6 +981,11 @@ const styles = StyleSheet.create({
 
     rarityBadge: { position: 'absolute', borderWidth: 1, zIndex: 10 },
     rarityBadgeText: { fontWeight: '700', letterSpacing: 0.5 },
+    alignmentBadgeSlot: { position: 'absolute', zIndex: 16, alignItems: 'flex-start' },
+    alignmentBadge: { flexDirection: 'row-reverse', alignItems: 'center', gap: 3, borderWidth: 1, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2, shadowColor: '#000000', shadowOpacity: 0.32, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 4 },
+    alignmentBadgeCompact: { paddingHorizontal: 4, paddingVertical: 1, gap: 2 },
+    alignmentBadgeSymbol: { fontWeight: '900', lineHeight: 14 },
+    alignmentBadgeText: { fontWeight: '900', writingDirection: 'rtl', lineHeight: 12 },
     factionCornerMedallion: { position: 'absolute', zIndex: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(2,4,12,0.76)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.74)', shadowColor: '#5B4BFF', shadowOpacity: 0.65, shadowRadius: 6, elevation: 8 },
     factionFallbackChip: { position: 'absolute', zIndex: 15, flexDirection: 'row-reverse', alignItems: 'center', gap: 3, minHeight: 24, paddingHorizontal: 6, borderRadius: 14, backgroundColor: 'rgba(2,4,12,0.86)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.74)', shadowColor: '#5B4BFF', shadowOpacity: 0.55, shadowRadius: 5, elevation: 7 },
 
@@ -989,6 +1023,7 @@ const styles = StyleSheet.create({
     tacticalLegendaryInner: { flex: 1, overflow: 'hidden', backgroundColor: '#090705' },
     tacticalLegendaryFrame: { position: 'absolute', top: 5, right: 5, bottom: 5, left: 5, borderWidth: 1, borderColor: 'rgba(253,230,138,0.58)' },
     tacticalLegendaryTopRow: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    tacticalAlignmentBadgeSlot: { position: 'absolute', zIndex: 16 },
     tacticalLegendaryChip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 3 },
     tacticalLegendaryRarityChip: { borderRadius: 6, borderWidth: 1, borderColor: 'rgba(253,230,138,0.7)', backgroundColor: 'rgba(9,7,2,0.78)', paddingHorizontal: 8, paddingVertical: 4 },
     tacticalLegendaryChipCompact: { paddingHorizontal: 5, paddingVertical: 2 },

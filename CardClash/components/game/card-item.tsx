@@ -26,6 +26,7 @@ import { FireParticles } from '@/lib/particles';
 import { getCardImage } from '@/lib/game/get-card-image';
 import { getEffectiveStats } from '@/lib/game/ui-helpers';
 import { useGame } from '@/lib/game/game-context';
+import { CARD_ALIGNMENT_META, getCardAlignment } from '@/lib/game/card-alignment';
 
 // ─── Placeholder colors per rarity ───────────────────────────────────────────
 const PLACEHOLDER_COLORS: Record<string, readonly [string, string, string]> = {
@@ -117,6 +118,8 @@ export function CardItem({
   const rarityCfg = getRarityConfig(rarity);
   const width     = customWidth  ?? preset.width;
   const height    = customHeight ?? preset.height;
+  const alignment = getCardAlignment(card);
+  const alignmentMeta = CARD_ALIGNMENT_META[alignment];
 
   // ✅ قراءة activeEffects مباشرةً من الـ context — يتحدّث فوريًا عند أي تغيير
   const { state } = useGame();
@@ -256,9 +259,17 @@ export function CardItem({
           </View>
 
           <View style={[styles.rarityBadge, { backgroundColor: rarityCfg.badgeColor }]}>
-            <Text style={[styles.rarityText, { fontSize: preset.badgeFontSize }]}>
+            <Text style={[styles.rarityText, { fontSize: preset.badgeFontSize }]}> 
               {rarity.charAt(0).toUpperCase()}
             </Text>
+          </View>
+
+          <View
+            testID={`card-alignment-${alignment}`}
+            style={[styles.alignmentBadge, { backgroundColor: alignmentMeta.backgroundColor, borderColor: alignmentMeta.borderColor }]}
+            accessibilityLabel={`تصنيف الكرت: ${alignmentMeta.label}`}
+          >
+            <Text style={[styles.alignmentSymbol, { color: alignmentMeta.textColor, fontSize: preset.badgeFontSize + 2 }]}>{alignmentMeta.symbol}</Text>
           </View>
 
           {card.cardEffects && card.cardEffects.length > 0 && (
@@ -362,6 +373,8 @@ const styles = StyleSheet.create({
   elementEmoji:    { lineHeight: 16 },
   rarityBadge:     { position: 'absolute', top: 5, right: 5, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   rarityText:      { color: '#fff', fontWeight: '900', lineHeight: 12 },
+  alignmentBadge:  { position: 'absolute', top: 27, right: 5, minWidth: 18, height: 18, borderRadius: 9, borderWidth: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.34, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 4 },
+  alignmentSymbol: { fontWeight: '900', lineHeight: 14 },
   effectsRow:      { position: 'absolute', bottom: 52, right: 4, gap: 2, alignItems: 'center' },
   effectIcon:      { fontSize: 10 },
   selectedOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 13 },

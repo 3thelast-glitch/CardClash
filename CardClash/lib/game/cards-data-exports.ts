@@ -30,12 +30,13 @@ import { getRarityFromStars } from './card-rarity';
 import { normalizeCardPower } from './card-power-balance';
 import { rebalanceCardStats } from './card-stat-rebalance';
 import { attachProfessionalCardAbilities } from './professional-card-abilities';
+import { attachCardAlignments } from './card-alignment';
 
 // re-export so callers can use them directly from this module if needed
 export { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive };
 
 // ─── ALL_CARDS ────────────────────────────────────────────────────────────────
-export const ALL_CARDS: Card[] = rebalanceCardStats(attachProfessionalCardAbilities([
+export const ALL_CARDS: Card[] = rebalanceCardStats(attachProfessionalCardAbilities(attachCardAlignments([
   ...CARDS_BATCH_1,
   ...CARDS_BATCH_2,
   ...CARDS_BATCH_3,
@@ -46,7 +47,7 @@ export const ALL_CARDS: Card[] = rebalanceCardStats(attachProfessionalCardAbilit
   ...CARDS_BATCH_8,
 ].map(card => ({
   ...normalizeCardPower({ ...card, rarity: card.rarity === 'special' ? 'special' : getRarityFromStars(card.stars) }),
-}))));
+})))));
 
 // ─── getFactionAdvantage ─────────────────────────────────────────────────────
 export function getFactionAdvantage(

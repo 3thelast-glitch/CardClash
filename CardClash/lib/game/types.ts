@@ -32,6 +32,9 @@ export type Tag = string;
 /** Rarity tier for a card */
 export type CardRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'special';
 
+/** تصنيف سردي للبطاقة داخل اللعبة؛ لا يؤثر على قوة الكرت أو حسابات المواجهة. */
+export type CardAlignment = 'good' | 'evil' | 'neutral';
+
 /** Special in-game effects a card can carry */
 export type CardEffect = 'taunt' | 'divine_shield' | 'poison' | 'stealth' | 'charge';
 
@@ -118,6 +121,7 @@ export interface Card {
   emoji?: string;
   videoUrl?: string;
   rarity?: CardRarity;
+  alignment?: CardAlignment;
   stars?: number;
   specialAbility?: string;
   /** تعريف منظم لقدرة الشخصية؛ النص المعروض يبقى في specialAbility. */
