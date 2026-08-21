@@ -712,7 +712,9 @@ export function LuxuryCharacterCardAnimated({
     // هذا الخيار يوقف الحركات المستمرة والفيديو المتكرر، وهي أعلى عناصر البطاقة كلفة على الأجهزة الضعيفة.
     const enableVisualEffects = settings.animationsEnabled;
     // الصور المتحركة لا تملك مساراً صوتياً؛ وصوت الفيديو يحدده صاحب الساحة (مثل الكرت الأقوى في Wi‑Fi).
-    const videoAudioEnabled = playAudio && settings.soundEnabled && enableVisualEffects;
+    // تورين استثناء: لا يبدأ صوته أثناء التوقع أو عند خسارة/تعادل؛ يلزم تأكيد فوزه في نتيجة الجولة.
+    const turinAudioAuthorized = card.id !== 'Turin_Turambar' || winnerState === 'winner';
+    const videoAudioEnabled = playAudio && settings.soundEnabled && enableVisualEffects && turinAudioAuthorized;
 
     useEffect(() => {
         if (!videoAudioEnabled) return;

@@ -23,10 +23,13 @@ describe('Turin special card', () => {
     const battle = source('app/screens/battle.tsx');
     const lanBattle = source('app/screens/lan-battle.tsx');
     const insights = source('lib/game/round-insights.ts');
+    const cardRenderer = source('components/game/luxury-character-card-animated.tsx');
 
     expect(battle).toContain('turinPenaltyAudioWinner ?? computedWinner');
     expect(lanBattle).toContain("label: 'لعنة تورين: تخسر هذه الجولة'");
     expect(lanBattle).toContain("turinPenalty.targetSide === 'player' ? 'guest'");
     expect(insights).toContain("turinPenalty: 'لعنة تورين: خسارة هذه الجولة'");
+    expect(cardRenderer).toContain("const turinAudioAuthorized = card.id !== 'Turin_Turambar' || winnerState === 'winner';");
+    expect(cardRenderer).toContain('&& turinAudioAuthorized;');
   });
 });
