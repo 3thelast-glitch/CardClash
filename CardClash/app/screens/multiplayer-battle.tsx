@@ -329,16 +329,19 @@ export default function MultiplayerBattleScreen() {
 
           {/* Result badge */}
           {phase === 'result' && lastResult && (
-            <Animated.View style={[S.resultBadge, resultStyle, {
-              borderColor: lastResult.myWin ? '#4ade80' : lastResult.winner === 'draw' ? '#fbbf24' : '#f87171',
-              backgroundColor: lastResult.myWin ? 'rgba(74,222,128,0.12)' : lastResult.winner === 'draw' ? 'rgba(251,191,36,0.08)' : 'rgba(248,113,113,0.12)',
-            }]}>
-              <Text style={[S.resultText, {
-                color: lastResult.myWin ? '#4ade80' : lastResult.winner === 'draw' ? '#fbbf24' : '#f87171',
+            <>
+              <Animated.View style={[S.resultBadge, resultStyle, {
+                borderColor: lastResult.myWin ? '#4ade80' : lastResult.winner === 'draw' ? '#fbbf24' : '#f87171',
+                backgroundColor: lastResult.myWin ? 'rgba(74,222,128,0.12)' : lastResult.winner === 'draw' ? 'rgba(251,191,36,0.08)' : 'rgba(248,113,113,0.12)',
               }]}>
-                {lastResult.myWin ? '🏆 فزت!' : lastResult.winner === 'draw' ? '🤝 تعادل' : '💀 خسرت'}
-              </Text>
-            </Animated.View>
+                <Text style={[S.resultText, {
+                  color: lastResult.myWin ? '#4ade80' : lastResult.winner === 'draw' ? '#fbbf24' : '#f87171',
+                }]}>
+                  {lastResult.myWin ? '🏆 فزت!' : lastResult.winner === 'draw' ? '🤝 تعادل' : '💀 خسرت'}
+                </Text>
+              </Animated.View>
+              {lastResult.personalInsight && <Text style={S.personalInsight}>{lastResult.personalInsight}</Text>}
+            </>
           )}
 
           {/* CTA */}
@@ -423,6 +426,7 @@ const S = StyleSheet.create({
   vsIcon: { fontSize: 28 },
   resultBadge: { paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderRadius: RADIUS.pill, borderWidth: 1.5, alignItems: 'center' },
   resultText: { fontSize: FONT.base, letterSpacing: 0.5 },
+  personalInsight: { maxWidth: 250, color: '#c4b5fd', fontSize: FONT.xs, textAlign: 'center', lineHeight: 18 },
   btn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, borderRadius: RADIUS.pill, paddingVertical: 7, paddingHorizontal: SPACE.sm, borderWidth: 1.5 },
   btnAttack: { backgroundColor: 'rgba(74,222,128,0.12)', borderColor: '#4ade80' },
   btnNext: { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: '#60a5fa' },

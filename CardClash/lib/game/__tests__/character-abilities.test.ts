@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CHARACTER_ABILITY_DEFINITIONS, getCharacterAbility } from '../character-abilities';
+import { buildAlphonseGoodAlignmentEffects, buildKaidoFactionEffects } from '../professional-card-abilities';
 import { determineRoundWinner } from '../cards-data-exports';
 import { gameReducer } from '../game-context';
 import {
@@ -105,18 +106,24 @@ describe('تدقيق قدرات الشخصيات: تعديل الإحصاءات'
     expect(determineRoundWinner(player, sukuna).winner).toBe('player');
   });
 
-  it('يطبق تحكم Makima في الهجوم على كلا الطرفين عندما تكون في جهة البوت', () => {
-    const player = makeCard('player', { attack: 21, defense: 0 });
+  it('يطبق تحكم Makima ضد الوحوش والشياطين فقط', () => {
+    const player = makeCard('player', { attack: 21, defense: 0, race: 'monster' });
     const makima = makeCard('makima', { attack: 18, defense: 0 });
 
     expect(determineRoundWinner(player, makima).winner).toBe('bot');
+    expect(determineRoundWinner(makeCard('human-player', { attack: 21, defense: 0, race: 'human' }), makima).winner).toBe('player');
   });
 
-  it('يطبق تعزيز Kaido على الإحصاءات عندما تكون بطاقته في جهة البوت', () => {
-    const player = makeCard('player', { attack: 22, defense: 0 });
-    const kaido = makeCard('kaido', { attack: 20, defense: 0 });
+  it('يمنح Kaido الفصائل المؤهلة +2 هجوم و+2 دفاع بعد ظهوره', () => {
+    const kaido = makeCard('kaido');
+    const dragon = makeCard('dragon-follower', { race: 'dragon', attack: 10, defense: 10 });
+    const effects = buildKaidoFactionEffects([kaido, dragon], 'player', 2);
+    const resolved = determineRoundWinner(dragon, makeCard('opponent', { attack: 10, defense: 10 }), effects, [], true, { playerScore: 2, botScore: 2 });
 
-    expect(determineRoundWinner(player, kaido).winner).toBe('bot');
+    expect(resolved.playerBaseDamage).toBe(12);
+    expect(resolved.playerDamage).toBe(2);
+    const human = makeCard('human-follower', { race: 'human', attack: 10, defense: 10 });
+    expect(determineRoundWinner(human, makeCard('opponent', { attack: 10, defense: 10 }), effects, [], true, { playerScore: 2, botScore: 2 }).playerBaseDamage).toBe(10);
   });
 
   it('يعرض getEffectiveStats التعديلات النشطة فقط بعد إزالة قدرات غوجو وسوكونا', () => {
@@ -127,7 +134,17 @@ describe('تدقيق قدرات الشخصيات: تعديل الإحصاءات'
 
     expect(getEffectiveStats(gojo.attack, gojo.defense, [], 'bot', gojo.cardClass, player, gojo)).toEqual({ attack: 1, defense: 0 });
     expect(getEffectiveStats(player.attack, player.defense, [], 'player', player.cardClass, ainz, player)).toEqual({ attack: 10, defense: 0 });
-    expect(getEffectiveStats(player.attack, player.defense, [], 'player', player.cardClass, makima, player)).toEqual({ attack: 6, defense: 8 });
+    expect(getEffectiveStats(player.attack, player.defense, [], 'player', player.cardClass, makima, player)).toEqual({ attack: 10, defense: 8 });
+  });
+
+  it('يمنح ألفونس كروت الخير +2 هجوم فقط عند التأخر بثلاث نقاط صحة', () => {
+    const alphonse = makeCard('alphonse_elric');
+    const goodFollower = makeCard('good-follower', { alignment: 'good', attack: 10, defense: 8 });
+    const effects = buildAlphonseGoodAlignmentEffects([alphonse, goodFollower], 'player', 2);
+    const behind = determineRoundWinner(goodFollower, makeCard('opponent', { attack: 10, defense: 8 }), effects, [], true, { playerScore: 1, botScore: 4 });
+    const close = determineRoundWinner(goodFollower, makeCard('opponent', { attack: 10, defense: 8 }), effects, [], true, { playerScore: 2, botScore: 4 });
+    expect(behind.playerBaseDamage).toBe(12);
+    expect(close.playerBaseDamage).toBe(10);
   });
 });
 

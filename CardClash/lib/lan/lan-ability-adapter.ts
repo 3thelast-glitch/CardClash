@@ -1,7 +1,7 @@
 import { getRandomAbilitiesFromPool } from '../game/abilities';
 import { gameReducer } from '../game/game-context';
 import type { AbilityState, AbilityType, Card, Effect, GameState, RoundResult } from '../game/types';
-import { buildAllMightAlignmentEffects } from '../game/professional-card-abilities';
+import { buildAllMightAlignmentEffects, buildAlphonseGoodAlignmentEffects, buildKaidoFactionEffects } from '../game/professional-card-abilities';
 import type { LanPlayerRole } from './lan-match-engine';
 
 /** القدرات التي لا تحتاج نافذة اختيار إضافية، فتظل متزامنة وواضحة في Wi‑Fi. */
@@ -41,6 +41,10 @@ function toGameState(match: LanAbilityMatchInput): GameState {
   const generatedCharacterEffects = [
     ...buildAllMightAlignmentEffects(match.hostDeck, 'player', match.totalRounds),
     ...buildAllMightAlignmentEffects(match.guestDeck, 'bot', match.totalRounds),
+    ...buildKaidoFactionEffects(match.hostDeck, 'player', match.totalRounds),
+    ...buildKaidoFactionEffects(match.guestDeck, 'bot', match.totalRounds),
+    ...buildAlphonseGoodAlignmentEffects(match.hostDeck, 'player', match.totalRounds),
+    ...buildAlphonseGoodAlignmentEffects(match.guestDeck, 'bot', match.totalRounds),
   ];
   const activeEffects = [
     ...match.activeEffects,
@@ -75,7 +79,7 @@ function toSnapshot(state: GameState): LanAbilitySnapshot {
     hostAbilities: state.playerAbilities,
     guestAbilities: state.botAbilities,
     activeEffects: state.activeEffects,
-    roundResults: state.roundResults,
+    roundResults: state.roundResults.map(({ playerInfo: _playerInfo, botInfo: _botInfo, ...roundResult }) => roundResult),
   };
 }
 

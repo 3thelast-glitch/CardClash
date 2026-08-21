@@ -15,6 +15,10 @@ export interface RoundResult {
   p2Score: number;
   advantage: 'element' | 'attack' | 'draw';
   nextRoundCardsSwapped?: boolean;
+  nextRoundP1AttackBonus?: number;
+  nextRoundP2AttackBonus?: number;
+  /** كشف بولما الخاص باللاعب الذي استلم النتيجة. */
+  personalInsight?: string;
 }
 
 export interface MatchSettings {
@@ -161,6 +165,14 @@ function multiplayerReducer(state: MultiplayerState, action: MultiplayerAction):
         const nextPlayerCard = playerCards[nextIndex];
         playerCards[nextIndex] = opponentCards[nextIndex];
         opponentCards[nextIndex] = nextPlayerCard;
+      }
+      const playerNextAttackBonus = playerIsP1 ? r.nextRoundP1AttackBonus : r.nextRoundP2AttackBonus;
+      const opponentNextAttackBonus = playerIsP1 ? r.nextRoundP2AttackBonus : r.nextRoundP1AttackBonus;
+      if (playerNextAttackBonus && playerCards[nextIndex]) {
+        playerCards[nextIndex] = { ...playerCards[nextIndex], attack: playerCards[nextIndex].attack + playerNextAttackBonus };
+      }
+      if (opponentNextAttackBonus && opponentCards[nextIndex]) {
+        opponentCards[nextIndex] = { ...opponentCards[nextIndex], attack: opponentCards[nextIndex].attack + opponentNextAttackBonus };
       }
       return {
         ...state,

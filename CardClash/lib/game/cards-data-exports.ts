@@ -144,7 +144,10 @@ export function determineRoundWinner(
     effects: Effect[],
     cardClass: string,
     cardAlignment: Card['alignment'],
+    cardRace: Card['race'],
     isShielded: boolean,
+    ownScore?: number,
+    opponentScore?: number,
     protections: { ignoreFirstDefensePenalty?: boolean; ignoreFirstStatPenalty?: boolean; cancelFirstAttackBuff?: boolean } = {},
   ) => {
     let atk = baseAtk;
@@ -156,6 +159,9 @@ export function determineRoundWinner(
       const d = e.data as any;
       const amount = d?.amount ?? 0;
       if (d?.alignment && d.alignment !== cardAlignment) continue;
+      if (Array.isArray(d?.races) && !d.races.includes(cardRace)) continue;
+      if (typeof d?.requiresHealthDeficit === 'number'
+        && (ownScore === undefined || opponentScore === undefined || ownScore > opponentScore - d.requiresHealthDeficit)) continue;
       if (isShielded && amount < 0) continue;
       if (amount < 0 && protections.ignoreFirstStatPenalty && !ignoredStatPenalty) {
         ignoredStatPenalty = true;
@@ -201,12 +207,12 @@ export function determineRoundWinner(
   const playerHealthDelta = Math.max(0, (p.hp ?? 0) - (playerCard.hp ?? 0)) + professionalHealth.playerHealthBonus;
   const botHealthDelta = Math.max(0, (b.hp ?? 0) - (botCard.hp ?? 0)) + professionalHealth.botHealthBonus;
 
-  const pStats = applySideEffects(p.attack, p.defense, playerEffects, playerCard.cardClass, getCardAlignment(playerCard), playerShield, {
+  const pStats = applySideEffects(p.attack, p.defense, playerEffects, playerCard.cardClass, getCardAlignment(playerCard), playerCard.race, playerShield, combatContext.playerScore, combatContext.botScore, {
     ignoreFirstDefensePenalty: professionalHealth.playerIgnoreFirstDefensePenalty,
     ignoreFirstStatPenalty: professionalHealth.playerIgnoreFirstStatPenalty,
     cancelFirstAttackBuff: professionalHealth.botCancelOpponentAttackBuff,
   });
-  const bStats = applySideEffects(b.attack, b.defense, botEffects, botCard.cardClass, getCardAlignment(botCard), botShield, {
+  const bStats = applySideEffects(b.attack, b.defense, botEffects, botCard.cardClass, getCardAlignment(botCard), botCard.race, botShield, combatContext.botScore, combatContext.playerScore, {
     ignoreFirstDefensePenalty: professionalHealth.botIgnoreFirstDefensePenalty,
     ignoreFirstStatPenalty: professionalHealth.botIgnoreFirstStatPenalty,
     cancelFirstAttackBuff: professionalHealth.playerCancelOpponentAttackBuff,

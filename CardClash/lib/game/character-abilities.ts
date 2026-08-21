@@ -17,6 +17,8 @@ export interface CharacterAbilityDefinition {
     defenseOverride?: number;
     cancelOpponentDefense?: boolean;
     opponentAttackPenalty?: number;
+    /** لا يعمل التعديل إلا ضد إحدى الفصائل المحددة. */
+    opponentRaces?: Race[];
   };
   /** يضيف فوزاً قسرياً للجولات التالية بعد ظهور البطاقة. */
   cutNextRounds?: number;
@@ -75,14 +77,13 @@ export const CHARACTER_ABILITY_DEFINITIONS: Record<BuiltInCharacterAbilityId, Ch
   makima_control: {
     id: 'makima_control',
     nameAr: 'السيطرة',
-    descriptionAr: '+4 هجوم وتخفيض هجوم الخصم بمقدار 4.',
-    statModifiers: { attackBonus: 4, opponentAttackPenalty: 4 },
+    descriptionAr: 'ضد الوحوش أو الشياطين: +4 هجوم لكرتها و−4 هجوم لكرت الخصم.',
+    statModifiers: { attackBonus: 4, opponentAttackPenalty: 4, opponentRaces: ['monster', 'demon'] },
   },
   kaido_dragon_strength: {
     id: 'kaido_dragon_strength',
     nameAr: 'قوة التنين',
-    descriptionAr: '+2 هجوم و+4 دفاع في هذه الجولة.',
-    statModifiers: { attackBonus: 2, defenseBonus: 4 },
+    descriptionAr: 'عند الظهور: كروت الأورك والتنانين والشياطين والأموات والوحوش +2 هجوم و+2 دفاع حتى نهاية المباراة.',
   },
   zoro_three_round_cut: {
     id: 'zoro_three_round_cut',

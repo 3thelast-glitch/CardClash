@@ -43,7 +43,7 @@ const modifierScenarios: ModifierScenario[] = [
   { label: 'كوريناي في الظهور', cardId: 'kurenai', expected: { opponentDefensePenalty: 1 } },
   { label: 'بروك ضد الأموات', cardId: 'brook', opponent: { race: 'undead' }, expected: { attackBonus: 1 } },
   { label: 'شيكامارو ضد محارب', cardId: 'shikamaru_nara', opponent: { cardClass: 'warrior' }, expected: { opponentAttackPenalty: 2 } },
-  { label: 'توغي بأمر التوقف', cardId: 'toge_inumaki', expected: { opponentAttackPenalty: 2, ownDefensePenalty: 1 } },
+  { label: 'توغي يجهز إضعاف الجولة التالية من محرك الجولة', cardId: 'toge_inumaki', expected: {} },
   { label: 'روك لي مع دفاع متاح', cardId: 'rock_lee', expected: { attackBonus: 2, ownDefensePenalty: 1 } },
   { label: 'روبين عندما دفاعها أقل', cardId: 'robin', expected: { attackBonus: 1, defenseBonus: 1 } },
   { label: 'بيكولو عند التأخر في الصحة', cardId: 'piccolo', context: { ownScore: 1, opponentScore: 2 }, expected: { defenseBonus: 1, ownHealthBonus: 1 } },
@@ -51,7 +51,7 @@ const modifierScenarios: ModifierScenario[] = [
   { label: 'إينو عند تعادل القوة', cardId: 'ino_yamanaka', expected: { opponentDefensePenalty: 2 } },
   { label: 'تانجيرو ضد شيطان', cardId: 'tanjiro_kamado', opponent: { race: 'demon' }, expected: { defenseBonus: 2 } },
   { label: 'إدوارد مع دفاع أعلى', cardId: 'edward_elric', ownBase: { attack: 18, defense: 21 }, expected: { attackBonus: 2, ownDefensePenalty: 1 } },
-  { label: 'ألفونس يجهّز حاجز الدفاع', cardId: 'alphonse_elric', expected: { ignoreFirstDefensePenalty: true } },
+  { label: 'ألفونس يجهز هالة الخير من محرك المباراة', cardId: 'alphonse_elric', expected: {} },
   { label: 'ميدوريا ضد كرت أقوى', cardId: 'izuku_midoriya', opponentBase: { attack: 22, defense: 19 }, expected: { attackBonus: 2, ownDefensePenalty: 1 } },
   { label: 'إنديفور ضد وحش', cardId: 'endeavor', opponent: { race: 'monster' }, expected: { attackBonus: 2, ownDefensePenalty: 1 } },
   { label: 'إينوسوكي ضد دفاع أعلى', cardId: 'inosuke_hashibira', opponentBase: { attack: 18, defense: 22 }, expected: { attackBonus: 2 } },
@@ -151,10 +151,12 @@ describe('professional card abilities', () => {
     expect(getProfessionalCombatModifiers(card('artorias'), card('opponent'), { attack: 21, defense: 18 }, { attack: 20, defense: 18 })).toEqual({});
   });
 
-  it('queues the three post-loss bonuses through the live game reducer', () => {
+  it('queues Chopper’s one-time attack bonus and the remaining post-loss bonuses through the live game reducer', () => {
     const opponent = card('opponent', { attack: 30, defense: 20 });
     const chopperResult = gameReducer(postLossState(card('chopper', { attack: 1, defense: 0 }), opponent), { type: 'PLAY_ROUND' });
-    expect(chopperResult.roundResults[0].playerHealthDelta).toBe(0);
+    expect(chopperResult.activeEffects).toContainEqual(expect.objectContaining({
+      kind: 'statModifier', targetSide: 'player', data: { stat: 'attack', amount: 1 },
+    }));
 
     const cobyResult = gameReducer(postLossState(card('coby', { attack: 1, defense: 0 }), opponent), { type: 'PLAY_ROUND' });
     expect(cobyResult.activeEffects).toContainEqual(expect.objectContaining({
@@ -165,13 +167,47 @@ describe('professional card abilities', () => {
     expect(akiResult.activeEffects).toContainEqual(expect.objectContaining({
       kind: 'statModifier', targetSide: 'player', data: { stat: 'attack', amount: 1 },
     }));
-    expect(getPostLossProfessionalBonus(card('chopper'))).toEqual({ health: 1 });
+    expect(getPostLossProfessionalBonus(card('chopper'))).toEqual({ attack: 1 });
   });
 
-  it('enforces Alphonse protection during live round resolution', () => {
-    const opponent = card('opponent', { attack: 10, defense: 10 });
-    const alphonse = determineRoundWinner(card('alphonse_elric', { attack: 10, defense: 10 }), opponent, [effect('defense-debuff', 'defense', -5)]);
-    expect(alphonse.botDamage).toBe(0);
+  it('grants Chopper only one +1 attack boost after his first loss', () => {
+    const chopper = card('chopper', { attack: 4, defense: 0 });
+    const state: GameState = {
+      ...postLossState(chopper, card('first-opponent', { attack: 30, defense: 20 })),
+      playerDeck: [chopper, card('chopper-next', { attack: 10, defense: 8 }), card('third-player', { attack: 10, defense: 8 })],
+      botDeck: [card('first-opponent', { attack: 30, defense: 20 }), card('second-opponent', { attack: 30, defense: 20 }), card('third-opponent', { attack: 30, defense: 20 })],
+      totalRounds: 3,
+    };
+    const firstRound = gameReducer(state, { type: 'PLAY_ROUND' });
+    const secondRound = gameReducer(gameReducer(firstRound, { type: 'NEXT_ROUND', payload: { fromRound: 0 } }), { type: 'PLAY_ROUND' });
+    expect(secondRound.roundResults[1].playerBaseDamage).toBe(11);
+    const thirdRound = gameReducer(gameReducer(secondRound, { type: 'NEXT_ROUND', payload: { fromRound: 1 } }), { type: 'PLAY_ROUND' });
+    expect(thirdRound.roundResults[2].playerBaseDamage).toBe(10);
+  });
+
+  it('applies Toge’s −2 attack only in the next round after Toge wins', () => {
+    const toge = card('toge_inumaki', { attack: 16, defense: 10 });
+    const state: GameState = {
+      ...postLossState(toge, card('weak-opponent', { attack: 5, defense: 0 })),
+      playerDeck: [toge, card('player-next', { attack: 10, defense: 8 })],
+      botDeck: [card('weak-opponent', { attack: 5, defense: 0 }), card('penalized-opponent', { attack: 12, defense: 8 })],
+    };
+    const firstRound = gameReducer(state, { type: 'PLAY_ROUND' });
+    const secondRound = gameReducer(gameReducer(firstRound, { type: 'NEXT_ROUND', payload: { fromRound: 0 } }), { type: 'PLAY_ROUND' });
+    expect(secondRound.roundResults[1].botBaseDamage).toBe(10);
+  });
+
+  it('records Bulma’s class-count scan as information without changing combat statistics', () => {
+    const bulma = card('bulma', { attack: 10, defense: 8 });
+    const state: GameState = {
+      ...postLossState(bulma, card('swordsman-opponent', { cardClass: 'swordsman', attack: 10, defense: 8 })),
+      playerDeck: [bulma, card('player-next')],
+      botDeck: [card('swordsman-opponent', { cardClass: 'swordsman', attack: 10, defense: 8 }), card('mage-opponent', { cardClass: 'mage', attack: 10, defense: 8 })],
+    };
+    const resolved = gameReducer(state, { type: 'PLAY_ROUND' });
+    expect(resolved.roundResults[0].playerInfo).toContain('سياف: 1');
+    expect(resolved.roundResults[0].playerInfo).toContain('ساحر: 1');
+    expect(resolved.roundResults[0].playerBaseDamage).toBe(10);
   });
 
   it('does not activate Yata Mirror in the first round', () => {

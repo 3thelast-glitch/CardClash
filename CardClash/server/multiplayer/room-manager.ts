@@ -46,6 +46,11 @@ export interface RoundResult {
   p2FactionAdvantage: 'strong' | 'weak' | 'neutral';
   /** يرسل الخادم هذه الإشارة للطرفين لتبديل بطاقة الجولة التالية في ترتيبهما المحلي. */
   nextRoundCardsSwapped?: boolean;
+  nextRoundP1AttackBonus?: number;
+  nextRoundP2AttackBonus?: number;
+  /** كشف بولما خاص بصاحب البطاقة؛ لا يرسل للخصم داخل payload النتيجة. */
+  p1PersonalInsight?: string;
+  p2PersonalInsight?: string;
 }
 
 // ─── Room ────────────────────────────────────────────────────────────────────────
@@ -88,6 +93,23 @@ function hasAllMightAppeared(deck: any[] | undefined, roundIndex: number): boole
   return Boolean(deck?.slice(0, roundIndex + 1).some(card => card?.id === 'all_might'));
 }
 
+function hasCardAppeared(deck: any[] | undefined, roundIndex: number, cardId: string): boolean {
+  return Boolean(deck?.slice(0, roundIndex + 1).some(card => card?.id === cardId));
+}
+
+const KAIDO_AURA_RACES = new Set(['orc', 'dragon', 'demon', 'undead', 'monster']);
+const CLASS_LABELS: Record<string, string> = { warrior: 'محارب', knight: 'فارس', mage: 'ساحر', archer: 'رامي', berserker: 'ضاري', paladin: 'بالادين', swordsman: 'سياف', fighter: 'مقاتل', guardian: 'حارس', healer: 'طبيب' };
+
+function buildBulmaScan(opponentDeck: any[] | undefined): string {
+  const counts = (opponentDeck ?? []).reduce<Record<string, number>>((result, card) => {
+    const cardClass = card?.cardClass;
+    if (typeof cardClass === 'string') result[cardClass] = (result[cardClass] ?? 0) + 1;
+    return result;
+  }, {});
+  const summary = Object.entries(counts).map(([cardClass, count]) => `${CLASS_LABELS[cardClass] ?? cardClass}: ${count}`).join('، ');
+  return `ماسح بولما — فئات الخصم: ${summary || 'لا توجد كروت'}`;
+}
+
 function resolveCards(
   roundIndex: number,
   rawP1Card: any,
@@ -96,9 +118,10 @@ function resolveCards(
   p2Score: number,
   p1Deck?: any[],
   p2Deck?: any[],
-  previousP1Card?: any,
-  previousP2Card?: any,
+  previousRound?: RoundResult,
 ): RoundResult {
+  const previousP1Card = previousRound?.p1Card;
+  const previousP2Card = previousRound?.p2Card;
   // مرآة ياتا لا تنسخ شيئاً في الجولة الأولى، لغياب كرت الخصم السابق.
   const yataP1Card = rawP2Card?.id === 'itachi_uchiha' && previousP1Card
     ? { ...rawP1Card, defense: previousP1Card.defense }
@@ -108,15 +131,23 @@ function resolveCards(
     : rawP2Card;
   const p1AllMightAura = hasAllMightAppeared(p1Deck, roundIndex);
   const p2AllMightAura = hasAllMightAppeared(p2Deck, roundIndex);
+  const p1KaidoAura = hasCardAppeared(p1Deck, roundIndex, 'kaido');
+  const p2KaidoAura = hasCardAppeared(p2Deck, roundIndex, 'kaido');
+  const p1AlphonseAura = hasCardAppeared(p1Deck, roundIndex, 'alphonse_elric') && p1Score <= p2Score - 3;
+  const p2AlphonseAura = hasCardAppeared(p2Deck, roundIndex, 'alphonse_elric') && p2Score <= p1Score - 3;
+  const p1MakimaControl = yataP1Card?.id === 'makima' && ['monster', 'demon'].includes(yataP2Card?.race);
+  const p2MakimaControl = yataP2Card?.id === 'makima' && ['monster', 'demon'].includes(yataP1Card?.race);
+  const p1TogePenalty = previousRound?.winner === 'player1' && previousP1Card?.id === 'toge_inumaki' ? 2 : 0;
+  const p2TogePenalty = previousRound?.winner === 'player2' && previousP2Card?.id === 'toge_inumaki' ? 2 : 0;
   const p1Card = {
     ...yataP1Card,
-    attack: Math.max(0, (yataP1Card.attack ?? 0) + (p1AllMightAura && getCardAlignment(yataP1Card) === 'good' ? 3 : 0)),
-    defense: Math.max(0, (yataP1Card.defense ?? 0) - (p2AllMightAura && getCardAlignment(yataP1Card) === 'evil' ? 3 : 0)),
+    attack: Math.max(0, (yataP1Card.attack ?? 0) + (p1MakimaControl ? 4 : 0) - (p2MakimaControl ? 4 : 0) - p2TogePenalty + (p1KaidoAura && KAIDO_AURA_RACES.has(yataP1Card.race) ? 2 : 0) + (p1AlphonseAura && getCardAlignment(yataP1Card) === 'good' ? 2 : 0) + (p1AllMightAura && getCardAlignment(yataP1Card) === 'good' ? 3 : 0)),
+    defense: Math.max(0, (yataP1Card.defense ?? 0) + (p1KaidoAura && KAIDO_AURA_RACES.has(yataP1Card.race) ? 2 : 0) - (p2AllMightAura && getCardAlignment(yataP1Card) === 'evil' ? 3 : 0)),
   };
   const p2Card = {
     ...yataP2Card,
-    attack: Math.max(0, (yataP2Card.attack ?? 0) + (p2AllMightAura && getCardAlignment(yataP2Card) === 'good' ? 3 : 0)),
-    defense: Math.max(0, (yataP2Card.defense ?? 0) - (p1AllMightAura && getCardAlignment(yataP2Card) === 'evil' ? 3 : 0)),
+    attack: Math.max(0, (yataP2Card.attack ?? 0) + (p2MakimaControl ? 4 : 0) - (p1MakimaControl ? 4 : 0) - p1TogePenalty + (p2KaidoAura && KAIDO_AURA_RACES.has(yataP2Card.race) ? 2 : 0) + (p2AlphonseAura && getCardAlignment(yataP2Card) === 'good' ? 2 : 0) + (p2AllMightAura && getCardAlignment(yataP2Card) === 'good' ? 3 : 0)),
+    defense: Math.max(0, (yataP2Card.defense ?? 0) + (p2KaidoAura && KAIDO_AURA_RACES.has(yataP2Card.race) ? 2 : 0) - (p1AllMightAura && getCardAlignment(yataP2Card) === 'evil' ? 3 : 0)),
   };
   const p1FactionAdvantage = getFactionAdvantage(p1Card.race ?? '', p2Card.race ?? '');
   const p2FactionAdvantage = getFactionAdvantage(p2Card.race ?? '', p1Card.race ?? '');
@@ -144,6 +175,8 @@ function resolveCards(
     advantage,
     p1FactionAdvantage,
     p2FactionAdvantage,
+    p1PersonalInsight: rawP1Card?.id === 'bulma' ? buildBulmaScan(p2Deck) : undefined,
+    p2PersonalInsight: rawP2Card?.id === 'bulma' ? buildBulmaScan(p1Deck) : undefined,
   };
 }
 
@@ -285,13 +318,26 @@ export class RoomManager {
         room.p2Score,
         room.player1.cards,
         room.player2.cards,
-        room.roundHistory.at(-1)?.p1Card,
-        room.roundHistory.at(-1)?.p2Card,
+        room.roundHistory.at(-1),
       );
       room.p1Score = result.p1Score;
       room.p2Score = result.p2Score;
-      room.roundHistory.push(result);
       const nextRoundIndex = roundIndex + 1;
+      const p1FirstLossWithChopper = room.currentRound.p1Card.card?.id === 'chopper'
+        && result.winner === 'player2'
+        && !room.roundHistory.some(item => item.winner === 'player2');
+      const p2FirstLossWithChopper = room.currentRound.p2Card.card?.id === 'chopper'
+        && result.winner === 'player1'
+        && !room.roundHistory.some(item => item.winner === 'player1');
+      if (nextRoundIndex < room.totalRounds && p1FirstLossWithChopper && room.player1.cards?.[nextRoundIndex]) {
+        room.player1.cards[nextRoundIndex] = { ...room.player1.cards[nextRoundIndex], attack: (room.player1.cards[nextRoundIndex].attack ?? 0) + 1 };
+        result.nextRoundP1AttackBonus = 1;
+      }
+      if (nextRoundIndex < room.totalRounds && p2FirstLossWithChopper && room.player2.cards?.[nextRoundIndex]) {
+        room.player2.cards[nextRoundIndex] = { ...room.player2.cards[nextRoundIndex], attack: (room.player2.cards[nextRoundIndex].attack ?? 0) + 1 };
+        result.nextRoundP2AttackBonus = 1;
+      }
+      room.roundHistory.push(result);
       const p1TriggersArtorias = room.currentRound.p1Card.card?.id === 'artorias'
         && (room.currentRound.p1Card.card.attack ?? 0) - (room.currentRound.p2Card.card.defense ?? 0) >= 4;
       const p2TriggersArtorias = room.currentRound.p2Card.card?.id === 'artorias'

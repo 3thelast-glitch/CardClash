@@ -12,6 +12,8 @@ export type LanRoundResult = {
   hostScore: number;
   guestScore: number;
   advantage: 'faction' | 'attack' | 'draw';
+  /** معلومة خاصة بصاحب بولما، لا تدخل في بيانات الخصم المشتركة. */
+  personalInsight?: string;
   comparison?: {
     hostDamage: number;
     guestDamage: number;

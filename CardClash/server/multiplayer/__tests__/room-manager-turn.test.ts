@@ -150,4 +150,96 @@ describe('RoomManager turn protocol', () => {
     const yataResult = manager.revealCard(guest.id, 1, currentGuest);
     expect(yataResult?.p2Card.defense).toBe(7);
   });
+
+  it('applies Makima control and keeps Bulma’s class scan private in the web-room result', () => {
+    const manager = new RoomManager();
+    const host = player('host-makima-bulma-test');
+    const guest = player('guest-makima-bulma-test');
+    manager.createRoom(host, 'MAKIMA');
+    manager.joinRoom('MAKIMA', guest);
+    const makima = card(18, 'human', { id: 'makima', defense: 8 });
+    const monster = card(21, 'monster', { id: 'monster-opponent', defense: 8 });
+    manager.setPlayerCards(host.id, [makima], 1);
+    manager.setPlayerCards(guest.id, [monster], 1);
+    manager.setPlayerReady(host.id, true);
+    manager.setPlayerReady(guest.id, true);
+    manager.startMatch('MAKIMA');
+
+    manager.revealCard(host.id, 0, makima);
+    const makimaResult = manager.revealCard(guest.id, 0, monster);
+    expect(makimaResult?.p1Card.attack).toBe(22);
+    expect(makimaResult?.p2Card.attack).toBe(17);
+
+    const scanManager = new RoomManager();
+    const scanHost = player('host-bulma-test');
+    const scanGuest = player('guest-bulma-test');
+    scanManager.createRoom(scanHost, 'BULMA1');
+    scanManager.joinRoom('BULMA1', scanGuest);
+    const bulma = card(10, 'human', { id: 'bulma', defense: 8 });
+    scanManager.setPlayerCards(scanHost.id, [bulma, card(10, 'human', { id: 'host-next' })], 2);
+    scanManager.setPlayerCards(scanGuest.id, [card(10, 'elf', { id: 'guest-swordsman', cardClass: 'swordsman' }), card(10, 'elf', { id: 'guest-mage', cardClass: 'mage' })], 2);
+    scanManager.setPlayerReady(scanHost.id, true);
+    scanManager.setPlayerReady(scanGuest.id, true);
+    scanManager.startMatch('BULMA1');
+    scanManager.revealCard(scanHost.id, 0, bulma);
+    const bulmaResult = scanManager.revealCard(scanGuest.id, 0, card(10, 'elf', { id: 'guest-swordsman', cardClass: 'swordsman' }));
+    expect(bulmaResult?.p1PersonalInsight).toContain('سياف: 1');
+    expect(bulmaResult?.p2PersonalInsight).toBeUndefined();
+  });
+
+  it('applies Kaido, Alphonse, Chopper, and Toge at their required web-room moments', () => {
+    const manager = new RoomManager();
+    const host = player('host-pro-sequence-test');
+    const guest = player('guest-pro-sequence-test');
+    manager.createRoom(host, 'PROSEQ');
+    manager.joinRoom('PROSEQ', guest);
+    const kaido = card(10, 'dragon', { id: 'kaido', defense: 10 });
+    const dragonFollower = card(10, 'dragon', { id: 'dragon-follower', defense: 10 });
+    const toge = card(16, 'human', { id: 'toge_inumaki', defense: 10 });
+    const chopper = card(3, 'human', { id: 'chopper', defense: 0 });
+    const enemy = card(12, 'elf', { id: 'enemy', defense: 8 });
+    manager.setPlayerCards(host.id, [kaido, dragonFollower, toge, chopper, card(10, 'human', { id: 'chopper-next', defense: 8 })], 5);
+    manager.setPlayerCards(guest.id, [enemy, enemy, card(5, 'elf', { id: 'toge-target', defense: 0 }), card(30, 'elf', { id: 'chopper-winner', defense: 20 }), enemy], 5);
+    manager.setPlayerReady(host.id, true);
+    manager.setPlayerReady(guest.id, true);
+    manager.startMatch('PROSEQ');
+
+    manager.revealCard(host.id, 0, kaido);
+    manager.revealCard(guest.id, 0, enemy);
+    manager.revealCard(host.id, 1, dragonFollower);
+    const kaidoResult = manager.revealCard(guest.id, 1, enemy);
+    expect(kaidoResult?.p1Card.attack).toBe(12);
+    expect(kaidoResult?.p1Card.defense).toBe(12);
+
+    manager.revealCard(host.id, 2, toge);
+    manager.revealCard(guest.id, 2, card(5, 'elf', { id: 'toge-target', defense: 0 }));
+    manager.revealCard(host.id, 3, chopper);
+    const togeResult = manager.revealCard(guest.id, 3, card(30, 'elf', { id: 'chopper-winner', defense: 20 }));
+    expect(togeResult?.p2Card.attack).toBe(28);
+    expect(togeResult?.nextRoundP1AttackBonus).toBe(1);
+    expect(manager.getRoom('PROSEQ')?.player1?.cards?.[4].attack).toBe(11);
+  });
+
+  it('activates Alphonse’s good-card attack aura only at a three-point health deficit in web rooms', () => {
+    const manager = new RoomManager();
+    const host = player('host-alphonse-test');
+    const guest = player('guest-alphonse-test');
+    manager.createRoom(host, 'ALPHON');
+    manager.joinRoom('ALPHON', guest);
+    const alphonse = card(10, 'human', { id: 'alphonse_elric', alignment: 'good', defense: 8 });
+    const opponent = card(10, 'elf', { id: 'opponent', defense: 8 });
+    manager.setPlayerCards(host.id, [alphonse, alphonse, alphonse, alphonse], 4);
+    manager.setPlayerCards(guest.id, [opponent, opponent, opponent, opponent], 4);
+    manager.setPlayerReady(host.id, true);
+    manager.setPlayerReady(guest.id, true);
+    manager.startMatch('ALPHON');
+    const room = manager.getRoom('ALPHON');
+    if (!room) throw new Error('Expected test room');
+    room.p1Score = 1;
+    room.p2Score = 4;
+
+    manager.revealCard(host.id, 0, alphonse);
+    const result = manager.revealCard(guest.id, 0, opponent);
+    expect(result?.p1Card.attack).toBe(12);
+  });
 });

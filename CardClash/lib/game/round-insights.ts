@@ -110,6 +110,12 @@ export function buildRoundEventLog(result: RoundResult): RoundInsight[] {
       tone: 'negative',
     });
   }
+  if (result.playerInfo) {
+    events.push({ id: 'player-info', text: result.playerInfo, tone: 'accent' });
+  }
+  if (result.botInfo) {
+    events.push({ id: 'bot-info', text: result.botInfo, tone: 'neutral' });
+  }
 
   const playerHealth = formatHealthDelta('player', result.playerHealthDelta);
   const botHealth = formatHealthDelta('bot', result.botHealthDelta);

@@ -62,4 +62,17 @@ describe('LAN ability adapter', () => {
 
     expect(secondRound.roundResult?.botCard.defense).toBe(7);
   });
+
+  it('keeps Bulma’s class scan in the local Wi-Fi result but strips it from the shared snapshot', () => {
+    const bulma = card('bulma', 10, 8);
+    const result = resolveLanAbilityRound({
+      ...match(),
+      hostDeck: [bulma, card('host-next', 10, 8)],
+      guestDeck: [card('guest-swordsman', 10, 8), { ...card('guest-mage', 10, 8), cardClass: 'mage' }],
+      totalRounds: 2,
+    });
+
+    expect(result.roundResult?.playerInfo).toContain('ساحر: 1');
+    expect(result.snapshot.roundResults[0].playerInfo).toBeUndefined();
+  });
 });

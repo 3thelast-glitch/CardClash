@@ -338,13 +338,21 @@ export class MultiplayerWebSocketServer {
       });
     }
     if (result) {
-      this.broadcastToRoom(room.id, { type: 'ROUND_RESULT', payload: result });
+      const { p1PersonalInsight, p2PersonalInsight, ...publicResult } = result;
+      if (room.player1) this.sendToPlayer(room.player1.id, {
+        type: 'ROUND_RESULT',
+        payload: { ...publicResult, personalInsight: p1PersonalInsight },
+      });
+      if (room.player2) this.sendToPlayer(room.player2.id, {
+        type: 'ROUND_RESULT',
+        payload: { ...publicResult, personalInsight: p2PersonalInsight },
+      });
       if (roomManager.isGameOver(room)) {
         const gameOverPayload = {
           winner: result.p1Score > result.p2Score ? 'player1' : result.p2Score > result.p1Score ? 'player2' : 'draw',
           p1Score: result.p1Score,
           p2Score: result.p2Score,
-          roundHistory: room.roundHistory,
+          roundHistory: room.roundHistory.map(({ p1PersonalInsight: _p1Insight, p2PersonalInsight: _p2Insight, ...round }) => round),
         };
         this.broadcastToRoom(room.id, { type: 'GAME_OVER', payload: gameOverPayload });
         roomManager.finishRoom(room.id);

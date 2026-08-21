@@ -14,8 +14,11 @@ import {
 import { useAbilityActivationOverlay } from '../../components/game/AbilityActivationOverlay';
 import { ABILITY_DETAILS } from './ability-details';
 import {
+  buildAlphonseGoodAlignmentEffects,
   applyYataMirrorDefense,
   buildAllMightAlignmentEffects,
+  buildBulmaClassScan,
+  buildKaidoFactionEffects,
   getPostLossProfessionalBonus,
   isObitoCard,
   shouldArtoriasSwapNextRound,
@@ -221,6 +224,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...buildAllMightAlignmentEffects(deckWithPassives, 'player', deckWithPassives.length),
         ...buildAllMightAlignmentEffects(botDeckWithPassives, 'bot', deckWithPassives.length),
       ];
+      const kaidoEffects = [
+        ...buildKaidoFactionEffects(deckWithPassives, 'player', deckWithPassives.length),
+        ...buildKaidoFactionEffects(botDeckWithPassives, 'bot', deckWithPassives.length),
+      ];
+      const alphonseEffects = [
+        ...buildAlphonseGoodAlignmentEffects(deckWithPassives, 'player', deckWithPassives.length),
+        ...buildAlphonseGoodAlignmentEffects(botDeckWithPassives, 'bot', deckWithPassives.length),
+      ];
 
       return {
         ...state,
@@ -234,7 +245,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         botMaxHealth: botDeckWithPassives.length,
         roundResults: [],
         forcedMatchOutcome: undefined,
-        activeEffects: [...turinEffects, ...allMightEffects],
+        activeEffects: [...turinEffects, ...allMightEffects, ...kaidoEffects, ...alphonseEffects],
         playerAbilities: state.abilitiesEnabled
           ? (assignedAbilities
               ? assignedAbilities.map(type => ({ type, used: false }))
@@ -365,6 +376,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const queueProfessionalPostLossBonus = (card: Card, side: Side) => {
         const bonus = getPostLossProfessionalBonus(card);
         if (!bonus || roundNumber >= state.totalRounds) return;
+        const alreadyLost = state.roundResults.some(result => side === 'player'
+          ? result.winner === 'bot'
+          : result.winner === 'player');
+        if (card.id === 'chopper' && alreadyLost) return;
         if (bonus.health) {
           if (side === 'player') playerHpDelta += bonus.health;
           else botHpDelta += bonus.health;
@@ -423,6 +438,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
       queueArtoriasSwap(playerCard, botCard, 'player');
       queueArtoriasSwap(botCard, playerCard, 'bot');
+
+      const queueTogeNextRoundPenalty = (card: Card, side: Side) => {
+        if (card.id !== 'toge_inumaki' || winner !== side || roundNumber >= state.totalRounds) return;
+        effectsToAdd.push({
+          id: `toge-next-round-attack-${side}-${roundNumber}`,
+          kind: 'statModifier',
+          sourceSide: side,
+          targetSide: getOppositeSide(side),
+          createdAtRound: roundNumber + 1,
+          expiresAtRound: roundNumber + 1,
+          priority: EFFECT_PRIORITY.statModifiers,
+          data: { stat: 'attack', amount: -2 },
+        });
+      };
+      queueTogeNextRoundPenalty(playerCard, 'player');
+      queueTogeNextRoundPenalty(botCard, 'bot');
 
       if (!turinForcedLoss) {
         const orderedEffects = [...activeEffects].sort((a, b) => a.priority - b.priority);
@@ -651,6 +682,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         playerHealthDelta: playerRoundHealthDelta,
         botHealthDelta: botRoundHealthDelta,
         botAbilityUsed: state.botAbilityUsedThisRound,
+        playerInfo: playerCard.id === 'bulma' ? buildBulmaClassScan(state.botDeck) : undefined,
+        botInfo: botCard.id === 'bulma' ? buildBulmaClassScan(state.playerDeck) : undefined,
         winner: result.winner,
       };
 

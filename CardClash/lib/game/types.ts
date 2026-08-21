@@ -231,6 +231,10 @@ export interface AbilityData {
   stat?: EffectStat;
   /** يقصر تعديل الإحصاء على كروت محاذاة محددة، مثل هالة أول مايت. */
   alignment?: CardAlignment;
+  /** يقصر تعديل الإحصاء على فصائل محددة، مثل هالة كايدو. */
+  races?: Race[];
+  /** لا يطبق التأثير إلا عند التأخر في الصحة بهذا المقدار أو أكثر. */
+  requiresHealthDeficit?: number;
   targetClass?: CardClass | string;
   abilityType?: AbilityType;
 }
@@ -342,6 +346,10 @@ export interface RoundResult {
   botHealthDelta: number;
   /** قدرة البوت التي فُعّلت قبل حسم هذه الجولة إن وُجدت. */
   botAbilityUsed?: AbilityType;
+  /** معلومة كشف خاصة بصاحب البطاقة، مثل ماسح بولما. */
+  playerInfo?: string;
+  /** معلومة كشف خاصة بصاحب بطاقة البوت في الأنماط المحلية أو الشبكية. */
+  botInfo?: string;
   winner: 'player' | 'bot' | 'draw';
 }
 

@@ -60,23 +60,28 @@ export function applySpecialAbilityModifications(
     ? getCharacterAbility(opponentCard)?.statModifiers
     : undefined;
 
-  if (ownModifiers?.cancelOpponentDefense && oppStats) {
+  const ownModifierApplies = !ownModifiers?.opponentRaces
+    || !!opponentCard && ownModifiers.opponentRaces.includes(opponentCard.race);
+  const opponentModifierApplies = !opponentModifiers?.opponentRaces
+    || !!ownCard && opponentModifiers.opponentRaces.includes(ownCard.race);
+
+  if (ownModifierApplies && ownModifiers?.cancelOpponentDefense && oppStats) {
     oppStats.defense = 0;
   }
-  if (!oppStats && opponentModifiers?.cancelOpponentDefense) {
+  if (!oppStats && opponentModifierApplies && opponentModifiers?.cancelOpponentDefense) {
     ownStats.defense = 0;
   }
 
-  if (ownModifiers?.defenseOverride !== undefined) {
+  if (ownModifierApplies && ownModifiers?.defenseOverride !== undefined) {
     ownStats.defense = ownModifiers.defenseOverride;
   }
-  ownStats.attack += ownModifiers?.attackBonus ?? 0;
-  ownStats.defense += ownModifiers?.defenseBonus ?? 0;
+  ownStats.attack += ownModifierApplies ? (ownModifiers?.attackBonus ?? 0) : 0;
+  ownStats.defense += ownModifierApplies ? (ownModifiers?.defenseBonus ?? 0) : 0;
 
-  if (ownModifiers?.opponentAttackPenalty && oppStats) {
+  if (ownModifierApplies && ownModifiers?.opponentAttackPenalty && oppStats) {
     oppStats.attack = Math.max(0, oppStats.attack - ownModifiers.opponentAttackPenalty);
   }
-  if (!oppStats && opponentModifiers?.opponentAttackPenalty) {
+  if (!oppStats && opponentModifierApplies && opponentModifiers?.opponentAttackPenalty) {
     ownStats.attack = Math.max(0, ownStats.attack - opponentModifiers.opponentAttackPenalty);
   }
 
@@ -181,6 +186,9 @@ export function getEffectiveStats(
     switch (eff.kind) {
       case 'statModifier': {
         if (data.alignment && ownCard && data.alignment !== getCardAlignment(ownCard)) break;
+        if (Array.isArray(data.races) && ownCard && !data.races.includes(ownCard.race)) break;
+        if (typeof data.requiresHealthDeficit === 'number'
+          && (context.ownScore === undefined || context.opponentScore === undefined || context.ownScore > context.opponentScore - data.requiresHealthDeficit)) break;
         // تجاهل elementalOverride — لا يؤثر على القيم المعروضة
         if (data.stat === 'elementalOverride') break;
 

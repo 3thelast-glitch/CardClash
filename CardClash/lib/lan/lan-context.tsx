@@ -243,14 +243,15 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
       : roundResult.playerFactionAdvantage === 'strong' || roundResult.botFactionAdvantage === 'strong'
         ? 'faction'
         : 'attack';
-    const result: LanRoundResult = {
+      const result: LanRoundResult = {
       roundIndex: next.currentRound,
       hostCard: roundResult.playerCard,
       guestCard: roundResult.botCard,
       winner,
       hostScore: snapshot.hostScore,
       guestScore: snapshot.guestScore,
-      advantage,
+        advantage,
+        personalInsight: roundResult.playerInfo,
       comparison: {
         hostDamage: roundResult.playerDamage,
         guestDamage: roundResult.botDamage,
@@ -274,7 +275,8 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
       results: [...next.results, result],
     };
     updateMatch(() => resolved);
-    sendDirectEvent('LAN_ROUND_RESULT', { result, snapshot });
+    const guestResult: LanRoundResult = { ...result, personalInsight: roundResult.botInfo };
+    sendDirectEvent('LAN_ROUND_RESULT', { result: guestResult, snapshot });
   }, [sendDirectEvent, updateMatch]);
 
   const handleGameEvent = useCallback((event: string, data: Record<string, unknown>) => {
