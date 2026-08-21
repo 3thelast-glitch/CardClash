@@ -281,10 +281,10 @@ export class RoomManager {
       room.p2Score = result.p2Score;
       room.roundHistory.push(result);
       const nextRoundIndex = roundIndex + 1;
-      const p1TriggersArtorias = result.p1Card?.id === 'artorias'
-        && (result.p1Card.attack ?? 0) - (result.p2Card.defense ?? 0) >= 4;
-      const p2TriggersArtorias = result.p2Card?.id === 'artorias'
-        && (result.p2Card.attack ?? 0) - (result.p1Card.defense ?? 0) >= 4;
+      const p1TriggersArtorias = room.currentRound.p1Card.card?.id === 'artorias'
+        && (room.currentRound.p1Card.card.attack ?? 0) - (room.currentRound.p2Card.card.defense ?? 0) >= 4;
+      const p2TriggersArtorias = room.currentRound.p2Card.card?.id === 'artorias'
+        && (room.currentRound.p2Card.card.attack ?? 0) - (room.currentRound.p1Card.card.defense ?? 0) >= 4;
       if (nextRoundIndex < room.totalRounds && p1TriggersArtorias !== p2TriggersArtorias && room.player1.cards && room.player2.cards) {
         const nextP1Card = room.player1.cards[nextRoundIndex];
         room.player1.cards[nextRoundIndex] = room.player2.cards[nextRoundIndex];
