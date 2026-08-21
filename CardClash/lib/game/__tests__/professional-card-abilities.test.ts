@@ -55,7 +55,7 @@ const modifierScenarios: ModifierScenario[] = [
   { label: 'ميدوريا ضد كرت أقوى', cardId: 'izuku_midoriya', opponentBase: { attack: 22, defense: 19 }, expected: { attackBonus: 2, ownDefensePenalty: 1 } },
   { label: 'إنديفور ضد وحش', cardId: 'endeavor', opponent: { race: 'monster' }, expected: { attackBonus: 2, ownDefensePenalty: 1 } },
   { label: 'إينوسوكي ضد دفاع أعلى', cardId: 'inosuke_hashibira', opponentBase: { attack: 18, defense: 22 }, expected: { attackBonus: 2 } },
-  { label: 'إيتاتشي يجهز إلغاء تعزيز الخصم', cardId: 'itachi_uchiha', expected: { cancelFirstOpponentAttackBuff: true } },
+  { label: 'إيتاتشي يفعّل مرآة ياتا من محرك الجولة', cardId: 'itachi_uchiha', expected: {} },
   { label: 'إيرين عند التأخر في الصحة', cardId: 'eren_yeager', context: { ownScore: 1, opponentScore: 2 }, expected: { attackBonus: 1, defenseBonus: 2 } },
   { label: 'إيتشيغو عند تعادل القوة', cardId: 'ichigo_kurosaki', expected: { attackBonus: 3 } },
   { label: 'بين بدفع شينرا', cardId: 'pain_nagato', expected: { opponentAttackPenalty: 2, opponentDefensePenalty: 1, ownDefensePenalty: 1 } },
@@ -168,16 +168,39 @@ describe('professional card abilities', () => {
     expect(getPostLossProfessionalBonus(card('chopper'))).toEqual({ health: 1 });
   });
 
-  it('enforces Alphonse and Itachi protections during live round resolution', () => {
+  it('enforces Alphonse protection during live round resolution', () => {
     const opponent = card('opponent', { attack: 10, defense: 10 });
     const alphonse = determineRoundWinner(card('alphonse_elric', { attack: 10, defense: 10 }), opponent, [effect('defense-debuff', 'defense', -5)]);
     expect(alphonse.botDamage).toBe(0);
+  });
 
-    const itachi = determineRoundWinner(card('itachi_uchiha', { attack: 10, defense: 10 }), opponent, [], [
-      { ...effect('attack-buff-1', 'attack', 5), targetSide: 'bot' },
-      { ...effect('attack-buff-2', 'attack', 2), targetSide: 'bot' },
-    ]);
-    expect(itachi.botBaseDamage).toBe(12);
+  it('does not activate Yata Mirror in the first round', () => {
+    const itachi = card('itachi_uchiha', { attack: 10, defense: 10 });
+    const openingOpponent = card('opening-opponent', { attack: 8, defense: 6 });
+    const state: GameState = {
+      ...postLossState(itachi, openingOpponent),
+      playerDeck: [itachi, card('player-next')],
+      botDeck: [openingOpponent, card('bot-next', { defense: 24 })],
+    };
+
+    const firstRound = gameReducer(state, { type: 'PLAY_ROUND' });
+    expect(firstRound.roundResults[0].botCard.defense).toBe(6);
+  });
+
+  it('copies the previous opponent defense when Itachi appears from round two', () => {
+    const previousOpponent = card('previous-opponent', { attack: 8, defense: 7 });
+    const currentOpponent = card('current-opponent', { attack: 12, defense: 24 });
+    const itachi = card('itachi_uchiha', { attack: 16, defense: 12 });
+    const state: GameState = {
+      ...postLossState(card('opening-player', { attack: 10, defense: 8 }), previousOpponent),
+      playerDeck: [card('opening-player', { attack: 10, defense: 8 }), itachi],
+      botDeck: [previousOpponent, currentOpponent],
+    };
+
+    const firstRound = gameReducer(state, { type: 'PLAY_ROUND' });
+    const nextRound = gameReducer(firstRound, { type: 'NEXT_ROUND', payload: { fromRound: 0 } });
+    const secondRound = gameReducer(nextRound, { type: 'PLAY_ROUND' });
+    expect(secondRound.roundResults[1].botCard.defense).toBe(7);
   });
 
   it('applies All Might’s alignment aura from his appearance through the rest of the match', () => {

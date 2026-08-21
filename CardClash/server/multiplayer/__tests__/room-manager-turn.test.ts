@@ -125,4 +125,29 @@ describe('RoomManager turn protocol', () => {
     expect(room?.player1?.cards?.[1].id).toBe('guest-next');
     expect(room?.player2?.cards?.[1].id).toBe('host-next');
   });
+
+  it('copies the prior opponent defense only when Itachi appears after the opening web-room round', () => {
+    const manager = new RoomManager();
+    const host = player('host-itachi-test');
+    const guest = player('guest-itachi-test');
+    manager.createRoom(host, 'YATA01');
+    manager.joinRoom('YATA01', guest);
+    const openingHost = card(10, 'human', { id: 'opening-host', defense: 8 });
+    const itachi = card(16, 'human', { id: 'itachi_uchiha', defense: 12 });
+    const previousGuest = card(8, 'orc', { id: 'previous-guest', defense: 7 });
+    const currentGuest = card(12, 'elf', { id: 'current-guest', defense: 23 });
+    manager.setPlayerCards(host.id, [openingHost, itachi], 2);
+    manager.setPlayerCards(guest.id, [previousGuest, currentGuest], 2);
+    manager.setPlayerReady(host.id, true);
+    manager.setPlayerReady(guest.id, true);
+    manager.startMatch('YATA01');
+
+    manager.revealCard(host.id, 0, openingHost);
+    const openingResult = manager.revealCard(guest.id, 0, previousGuest);
+    expect(openingResult?.p2Card.defense).toBe(7);
+
+    manager.revealCard(host.id, 1, itachi);
+    const yataResult = manager.revealCard(guest.id, 1, currentGuest);
+    expect(yataResult?.p2Card.defense).toBe(7);
+  });
 });

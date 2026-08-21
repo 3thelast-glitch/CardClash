@@ -50,7 +50,7 @@ export const PROFESSIONAL_CARD_ABILITIES: Record<string, ProfessionalAbilityDefi
   endeavor: definition('endeavor_hellflame_focus', 'endeavor', 'لهب جهنم المركز', 'ضد وحش أو ميت: +2 هجوم و−1 دفاع.'),
   inosuke_hashibira: definition('inosuke_predator_sense', 'inosuke_hashibira', 'حس المفترس', 'إذا كان دفاع الخصم أعلى من هجومه: +2 هجوم.'),
   aki_hayakawa: definition('aki_fog_contract', 'aki_hayakawa', 'عقد الضباب', 'بعد الخسارة: الكرت التالي +1 هجوم.'),
-  itachi_uchiha: definition('itachi_yata_mirror', 'itachi_uchiha', 'مرآة ياتا', 'ألغِ أول تعزيز هجوم للخصم هذه الجولة.'),
+  itachi_uchiha: definition('itachi_yata_mirror', 'itachi_uchiha', 'مرآة ياتا', 'عند الظهور من الجولة الثانية: يصبح دفاع كرت الخصم الحالي مساوياً لدفاع كرته في الجولة السابقة.'),
   eren_yeager: definition('eren_titan_hardening', 'eren_yeager', 'صلابة العملاق', 'عند التأخر في الصحة: +2 دفاع و+1 هجوم.'),
   ichigo_kurosaki: definition('ichigo_final_getsuga', 'ichigo_kurosaki', 'غيتسوغا الحاسمة', 'عند تعادل القوة: +3 هجوم هذه الجولة.'),
   pain_nagato: definition('pain_shinra_push', 'pain_nagato', 'دفع شينرا', '−2 هجوم و−1 دفاع للخصم؛ −1 دفاع لي.'),
@@ -108,6 +108,12 @@ export const isObitoCard = (card: Card) => card.id === 'obito_uchiha';
 export const shouldArtoriasSwapNextRound = (card: Card, opponentCard: Card) =>
   card.id === 'artorias' && card.attack - opponentCard.defense >= 4;
 
+/** مرآة ياتا: إيتاتشي ينسخ دفاع كرت الخصم في الجولة السابقة إلى كرته الحالية. */
+export const applyYataMirrorDefense = (ownerCard: Card, opponentCard: Card, previousOpponentCard?: Card) =>
+  ownerCard.id === 'itachi_uchiha' && previousOpponentCard
+    ? { ...opponentCard, defense: previousOpponentCard.defense }
+    : opponentCard;
+
 const isLowHealth = (context: ProfessionalCombatContext) =>
   context.ownScore !== undefined && context.opponentScore !== undefined && context.ownScore < context.opponentScore;
 
@@ -139,7 +145,7 @@ export function getProfessionalCombatModifiers(
     case 'midoriya_controlled_full_cowl': return ownBase.attack + ownBase.defense < opponentBase.attack + opponentBase.defense ? { attackBonus: 2, ownDefensePenalty: 1 } : {};
     case 'endeavor_hellflame_focus': return isRace(opponentCard, ['monster', 'undead']) ? { attackBonus: 2, ownDefensePenalty: 1 } : {};
     case 'inosuke_predator_sense': return opponentBase.defense > opponentBase.attack ? { attackBonus: 2 } : {};
-    case 'itachi_yata_mirror': return { cancelFirstOpponentAttackBuff: true };
+    case 'itachi_yata_mirror': return {};
     case 'eren_titan_hardening': return isLowHealth(context) ? { attackBonus: 1, defenseBonus: 2 } : {};
     case 'ichigo_final_getsuga': return ownBase.attack + ownBase.defense === opponentBase.attack + opponentBase.defense ? { attackBonus: 3 } : {};
     case 'pain_shinra_push': return { opponentAttackPenalty: 2, opponentDefensePenalty: 1, ownDefensePenalty: 1 };

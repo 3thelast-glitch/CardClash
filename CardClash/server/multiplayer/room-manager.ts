@@ -96,18 +96,27 @@ function resolveCards(
   p2Score: number,
   p1Deck?: any[],
   p2Deck?: any[],
+  previousP1Card?: any,
+  previousP2Card?: any,
 ): RoundResult {
+  // مرآة ياتا لا تنسخ شيئاً في الجولة الأولى، لغياب كرت الخصم السابق.
+  const yataP1Card = rawP2Card?.id === 'itachi_uchiha' && previousP1Card
+    ? { ...rawP1Card, defense: previousP1Card.defense }
+    : rawP1Card;
+  const yataP2Card = rawP1Card?.id === 'itachi_uchiha' && previousP2Card
+    ? { ...rawP2Card, defense: previousP2Card.defense }
+    : rawP2Card;
   const p1AllMightAura = hasAllMightAppeared(p1Deck, roundIndex);
   const p2AllMightAura = hasAllMightAppeared(p2Deck, roundIndex);
   const p1Card = {
-    ...rawP1Card,
-    attack: Math.max(0, (rawP1Card.attack ?? 0) + (p1AllMightAura && getCardAlignment(rawP1Card) === 'good' ? 3 : 0)),
-    defense: Math.max(0, (rawP1Card.defense ?? 0) - (p2AllMightAura && getCardAlignment(rawP1Card) === 'evil' ? 3 : 0)),
+    ...yataP1Card,
+    attack: Math.max(0, (yataP1Card.attack ?? 0) + (p1AllMightAura && getCardAlignment(yataP1Card) === 'good' ? 3 : 0)),
+    defense: Math.max(0, (yataP1Card.defense ?? 0) - (p2AllMightAura && getCardAlignment(yataP1Card) === 'evil' ? 3 : 0)),
   };
   const p2Card = {
-    ...rawP2Card,
-    attack: Math.max(0, (rawP2Card.attack ?? 0) + (p2AllMightAura && getCardAlignment(rawP2Card) === 'good' ? 3 : 0)),
-    defense: Math.max(0, (rawP2Card.defense ?? 0) - (p1AllMightAura && getCardAlignment(rawP2Card) === 'evil' ? 3 : 0)),
+    ...yataP2Card,
+    attack: Math.max(0, (yataP2Card.attack ?? 0) + (p2AllMightAura && getCardAlignment(yataP2Card) === 'good' ? 3 : 0)),
+    defense: Math.max(0, (yataP2Card.defense ?? 0) - (p1AllMightAura && getCardAlignment(yataP2Card) === 'evil' ? 3 : 0)),
   };
   const p1FactionAdvantage = getFactionAdvantage(p1Card.race ?? '', p2Card.race ?? '');
   const p2FactionAdvantage = getFactionAdvantage(p2Card.race ?? '', p1Card.race ?? '');
@@ -276,6 +285,8 @@ export class RoomManager {
         room.p2Score,
         room.player1.cards,
         room.player2.cards,
+        room.roundHistory.at(-1)?.p1Card,
+        room.roundHistory.at(-1)?.p2Card,
       );
       room.p1Score = result.p1Score;
       room.p2Score = result.p2Score;

@@ -14,6 +14,7 @@ import {
 import { useAbilityActivationOverlay } from '../../components/game/AbilityActivationOverlay';
 import { ABILITY_DETAILS } from './ability-details';
 import {
+  applyYataMirrorDefense,
   buildAllMightAlignmentEffects,
   getPostLossProfessionalBonus,
   isObitoCard,
@@ -265,6 +266,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const botCard    = (cardsAreSwapped ? state.playerDeck : state.botDeck)[state.currentRound];
       if (!playerCard || !botCard) return state;
 
+      // مرآة ياتا لا تعمل في الجولة الأولى، لأن سجل الجولة السابقة لا يكون موجوداً بعد.
+      const previousRound = state.roundResults.at(-1);
+      const resolvedPlayerCard = applyYataMirrorDefense(botCard, playerCard, previousRound?.playerCard);
+      const resolvedBotCard = applyYataMirrorDefense(playerCard, botCard, previousRound?.botCard);
+
       const playerEffects = activeEffects.filter(e => e.targetSide === 'player' || e.targetSide === 'all');
       const botEffects    = activeEffects.filter(e => e.targetSide === 'bot'    || e.targetSide === 'all');
       const isStatDebuff = (effect: Effect) => effect.kind === 'statModifier' && ((effect.data as AbilityData | undefined)?.amount ?? 0) < 0;
@@ -316,29 +322,29 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       } else if (starAdvantageEffect) {
         result = { winner: starAdvantageEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
       } else {
-        result = determineRoundWinner(playerCard, botCard, resolvedPlayerEffects, resolvedBotEffects, state.abilitiesEnabled, {
+        result = determineRoundWinner(resolvedPlayerCard, resolvedBotCard, resolvedPlayerEffects, resolvedBotEffects, state.abilitiesEnabled, {
           playerScore: state.playerScore,
           botScore: state.botScore,
         });
       }
 
       const winner = result.winner;
-      let updatedPlayerCard = playerCard;
+      let updatedPlayerCard = resolvedPlayerCard;
       if (winner === 'player') {
-        updatedPlayerCard = { ...applyPostBattlePassive(playerCard, 'win'), winState: 'win' };
+        updatedPlayerCard = { ...applyPostBattlePassive(resolvedPlayerCard, 'win'), winState: 'win' };
       } else if (winner === 'bot') {
-        updatedPlayerCard = { ...applyPostBattlePassive(playerCard, 'lose'), winState: 'lose' };
+        updatedPlayerCard = { ...applyPostBattlePassive(resolvedPlayerCard, 'lose'), winState: 'lose' };
       } else {
-        updatedPlayerCard = { ...applyPostBattlePassive(playerCard, 'draw'), winState: 'draw' };
+        updatedPlayerCard = { ...applyPostBattlePassive(resolvedPlayerCard, 'draw'), winState: 'draw' };
       }
 
-      let updatedBotCard = botCard;
+      let updatedBotCard = resolvedBotCard;
       if (winner === 'bot') {
-        updatedBotCard = { ...applyPostBattlePassive(botCard, 'win'), winState: 'win' };
+        updatedBotCard = { ...applyPostBattlePassive(resolvedBotCard, 'win'), winState: 'win' };
       } else if (winner === 'player') {
-        updatedBotCard = { ...applyPostBattlePassive(botCard, 'lose'), winState: 'lose' };
+        updatedBotCard = { ...applyPostBattlePassive(resolvedBotCard, 'lose'), winState: 'lose' };
       } else {
-        updatedBotCard = { ...applyPostBattlePassive(botCard, 'draw'), winState: 'draw' };
+        updatedBotCard = { ...applyPostBattlePassive(resolvedBotCard, 'draw'), winState: 'draw' };
       }
 
       const updatedPlayerDeck = state.playerDeck.map((c, i) => i === state.currentRound ? updatedPlayerCard : c);
@@ -1404,6 +1410,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const playerCard = (cardsAreSwapped ? state.botDeck : state.playerDeck)[state.currentRound];
     const botCard = (cardsAreSwapped ? state.playerDeck : state.botDeck)[state.currentRound];
     if (!playerCard || !botCard) return null;
+    const previousRound = state.roundResults.at(-1);
+    const resolvedPlayerCard = applyYataMirrorDefense(botCard, playerCard, previousRound?.playerCard);
+    const resolvedBotCard = applyYataMirrorDefense(playerCard, botCard, previousRound?.botCard);
     const playerEffects = activeEffects.filter(e => e.targetSide === 'player' || e.targetSide === 'all');
     const botEffects = activeEffects.filter(e => e.targetSide === 'bot' || e.targetSide === 'all');
     const isStatDebuff = (effect: Effect) => effect.kind === 'statModifier' && ((effect.data as AbilityData | undefined)?.amount ?? 0) < 0;
@@ -1451,18 +1460,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const forcedData = forcedOutcomeEffect.data as { outcome?: 'draw' } | undefined;
       winner = forcedData?.outcome === 'draw' ? 'draw' : forcedOutcomeEffect.sourceSide;
     } else {
-      const battlePreview = determineRoundWinner(playerCard, botCard, resolvedPlayerEffects, resolvedBotEffects, state.abilitiesEnabled);
+      const battlePreview = determineRoundWinner(resolvedPlayerCard, resolvedBotCard, resolvedPlayerEffects, resolvedBotEffects, state.abilitiesEnabled);
       preview = battlePreview;
       winner = battlePreview.winner;
     }
     return {
       round: roundNumber,
-      playerCard,
-      botCard,
+      playerCard: resolvedPlayerCard,
+      botCard: resolvedBotCard,
       ...preview,
       winner,
     };
-  }, [state.playerDeck, state.botDeck, state.currentRound, state.activeEffects, state.abilitiesEnabled, state.totalRounds]);
+  }, [state.playerDeck, state.botDeck, state.currentRound, state.roundResults, state.activeEffects, state.abilitiesEnabled, state.totalRounds]);
 
   return (
     <GameContext.Provider value={{

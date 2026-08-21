@@ -40,4 +40,26 @@ describe('LAN ability adapter', () => {
     expect(resolved.snapshot.hostScore).toBe(3);
     expect(resolved.snapshot.guestScore).toBe(2);
   });
+
+  it('inherits Yata Mirror through the shared Wi-Fi round reducer', () => {
+    const openingHost = card('opening-host', 10, 8);
+    const itachi = card('itachi_uchiha', 16, 12);
+    const previousGuest = card('previous-guest', 8, 7);
+    const currentGuest = card('current-guest', 12, 23);
+    const openingMatch: LanAbilityMatchInput = {
+      ...match(),
+      hostDeck: [openingHost, itachi],
+      guestDeck: [previousGuest, currentGuest],
+      totalRounds: 2,
+    };
+
+    const firstRound = resolveLanAbilityRound(openingMatch);
+    const secondRound = resolveLanAbilityRound({
+      ...openingMatch,
+      ...firstRound.snapshot,
+      currentRound: 1,
+    });
+
+    expect(secondRound.roundResult?.botCard.defense).toBe(7);
+  });
 });
