@@ -205,8 +205,8 @@ describe('professional card abilities', () => {
       botDeck: [card('swordsman-opponent', { cardClass: 'swordsman', attack: 10, defense: 8 }), card('mage-opponent', { cardClass: 'mage', attack: 10, defense: 8 })],
     };
     const resolved = gameReducer(state, { type: 'PLAY_ROUND' });
-    expect(resolved.roundResults[0].playerInfo).toContain('سياف: 1');
     expect(resolved.roundResults[0].playerInfo).toContain('ساحر: 1');
+    expect(resolved.roundResults[0].playerInfo).not.toContain('سياف: 1');
     expect(resolved.roundResults[0].playerBaseDamage).toBe(10);
   });
 

@@ -100,14 +100,14 @@ function hasCardAppeared(deck: any[] | undefined, roundIndex: number, cardId: st
 const KAIDO_AURA_RACES = new Set(['orc', 'dragon', 'demon', 'undead', 'monster']);
 const CLASS_LABELS: Record<string, string> = { warrior: 'محارب', knight: 'فارس', mage: 'ساحر', archer: 'رامي', berserker: 'ضاري', paladin: 'بالادين', swordsman: 'سياف', fighter: 'مقاتل', guardian: 'حارس', healer: 'طبيب' };
 
-function buildBulmaScan(opponentDeck: any[] | undefined): string {
-  const counts = (opponentDeck ?? []).reduce<Record<string, number>>((result, card) => {
+function buildBulmaScan(opponentDeck: any[] | undefined, currentRound: number): string {
+  const counts = (opponentDeck ?? []).slice(currentRound + 1).reduce<Record<string, number>>((result, card) => {
     const cardClass = card?.cardClass;
     if (typeof cardClass === 'string') result[cardClass] = (result[cardClass] ?? 0) + 1;
     return result;
   }, {});
   const summary = Object.entries(counts).map(([cardClass, count]) => `${CLASS_LABELS[cardClass] ?? cardClass}: ${count}`).join('، ');
-  return `ماسح بولما — فئات الخصم: ${summary || 'لا توجد كروت'}`;
+  return `ماسح بولما — فئات الكروت القادمة للخصم: ${summary || 'لا توجد كروت قادمة'}`;
 }
 
 function resolveCards(
@@ -175,8 +175,8 @@ function resolveCards(
     advantage,
     p1FactionAdvantage,
     p2FactionAdvantage,
-    p1PersonalInsight: rawP1Card?.id === 'bulma' ? buildBulmaScan(p2Deck) : undefined,
-    p2PersonalInsight: rawP2Card?.id === 'bulma' ? buildBulmaScan(p1Deck) : undefined,
+    p1PersonalInsight: rawP1Card?.id === 'bulma' ? buildBulmaScan(p2Deck, roundIndex) : undefined,
+    p2PersonalInsight: rawP2Card?.id === 'bulma' ? buildBulmaScan(p1Deck, roundIndex) : undefined,
   };
 }
 

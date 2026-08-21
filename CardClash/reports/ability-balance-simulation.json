@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-21T14:43:43.407Z",
+  "generatedAt": "2026-08-21T14:57:22.071Z",
   "roundsPerMatch": 5,
   "scenariosPerAbility": 300,
   "methodology": "Each ability card is compared with an identical control card whose professional identifier is removed. Both receive the same deterministic five-round opponent and filler-card sequence.",
@@ -379,7 +379,7 @@
     {
       "cardId": "bulma",
       "ability": "ماسح الكبسولة",
-      "description": "عند الظهور: يكشف عدد كروت الخصم في كل فئة، من دون تغيير الإحصاءات.",
+      "description": "عند الظهور: يكشف فئات كروت الخصم القادمة وعدد كل فئة، من دون تغيير الإحصاءات.",
       "scenarios": 300,
       "missingCard": false,
       "matchPointDelta": 0,

@@ -34,7 +34,7 @@ export const PROFESSIONAL_CARD_ABILITIES: Record<string, ProfessionalAbilityDefi
   hinata_hyuga: definition('hinata_gentle_fist', 'hinata_hyuga', 'راحة اليد اللطيفة', 'إذا كان هجوم الخصم أعلى: −1 هجوم للخصم.'),
   kurenai: definition('kurenai_crimson_illusion', 'kurenai', 'وهم القرمزي', 'في أول ظهور: −1 دفاع للخصم.'),
   coby: definition('coby_marine_resolve', 'coby', 'عزم البحرية', 'بعد خسارة جولة: الكرت التالي يكسب +1 دفاع.'),
-  bulma: definition('bulma_capsule_scanner', 'bulma', 'ماسح الكبسولة', 'عند الظهور: يكشف عدد كروت الخصم في كل فئة، من دون تغيير الإحصاءات.'),
+  bulma: definition('bulma_capsule_scanner', 'bulma', 'ماسح الكبسولة', 'عند الظهور: يكشف فئات كروت الخصم القادمة وعدد كل فئة، من دون تغيير الإحصاءات.'),
   brook: definition('brook_soul_melody', 'brook', 'لحن الروح', 'ضد شيطان أو ميت: +1 هجوم هذه الجولة.'),
   shikamaru_nara: definition('shikamaru_shadow_bind', 'shikamaru_nara', 'قيد الظلال', 'ضد مقاتل أو محارب: −2 هجوم للخصم.'),
   toge_inumaki: definition('toge_cursed_command', 'toge_inumaki', 'أمر: توقّف', 'إذا فاز: −2 هجوم لكرت الخصم في الجولة القادمة.'),
@@ -126,15 +126,15 @@ export function buildAlphonseGoodAlignmentEffects(deck: Card[], side: Side, tota
   });
 }
 
-/** نص خاص بصاحب بولما يوضح توزيع فئات تشكيل الخصم، بلا أثر على نتيجة القتال. */
-export function buildBulmaClassScan(opponentDeck: Card[]): string {
+/** نص خاص بصاحب بولما يوضح توزيع فئات كروت الخصم القادمة فقط، بلا أثر على نتيجة القتال. */
+export function buildBulmaClassScan(opponentDeck: Card[], currentRound: number): string {
   const labels: Record<Card['cardClass'], string> = { warrior: 'محارب', knight: 'فارس', mage: 'ساحر', archer: 'رامي', berserker: 'ضاري', paladin: 'بالادين', swordsman: 'سياف', fighter: 'مقاتل', guardian: 'حارس', healer: 'طبيب' };
-  const counts = opponentDeck.reduce<Partial<Record<Card['cardClass'], number>>>((result, card) => {
+  const counts = opponentDeck.slice(currentRound + 1).reduce<Partial<Record<Card['cardClass'], number>>>((result, card) => {
     result[card.cardClass] = (result[card.cardClass] ?? 0) + 1;
     return result;
   }, {});
   const summary = Object.entries(counts).map(([cardClass, count]) => `${labels[cardClass as Card['cardClass']]}: ${count}`).join('، ');
-  return `ماسح بولما — فئات الخصم: ${summary || 'لا توجد كروت'}`;
+  return `ماسح بولما — فئات الكروت القادمة للخصم: ${summary || 'لا توجد كروت قادمة'}`;
 }
 
 export const isObitoCard = (card: Card) => card.id === 'obito_uchiha';

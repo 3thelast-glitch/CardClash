@@ -183,7 +183,8 @@ describe('RoomManager turn protocol', () => {
     scanManager.startMatch('BULMA1');
     scanManager.revealCard(scanHost.id, 0, bulma);
     const bulmaResult = scanManager.revealCard(scanGuest.id, 0, card(10, 'elf', { id: 'guest-swordsman', cardClass: 'swordsman' }));
-    expect(bulmaResult?.p1PersonalInsight).toContain('سياف: 1');
+    expect(bulmaResult?.p1PersonalInsight).toContain('ساحر: 1');
+    expect(bulmaResult?.p1PersonalInsight).not.toContain('سياف: 1');
     expect(bulmaResult?.p2PersonalInsight).toBeUndefined();
   });
 

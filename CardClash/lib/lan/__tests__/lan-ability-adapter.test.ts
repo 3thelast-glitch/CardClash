@@ -73,6 +73,7 @@ describe('LAN ability adapter', () => {
     });
 
     expect(result.roundResult?.playerInfo).toContain('ساحر: 1');
+    expect(result.roundResult?.playerInfo).not.toContain('مقاتل: 1');
     expect(result.snapshot.roundResults[0].playerInfo).toBeUndefined();
   });
 });

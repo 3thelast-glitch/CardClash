@@ -682,8 +682,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         playerHealthDelta: playerRoundHealthDelta,
         botHealthDelta: botRoundHealthDelta,
         botAbilityUsed: state.botAbilityUsedThisRound,
-        playerInfo: playerCard.id === 'bulma' ? buildBulmaClassScan(state.botDeck) : undefined,
-        botInfo: botCard.id === 'bulma' ? buildBulmaClassScan(state.playerDeck) : undefined,
+        playerInfo: playerCard.id === 'bulma' ? buildBulmaClassScan(state.botDeck, state.currentRound) : undefined,
+        botInfo: botCard.id === 'bulma' ? buildBulmaClassScan(state.playerDeck, state.currentRound) : undefined,
         winner: result.winner,
       };
 
