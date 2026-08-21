@@ -9,6 +9,7 @@ import {
   type ProfessionalCombatContext,
   type ProfessionalCombatModifiers,
 } from '../professional-card-abilities';
+import { getEffectiveStats } from '../ui-helpers';
 import type { Card, Effect, GameState } from '../types';
 
 const card = (id: string, overrides: Partial<Card> = {}): Card => ({
@@ -94,6 +95,21 @@ const postLossState = (professionalCard: Card, botCard: Card): GameState => ({
 });
 
 describe('professional card abilities', () => {
+  it('يعكس خصم قدرة كوريناي على دفاع كرت الخصم في واجهة الساحة قبل الحسم', () => {
+    const kurenai = card('kurenai', { attack: 2, defense: 6 });
+    const opponent = card('opponent', { attack: 29, defense: 38 });
+
+    expect(getEffectiveStats(
+      opponent.attack,
+      opponent.defense,
+      [],
+      'player',
+      opponent.cardClass,
+      kurenai,
+      opponent,
+    )).toEqual({ attack: 29, defense: 37 });
+  });
+
   it('assigns exactly seven new abilities to each non-special rarity group', () => {
     expect(Object.keys(PROFESSIONAL_CARD_ABILITIES)).toHaveLength(28);
     expect(ALL_CARDS.filter(item => PROFESSIONAL_CARD_ABILITIES[item.id])).toHaveLength(28);

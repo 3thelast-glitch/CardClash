@@ -130,7 +130,9 @@ export function getEffectiveStats(
   side: Side,
   cardClass?: string,
   opponentCard?: Card | null,
-  ownCard?: Card
+  ownCard?: Card,
+  context: ProfessionalCombatContext = {},
+  opponentContext: ProfessionalCombatContext = {},
 ): { attack: number; defense: number } {
   let atk = baseAttack;
   let def = baseDefense;
@@ -138,9 +140,23 @@ export function getEffectiveStats(
   // Apply card special abilities first
   if (ownCard) {
     const ownStats = { attack: atk, defense: def };
-    applySpecialAbilityModifications(ownCard, opponentCard ?? null, ownStats);
+    applySpecialAbilityModifications(ownCard, opponentCard ?? null, ownStats, undefined, context);
     atk = ownStats.attack;
     def = ownStats.defense;
+
+    // المعركة الفعلية تطبق خصومات القدرة الاحترافية على الطرف الآخر.
+    // نكرر ذلك في معاينة الكرت كي يرى اللاعب التخفيض أو الزيادة قبل الحسم.
+    if (opponentCard) {
+      const opponentModifiers = getProfessionalCombatModifiers(
+        opponentCard,
+        ownCard,
+        { attack: opponentCard.attack, defense: opponentCard.defense },
+        { attack: atk, defense: def },
+        opponentContext,
+      );
+      atk = Math.max(0, atk - (opponentModifiers.opponentAttackPenalty ?? 0));
+      def = Math.max(0, def - (opponentModifiers.opponentDefensePenalty ?? 0));
+    }
   }
 
   const isShielded = effects.some(e => e.kind === 'shieldGuard' && (e.targetSide === side || e.targetSide === 'all'));

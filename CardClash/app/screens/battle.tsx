@@ -828,11 +828,19 @@ export default function BattleScreen() {
   const displayBotCard = showResult && lastRoundResult ? lastRoundResult.botCard : fallbackBotCard;
 
   const playerEffective = displayPlayerCard
-    ? getEffectiveStats(displayPlayerCard.attack, displayPlayerCard.defense, state.activeEffects, 'player', displayPlayerCard.cardClass, displayBotCard, displayPlayerCard)
+    ? getEffectiveStats(
+      displayPlayerCard.attack, displayPlayerCard.defense, state.activeEffects, 'player', displayPlayerCard.cardClass, displayBotCard, displayPlayerCard,
+      { ownScore: state.playerScore, opponentScore: state.botScore },
+      { ownScore: state.botScore, opponentScore: state.playerScore },
+    )
     : { attack: 0, defense: 0 };
- 
+
   const botEffective = displayBotCard
-    ? getEffectiveStats(displayBotCard.attack, displayBotCard.defense, state.activeEffects, 'bot', displayBotCard.cardClass, displayPlayerCard, displayBotCard)
+    ? getEffectiveStats(
+      displayBotCard.attack, displayBotCard.defense, state.activeEffects, 'bot', displayBotCard.cardClass, displayPlayerCard, displayBotCard,
+      { ownScore: state.botScore, opponentScore: state.playerScore },
+      { ownScore: state.playerScore, opponentScore: state.botScore },
+    )
     : { attack: 0, defense: 0 };
 
   const computedWinner = useMemo(() => {

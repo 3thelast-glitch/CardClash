@@ -5,11 +5,12 @@
  * ✨ Faction and class metadata are shown without any elemental system
  * ✨ StatBadge shows effective value with ▲/▼ diff indicator when buffs/debuffs active
  */
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, ViewStyle } from 'react-native';
 import type { ImageSourcePropType } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS, Video, ResizeMode } from 'expo-av';
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import Animated, {
     useSharedValue, useAnimatedStyle, withRepeat, withTiming,
     withSequence, interpolate, Easing, withDelay, cancelAnimation,
@@ -250,6 +251,27 @@ const StatBadge = ({
     );
 };
 
+/** يعرض القيمة الفعلية في القالب التكتيكي مع فرق واضح بعد البفات أو النيرفات. */
+const TacticalStatValue = ({ baseValue, effectiveValue, color, fontSize }: {
+    baseValue: number;
+    effectiveValue: number;
+    color: string;
+    fontSize: number;
+}) => {
+    const diff = effectiveValue - baseValue;
+    const diffColor = diff > 0 ? '#4ade80' : '#f87171';
+    return (
+        <View style={styles.tacticalLegendaryStatValueWrap}>
+            <Text style={[styles.tacticalLegendaryStatValue, { color: diff === 0 ? color : diffColor, fontSize }]}>{effectiveValue}</Text>
+            {diff !== 0 && (
+                <Text style={[styles.tacticalLegendaryStatDelta, { color: diffColor, fontSize: Math.max(7, fontSize - 8) }]}>
+                    {diff > 0 ? `▲+${diff}` : `▼${diff}`}
+                </Text>
+            )}
+        </View>
+    );
+};
+
 // ─────────────────────────────────────────────
 // ElvenCorner
 // ─────────────────────────────────────────────
@@ -425,47 +447,65 @@ const CARD_IMAGE_FIT_OVERRIDES: Record<string, 'cover' | 'contain'> = {
     yonji: 'contain',
 };
 
+const CardVideo = ({ source, imgStyle, imageFit, audioEnabled, shouldAnimate }: {
+    source: number | string;
+    imgStyle: object;
+    imageFit: 'cover' | 'contain';
+    audioEnabled: boolean;
+    shouldAnimate: boolean;
+}) => {
+    const [hasRenderedFirstFrame, setHasRenderedFirstFrame] = useState(false);
+    const player = useVideoPlayer(source, (instance) => {
+        instance.loop = true;
+        instance.muted = !audioEnabled;
+        instance.volume = audioEnabled ? 0.82 : 0;
+        if (shouldAnimate) instance.play();
+    });
+
+    useEffect(() => {
+        player.loop = true;
+        player.muted = !audioEnabled;
+        player.volume = audioEnabled ? 0.82 : 0;
+        if (shouldAnimate) player.play();
+        else player.pause();
+    }, [audioEnabled, player, shouldAnimate]);
+
+    return (
+        <View style={imgStyle as any}>
+            <VideoView
+                player={player}
+                style={StyleSheet.absoluteFill}
+                contentFit={imageFit}
+                nativeControls={false}
+                surfaceType="textureView"
+                useExoShutter={false}
+                onFirstFrameRender={() => setHasRenderedFirstFrame(true)}
+            />
+            {!hasRenderedFirstFrame && <View testID="card-video-loading" style={styles.videoLoadingCover} pointerEvents="none" />}
+        </View>
+    );
+};
+
 const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate }: {
     cardImage: ReturnType<typeof getCardImage>; videoAsset?: any; customUri?: string;
     isCustomImage: boolean; imageFit: 'cover' | 'contain'; imgStyle: object; audioEnabled: boolean; shouldAnimate: boolean;
 }) => {
-    const videoRef = useRef<Video>(null);
-    const previousAudioEnabled = useRef(audioEnabled);
     const hasVideo = !!videoAsset || !!(customUri && isVideoUri(customUri));
 
-    const syncVideoStatus = useCallback(async (restartAudio = false) => {
-        if (!hasVideo) return;
-        if (audioEnabled) {
-            await Audio.setAudioModeAsync({
-                playsInSilentModeIOS: true,
-                staysActiveInBackground: false,
-                shouldDuckAndroid: true,
-                playThroughEarpieceAndroid: false,
-                interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-                interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-            });
-        }
-        const video = videoRef.current;
-        if (!video) return;
-        await video.setStatusAsync({
-            shouldPlay: shouldAnimate,
-            isMuted: !audioEnabled,
-            volume: audioEnabled ? 0.82 : 0,
-        });
-        if (restartAudio && audioEnabled && shouldAnimate) {
-            await video.setPositionAsync(0);
-            await video.playAsync();
-        }
-    }, [audioEnabled, hasVideo, shouldAnimate]);
-
     useEffect(() => {
-        const audioJustEnabled = audioEnabled && !previousAudioEnabled.current;
-        previousAudioEnabled.current = audioEnabled;
-        syncVideoStatus(audioJustEnabled).catch(() => {});
-    }, [syncVideoStatus]);
+        if (!hasVideo || !audioEnabled) return;
+        Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+            interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+            interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        }).catch(() => {});
+    }, [audioEnabled, hasVideo]);
 
-    if (videoAsset) return <Video ref={videoRef} source={videoAsset} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.82 : 0} onLoad={() => { void syncVideoStatus(audioEnabled); }} useNativeControls={false} />;
-    if (customUri && isVideoUri(customUri)) return <Video ref={videoRef} source={{ uri: customUri }} style={imgStyle as any} resizeMode={ResizeMode.COVER} shouldPlay={shouldAnimate} isLooping={shouldAnimate} isMuted={!audioEnabled} volume={audioEnabled ? 0.82 : 0} onLoad={() => { void syncVideoStatus(audioEnabled); }} useNativeControls={false} />;
+    if (videoAsset) return <CardVideo source={videoAsset} imgStyle={imgStyle} imageFit={imageFit} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />;
+    if (customUri && isVideoUri(customUri)) return <CardVideo source={customUri} imgStyle={imgStyle} imageFit={imageFit} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />;
     const uri: string | undefined = cardImage && typeof cardImage === 'object' && 'uri' in cardImage ? (cardImage as any).uri : undefined;
     const animated = uri ? isAnimatedUri(uri) : false;
     const source = animated ? { uri, headers: {} } : (cardImage as any);
@@ -532,7 +572,7 @@ const TACTICAL_RARITY_PALETTES: Record<CardRarity, TacticalRarityPalette> = {
 const TacticalRarityCard = ({
     card, style, cardW, cardH, sc, cardImage, videoAsset, customUri,
     isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate,
-    attack, defense, selectionLabel, rarity, slashEffect,
+    attack, defense, baseAttack, baseDefense, selectionLabel, rarity, slashEffect,
 }: {
     card: Card;
     style?: ViewStyle;
@@ -549,6 +589,8 @@ const TacticalRarityCard = ({
     shouldAnimate: boolean;
     attack: number;
     defense: number;
+    baseAttack: number;
+    baseDefense: number;
     selectionLabel?: string;
     rarity: CardRarity;
     slashEffect?: boolean;
@@ -644,14 +686,14 @@ const TacticalRarityCard = ({
                         <View style={styles.tacticalLegendaryStatCaption}>
                             <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 2 }]}>⚔️</Text>
                         </View>
-                        <Text style={[styles.tacticalLegendaryStatValue, { color: palette.text, fontSize: statValueFont }]}>{attack}</Text>
+                        <TacticalStatValue baseValue={baseAttack} effectiveValue={attack} color={palette.text} fontSize={statValueFont} />
                     </View>
                     <View style={styles.tacticalLegendaryDivider} />
                     <View style={styles.tacticalLegendaryStat}>
                         <View style={styles.tacticalLegendaryStatCaption}>
                             <Text style={[styles.tacticalLegendaryStatIcon, { fontSize: labelFont + 2 }]}>🛡️</Text>
                         </View>
-                        <Text style={[styles.tacticalLegendaryStatValue, { color: palette.text, fontSize: statValueFont }]}>{defense}</Text>
+                        <TacticalStatValue baseValue={baseDefense} effectiveValue={defense} color={palette.text} fontSize={statValueFont} />
                     </View>
                 </View>
             </View>
@@ -765,6 +807,8 @@ export function LuxuryCharacterCardAnimated({
             shouldAnimate={enableVisualEffects}
             attack={displayAttack}
             defense={displayDefense}
+            baseAttack={baseAttack}
+            baseDefense={baseDefense}
             selectionLabel={selectionLabel}
             rarity={rarity}
             slashEffect={slashEffect}
@@ -967,7 +1011,10 @@ const styles = StyleSheet.create({
     tacticalLegendaryStatIcon: {},
     tacticalLegendaryStatLabel: { color: '#FDE68A', fontWeight: '800', writingDirection: 'rtl' },
     tacticalLegendaryStatValue: { color: '#FFF7D6', fontWeight: '900' },
+    tacticalLegendaryStatValueWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 18 },
+    tacticalLegendaryStatDelta: { fontWeight: '900', lineHeight: 9, marginTop: -1 },
     tacticalLegendaryDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: 'rgba(253,230,138,0.55)', marginVertical: 5 },
+    videoLoadingCover: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2,4,8,0.18)' },
     zoroSlashOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 18, overflow: 'hidden' },
     zoroSlashLine: { position: 'absolute', width: '142%', height: 4, left: '-21%', backgroundColor: 'rgba(255, 70, 70, 0.88)', borderRadius: 4, shadowColor: '#ff1f1f', shadowOpacity: 0.95, shadowRadius: 8, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
     zoroSlashLineOne: { top: '37%', transform: [{ rotate: '-29deg' }] },
