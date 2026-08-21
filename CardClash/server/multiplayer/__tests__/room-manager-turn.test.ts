@@ -31,6 +31,9 @@ describe('RoomManager turn protocol', () => {
 
     const result = manager.revealCard(guest.id, 0, card(3));
     expect(result?.roundIndex).toBe(0);
+    expect(result?.timeline.before.p1.attack).toBe(9);
+    expect(result?.timeline.before.p2.attack).toBe(3);
+    expect(result?.timeline.after.p1.attack).toBe(9);
     expect(manager.getCurrentTurnPlayerId('TURN01')).toBe(host.id);
   });
 

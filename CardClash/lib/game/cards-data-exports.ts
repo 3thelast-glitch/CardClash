@@ -72,6 +72,10 @@ interface RoundWinnerResult {
   botFactionAdvantage: FactionAdvantage;
   playerHealthDelta: number;
   botHealthDelta: number;
+  playerEffectiveAttack: number;
+  playerEffectiveDefense: number;
+  botEffectiveAttack: number;
+  botEffectiveDefense: number;
 }
 
 export function determineRoundWinner(
@@ -104,6 +108,10 @@ export function determineRoundWinner(
       botFactionAdvantage: botAdv,
       playerHealthDelta: 0,
       botHealthDelta: 0,
+      playerEffectiveAttack: playerCard.attack,
+      playerEffectiveDefense: playerCard.defense,
+      botEffectiveAttack: botCard.attack,
+      botEffectiveDefense: botCard.defense,
     };
   }
 
@@ -118,6 +126,10 @@ export function determineRoundWinner(
       botFactionAdvantage: botAdv,
       playerHealthDelta: 0,
       botHealthDelta: 0,
+      playerEffectiveAttack: playerCard.attack,
+      playerEffectiveDefense: playerCard.defense,
+      botEffectiveAttack: botCard.attack,
+      botEffectiveDefense: botCard.defense,
     };
   }
 
@@ -242,5 +254,9 @@ export function determineRoundWinner(
     botFactionAdvantage:    botAdv,
     playerHealthDelta,
     botHealthDelta,
+    playerEffectiveAttack: pStats.atk,
+    playerEffectiveDefense: pStats.def,
+    botEffectiveAttack: bStats.atk,
+    botEffectiveDefense: bStats.def,
   };
 }

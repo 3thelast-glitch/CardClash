@@ -75,8 +75,8 @@ import { useSFX } from '@/hooks/use-sfx';
 // 🔥 Rage Mode
 import { shouldTriggerRage, applyRageToCard, buildRageTriggerEvent, buildRageState } from '@/lib/game/rage-engine';
 import { RageModeOverlay } from '@/components/game/rage-mode-overlay';
-import { RoundInsightPanel } from '@/components/game/RoundInsightPanel';
-import { buildRoundEventLog, getActiveEffectPreview } from '@/lib/game/round-insights';
+import { RoundInsightPanel, RoundTimelinePanel } from '@/components/game/RoundInsightPanel';
+import { buildRoundEventLog, buildRoundTimeline, getActiveEffectPreview } from '@/lib/game/round-insights';
 import { isDeveloperBuild } from '@/lib/build-variant';
 
 type BattlePhase = 'selection' | 'action' | 'combat' | 'result' | 'waiting';
@@ -880,6 +880,10 @@ export default function BattleScreen() {
     () => (lastRoundResult ? buildRoundEventLog(lastRoundResult) : []),
     [lastRoundResult],
   );
+  const lastRoundTimeline = useMemo(
+    () => (lastRoundResult ? buildRoundTimeline(lastRoundResult) : []),
+    [lastRoundResult],
+  );
 
   // حد الصحة ثابت خلال المباراة ويزداد فقط عند اكتساب صحة تتجاوز الحد السابق.
   const maxScore = Math.max(state.totalRounds, state.playerMaxHealth, state.botMaxHealth);
@@ -1047,6 +1051,14 @@ export default function BattleScreen() {
                       : '🤝 تعادل'}
                   </Text>
                 </Animated.View>
+              )}
+
+              {phase === 'result' && lastRoundResult && (
+                <RoundTimelinePanel
+                  testID="round-result-timeline"
+                  steps={lastRoundTimeline}
+                  compact={!isLandscape}
+                />
               )}
 
               {phase === 'result' && lastRoundResult && (

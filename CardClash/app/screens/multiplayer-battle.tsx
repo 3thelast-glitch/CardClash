@@ -2,7 +2,7 @@
  * MultiplayerBattleScreen
  * معركة أونلاين — لاعب ضد لاعب عبر WebSocket
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
@@ -21,6 +21,8 @@ import { mpClient, MPMessage } from '@/lib/multiplayer/websocket-client';
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 import { COLOR, SPACE, RADIUS, FONT } from '@/components/ui/design-tokens';
+import { RoundTimelinePanel } from '@/components/game/RoundInsightPanel';
+import type { RoundTimelineStep } from '@/lib/game/round-insights';
 
 type MPBattlePhase =
   | 'waiting_start'     // ننتظر BATTLE_START
@@ -260,6 +262,26 @@ export default function MultiplayerBattleScreen() {
 
   const myCard = phase === 'result' && lastResult ? (isPlayer1 ? lastResult.p1Card : lastResult.p2Card) : myCurrentCard;
   const oppCard = phase === 'result' && lastResult ? (isPlayer1 ? lastResult.p2Card : lastResult.p1Card) : (oppCardRevealed ? oppCurrentCard : null);
+  const webTimelineSteps = useMemo<RoundTimelineStep[]>(() => {
+    if (!lastResult?.timeline) return [];
+    const before = isPlayer1
+      ? { player: lastResult.timeline.before.p1, bot: lastResult.timeline.before.p2 }
+      : { player: lastResult.timeline.before.p2, bot: lastResult.timeline.before.p1 };
+    const after = isPlayer1
+      ? { player: lastResult.timeline.after.p1, bot: lastResult.timeline.after.p2 }
+      : { player: lastResult.timeline.after.p2, bot: lastResult.timeline.after.p1 };
+    const iWon = lastResult.myWin;
+    const reason = lastResult.winner === 'draw'
+      ? 'تعادل الكرتان بعد مقارنة الهجوم والدفاع.'
+      : lastResult.advantage === 'faction'
+        ? 'أفضلية الفصيلة دعمت الكرت الفائز قبل المقارنة النهائية.'
+        : iWon ? 'تفوق كرتك بعد تطبيق التأثيرات هو سبب حسم الجولة.' : 'تفوق كرت الخصم بعد تطبيق التأثيرات هو سبب حسم الجولة.';
+    return [
+      { id: 'web-before', label: 'قبل الاستخدام', tone: 'neutral', text: `أنت: ${before.player.attack}/${before.player.defense} — الخصم: ${before.bot.attack}/${before.bot.defense}` },
+      { id: 'web-after', label: 'بعد الاستخدام', tone: 'accent', text: `بعد التأثيرات: أنت ${after.player.attack}/${after.player.defense} — الخصم ${after.bot.attack}/${after.bot.defense}` },
+      { id: 'web-reason', label: 'سبب الفوز', tone: iWon ? 'positive' : lastResult.winner === 'draw' ? 'neutral' : 'negative', text: reason },
+    ];
+  }, [isPlayer1, lastResult]);
 
   return (
     <View style={S.root}>
@@ -340,6 +362,7 @@ export default function MultiplayerBattleScreen() {
                   {lastResult.myWin ? '🏆 فزت!' : lastResult.winner === 'draw' ? '🤝 تعادل' : '💀 خسرت'}
                 </Text>
               </Animated.View>
+              <RoundTimelinePanel testID="web-round-result-timeline" steps={webTimelineSteps} compact={!isLandscape} />
               {lastResult.personalInsight && <Text style={S.personalInsight}>{lastResult.personalInsight}</Text>}
             </>
           )}

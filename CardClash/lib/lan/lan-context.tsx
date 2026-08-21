@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import type { AbilityState, AbilityType, Card, Effect, RoundResult } from '@/lib/game/types';
+import type { AbilityState, AbilityType, Card, Effect, RoundResult, Side } from '@/lib/game/types';
 import { LanSession } from './lan-session';
 import { isLanGameOver, type LanPlayerRole, type LanRoundResult } from './lan-match-engine';
 import { applyLanAbility, createLanAbilities, resolveLanAbilityRound, type LanAbilitySnapshot } from './lan-ability-adapter';
@@ -153,6 +153,16 @@ function asFiniteRoundCount(value: unknown): number {
   return rounds >= 1 && rounds <= 30 ? rounds : 0;
 }
 
+function timelineForGuest(timeline: RoundResult['timeline']): RoundResult['timeline'] {
+  if (!timeline) return undefined;
+  const swapSide = (side: Side): Side => side === 'player' ? 'bot' : 'player';
+  return {
+    before: { player: timeline.before.bot, bot: timeline.before.player },
+    after: { player: timeline.after.bot, bot: timeline.after.player },
+    abilityUses: timeline.abilityUses.map(use => ({ ...use, side: swapSide(use.side) })),
+  };
+}
+
 /** يربط mDNS/TCP المباشر بحالة مباراة كاملة بين هاتفين من دون خادم خارجي. */
 export function LanMultiplayerProvider({ children }: { children: React.ReactNode }) {
   const [rooms, setRooms] = useState<LanRoom[]>([]);
@@ -250,8 +260,9 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
       winner,
       hostScore: snapshot.hostScore,
       guestScore: snapshot.guestScore,
-        advantage,
-        personalInsight: roundResult.playerInfo,
+      advantage,
+      personalInsight: roundResult.playerInfo,
+      timeline: roundResult.timeline,
       comparison: {
         hostDamage: roundResult.playerDamage,
         guestDamage: roundResult.botDamage,
@@ -275,7 +286,7 @@ export function LanMultiplayerProvider({ children }: { children: React.ReactNode
       results: [...next.results, result],
     };
     updateMatch(() => resolved);
-    const guestResult: LanRoundResult = { ...result, personalInsight: roundResult.botInfo };
+    const guestResult: LanRoundResult = { ...result, personalInsight: roundResult.botInfo, timeline: timelineForGuest(roundResult.timeline) };
     sendDirectEvent('LAN_ROUND_RESULT', { result: guestResult, snapshot });
   }, [sendDirectEvent, updateMatch]);
 

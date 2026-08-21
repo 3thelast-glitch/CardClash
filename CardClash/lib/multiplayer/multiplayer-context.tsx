@@ -19,6 +19,10 @@ export interface RoundResult {
   nextRoundP2AttackBonus?: number;
   /** كشف بولما الخاص باللاعب الذي استلم النتيجة. */
   personalInsight?: string;
+  timeline?: {
+    before: { p1: { nameAr: string; attack: number; defense: number }; p2: { nameAr: string; attack: number; defense: number } };
+    after: { p1: { nameAr: string; attack: number; defense: number }; p2: { nameAr: string; attack: number; defense: number } };
+  };
 }
 
 export interface MatchSettings {

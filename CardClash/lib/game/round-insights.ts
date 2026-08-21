@@ -1,6 +1,6 @@
 import { getCharacterAbility, matchesCharacterAbilityTarget } from './character-abilities';
 import { getAbilityNameOnly } from './ability-names';
-import type { Effect, RoundResult, Side } from './types';
+import type { Effect, RoundResult, RoundTimeline, Side } from './types';
 
 export type RoundInsightTone = 'positive' | 'negative' | 'neutral' | 'accent';
 
@@ -8,6 +8,10 @@ export interface RoundInsight {
   id: string;
   text: string;
   tone: RoundInsightTone;
+}
+
+export interface RoundTimelineStep extends RoundInsight {
+  label: 'قبل الاستخدام' | 'بعد الاستخدام' | 'سبب الفوز';
 }
 
 const sideLabel = (side: Side) => (side === 'player' ? 'أنت' : 'البوت');
@@ -122,6 +126,40 @@ export function buildRoundEventLog(result: RoundResult): RoundInsight[] {
   if (playerHealth) events.push(playerHealth);
   if (botHealth) events.push(botHealth);
   return [...events, ...getCharacterEvents(result)];
+}
+
+const fallbackTimeline = (result: RoundResult): RoundTimeline => ({
+  before: {
+    player: { nameAr: result.playerCard.nameAr ?? result.playerCard.name, attack: result.playerCard.attack, defense: result.playerCard.defense },
+    bot: { nameAr: result.botCard.nameAr ?? result.botCard.name, attack: result.botCard.attack, defense: result.botCard.defense },
+  },
+  after: {
+    player: { nameAr: result.playerCard.nameAr ?? result.playerCard.name, attack: result.playerCard.attack, defense: result.playerCard.defense },
+    bot: { nameAr: result.botCard.nameAr ?? result.botCard.name, attack: result.botCard.attack, defense: result.botCard.defense },
+  },
+  abilityUses: [],
+});
+
+/** يبني شرحاً ثابتاً من ثلاث مراحل قابل للعرض في كل شاشات القتال. */
+export function buildRoundTimeline(result: RoundResult): RoundTimelineStep[] {
+  const timeline = result.timeline ?? fallbackTimeline(result);
+  const usedText = timeline.abilityUses.length > 0
+    ? timeline.abilityUses.map(({ side, abilityType }) => `${sideLabel(side)}: ${getAbilityNameOnly(abilityType)}`).join('، ')
+    : 'لم تُستخدم بطاقة قدرة يدوية';
+  const beforeText = `أنت: ${timeline.before.player.attack} هجوم / ${timeline.before.player.defense} دفاع — الخصم: ${timeline.before.bot.attack} هجوم / ${timeline.before.bot.defense} دفاع`;
+  const afterText = `${usedText}. بعد التأثيرات: أنت ${timeline.after.player.attack}/${timeline.after.player.defense} — الخصم ${timeline.after.bot.attack}/${timeline.after.bot.defense}`;
+  const playerWonByFaction = result.winner === 'player' && result.playerFactionAdvantage === 'strong';
+  const botWonByFaction = result.winner === 'bot' && result.botFactionAdvantage === 'strong';
+  const reasonText = result.winner === 'draw'
+    ? `تعادل الضرر بعد الدفاع: أنت ${result.playerDamage} — الخصم ${result.botDamage}`
+    : playerWonByFaction || botWonByFaction
+      ? `أفضلية الفصيلة دعمت الكرت الفائز، ثم حُسمت المقارنة: ${result.playerDamage} مقابل ${result.botDamage}`
+      : `الضرر بعد الدفاع حسم الجولة: أنت ${result.playerDamage} — الخصم ${result.botDamage}`;
+  return [
+    { id: 'timeline-before', label: 'قبل الاستخدام', text: beforeText, tone: 'neutral' },
+    { id: 'timeline-after', label: 'بعد الاستخدام', text: afterText, tone: timeline.abilityUses.length > 0 ? 'accent' : 'neutral' },
+    { id: 'timeline-reason', label: 'سبب الفوز', text: reasonText, tone: result.winner === 'player' ? 'positive' : result.winner === 'bot' ? 'negative' : 'neutral' },
+  ];
 }
 
 export function getActiveEffectPreview(effects: Effect[], side: Side, roundNumber: number): RoundInsight[] {

@@ -51,6 +51,11 @@ export interface RoundResult {
   /** كشف بولما خاص بصاحب البطاقة؛ لا يرسل للخصم داخل payload النتيجة. */
   p1PersonalInsight?: string;
   p2PersonalInsight?: string;
+  /** لقطات الإحصاءات قبل وبعد تأثيرات الجولة لواجهة الشرح. */
+  timeline: {
+    before: { p1: { nameAr: string; attack: number; defense: number }; p2: { nameAr: string; attack: number; defense: number } };
+    after: { p1: { nameAr: string; attack: number; defense: number }; p2: { nameAr: string; attack: number; defense: number } };
+  };
 }
 
 // ─── Room ────────────────────────────────────────────────────────────────────────
@@ -177,6 +182,16 @@ function resolveCards(
     p2FactionAdvantage,
     p1PersonalInsight: rawP1Card?.id === 'bulma' ? buildBulmaScan(p2Deck, roundIndex) : undefined,
     p2PersonalInsight: rawP2Card?.id === 'bulma' ? buildBulmaScan(p1Deck, roundIndex) : undefined,
+    timeline: {
+      before: {
+        p1: { nameAr: rawP1Card?.nameAr ?? rawP1Card?.name ?? 'كرت اللاعب 1', attack: rawP1Card?.attack ?? 0, defense: rawP1Card?.defense ?? 0 },
+        p2: { nameAr: rawP2Card?.nameAr ?? rawP2Card?.name ?? 'كرت اللاعب 2', attack: rawP2Card?.attack ?? 0, defense: rawP2Card?.defense ?? 0 },
+      },
+      after: {
+        p1: { nameAr: p1Card?.nameAr ?? p1Card?.name ?? 'كرت اللاعب 1', attack: p1Card?.attack ?? 0, defense: p1Card?.defense ?? 0 },
+        p2: { nameAr: p2Card?.nameAr ?? p2Card?.name ?? 'كرت اللاعب 2', attack: p2Card?.attack ?? 0, defense: p2Card?.defense ?? 0 },
+      },
+    },
   };
 }
 

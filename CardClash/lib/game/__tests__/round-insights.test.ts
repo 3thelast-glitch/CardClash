@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildRoundEventLog, getActiveEffectPreview } from '../round-insights';
+import { buildRoundEventLog, buildRoundTimeline, getActiveEffectPreview } from '../round-insights';
 import type { Card, Effect, RoundResult } from '../types';
 
 const makeCard = (id: string, overrides: Partial<Card> = {}): Card => ({
@@ -49,6 +49,28 @@ describe('سجل أحداث الجولة والمعاينة', () => {
     const texts = buildRoundEventLog(makeResult({ playerCard: sakura, playerHealthDelta: 1 })).map((event) => event.text);
 
     expect(texts).toContain('شفاء النصر: +1 صحة بعد الفوز');
+  });
+
+  it('يبني خطاً زمنياً من قبل القدرة إلى الإحصاءات النهائية وسبب الفوز', () => {
+    const timeline = buildRoundTimeline(makeResult({
+      timeline: {
+        before: {
+          player: { nameAr: 'مهاجم', attack: 10, defense: 4 },
+          bot: { nameAr: 'مدافع', attack: 8, defense: 6 },
+        },
+        after: {
+          player: { nameAr: 'مهاجم', attack: 12, defense: 4 },
+          bot: { nameAr: 'مدافع', attack: 8, defense: 4 },
+        },
+        abilityUses: [{ side: 'player', abilityType: 'Reinforcement' }],
+      },
+    }));
+
+    expect(timeline.map(step => step.label)).toEqual(['قبل الاستخدام', 'بعد الاستخدام', 'سبب الفوز']);
+    expect(timeline[0].text).toContain('10 هجوم / 4 دفاع');
+    expect(timeline[1].text).toContain('أنت: التدعيم');
+    expect(timeline[1].text).toContain('12/4');
+    expect(timeline[2].text).toContain('أفضلية الفصيلة');
   });
 
   it('يرشح آثار الجولة النشطة ويعرض تسمياتها العربية للطرف المطلوب', () => {

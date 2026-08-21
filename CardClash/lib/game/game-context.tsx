@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Card, GameState, RoundResult, Effect, AbilityData, AbilityType, Side, FactionAdvantage, Race, MatchMode } from './types';
+import { Card, CombatCardSnapshot, GameState, RoundResult, Effect, AbilityData, AbilityType, Side, FactionAdvantage, Race, MatchMode } from './types';
 import { getRandomAbilities } from './abilities';
 import type { DifficultyLevel } from './difficulty-types';
 import { determineRoundWinner } from './cards-data-exports';
@@ -43,7 +43,14 @@ const initialState: GameState = {
   playerAbilities: [],
   botAbilities: [],
   usedAbilities: [],
+  roundAbilityUses: [],
 };
+
+const toCombatSnapshot = (card?: Card): CombatCardSnapshot => ({
+  nameAr: card?.nameAr ?? card?.name ?? 'كرت غير محدد',
+  attack: card?.attack ?? 0,
+  defense: card?.defense ?? 0,
+});
 
 export type RarityKey = 'common' | 'rare' | 'epic' | 'legendary' | 'special';
 export type RarityWeights = Record<RarityKey, number>;
@@ -320,18 +327,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         botFactionAdvantage: FactionAdvantage;
         playerHealthDelta: number;
         botHealthDelta: number;
+        playerEffectiveAttack: number;
+        playerEffectiveDefense: number;
+        botEffectiveAttack: number;
+        botEffectiveDefense: number;
       };
 
       if (absoluteDominanceEffect) {
         // السيطرة المطلقة — أعلى أولوية، تتجاوز حتى تورين والنتائج المضمونة
-        result = { winner: absoluteDominanceEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
+        result = { winner: absoluteDominanceEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0, playerEffectiveAttack: resolvedPlayerCard.attack, playerEffectiveDefense: resolvedPlayerCard.defense, botEffectiveAttack: resolvedBotCard.attack, botEffectiveDefense: resolvedBotCard.defense };
       } else if (turinForcedLoss) {
-        result = { winner: 'bot', playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
+        result = { winner: 'bot', playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0, playerEffectiveAttack: resolvedPlayerCard.attack, playerEffectiveDefense: resolvedPlayerCard.defense, botEffectiveAttack: resolvedBotCard.attack, botEffectiveDefense: resolvedBotCard.defense };
       } else if (forcedOutcomeEffect) {
         const forcedData = forcedOutcomeEffect.data as { outcome?: 'draw' } | undefined;
-        result = { winner: forcedData?.outcome === 'draw' ? 'draw' : forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
+        result = { winner: forcedData?.outcome === 'draw' ? 'draw' : forcedOutcomeEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0, playerEffectiveAttack: resolvedPlayerCard.attack, playerEffectiveDefense: resolvedPlayerCard.defense, botEffectiveAttack: resolvedBotCard.attack, botEffectiveDefense: resolvedBotCard.defense };
       } else if (starAdvantageEffect) {
-        result = { winner: starAdvantageEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
+        result = { winner: starAdvantageEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0, playerEffectiveAttack: resolvedPlayerCard.attack, playerEffectiveDefense: resolvedPlayerCard.defense, botEffectiveAttack: resolvedBotCard.attack, botEffectiveDefense: resolvedBotCard.defense };
       } else {
         result = determineRoundWinner(resolvedPlayerCard, resolvedBotCard, resolvedPlayerEffects, resolvedBotEffects, state.abilitiesEnabled, {
           playerScore: state.playerScore,
@@ -684,6 +695,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         botAbilityUsed: state.botAbilityUsedThisRound,
         playerInfo: playerCard.id === 'bulma' ? buildBulmaClassScan(state.botDeck, state.currentRound) : undefined,
         botInfo: botCard.id === 'bulma' ? buildBulmaClassScan(state.playerDeck, state.currentRound) : undefined,
+        timeline: {
+          before: state.roundAbilityUses?.[0]?.before ?? {
+            player: toCombatSnapshot(playerCard),
+            bot: toCombatSnapshot(botCard),
+          },
+          after: {
+            player: { nameAr: resolvedPlayerCard.nameAr ?? resolvedPlayerCard.name, attack: result.playerEffectiveAttack, defense: result.playerEffectiveDefense },
+            bot: { nameAr: resolvedBotCard.nameAr ?? resolvedBotCard.name, attack: result.botEffectiveAttack, defense: result.botEffectiveDefense },
+          },
+          abilityUses: (state.roundAbilityUses ?? []).map(({ side, abilityType }) => ({ side, abilityType })),
+        },
         winner: result.winner,
       };
 
@@ -700,6 +722,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         forcedMatchOutcome: forceMatchDraw ? 'draw' : state.forcedMatchOutcome,
         activeEffects: nextEffects,
         usedAbilities: [],
+        roundAbilityUses: [],
         botAbilityUsedThisRound: undefined,
       };
     }
@@ -1263,6 +1286,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         activeEffects: nextEffects,
         ...(isPlayer ? { playerAbilities: updatedAbilities } : { botAbilities: updatedAbilities }),
         usedAbilities: [...state.usedAbilities, abilityType],
+        roundAbilityUses: [
+          ...(state.roundAbilityUses ?? []),
+          {
+            side,
+            abilityType,
+            before: {
+              player: toCombatSnapshot(state.playerDeck[state.currentRound]),
+              bot: toCombatSnapshot(state.botDeck[state.currentRound]),
+            },
+          },
+        ],
         ...(isPlayer ? {} : { botAbilityUsedThisRound: abilityType }),
       };
     }

@@ -13,9 +13,11 @@ import { isLanGameOver } from '@/lib/lan/lan-match-engine';
 import { ABILITY_DETAILS, CATEGORY_CONFIG } from '@/lib/game/ability-details';
 import { abilities as ALL_ABILITIES } from '@/data/abilities';
 import { determineRoundWinner } from '@/lib/game/cards-data-exports';
-import type { Effect, Side } from '@/lib/game/types';
+import type { Effect, RoundResult, Side } from '@/lib/game/types';
 import { shouldPlayRoundCardAudio } from '@/lib/game/ui-helpers';
 import { useBattleLayout } from '@/utils/layout';
+import { RoundTimelinePanel } from '@/components/game/RoundInsightPanel';
+import { buildRoundTimeline } from '@/lib/game/round-insights';
 
 function getRoundExplanation(result: NonNullable<ReturnType<typeof useLanMultiplayer>['match']['lastResult']>): string {
   if (result.winner === 'draw') return 'تعادل الكرتان: لم تمنح الفصائل أفضلية فاصلة وتساوت نتيجة المقارنة بعد تطبيق التأثيرات.';
@@ -154,6 +156,27 @@ export default function LanBattleScreen() {
   const iWonRound = result?.winner === (isHost ? 'host' : 'guest');
   const resultExplanation = result ? getRoundExplanation(result) : null;
   const resultComparison = result?.comparison;
+  const resultTimeline = useMemo(() => {
+    if (!result || !resultComparison) return [];
+    const playerWon = result.winner === (isHost ? 'host' : 'guest');
+    const opponentWon = result.winner !== 'draw' && !playerWon;
+    const timelineResult: RoundResult = {
+      round: result.roundIndex + 1,
+      playerCard: isHost ? result.hostCard : result.guestCard,
+      botCard: isHost ? result.guestCard : result.hostCard,
+      playerDamage: isHost ? resultComparison.hostDamage : resultComparison.guestDamage,
+      botDamage: isHost ? resultComparison.guestDamage : resultComparison.hostDamage,
+      playerBaseDamage: isHost ? resultComparison.hostBaseDamage : resultComparison.guestBaseDamage,
+      botBaseDamage: isHost ? resultComparison.guestBaseDamage : resultComparison.hostBaseDamage,
+      playerFactionAdvantage: isHost ? resultComparison.hostFactionAdvantage : resultComparison.guestFactionAdvantage,
+      botFactionAdvantage: isHost ? resultComparison.guestFactionAdvantage : resultComparison.hostFactionAdvantage,
+      playerHealthDelta: isHost ? resultComparison.hostHealthDelta : resultComparison.guestHealthDelta,
+      botHealthDelta: isHost ? resultComparison.guestHealthDelta : resultComparison.hostHealthDelta,
+      timeline: result.timeline,
+      winner: result.winner === 'draw' ? 'draw' : playerWon ? 'player' : opponentWon ? 'bot' : 'draw',
+    };
+    return buildRoundTimeline(timelineResult);
+  }, [isHost, result, resultComparison]);
   const audioWinner = getDynamicAudioWinner(match);
   const myCardAudio = shouldPlayRoundCardAudio(myCard, iRevealed || match.phase === 'result', audioWinner === (isHost ? 'host' : 'guest'));
   const opponentCardAudio = shouldPlayRoundCardAudio(opponentCard, opponentRevealed || match.phase === 'result', audioWinner === (isHost ? 'guest' : 'host'));
@@ -266,6 +289,7 @@ export default function LanBattleScreen() {
       <View style={[styles.centerPanel, { width: isLandscape ? centerWidth : undefined, minHeight: isLandscape ? undefined : 94, gap: Math.max(6, arenaGap) }]}>
         <Text style={[styles.vs, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
         <Text style={[styles.status, result && (iWonRound ? styles.statusWin : result.winner === 'draw' ? styles.statusDraw : styles.statusLoss)]}>{roundLabel}</Text>
+        {resultTimeline.length > 0 && <RoundTimelinePanel testID="lan-round-result-timeline" steps={resultTimeline} compact={!isLandscape} />}
         {resultExplanation && <View style={styles.resultExplanation}>
           <Text style={styles.resultExplanationTitle}>📋 معاينة النتيجة — كيف حُسمت الجولة؟</Text>
           <Text style={styles.resultExplanationText}>{resultExplanation}</Text>

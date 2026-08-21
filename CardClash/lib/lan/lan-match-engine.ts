@@ -1,5 +1,6 @@
 import type { Card, RoundResult } from '../game/types';
 import { determineRoundWinner } from '../game/cards-data-exports';
+import type { RoundTimeline } from '../game/types';
 
 export type LanPlayerRole = 'host' | 'guest';
 export type LanRoundWinner = LanPlayerRole | 'draw';
@@ -14,6 +15,8 @@ export type LanRoundResult = {
   advantage: 'faction' | 'attack' | 'draw';
   /** معلومة خاصة بصاحب بولما، لا تدخل في بيانات الخصم المشتركة. */
   personalInsight?: string;
+  /** لقطات قبل/بعد الاستخدام وسبب الحسم من المحرك المشترك. */
+  timeline?: RoundTimeline;
   comparison?: {
     hostDamage: number;
     guestDamage: number;
