@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-21T15:18:24.213Z",
+  "generatedAt": "2026-08-21T16:16:28.826Z",
   "roundsPerMatch": 5,
   "scenariosPerAbility": 300,
   "methodology": "Each ability card is compared with an identical control card whose professional identifier is removed. Both receive the same deterministic five-round opponent and filler-card sequence.",
