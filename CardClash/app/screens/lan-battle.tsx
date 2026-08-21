@@ -57,6 +57,7 @@ function getActiveCardEffectBadges(effects: Effect[], side: Side, currentRound: 
         forcedOutcome: { id: effect.id, label: 'نتيجة مضمونة لهذه الجولة', tone: 'utility' },
         starAdvantage: { id: effect.id, label: 'تعزيز: تفوق النجوم', tone: 'buff' },
         absoluteDominance: { id: effect.id, label: 'خاص: السيطرة المطلقة', tone: 'utility' },
+        turinPenalty: { id: effect.id, label: 'لعنة تورين: تخسر هذه الجولة', tone: 'debuff' },
         factionMastery: { id: effect.id, label: 'تعزيز: إتقان الفصائل', tone: 'buff' },
         trap: { id: effect.id, label: 'إضعاف: فخ فعّال', tone: 'debuff' },
         doubleOrNothing: { id: effect.id, label: 'خاص: دبل أو نثنق', tone: 'utility' },
@@ -75,6 +76,9 @@ function getDynamicAudioWinner(match: ReturnType<typeof useLanMultiplayer>['matc
 
   const round = match.currentRound + 1;
   const effects = match.activeEffects.filter(effect => effect.createdAtRound <= round && (effect.expiresAtRound === undefined || round <= effect.expiresAtRound) && (effect.charges === undefined || effect.charges > 0));
+  const turinPenalty = effects.find(effect => effect.kind === 'turinPenalty'
+    && (effect.data as { appliesToRound?: number } | undefined)?.appliesToRound === round);
+  if (turinPenalty) return turinPenalty.targetSide === 'player' ? 'guest' : turinPenalty.targetSide === 'bot' ? 'host' : null;
   const decisive = effects
     .filter(effect => ['absoluteDominance', 'forcedOutcome', 'starAdvantage'].includes(effect.kind))
     .filter(effect => !(effect.data as { appliesToRound?: number } | undefined)?.appliesToRound || (effect.data as { appliesToRound?: number }).appliesToRound === round)

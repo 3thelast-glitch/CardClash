@@ -79,6 +79,7 @@ describe('Card Collection stat rebalancing', () => {
     const pairs = balanced.map(item => `${item.attack}-${item.defense}`);
 
     expect(new Set(pairs).size).toBe(pairs.length);
-    expect(balanced.every(item => item.attack !== item.defense)).toBe(true);
+    expect(balanced.find(item => item.id === 'Turin_Turambar')).toMatchObject({ attack: 0, defense: 0 });
+    expect(balanced.filter(item => item.id !== 'Turin_Turambar').every(item => item.attack !== item.defense)).toBe(true);
   });
 });

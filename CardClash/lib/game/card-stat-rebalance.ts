@@ -52,6 +52,12 @@ export function rebalanceCardStats<T extends RebalanceableCard>(cards: T[]): T[]
     if (rarity === 'special') {
       const attack = Math.max(0, Math.round(card.attack));
       const defense = Math.max(0, Math.round(card.defense));
+      // تورين كرت خاص مقصود بإحصاءات صفرية؛ لا تطبق قاعدة فك التساوي عليه.
+      if (card.id === 'Turin_Turambar' && attack === 0 && defense === 0) {
+        usedPairs.add(statPairKey(attack, defense));
+        balanced.set(card.id, { ...card, rarity, attack, defense });
+        continue;
+      }
       const attackHeavy = [...card.id].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 2 === 0;
       let nextAttack = attack === defense && attackHeavy ? attack + 1 : attack;
       let nextDefense = attack === defense && !attackHeavy ? defense + 1 : defense;

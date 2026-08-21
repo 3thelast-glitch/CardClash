@@ -22,6 +22,7 @@ const EFFECT_LABELS: Partial<Record<Effect['kind'], string>> = {
   factionMastery: 'إتقان الفصائل',
   absoluteDominance: 'السيطرة المطلقة',
   phantomBlade: 'شفرة الوهم',
+  turinPenalty: 'لعنة تورين: خسارة هذه الجولة',
 };
 
 const formatHealthDelta = (side: Side, delta: number): RoundInsight | null => {

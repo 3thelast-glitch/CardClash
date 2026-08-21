@@ -849,10 +849,20 @@ export default function BattleScreen() {
     }
     return expectedRoundResult?.winner ?? 'draw';
   }, [phase, lastRoundResult, expectedRoundResult]);
+  const turinPenaltyAudioWinner = useMemo(() => {
+    const activePenalty = state.activeEffects.find(effect => {
+      if (effect.kind !== 'turinPenalty') return false;
+      const appliesToRound = (effect.data as { appliesToRound?: number } | undefined)?.appliesToRound;
+      return appliesToRound === state.currentRound + 1;
+    });
+    if (!activePenalty) return null;
+    return activePenalty.targetSide === 'player' ? 'bot' : activePenalty.targetSide === 'bot' ? 'player' : null;
+  }, [state.activeEffects, state.currentRound]);
   // بعد اكتمال دخول الكروت تظهر نتيجة القوة المتوقعة؛ أي قدرة تغيّر الفائز تبدّل مصدر الصوت فوراً قبل الهجوم.
   const isRoundAudioActive = phase === 'action' || phase === 'combat' || (phase === 'result' && !!lastRoundResult);
-  const playerWinnerVideoAudio = settings.soundEnabled && isRoundAudioActive && computedWinner === 'player';
-  const botWinnerVideoAudio = settings.soundEnabled && isRoundAudioActive && computedWinner === 'bot';
+  const audioWinner = turinPenaltyAudioWinner ?? computedWinner;
+  const playerWinnerVideoAudio = settings.soundEnabled && isRoundAudioActive && audioWinner === 'player';
+  const botWinnerVideoAudio = settings.soundEnabled && isRoundAudioActive && audioWinner === 'bot';
 
 
   const previewInsights = useMemo(() => {

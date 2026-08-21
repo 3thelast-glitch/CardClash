@@ -23,7 +23,8 @@ describe('card power balance by rarity', () => {
     const pairs = ALL_CARDS.map(card => `${card.attack}-${card.defense}`);
 
     expect(new Set(pairs).size).toBe(ALL_CARDS.length);
-    expect(ALL_CARDS.every(card => card.attack !== card.defense)).toBe(true);
+    expect(ALL_CARDS.filter(card => card.id !== 'Turin_Turambar').every(card => card.attack !== card.defense)).toBe(true);
+    expect(ALL_CARDS.find(card => card.id === 'Turin_Turambar')).toMatchObject({ attack: 0, defense: 0, rarity: 'special' });
     expect(ALL_CARDS.some(card => card.attack > card.defense)).toBe(true);
     expect(ALL_CARDS.some(card => card.defense > card.attack)).toBe(true);
   });

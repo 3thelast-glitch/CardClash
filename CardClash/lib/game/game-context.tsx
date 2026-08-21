@@ -60,8 +60,12 @@ async function saveRarityWeights(weights: RarityWeights): Promise<void> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────
+function isTurinCard(card: Card): boolean {
+  return card.id === 'Turin_Turambar' || card.name === 'Turin' || card.nameAr === 'تورين';
+}
+
 function sortDeckWithTurinFirst(deck: Card[]): Card[] {
-  const turinIdx = deck.findIndex(c => c.name === 'تورين تورامباز' || c.name === 'Turin');
+  const turinIdx = deck.findIndex(isTurinCard);
   if (turinIdx <= 0) return deck;
   const result = [...deck];
   const [turin] = result.splice(turinIdx, 1);
@@ -70,7 +74,7 @@ function sortDeckWithTurinFirst(deck: Card[]): Card[] {
 }
 
 function hasTurinInDeck(deck: Card[]): boolean {
-  return deck.some(c => c.name === 'تورين تورامباز' || c.name === 'Turin');
+  return deck.some(isTurinCard);
 }
 
 export function getTurinPenaltyRounds(totalRounds: number): number {
