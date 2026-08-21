@@ -31,5 +31,9 @@ describe('Turin special card', () => {
     expect(insights).toContain("turinPenalty: 'لعنة تورين: خسارة هذه الجولة'");
     expect(cardRenderer).toContain("const turinAudioAuthorized = card.id !== 'Turin_Turambar' || winnerState === 'winner';");
     expect(cardRenderer).toContain('&& turinAudioAuthorized;');
+    expect(cardRenderer).toContain('player.muted = true;');
+    expect(cardRenderer).toContain('player.pause();');
+    expect(cardRenderer).toContain('key={`card-video-asset-${String(videoAsset)}`}');
+    expect(cardRenderer).toContain('key={`card-video-uri-${customUri}`}');
   });
 });

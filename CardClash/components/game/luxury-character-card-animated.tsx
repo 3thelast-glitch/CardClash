@@ -470,6 +470,13 @@ const CardVideo = ({ source, imgStyle, imageFit, audioEnabled, shouldAnimate }: 
         else player.pause();
     }, [audioEnabled, player, shouldAnimate]);
 
+    useEffect(() => () => {
+        // يمنع بقاء صوت مشغل الجولة السابقة بعد تبدل الكرت داخل نفس موضع الساحة.
+        player.muted = true;
+        player.volume = 0;
+        player.pause();
+    }, [player]);
+
     return (
         <View style={imgStyle as any}>
             <VideoView
@@ -504,8 +511,8 @@ const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, 
         }).catch(() => {});
     }, [audioEnabled, hasVideo]);
 
-    if (videoAsset) return <CardVideo source={videoAsset} imgStyle={imgStyle} imageFit={imageFit} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />;
-    if (customUri && isVideoUri(customUri)) return <CardVideo source={customUri} imgStyle={imgStyle} imageFit={imageFit} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />;
+    if (videoAsset) return <CardVideo key={`card-video-asset-${String(videoAsset)}`} source={videoAsset} imgStyle={imgStyle} imageFit={imageFit} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />;
+    if (customUri && isVideoUri(customUri)) return <CardVideo key={`card-video-uri-${customUri}`} source={customUri} imgStyle={imgStyle} imageFit={imageFit} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />;
     const uri: string | undefined = cardImage && typeof cardImage === 'object' && 'uri' in cardImage ? (cardImage as any).uri : undefined;
     const animated = uri ? isAnimatedUri(uri) : false;
     const source = animated ? { uri, headers: {} } : (cardImage as any);
