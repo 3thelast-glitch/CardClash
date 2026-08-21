@@ -37,6 +37,12 @@ const FACTION_MEDALLIONS: Partial<Record<Race, ImageSourcePropType>> = {
     robot: require('../../assets/icons/factions/robot.png'),
 };
 
+const ALIGNMENT_MEDALLIONS: Record<CardAlignment, ImageSourcePropType> = {
+    good: require('../../assets/icons/alignments/good-medallion.png'),
+    evil: require('../../assets/icons/alignments/evil-medallion.png'),
+    neutral: require('../../assets/icons/alignments/neutral-medallion.png'),
+};
+
 const BASE_W = 220;
 const BASE_H = 320;
 
@@ -122,8 +128,8 @@ const FactionCornerMedallion = ({ card, sc }: { card: Card; sc: number }) => {
 const CardAlignmentBadge = ({ card, sc, compact = false }: { card: Card; sc: number; compact?: boolean }) => {
     const alignment: CardAlignment = getCardAlignment(card);
     const meta = CARD_ALIGNMENT_META[alignment];
-    const iconSize = Math.max(8, Math.min(13, 11 * sc));
     const textSize = Math.max(7, Math.min(10, 8.5 * sc));
+    const medalSize = Math.max(compact ? 15 : 20, Math.min(compact ? 20 : 28, (compact ? 19 : 26) * sc));
     return (
         <View
             testID={`card-alignment-${alignment}`}
@@ -134,8 +140,13 @@ const CardAlignmentBadge = ({ card, sc, compact = false }: { card: Card; sc: num
             ]}
             accessibilityLabel={`تصنيف الكرت: ${meta.label}`}
         >
-            <Text style={[styles.alignmentBadgeSymbol, { color: meta.textColor, fontSize: iconSize }]}>{meta.symbol}</Text>
-            <Text style={[styles.alignmentBadgeText, { color: meta.textColor, fontSize: textSize }]} numberOfLines={1}>{compact ? meta.shortLabel : meta.label}</Text>
+            <Image
+                testID={`alignment-medallion-${alignment}`}
+                source={ALIGNMENT_MEDALLIONS[alignment]}
+                style={[styles.alignmentBadgeMedallion, { width: medalSize, height: medalSize, borderRadius: medalSize / 2 }]}
+                resizeMode="contain"
+            />
+            {!compact && <Text style={[styles.alignmentBadgeText, { color: meta.textColor, fontSize: textSize }]} numberOfLines={1}>{meta.shortLabel}</Text>}
         </View>
     );
 };
@@ -984,7 +995,7 @@ const styles = StyleSheet.create({
     alignmentBadgeSlot: { position: 'absolute', zIndex: 16, alignItems: 'flex-start' },
     alignmentBadge: { flexDirection: 'row-reverse', alignItems: 'center', gap: 3, borderWidth: 1, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2, shadowColor: '#000000', shadowOpacity: 0.32, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 4 },
     alignmentBadgeCompact: { paddingHorizontal: 4, paddingVertical: 1, gap: 2 },
-    alignmentBadgeSymbol: { fontWeight: '900', lineHeight: 14 },
+    alignmentBadgeMedallion: { backgroundColor: 'rgba(2,6,23,0.32)' },
     alignmentBadgeText: { fontWeight: '900', writingDirection: 'rtl', lineHeight: 12 },
     factionCornerMedallion: { position: 'absolute', zIndex: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(2,4,12,0.76)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.74)', shadowColor: '#5B4BFF', shadowOpacity: 0.65, shadowRadius: 6, elevation: 8 },
     factionFallbackChip: { position: 'absolute', zIndex: 15, flexDirection: 'row-reverse', alignItems: 'center', gap: 3, minHeight: 24, paddingHorizontal: 6, borderRadius: 14, backgroundColor: 'rgba(2,4,12,0.86)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.74)', shadowColor: '#5B4BFF', shadowOpacity: 0.55, shadowRadius: 5, elevation: 7 },

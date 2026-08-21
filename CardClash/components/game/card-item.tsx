@@ -28,6 +28,12 @@ import { getEffectiveStats } from '@/lib/game/ui-helpers';
 import { useGame } from '@/lib/game/game-context';
 import { CARD_ALIGNMENT_META, getCardAlignment } from '@/lib/game/card-alignment';
 
+const ALIGNMENT_MEDALLIONS = {
+  good: require('../../assets/icons/alignments/good-medallion.png'),
+  evil: require('../../assets/icons/alignments/evil-medallion.png'),
+  neutral: require('../../assets/icons/alignments/neutral-medallion.png'),
+} as const;
+
 // ─── Placeholder colors per rarity ───────────────────────────────────────────
 const PLACEHOLDER_COLORS: Record<string, readonly [string, string, string]> = {
   common:    ['#1a1a2e', '#2d2d44', '#1a1a2e'],
@@ -269,7 +275,12 @@ export function CardItem({
             style={[styles.alignmentBadge, { backgroundColor: alignmentMeta.backgroundColor, borderColor: alignmentMeta.borderColor }]}
             accessibilityLabel={`تصنيف الكرت: ${alignmentMeta.label}`}
           >
-            <Text style={[styles.alignmentSymbol, { color: alignmentMeta.textColor, fontSize: preset.badgeFontSize + 2 }]}>{alignmentMeta.symbol}</Text>
+            <Image
+              testID={`alignment-medallion-${alignment}`}
+              source={ALIGNMENT_MEDALLIONS[alignment]}
+              style={styles.alignmentMedallion}
+              contentFit="contain"
+            />
           </View>
 
           {card.cardEffects && card.cardEffects.length > 0 && (
@@ -373,8 +384,8 @@ const styles = StyleSheet.create({
   elementEmoji:    { lineHeight: 16 },
   rarityBadge:     { position: 'absolute', top: 5, right: 5, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   rarityText:      { color: '#fff', fontWeight: '900', lineHeight: 12 },
-  alignmentBadge:  { position: 'absolute', top: 27, right: 5, minWidth: 18, height: 18, borderRadius: 9, borderWidth: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.34, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 4 },
-  alignmentSymbol: { fontWeight: '900', lineHeight: 14 },
+  alignmentBadge:  { position: 'absolute', top: 27, right: 5, width: 20, height: 20, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(2,6,23,0.76)', shadowColor: '#000', shadowOpacity: 0.34, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 4 },
+  alignmentMedallion: { width: 19, height: 19 },
   effectsRow:      { position: 'absolute', bottom: 52, right: 4, gap: 2, alignItems: 'center' },
   effectIcon:      { fontSize: 10 },
   selectedOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 13 },
