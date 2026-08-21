@@ -173,7 +173,8 @@ export default function CardSelectionScreen() {
   const isLanMultiplayer = state.matchMode === 'lan' && lan.match.role !== null;
   const isMultiplayer = isOnlineMultiplayer || isLanMultiplayer;
   const isCompactMobile = !isLandscape && width < 520;
-  const useStaticGridMedia = shouldUseStaticCardMedia(totalRounds);
+  const gridVideoCardCount = cardRounds.filter(({ card }) => !!card.videoUrl).length;
+  const useStaticGridMedia = shouldUseStaticCardMedia(totalRounds, gridVideoCardCount);
   const opponentArrangementReady = isLanMultiplayer
     ? (lan.match.role === 'host' ? lan.match.guestReady : lan.match.hostReady)
     : (mp?.state?.opponentArrangementReady ?? false);

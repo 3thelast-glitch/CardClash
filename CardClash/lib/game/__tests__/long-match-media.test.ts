@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { STATIC_MEDIA_ROUND_THRESHOLD, shouldUseStaticCardMedia } from '../long-match-media';
+import {
+  STATIC_MEDIA_ROUND_THRESHOLD,
+  STATIC_MEDIA_VIDEO_CARD_THRESHOLD,
+  shouldUseStaticCardMedia,
+} from '../long-match-media';
 
 describe('long-match media safety', () => {
   it('uses static card media for a twenty-round match to avoid concurrent video players', () => {
@@ -8,6 +12,15 @@ describe('long-match media safety', () => {
 
   it('keeps animated media available below the long-match threshold', () => {
     expect(shouldUseStaticCardMedia(STATIC_MEDIA_ROUND_THRESHOLD - 1)).toBe(false);
+  });
+
+  it('uses static previews for a short match that contains multiple video cards', () => {
+    expect(shouldUseStaticCardMedia(9, 9)).toBe(true);
+    expect(shouldUseStaticCardMedia(5, STATIC_MEDIA_VIDEO_CARD_THRESHOLD)).toBe(true);
+  });
+
+  it('keeps a single video card animated below the round threshold', () => {
+    expect(shouldUseStaticCardMedia(9, 1)).toBe(false);
   });
 
   it('does not enable the safety mode for invalid round values', () => {
