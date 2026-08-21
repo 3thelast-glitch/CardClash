@@ -14,6 +14,7 @@ export interface RoundResult {
   p1Score: number;
   p2Score: number;
   advantage: 'element' | 'attack' | 'draw';
+  nextRoundCardsSwapped?: boolean;
 }
 
 export interface MatchSettings {
@@ -153,7 +154,24 @@ function multiplayerReducer(state: MultiplayerState, action: MultiplayerAction):
     case 'ROUND_RESULT': {
       const r = action.payload;
       const playerIsP1 = state.isHost;
-      return { ...state, lastRoundResult: r, playerScore: playerIsP1 ? r.p1Score : r.p2Score, opponentScore: playerIsP1 ? r.p2Score : r.p1Score, status: 'result', opponentRevealedThisRound: false };
+      const nextIndex = state.currentRound + 1;
+      const playerCards = [...state.playerCards];
+      const opponentCards = [...state.opponentCards];
+      if (r.nextRoundCardsSwapped && playerCards[nextIndex] && opponentCards[nextIndex]) {
+        const nextPlayerCard = playerCards[nextIndex];
+        playerCards[nextIndex] = opponentCards[nextIndex];
+        opponentCards[nextIndex] = nextPlayerCard;
+      }
+      return {
+        ...state,
+        playerCards,
+        opponentCards,
+        lastRoundResult: r,
+        playerScore: playerIsP1 ? r.p1Score : r.p2Score,
+        opponentScore: playerIsP1 ? r.p2Score : r.p1Score,
+        status: 'result',
+        opponentRevealedThisRound: false,
+      };
     }
     case 'NEXT_ROUND': return { ...state, currentRound: state.currentRound + 1, status: 'playing', lastRoundResult: null, opponentRevealedThisRound: false };
     case 'GAME_OVER': {

@@ -44,6 +44,8 @@ export interface RoundResult {
   advantage: 'faction' | 'attack' | 'draw';
   p1FactionAdvantage: 'strong' | 'weak' | 'neutral';
   p2FactionAdvantage: 'strong' | 'weak' | 'neutral';
+  /** يرسل الخادم هذه الإشارة للطرفين لتبديل بطاقة الجولة التالية في ترتيبهما المحلي. */
+  nextRoundCardsSwapped?: boolean;
 }
 
 // ─── Room ────────────────────────────────────────────────────────────────────────
@@ -82,7 +84,31 @@ function getFactionAdvantage(faction: string, opponentFaction: string): 'strong'
   return 'neutral';
 }
 
-function resolveCards(roundIndex: number, p1Card: any, p2Card: any, p1Score: number, p2Score: number): RoundResult {
+function hasAllMightAppeared(deck: any[] | undefined, roundIndex: number): boolean {
+  return Boolean(deck?.slice(0, roundIndex + 1).some(card => card?.id === 'all_might'));
+}
+
+function resolveCards(
+  roundIndex: number,
+  rawP1Card: any,
+  rawP2Card: any,
+  p1Score: number,
+  p2Score: number,
+  p1Deck?: any[],
+  p2Deck?: any[],
+): RoundResult {
+  const p1AllMightAura = hasAllMightAppeared(p1Deck, roundIndex);
+  const p2AllMightAura = hasAllMightAppeared(p2Deck, roundIndex);
+  const p1Card = {
+    ...rawP1Card,
+    attack: Math.max(0, (rawP1Card.attack ?? 0) + (p1AllMightAura && getCardAlignment(rawP1Card) === 'good' ? 3 : 0)),
+    defense: Math.max(0, (rawP1Card.defense ?? 0) - (p2AllMightAura && getCardAlignment(rawP1Card) === 'evil' ? 3 : 0)),
+  };
+  const p2Card = {
+    ...rawP2Card,
+    attack: Math.max(0, (rawP2Card.attack ?? 0) + (p2AllMightAura && getCardAlignment(rawP2Card) === 'good' ? 3 : 0)),
+    defense: Math.max(0, (rawP2Card.defense ?? 0) - (p1AllMightAura && getCardAlignment(rawP2Card) === 'evil' ? 3 : 0)),
+  };
   const p1FactionAdvantage = getFactionAdvantage(p1Card.race ?? '', p2Card.race ?? '');
   const p2FactionAdvantage = getFactionAdvantage(p2Card.race ?? '', p1Card.race ?? '');
   const p1Multiplier = p1FactionAdvantage === 'strong' ? 1.25 : p1FactionAdvantage === 'weak' ? 0.75 : 1;
@@ -242,10 +268,29 @@ export class RoomManager {
     else room.currentRound.p2Card = reveal;
     if (room.currentRound.p1Card && room.currentRound.p2Card && !room.currentRound.resolved) {
       room.currentRound.resolved = true;
-      const result = resolveCards(roundIndex, room.currentRound.p1Card.card, room.currentRound.p2Card.card, room.p1Score, room.p2Score);
+      const result = resolveCards(
+        roundIndex,
+        room.currentRound.p1Card.card,
+        room.currentRound.p2Card.card,
+        room.p1Score,
+        room.p2Score,
+        room.player1.cards,
+        room.player2.cards,
+      );
       room.p1Score = result.p1Score;
       room.p2Score = result.p2Score;
       room.roundHistory.push(result);
+      const nextRoundIndex = roundIndex + 1;
+      const p1TriggersArtorias = result.p1Card?.id === 'artorias'
+        && (result.p1Card.attack ?? 0) - (result.p2Card.defense ?? 0) >= 4;
+      const p2TriggersArtorias = result.p2Card?.id === 'artorias'
+        && (result.p2Card.attack ?? 0) - (result.p1Card.defense ?? 0) >= 4;
+      if (nextRoundIndex < room.totalRounds && p1TriggersArtorias !== p2TriggersArtorias && room.player1.cards && room.player2.cards) {
+        const nextP1Card = room.player1.cards[nextRoundIndex];
+        room.player1.cards[nextRoundIndex] = room.player2.cards[nextRoundIndex];
+        room.player2.cards[nextRoundIndex] = nextP1Card;
+        result.nextRoundCardsSwapped = true;
+      }
       room.currentRound = { roundIndex: roundIndex + 1, p1Card: null, p2Card: null, resolved: false };
       // اللاعب الذي بدأ الجولة يتناوب في الجولة التالية.
       room.currentTurnPlayerId = room.player1.id === playerId ? room.player2.id : room.player1.id;
@@ -307,3 +352,4 @@ export class RoomManager {
 export const roomManager = new RoomManager();
 
 setInterval(() => roomManager.cleanupExpiredRooms(), 5 * 60 * 1000);
+import { getCardAlignment } from '../../lib/game/card-alignment';

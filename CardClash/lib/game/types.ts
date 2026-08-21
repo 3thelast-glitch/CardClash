@@ -229,6 +229,8 @@ export interface AbilityData {
   roundIndex?: number;
   selection?: CardClass | string;
   stat?: EffectStat;
+  /** يقصر تعديل الإحصاء على كروت محاذاة محددة، مثل هالة أول مايت. */
+  alignment?: CardAlignment;
   targetClass?: CardClass | string;
   abilityType?: AbilityType;
 }
@@ -265,7 +267,9 @@ export type EffectKind =
   | 'factionMastery'
   | 'turinPenalty' // ✅ Turin: جولات الخسارة الإجبارية
   | 'absoluteDominance'
-  | 'phantomBlade';
+  | 'phantomBlade'
+  /** أرتورياس: تبديل كرتي الطرفين في الجولة التالية لمرة واحدة. */
+  | 'nextRoundCardSwap';
 
 export interface Effect {
   id: string;

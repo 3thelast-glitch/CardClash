@@ -54,6 +54,7 @@ const KIND_INFO: Record<EffectKind, { label: string; emoji: string; color: strin
   turinPenalty: { label: 'عقوبة تورين', emoji: '📉', color: '#f87171' },
   absoluteDominance: { label: 'سيطرة مطلقة', emoji: '👑', color: '#e879f9' },
   phantomBlade: { label: 'شفرة الوهم', emoji: '⚔️', color: '#c084fc' },
+  nextRoundCardSwap: { label: 'تبديل الجولة التالية', emoji: '🔄', color: '#67e8f9' },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────

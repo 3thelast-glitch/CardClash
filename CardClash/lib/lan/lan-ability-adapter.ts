@@ -1,6 +1,7 @@
 import { getRandomAbilitiesFromPool } from '../game/abilities';
 import { gameReducer } from '../game/game-context';
 import type { AbilityState, AbilityType, Card, Effect, GameState, RoundResult } from '../game/types';
+import { buildAllMightAlignmentEffects } from '../game/professional-card-abilities';
 import type { LanPlayerRole } from './lan-match-engine';
 
 /** القدرات التي لا تحتاج نافذة اختيار إضافية، فتظل متزامنة وواضحة في Wi‑Fi. */
@@ -37,6 +38,14 @@ export function createLanAbilities(enabled: boolean): AbilityState[] {
 }
 
 function toGameState(match: LanAbilityMatchInput): GameState {
+  const generatedCharacterEffects = [
+    ...buildAllMightAlignmentEffects(match.hostDeck, 'player', match.totalRounds),
+    ...buildAllMightAlignmentEffects(match.guestDeck, 'bot', match.totalRounds),
+  ];
+  const activeEffects = [
+    ...match.activeEffects,
+    ...generatedCharacterEffects.filter(generated => !match.activeEffects.some(effect => effect.id === generated.id)),
+  ];
   return {
     matchMode: 'lan',
     playerDeck: match.hostDeck,
@@ -50,7 +59,7 @@ function toGameState(match: LanAbilityMatchInput): GameState {
     roundResults: match.roundResults,
     difficulty: 2,
     abilitiesEnabled: match.abilitiesEnabled,
-    activeEffects: match.activeEffects,
+    activeEffects,
     playerAbilities: match.hostAbilities,
     botAbilities: match.guestAbilities,
     usedAbilities: [],

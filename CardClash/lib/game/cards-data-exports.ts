@@ -25,6 +25,7 @@ import {
 } from './types';
 import { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive } from './rage-engine';
 import { applyCombatCharacterSpecials } from './ui-helpers';
+import { getCardAlignment } from './card-alignment';
 
 import { getRarityFromStars } from './card-rarity';
 import { normalizeCardPower } from './card-power-balance';
@@ -142,6 +143,7 @@ export function determineRoundWinner(
     baseDef: number,
     effects: Effect[],
     cardClass: string,
+    cardAlignment: Card['alignment'],
     isShielded: boolean,
     protections: { ignoreFirstDefensePenalty?: boolean; ignoreFirstStatPenalty?: boolean; cancelFirstAttackBuff?: boolean } = {},
   ) => {
@@ -153,6 +155,7 @@ export function determineRoundWinner(
     for (const e of effects) {
       const d = e.data as any;
       const amount = d?.amount ?? 0;
+      if (d?.alignment && d.alignment !== cardAlignment) continue;
       if (isShielded && amount < 0) continue;
       if (amount < 0 && protections.ignoreFirstStatPenalty && !ignoredStatPenalty) {
         ignoredStatPenalty = true;
@@ -198,12 +201,12 @@ export function determineRoundWinner(
   const playerHealthDelta = Math.max(0, (p.hp ?? 0) - (playerCard.hp ?? 0)) + professionalHealth.playerHealthBonus;
   const botHealthDelta = Math.max(0, (b.hp ?? 0) - (botCard.hp ?? 0)) + professionalHealth.botHealthBonus;
 
-  const pStats = applySideEffects(p.attack, p.defense, playerEffects, playerCard.cardClass, playerShield, {
+  const pStats = applySideEffects(p.attack, p.defense, playerEffects, playerCard.cardClass, getCardAlignment(playerCard), playerShield, {
     ignoreFirstDefensePenalty: professionalHealth.playerIgnoreFirstDefensePenalty,
     ignoreFirstStatPenalty: professionalHealth.playerIgnoreFirstStatPenalty,
     cancelFirstAttackBuff: professionalHealth.botCancelOpponentAttackBuff,
   });
-  const bStats = applySideEffects(b.attack, b.defense, botEffects, botCard.cardClass, botShield, {
+  const bStats = applySideEffects(b.attack, b.defense, botEffects, botCard.cardClass, getCardAlignment(botCard), botShield, {
     ignoreFirstDefensePenalty: professionalHealth.botIgnoreFirstDefensePenalty,
     ignoreFirstStatPenalty: professionalHealth.botIgnoreFirstStatPenalty,
     cancelFirstAttackBuff: professionalHealth.playerCancelOpponentAttackBuff,

@@ -4,6 +4,7 @@ import {
   getProfessionalCombatModifiers,
   type ProfessionalCombatContext,
 } from './professional-card-abilities';
+import { getCardAlignment } from './card-alignment';
 
 export type PredictionSelections = Record<number, 'win' | 'loss'>;
 
@@ -179,6 +180,7 @@ export function getEffectiveStats(
 
     switch (eff.kind) {
       case 'statModifier': {
+        if (data.alignment && ownCard && data.alignment !== getCardAlignment(ownCard)) break;
         // تجاهل elementalOverride — لا يؤثر على القيم المعروضة
         if (data.stat === 'elementalOverride') break;
 

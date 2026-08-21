@@ -13,7 +13,12 @@ import {
 } from './rage-engine';
 import { useAbilityActivationOverlay } from '../../components/game/AbilityActivationOverlay';
 import { ABILITY_DETAILS } from './ability-details';
-import { getPostLossProfessionalBonus } from './professional-card-abilities';
+import {
+  buildAllMightAlignmentEffects,
+  getPostLossProfessionalBonus,
+  isObitoCard,
+  shouldArtoriasSwapNextRound,
+} from './professional-card-abilities';
 import { getCharacterAbility } from './character-abilities';
 
 // ─────────────────────────────────────────────────────────────────────────────────
@@ -211,6 +216,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             ? state.botDeck
             : getBotCards(deckWithPassives.length, state.difficulty as DifficultyLevel ?? 2);
       const botDeckWithPassives = resolvedBotDeck.map(applyOnSpawnPassive);
+      const allMightEffects = [
+        ...buildAllMightAlignmentEffects(deckWithPassives, 'player', deckWithPassives.length),
+        ...buildAllMightAlignmentEffects(botDeckWithPassives, 'bot', deckWithPassives.length),
+      ];
 
       return {
         ...state,
@@ -224,7 +233,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         botMaxHealth: botDeckWithPassives.length,
         roundResults: [],
         forcedMatchOutcome: undefined,
-        activeEffects: turinEffects,
+        activeEffects: [...turinEffects, ...allMightEffects],
         playerAbilities: state.abilitiesEnabled
           ? (assignedAbilities
               ? assignedAbilities.map(type => ({ type, used: false }))
@@ -242,17 +251,30 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'PLAY_ROUND': {
       if (state.currentRound >= state.totalRounds) return state;
 
-      const playerCard = state.playerDeck[state.currentRound];
-      const botCard    = state.botDeck[state.currentRound];
-      if (!playerCard || !botCard) return state;
-
       const roundNumber  = getRoundNumber(state);
       const activeEffects = state.abilitiesEnabled
         ? state.activeEffects.filter(e => isEffectActive(e, roundNumber))
         : [];
 
+      const nextRoundSwapEffects = activeEffects.filter(effect =>
+        effect.kind === 'nextRoundCardSwap'
+        && (effect.data as { appliesToRound?: number } | undefined)?.appliesToRound === roundNumber,
+      );
+      const cardsAreSwapped = nextRoundSwapEffects.length % 2 === 1;
+      const playerCard = (cardsAreSwapped ? state.botDeck : state.playerDeck)[state.currentRound];
+      const botCard    = (cardsAreSwapped ? state.playerDeck : state.botDeck)[state.currentRound];
+      if (!playerCard || !botCard) return state;
+
       const playerEffects = activeEffects.filter(e => e.targetSide === 'player' || e.targetSide === 'all');
       const botEffects    = activeEffects.filter(e => e.targetSide === 'bot'    || e.targetSide === 'all');
+      const isStatDebuff = (effect: Effect) => effect.kind === 'statModifier' && ((effect.data as AbilityData | undefined)?.amount ?? 0) < 0;
+      const shouldSwapDebuffs = isObitoCard(playerCard) !== isObitoCard(botCard);
+      const resolvedPlayerEffects = shouldSwapDebuffs
+        ? [...playerEffects.filter(effect => !isStatDebuff(effect)), ...botEffects.filter(isStatDebuff)]
+        : playerEffects;
+      const resolvedBotEffects = shouldSwapDebuffs
+        ? [...botEffects.filter(effect => !isStatDebuff(effect)), ...playerEffects.filter(isStatDebuff)]
+        : botEffects;
 
       const absoluteDominanceEffect = activeEffects
         .filter(e => e.kind === 'absoluteDominance')
@@ -294,7 +316,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       } else if (starAdvantageEffect) {
         result = { winner: starAdvantageEffect.sourceSide, playerDamage: 0, botDamage: 0, playerBaseDamage: 0, botBaseDamage: 0, playerFactionAdvantage: 'neutral' as FactionAdvantage, botFactionAdvantage: 'neutral' as FactionAdvantage, playerHealthDelta: 0, botHealthDelta: 0 };
       } else {
-        result = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled, {
+        result = determineRoundWinner(playerCard, botCard, resolvedPlayerEffects, resolvedBotEffects, state.abilitiesEnabled, {
           playerScore: state.playerScore,
           botScore: state.botScore,
         });
@@ -378,6 +400,23 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       // زورو لا يحسم ظهوره الحالي؛ يبدأ أثر القطع في ثلاث جولات تالية فقط.
       queueZoroCut(playerCard, 'player');
       queueZoroCut(botCard, 'bot');
+
+      const queueArtoriasSwap = (card: Card, opponentCard: Card, side: Side) => {
+        if (!shouldArtoriasSwapNextRound(card, opponentCard) || roundNumber >= state.totalRounds) return;
+        effectsToAdd.push({
+          id: `artorias-next-round-swap-${side}-${roundNumber}`,
+          kind: 'nextRoundCardSwap',
+          sourceSide: side,
+          targetSide: getOppositeSide(side),
+          createdAtRound: roundNumber + 1,
+          expiresAtRound: roundNumber + 1,
+          charges: 1,
+          priority: EFFECT_PRIORITY.statModifiers,
+          data: { appliesToRound: roundNumber + 1 },
+        });
+      };
+      queueArtoriasSwap(playerCard, botCard, 'player');
+      queueArtoriasSwap(botCard, playerCard, 'bot');
 
       if (!turinForcedLoss) {
         const orderedEffects = [...activeEffects].sort((a, b) => a.priority - b.priority);
@@ -554,6 +593,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
               effectsToRemove.add(effect.id); break;
             }
             case 'phantomBlade': {
+              effectsToRemove.add(effect.id); break;
+            }
+            case 'nextRoundCardSwap': {
               effectsToRemove.add(effect.id); break;
             }
           }
@@ -1350,15 +1392,28 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   const expectedRoundResult = useMemo((): RoundResult | null => {
-    const playerCard = state.playerDeck[state.currentRound];
-    const botCard = state.botDeck[state.currentRound];
-    if (!playerCard || !botCard) return null;
     const roundNumber = state.currentRound + 1;
     const activeEffects = state.abilitiesEnabled
       ? state.activeEffects.filter(e => isEffectActive(e, roundNumber))
       : [];
+    const nextRoundSwapEffects = activeEffects.filter(effect =>
+      effect.kind === 'nextRoundCardSwap'
+      && (effect.data as { appliesToRound?: number } | undefined)?.appliesToRound === roundNumber,
+    );
+    const cardsAreSwapped = nextRoundSwapEffects.length % 2 === 1;
+    const playerCard = (cardsAreSwapped ? state.botDeck : state.playerDeck)[state.currentRound];
+    const botCard = (cardsAreSwapped ? state.playerDeck : state.botDeck)[state.currentRound];
+    if (!playerCard || !botCard) return null;
     const playerEffects = activeEffects.filter(e => e.targetSide === 'player' || e.targetSide === 'all');
     const botEffects = activeEffects.filter(e => e.targetSide === 'bot' || e.targetSide === 'all');
+    const isStatDebuff = (effect: Effect) => effect.kind === 'statModifier' && ((effect.data as AbilityData | undefined)?.amount ?? 0) < 0;
+    const shouldSwapDebuffs = isObitoCard(playerCard) !== isObitoCard(botCard);
+    const resolvedPlayerEffects = shouldSwapDebuffs
+      ? [...playerEffects.filter(effect => !isStatDebuff(effect)), ...botEffects.filter(isStatDebuff)]
+      : playerEffects;
+    const resolvedBotEffects = shouldSwapDebuffs
+      ? [...botEffects.filter(effect => !isStatDebuff(effect)), ...playerEffects.filter(isStatDebuff)]
+      : botEffects;
 
     // Mirror the exact same resolution order as PLAY_ROUND:
     // 1. absoluteDominance (highest priority — overrides everything)
@@ -1396,7 +1451,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const forcedData = forcedOutcomeEffect.data as { outcome?: 'draw' } | undefined;
       winner = forcedData?.outcome === 'draw' ? 'draw' : forcedOutcomeEffect.sourceSide;
     } else {
-      const battlePreview = determineRoundWinner(playerCard, botCard, playerEffects, botEffects, state.abilitiesEnabled);
+      const battlePreview = determineRoundWinner(playerCard, botCard, resolvedPlayerEffects, resolvedBotEffects, state.abilitiesEnabled);
       preview = battlePreview;
       winner = battlePreview.winner;
     }

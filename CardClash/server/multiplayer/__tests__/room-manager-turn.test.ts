@@ -5,7 +5,7 @@ function player(id: string): Player {
   return { id, name: id, socketId: id, isReady: false };
 }
 
-const card = (attack: number, race: string = 'human') => ({ race, attack, defense: 1 });
+const card = (attack: number, race: string = 'human', overrides: Record<string, unknown> = {}) => ({ id: `card-${attack}-${race}`, race, attack, defense: 1, ...overrides });
 
 describe('RoomManager turn protocol', () => {
   it('rejects out-of-turn reveals and alternates turns across rounds', () => {
@@ -74,5 +74,55 @@ describe('RoomManager turn protocol', () => {
     expect(result?.advantage).toBe('faction');
     expect(result?.p1FactionAdvantage).toBe('strong');
     expect(result?.p2FactionAdvantage).toBe('weak');
+  });
+
+  it('keeps All Might’s good and evil alignment aura active after he appears', () => {
+    const manager = new RoomManager();
+    const host = player('host-all-might-test');
+    const guest = player('guest-all-might-test');
+    manager.createRoom(host, 'MIGHT1');
+    manager.joinRoom('MIGHT1', guest);
+    const allMight = card(10, 'human', { id: 'all_might', alignment: 'good', defense: 10 });
+    const goodFollower = card(10, 'human', { id: 'good-follower', alignment: 'good', defense: 10 });
+    const evilCard = card(10, 'demon', { id: 'evil-opponent', alignment: 'evil', defense: 10 });
+    manager.setPlayerCards(host.id, [allMight, goodFollower], 2);
+    manager.setPlayerCards(guest.id, [evilCard, evilCard], 2);
+    manager.setPlayerReady(host.id, true);
+    manager.setPlayerReady(guest.id, true);
+    manager.startMatch('MIGHT1');
+
+    manager.revealCard(host.id, 0, allMight);
+    const firstResult = manager.revealCard(guest.id, 0, evilCard);
+    expect(firstResult?.p1Card.attack).toBe(13);
+    expect(firstResult?.p2Card.defense).toBe(7);
+
+    manager.revealCard(host.id, 1, goodFollower);
+    const secondResult = manager.revealCard(guest.id, 1, evilCard);
+    expect(secondResult?.p1Card.attack).toBe(13);
+    expect(secondResult?.p2Card.defense).toBe(7);
+  });
+
+  it('marks and stores Artorias’s one-round swap for the following web-room round', () => {
+    const manager = new RoomManager();
+    const host = player('host-artorias-test');
+    const guest = player('guest-artorias-test');
+    manager.createRoom(host, 'ARTOR1');
+    manager.joinRoom('ARTOR1', guest);
+    const artorias = card(20, 'human', { id: 'artorias', defense: 10 });
+    const opponent = card(10, 'orc', { id: 'opponent', defense: 16 });
+    const hostNext = card(5, 'human', { id: 'host-next' });
+    const guestNext = card(6, 'elf', { id: 'guest-next' });
+    manager.setPlayerCards(host.id, [artorias, hostNext], 2);
+    manager.setPlayerCards(guest.id, [opponent, guestNext], 2);
+    manager.setPlayerReady(host.id, true);
+    manager.setPlayerReady(guest.id, true);
+    manager.startMatch('ARTOR1');
+
+    manager.revealCard(host.id, 0, artorias);
+    const result = manager.revealCard(guest.id, 0, opponent);
+    expect(result?.nextRoundCardsSwapped).toBe(true);
+    const room = manager.getRoom('ARTOR1');
+    expect(room?.player1?.cards?.[1].id).toBe('guest-next');
+    expect(room?.player2?.cards?.[1].id).toBe('host-next');
   });
 });

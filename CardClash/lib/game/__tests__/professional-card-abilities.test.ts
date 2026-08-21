@@ -59,9 +59,9 @@ const modifierScenarios: ModifierScenario[] = [
   { label: 'إيرين عند التأخر في الصحة', cardId: 'eren_yeager', context: { ownScore: 1, opponentScore: 2 }, expected: { attackBonus: 1, defenseBonus: 2 } },
   { label: 'إيتشيغو عند تعادل القوة', cardId: 'ichigo_kurosaki', expected: { attackBonus: 3 } },
   { label: 'بين بدفع شينرا', cardId: 'pain_nagato', expected: { opponentAttackPenalty: 2, opponentDefensePenalty: 1, ownDefensePenalty: 1 } },
-  { label: 'أوبيتو يجهّز إلغاء النيرف', cardId: 'obito_uchiha', expected: { ignoreFirstStatPenalty: true } },
-  { label: 'أول مايت عند صحة حرجة', cardId: 'all_might', context: { ownScore: 1, opponentScore: 3 }, expected: { attackBonus: 3, ownDefensePenalty: 2 } },
-  { label: 'أرتورياس عند فرق إحصائي كبير', cardId: 'artorias', ownBase: { attack: 23, defense: 18 }, expected: { attackBonus: -2, defenseBonus: 2 } },
+  { label: 'أوبيتو يفعّل تبديل الإضعافات من محرك الجولة', cardId: 'obito_uchiha', expected: {} },
+  { label: 'أول مايت ينشئ هالته من محرك المباراة', cardId: 'all_might', expected: {} },
+  { label: 'أرتورياس يبدّل الجولة التالية من محرك المباراة', cardId: 'artorias', ownBase: { attack: 23, defense: 18 }, expected: {} },
   { label: 'بولما لا تغيّر إحصاءات القتال لأنها قدرة كشف', cardId: 'bulma', expected: {} },
 ];
 
@@ -130,12 +130,7 @@ describe('professional card abilities', () => {
     expect(getProfessionalCombatModifiers(shikamaru, dragon, shikamaru, dragon).opponentAttackPenalty).toBe(2);
   });
 
-  it('keeps high-impact legendary abilities behind state or matchup conditions', () => {
-    const allMight = card('all_might');
-    const enemy = card('enemy');
-    expect(getProfessionalCombatModifiers(allMight, enemy, allMight, enemy, { ownScore: 2, opponentScore: 3 }).attackBonus).toBeUndefined();
-    expect(getProfessionalCombatModifiers(allMight, enemy, allMight, enemy, { ownScore: 1, opponentScore: 3 })).toMatchObject({ attackBonus: 3, ownDefensePenalty: 2 });
-
+  it('keeps high-impact legendary abilities behind their dedicated match effects', () => {
     const ichigo = card('ichigo_kurosaki', { attack: 22, defense: 18 });
     const tiedEnemy = card('tied-enemy', { attack: 21, defense: 19 });
     expect(getProfessionalCombatModifiers(ichigo, tiedEnemy, ichigo, tiedEnemy).attackBonus).toBe(3);
@@ -173,18 +168,69 @@ describe('professional card abilities', () => {
     expect(getPostLossProfessionalBonus(card('chopper'))).toEqual({ health: 1 });
   });
 
-  it('enforces Alphonse, Obito, and Itachi protections during live round resolution', () => {
+  it('enforces Alphonse and Itachi protections during live round resolution', () => {
     const opponent = card('opponent', { attack: 10, defense: 10 });
     const alphonse = determineRoundWinner(card('alphonse_elric', { attack: 10, defense: 10 }), opponent, [effect('defense-debuff', 'defense', -5)]);
     expect(alphonse.botDamage).toBe(0);
-
-    const obito = determineRoundWinner(card('obito_uchiha', { attack: 10, defense: 10 }), opponent, [effect('attack-debuff', 'attack', -5)]);
-    expect(obito.playerBaseDamage).toBe(10);
 
     const itachi = determineRoundWinner(card('itachi_uchiha', { attack: 10, defense: 10 }), opponent, [], [
       { ...effect('attack-buff-1', 'attack', 5), targetSide: 'bot' },
       { ...effect('attack-buff-2', 'attack', 2), targetSide: 'bot' },
     ]);
     expect(itachi.botBaseDamage).toBe(12);
+  });
+
+  it('applies All Might’s alignment aura from his appearance through the rest of the match', () => {
+    const allMight = card('all_might', { alignment: 'good', attack: 20, defense: 18 });
+    const goodFollower = card('good-follower', { alignment: 'good', attack: 10, defense: 10 });
+    const evilOpponent = card('evil-opponent', { alignment: 'evil', attack: 10, defense: 12 });
+    const state: GameState = {
+      ...postLossState(allMight, evilOpponent),
+      playerDeck: [allMight, goodFollower],
+      botDeck: [evilOpponent, card('neutral-opponent', { alignment: 'neutral' })],
+      totalRounds: 2,
+      playerScore: 2,
+      botScore: 2,
+      playerMaxHealth: 2,
+      botMaxHealth: 2,
+    };
+    const started = gameReducer(state, { type: 'START_BATTLE' });
+    const firstRound = gameReducer(started, { type: 'PLAY_ROUND' });
+    expect(firstRound.roundResults[0].playerBaseDamage).toBe(23);
+    expect(firstRound.roundResults[0].playerDamage).toBe(14);
+
+    const nextRound = gameReducer(firstRound, { type: 'NEXT_ROUND', payload: { fromRound: 0 } });
+    const secondRound = gameReducer(nextRound, { type: 'PLAY_ROUND' });
+    expect(secondRound.roundResults[1].playerBaseDamage).toBe(13);
+  });
+
+  it('swaps active stat debuffs between players when Obito appears', () => {
+    const state: GameState = {
+      ...postLossState(card('obito_uchiha', { attack: 10, defense: 10 }), card('opponent', { attack: 10, defense: 10 })),
+      activeEffects: [
+        effect('player-attack-debuff', 'attack', -4),
+        { ...effect('bot-defense-debuff', 'defense', -2), targetSide: 'bot', sourceSide: 'player' },
+      ],
+    };
+    const resolved = gameReducer(state, { type: 'PLAY_ROUND' });
+    expect(resolved.roundResults[0].playerBaseDamage).toBe(10);
+    expect(resolved.roundResults[0].botBaseDamage).toBe(6);
+    expect(resolved.roundResults[0].botDamage).toBe(0);
+  });
+
+  it('swaps only the next round cards when Artorias clears the four-point threshold', () => {
+    const state: GameState = {
+      ...postLossState(card('artorias', { attack: 20, defense: 10 }), card('opponent', { attack: 10, defense: 16 })),
+      playerDeck: [card('artorias', { attack: 20, defense: 10 }), card('player-next')],
+      botDeck: [card('opponent', { attack: 10, defense: 16 }), card('bot-next')],
+    };
+    const firstRound = gameReducer(state, { type: 'PLAY_ROUND' });
+    expect(firstRound.activeEffects).toContainEqual(expect.objectContaining({ kind: 'nextRoundCardSwap' }));
+
+    const nextRound = gameReducer(firstRound, { type: 'NEXT_ROUND', payload: { fromRound: 0 } });
+    const swappedRound = gameReducer(nextRound, { type: 'PLAY_ROUND' });
+    expect(swappedRound.roundResults[1].playerCard.id).toBe('bot-next');
+    expect(swappedRound.roundResults[1].botCard.id).toBe('player-next');
+    expect(swappedRound.activeEffects.some(item => item.kind === 'nextRoundCardSwap')).toBe(false);
   });
 });
