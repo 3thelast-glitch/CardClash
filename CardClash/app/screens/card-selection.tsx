@@ -28,6 +28,7 @@ import {
 import { doesRoundPickerNeedScroll, getRoundPickerLayout } from '@/utils/round-picker-layout';
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
 import { useLanMultiplayer } from '@/lib/lan/lan-context';
+import { shouldUseStaticCardMedia } from '@/lib/game/long-match-media';
 
 // Multiplayer — يبقى الاستدعاء آمناً إذا لم يكن Provider موجوداً في سياق الاختبار.
 function useSafeMultiplayer() {
@@ -172,6 +173,7 @@ export default function CardSelectionScreen() {
   const isLanMultiplayer = state.matchMode === 'lan' && lan.match.role !== null;
   const isMultiplayer = isOnlineMultiplayer || isLanMultiplayer;
   const isCompactMobile = !isLandscape && width < 520;
+  const useStaticGridMedia = shouldUseStaticCardMedia(totalRounds);
   const opponentArrangementReady = isLanMultiplayer
     ? (lan.match.role === 'host' ? lan.match.guestReady : lan.match.hostReady)
     : (mp?.state?.opponentArrangementReady ?? false);
@@ -306,6 +308,7 @@ export default function CardSelectionScreen() {
           card={item.card}
           style={{ width: gridCardW, height: gridCardH }}
           selectionLabel={item.round !== null ? `ج ${item.round}` : undefined}
+          mediaMode={useStaticGridMedia ? 'static' : 'auto'}
         />
       </View>
       <View style={[styles.assignmentHint, item.round !== null && styles.assignmentHintAssigned]}>

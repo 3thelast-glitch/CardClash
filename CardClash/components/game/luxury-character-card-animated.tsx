@@ -63,6 +63,8 @@ interface Props {
     selectionLabel?: string;
     /** أثر مرئي يوضح أن كرت الخصم قُطع بقدرة زورو. */
     slashEffect?: boolean;
+    /** يعرض بديلاً ثابتاً للفيديو داخل الشبكات الطويلة لتقليل استهلاك ذاكرة Android. */
+    mediaMode?: 'auto' | 'static';
 }
 
 function isVideoUri(uri: string): boolean {
@@ -527,9 +529,9 @@ const CardVideo = ({ source, imgStyle, imageFit, audioEnabled, shouldAnimate }: 
     );
 };
 
-const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate }: {
+const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate, mediaMode = 'auto' }: {
     cardImage: ReturnType<typeof getCardImage>; videoAsset?: any; customUri?: string;
-    isCustomImage: boolean; imageFit: 'cover' | 'contain'; imgStyle: object; audioEnabled: boolean; shouldAnimate: boolean;
+    isCustomImage: boolean; imageFit: 'cover' | 'contain'; imgStyle: object; audioEnabled: boolean; shouldAnimate: boolean; mediaMode?: 'auto' | 'static';
 }) => {
     const hasVideo = !!videoAsset || !!(customUri && isVideoUri(customUri));
 
@@ -545,6 +547,11 @@ const CardMedia = ({ cardImage, videoAsset, customUri, isCustomImage, imageFit, 
         }).catch(() => {});
     }, [audioEnabled, hasVideo]);
 
+    // لا ننشئ VideoView في شبكة ترتيب مباراة طويلة؛ حتى الفيديو المتوقف يحتفظ بموارد فك ترميز على Android.
+    if (hasVideo && mediaMode === 'static') {
+        if (cardImage) return <Image source={cardImage as any} style={imgStyle as any} resizeMode={isCustomImage ? 'contain' : imageFit} />;
+        return <View testID="card-video-static-preview" style={[imgStyle as any, styles.videoStaticPreview]} pointerEvents="none"><Text style={styles.videoStaticPreviewIcon}>▶</Text></View>;
+    }
     if (videoAsset) return <CardVideo key={`card-video-asset-${String(videoAsset)}`} source={videoAsset} imgStyle={imgStyle} imageFit={imageFit} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />;
     if (customUri && isVideoUri(customUri)) return <CardVideo key={`card-video-uri-${customUri}`} source={customUri} imgStyle={imgStyle} imageFit={imageFit} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />;
     const uri: string | undefined = cardImage && typeof cardImage === 'object' && 'uri' in cardImage ? (cardImage as any).uri : undefined;
@@ -612,7 +619,7 @@ const TACTICAL_RARITY_PALETTES: Record<CardRarity, TacticalRarityPalette> = {
 
 const TacticalRarityCard = ({
     card, style, cardW, cardH, sc, cardImage, videoAsset, customUri,
-    isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate,
+    isCustomImage, imageFit, imgStyle, audioEnabled, shouldAnimate, mediaMode,
     attack, defense, baseAttack, baseDefense, selectionLabel, rarity, slashEffect,
 }: {
     card: Card;
@@ -628,6 +635,7 @@ const TacticalRarityCard = ({
     imgStyle: object;
     audioEnabled: boolean;
     shouldAnimate: boolean;
+    mediaMode: 'auto' | 'static';
     attack: number;
     defense: number;
     baseAttack: number;
@@ -663,7 +671,7 @@ const TacticalRarityCard = ({
     return (
         <View style={[styles.tacticalLegendaryCard, { width: cardW, height: cardH, borderRadius: Math.round(12 * sc), backgroundColor: palette.surface, borderColor: palette.outer, shadowColor: palette.shadow }, style]}>
             <View style={[styles.tacticalLegendaryInner, { borderRadius: Math.round(10 * sc), backgroundColor: palette.surface }]}>
-                {hasMedia && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imageFit={imageFit} imgStyle={imgStyle} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} />}
+                {hasMedia && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imageFit={imageFit} imgStyle={imgStyle} audioEnabled={audioEnabled} shouldAnimate={shouldAnimate} mediaMode={mediaMode} />}
                 {!hasMedia && <LinearGradient colors={palette.fallback} style={StyleSheet.absoluteFill} />}
                 <LinearGradient colors={['rgba(2,4,8,0.03)', 'rgba(2,4,8,0.08)', palette.overlayBottom]} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
                 {slashEffect && (
@@ -750,7 +758,7 @@ const TacticalRarityCard = ({
 // ─────────────────────────────────────────────
 export function LuxuryCharacterCardAnimated({
     card, style, imageOffsetY = 0, fitInsideBorder = false, isOpenedView = false,
-    effectiveAttack, effectiveDefense, playAudio = false, winnerState, selectionLabel, slashEffect = false,
+    effectiveAttack, effectiveDefense, playAudio = false, winnerState, selectionLabel, slashEffect = false, mediaMode = 'auto',
 }: Props) {
     const { settings } = useSettings();
     // هذا الخيار يوقف الحركات المستمرة والفيديو المتكرر، وهي أعلى عناصر البطاقة كلفة على الأجهزة الضعيفة.
@@ -849,6 +857,7 @@ export function LuxuryCharacterCardAnimated({
             imgStyle={imgStyle}
             audioEnabled={videoAudioEnabled}
             shouldAnimate={enableVisualEffects}
+            mediaMode={mediaMode}
             attack={displayAttack}
             defense={displayDefense}
             baseAttack={baseAttack}
@@ -878,7 +887,7 @@ export function LuxuryCharacterCardAnimated({
             <View style={[styles.cardInner, { borderRadius: Math.round(12 * sc) }]}>
                 <LinearGradient colors={theme.bgColors} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
                 {rarity === 'special' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 1 }]} pointerEvents="none" />}
-                {(hasImage || hasVideo) && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imageFit={imageFit} imgStyle={imgStyle} audioEnabled={videoAudioEnabled} shouldAnimate={enableVisualEffects} />}
+                {(hasImage || hasVideo) && <CardMedia cardImage={cardImage} videoAsset={videoAsset} customUri={customUri} isCustomImage={isCustomImage} imageFit={imageFit} imgStyle={imgStyle} audioEnabled={videoAudioEnabled} shouldAnimate={enableVisualEffects} mediaMode={mediaMode} />}
 
                 <View style={styles.contentLayer}>
                     {enableVisualEffects && theme.hasFoil && <RarityShimmer cardW={cardW} foilDuration={theme.foilDuration} color={themeColor} />}
@@ -1068,6 +1077,8 @@ const styles = StyleSheet.create({
     tacticalLegendaryStatDelta: { fontWeight: '900', lineHeight: 9, marginTop: -1 },
     tacticalLegendaryDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: 'rgba(253,230,138,0.55)', marginVertical: 5 },
     videoLoadingCover: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2,4,8,0.18)' },
+    videoStaticPreview: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#090705' },
+    videoStaticPreviewIcon: { color: 'rgba(253,230,138,0.8)', fontSize: 24, textAlign: 'center' },
     zoroSlashOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 18, overflow: 'hidden' },
     zoroSlashLine: { position: 'absolute', width: '142%', height: 4, left: '-21%', backgroundColor: 'rgba(255, 70, 70, 0.88)', borderRadius: 4, shadowColor: '#ff1f1f', shadowOpacity: 0.95, shadowRadius: 8, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
     zoroSlashLineOne: { top: '37%', transform: [{ rotate: '-29deg' }] },
