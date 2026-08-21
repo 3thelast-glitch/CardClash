@@ -29,8 +29,7 @@ describe('Turin special card', () => {
     expect(lanBattle).toContain("label: 'لعنة تورين: تخسر هذه الجولة'");
     expect(lanBattle).toContain("turinPenalty.targetSide === 'player' ? 'guest'");
     expect(insights).toContain("turinPenalty: 'لعنة تورين: خسارة هذه الجولة'");
-    expect(cardRenderer).toContain("const turinAudioAuthorized = card.id !== 'Turin_Turambar' || winnerState === 'winner';");
-    expect(cardRenderer).toContain('&& turinAudioAuthorized;');
+    expect(cardRenderer).not.toContain('turinAudioAuthorized');
     expect(cardRenderer).toContain('player.muted = true;');
     expect(cardRenderer).toContain('player.pause();');
     expect(cardRenderer).toContain('key={`card-video-asset-${String(videoAsset)}`}');

@@ -60,6 +60,7 @@ import {
   getRemainingRounds,
   getUpcomingPredictionRounds, isPredictionComplete,
   getEffectiveStats,
+  shouldPlayRoundCardAudio,
 } from '@/lib/game/ui-helpers';
 import { COLOR, SPACE, RADIUS, FONT } from '@/components/ui/design-tokens';
 import {
@@ -861,8 +862,8 @@ export default function BattleScreen() {
   // بعد اكتمال دخول الكروت تظهر نتيجة القوة المتوقعة؛ أي قدرة تغيّر الفائز تبدّل مصدر الصوت فوراً قبل الهجوم.
   const isRoundAudioActive = phase === 'action' || phase === 'combat' || (phase === 'result' && !!lastRoundResult);
   const audioWinner = turinPenaltyAudioWinner ?? computedWinner;
-  const playerWinnerVideoAudio = settings.soundEnabled && isRoundAudioActive && audioWinner === 'player';
-  const botWinnerVideoAudio = settings.soundEnabled && isRoundAudioActive && audioWinner === 'bot';
+  const playerWinnerVideoAudio = settings.soundEnabled && shouldPlayRoundCardAudio(displayPlayerCard, isRoundAudioActive, audioWinner === 'player');
+  const botWinnerVideoAudio = settings.soundEnabled && shouldPlayRoundCardAudio(displayBotCard, isRoundAudioActive, audioWinner === 'bot');
 
 
   const previewInsights = useMemo(() => {

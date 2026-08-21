@@ -16,6 +16,13 @@ export const getRemainingRounds = (currentRound: number, totalRounds: number) =>
     (_, index) => currentRound + 1 + index
   );
 
+/** الكرت الخاص يروي قصته عند ظهوره؛ أما الكرت العادي فلا يسمع صوته إلا إذا فاز بالجولة. */
+export const shouldPlayRoundCardAudio = (
+  card: Pick<Card, 'rarity'> | null | undefined,
+  isCardVisibleInRound: boolean,
+  didWinRound: boolean,
+): boolean => Boolean(card && isCardVisibleInRound && (card.rarity === 'special' || didWinRound));
+
 export const isPredictionComplete = (
   upcomingRounds: number[],
   selections: PredictionSelections
