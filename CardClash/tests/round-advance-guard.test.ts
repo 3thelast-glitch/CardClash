@@ -49,11 +49,22 @@ describe('Round advance guards', () => {
   it('cancels the local result timer and passes the expected round to the game engine', () => {
     const battleSource = readFileSync(resolve(process.cwd(), 'app/screens/battle.tsx'), 'utf8');
     const multiplayerSource = readFileSync(resolve(process.cwd(), 'app/screens/multiplayer-battle.tsx'), 'utf8');
+    const lanSource = readFileSync(resolve(process.cwd(), 'app/screens/lan-battle.tsx'), 'utf8');
+    const sandboxSource = readFileSync(resolve(process.cwd(), 'app/screens/sandbox.tsx'), 'utf8');
 
     expect(battleSource).toContain('const isAdvancingRound = useRef(false);');
     expect(battleSource).toContain('clearTimeout(nextRoundTimeout.current);');
+    expect(battleSource).toContain('const entranceTimeout = useRef');
+    expect(battleSource).toContain('clearTimeout(entranceTimeout.current);');
     expect(battleSource).toContain('nextRound(state.currentRound);');
     expect(multiplayerSource).toContain("phase !== 'result'");
     expect(multiplayerSource).toContain('isAdvancingRound.current = true;');
+    expect(multiplayerSource.indexOf('const webTimelineSteps = useMemo')).toBeLessThan(
+      multiplayerSource.indexOf("if (phase === 'game_over' && gameOver)"),
+    );
+    expect(lanSource).toContain('useAbility: activateAbility');
+    expect(lanSource).toContain('activateAbility(ability.type)');
+    expect(sandboxSource).toContain('return <SandboxScreenContent />;');
+    expect(sandboxSource).toContain('function SandboxScreenContent()');
   });
 });

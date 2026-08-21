@@ -65,7 +65,8 @@ describe('Wi-Fi local multiplayer flow', () => {
     expect(context).toContain('confirmNextRound');
     expect(battle).toContain('revealCurrentCard()');
     expect(battle).toContain('قدرات');
-    expect(battle).toContain('useAbility(ability.type)');
+    expect(battle).toContain('useAbility: activateAbility');
+    expect(battle).toContain('activateAbility(ability.type)');
     expect(battle).toContain('getDynamicAudioWinner');
     expect(battle).toContain('match.hostDeck[match.currentRound]');
     expect(battle).toContain('match.guestDeck[match.currentRound]');

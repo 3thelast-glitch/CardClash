@@ -358,10 +358,14 @@ interface RoundRecord {
 
 // ────────────────────────── MAIN SCREEN ──────────────────────────
 export default function SandboxScreen() {
-  const router = useRouter();
   if (!isDeveloperBuild(Constants.expoConfig?.extra)) {
     return <Redirect href="/screens/game-mode" />;
   }
+  return <SandboxScreenContent />;
+}
+
+function SandboxScreenContent() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isCompactPhone = width < 520;

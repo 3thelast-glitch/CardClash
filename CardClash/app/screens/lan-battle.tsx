@@ -10,7 +10,7 @@ import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { COLOR, FONT, RADIUS, SPACE } from '@/components/ui/design-tokens';
 import { useLanMultiplayer } from '@/lib/lan/lan-context';
 import { isLanGameOver } from '@/lib/lan/lan-match-engine';
-import { ABILITY_DETAILS, CATEGORY_CONFIG } from '@/lib/game/ability-details';
+import { ABILITY_DETAILS } from '@/lib/game/ability-details';
 import { abilities as ALL_ABILITIES } from '@/data/abilities';
 import { determineRoundWinner } from '@/lib/game/cards-data-exports';
 import type { Effect, RoundResult, Side } from '@/lib/game/types';
@@ -115,7 +115,7 @@ function buildLanAbilityCardData(abilityType: import('@/lib/game/types').Ability
 /** ساحة Wi‑Fi تتبع ترتيب اللعب الفردي: الخصم في الأعلى، الأمر والنتيجة في الوسط، وكرت اللاعب في الأسفل. */
 export default function LanBattleScreen() {
   const router = useRouter();
-  const { state: connectionState, match, revealCurrentCard, useAbility, confirmNextRound, finishMatch, requestRematch, acceptRematch, leave } = useLanMultiplayer();
+  const { state: connectionState, match, revealCurrentCard, useAbility: activateAbility, confirmNextRound, finishMatch, requestRematch, acceptRematch, leave } = useLanMultiplayer();
   const [isAbilitiesOpen, setIsAbilitiesOpen] = useState(false);
   const [isUsedAbilitiesOpen, setIsUsedAbilitiesOpen] = useState(false);
   const { showAbilityCard } = useAbilityActivationOverlay();
@@ -334,7 +334,7 @@ export default function LanBattleScreen() {
                 key={`${ability.type}-${index}`}
                 disabled={ability.used || iRevealed}
                 style={(ability.used || iRevealed) && styles.abilityCardUsed}
-                onPress={() => { useAbility(ability.type); setIsAbilitiesOpen(false); }}
+                onPress={() => { activateAbility(ability.type); setIsAbilitiesOpen(false); }}
               >
                 <AbilityCard ability={buildLanAbilityCardData(ability.type, !ability.used)} showActionButtons={false} style={styles.fullAbilityCard} />
               </TouchableOpacity>;

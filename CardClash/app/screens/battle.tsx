@@ -418,6 +418,7 @@ export default function BattleScreen() {
   const isTransitioning = useRef(false);
   const isAdvancingRound = useRef(false);
   const nextRoundTimeout = useRef<NodeJS.Timeout | null>(null);
+  const entranceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ✅ FIX: guard against startBattle being called more than once
   const battleStarted = useRef(false);
@@ -463,6 +464,7 @@ export default function BattleScreen() {
     Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
     return () => {
       if (nextRoundTimeout.current) clearTimeout(nextRoundTimeout.current);
+      if (entranceTimeout.current) clearTimeout(entranceTimeout.current);
     };
   }, []);
 
@@ -536,7 +538,11 @@ export default function BattleScreen() {
       playerAnim.value = withDelay(80, withTiming(1, { duration: 280 }));
       botAnim.value = withDelay(240, withTiming(1, { duration: 280 }));
       vsOpacity.value = withDelay(440, withTiming(1, { duration: 200 }));
-      setTimeout(() => setPhase('action'), BATTLE_TIMINGS.cardEntrance);
+      if (entranceTimeout.current) clearTimeout(entranceTimeout.current);
+      entranceTimeout.current = setTimeout(() => {
+        setPhase('action');
+        entranceTimeout.current = null;
+      }, BATTLE_TIMINGS.cardEntrance);
     }
   }, [currentPlayerCard, currentBotCard, phase, state.currentRound]);
 

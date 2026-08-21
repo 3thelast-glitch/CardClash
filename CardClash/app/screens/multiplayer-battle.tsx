@@ -235,6 +235,26 @@ export default function MultiplayerBattleScreen() {
     enterCards();
   }, [currentRound, enterCards, phase, totalRounds]);
 
+  const webTimelineSteps = useMemo<RoundTimelineStep[]>(() => {
+    if (!lastResult?.timeline) return [];
+    const before = isPlayer1
+      ? { player: lastResult.timeline.before.p1, bot: lastResult.timeline.before.p2 }
+      : { player: lastResult.timeline.before.p2, bot: lastResult.timeline.before.p1 };
+    const after = isPlayer1
+      ? { player: lastResult.timeline.after.p1, bot: lastResult.timeline.after.p2 }
+      : { player: lastResult.timeline.after.p2, bot: lastResult.timeline.after.p1 };
+    const iWon = lastResult.myWin;
+    const reason = lastResult.winner === 'draw'
+      ? 'تعادل الكرتان بعد مقارنة الهجوم والدفاع.'
+      : lastResult.advantage === 'faction'
+        ? 'أفضلية الفصيلة دعمت الكرت الفائز قبل المقارنة النهائية.'
+        : iWon ? 'تفوق كرتك بعد تطبيق التأثيرات هو سبب حسم الجولة.' : 'تفوق كرت الخصم بعد تطبيق التأثيرات هو سبب حسم الجولة.';
+    return [
+      { id: 'web-before', label: 'قبل الاستخدام', tone: 'neutral', text: `أنت: ${before.player.attack}/${before.player.defense} — الخصم: ${before.bot.attack}/${before.bot.defense}` },
+      { id: 'web-after', label: 'بعد الاستخدام', tone: 'accent', text: `بعد التأثيرات: أنت ${after.player.attack}/${after.player.defense} — الخصم ${after.bot.attack}/${after.bot.defense}` },
+      { id: 'web-reason', label: 'سبب الفوز', tone: iWon ? 'positive' : lastResult.winner === 'draw' ? 'neutral' : 'negative', text: reason },
+    ];
+  }, [isPlayer1, lastResult]);
 
   // ─── Game Over ───────────────────────────────────────────────────────────────
   if (phase === 'game_over' && gameOver) {
@@ -262,26 +282,6 @@ export default function MultiplayerBattleScreen() {
 
   const myCard = phase === 'result' && lastResult ? (isPlayer1 ? lastResult.p1Card : lastResult.p2Card) : myCurrentCard;
   const oppCard = phase === 'result' && lastResult ? (isPlayer1 ? lastResult.p2Card : lastResult.p1Card) : (oppCardRevealed ? oppCurrentCard : null);
-  const webTimelineSteps = useMemo<RoundTimelineStep[]>(() => {
-    if (!lastResult?.timeline) return [];
-    const before = isPlayer1
-      ? { player: lastResult.timeline.before.p1, bot: lastResult.timeline.before.p2 }
-      : { player: lastResult.timeline.before.p2, bot: lastResult.timeline.before.p1 };
-    const after = isPlayer1
-      ? { player: lastResult.timeline.after.p1, bot: lastResult.timeline.after.p2 }
-      : { player: lastResult.timeline.after.p2, bot: lastResult.timeline.after.p1 };
-    const iWon = lastResult.myWin;
-    const reason = lastResult.winner === 'draw'
-      ? 'تعادل الكرتان بعد مقارنة الهجوم والدفاع.'
-      : lastResult.advantage === 'faction'
-        ? 'أفضلية الفصيلة دعمت الكرت الفائز قبل المقارنة النهائية.'
-        : iWon ? 'تفوق كرتك بعد تطبيق التأثيرات هو سبب حسم الجولة.' : 'تفوق كرت الخصم بعد تطبيق التأثيرات هو سبب حسم الجولة.';
-    return [
-      { id: 'web-before', label: 'قبل الاستخدام', tone: 'neutral', text: `أنت: ${before.player.attack}/${before.player.defense} — الخصم: ${before.bot.attack}/${before.bot.defense}` },
-      { id: 'web-after', label: 'بعد الاستخدام', tone: 'accent', text: `بعد التأثيرات: أنت ${after.player.attack}/${after.player.defense} — الخصم ${after.bot.attack}/${after.bot.defense}` },
-      { id: 'web-reason', label: 'سبب الفوز', tone: iWon ? 'positive' : lastResult.winner === 'draw' ? 'neutral' : 'negative', text: reason },
-    ];
-  }, [isPlayer1, lastResult]);
 
   return (
     <View style={S.root}>
