@@ -1280,10 +1280,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const updatedAbilities = abilityOwnerList.map((a, i) =>
         i === abilityIndex ? { ...a, used: true } : a
       );
+      const previousEffectIds = new Set(state.activeEffects.map(effect => effect.id));
+      const attributedEffects = nextEffects.map(effect => {
+        // لا نعيد نسب التأثيرات السابقة إلى آخر قدرة مستخدمة؛ نضيف المصدر للتأثيرات
+        // التي أنشأها هذا الاستخدام فقط كي تعرف الواجهة سبب كل بوف أو نيرف.
+        if (previousEffectIds.has(effect.id) || effect.data?.abilityType) return effect;
+        return { ...effect, data: { ...(effect.data ?? {}), abilityType } };
+      });
 
       return {
         ...nextState,
-        activeEffects: nextEffects,
+        activeEffects: attributedEffects,
         ...(isPlayer ? { playerAbilities: updatedAbilities } : { botAbilities: updatedAbilities }),
         usedAbilities: [...state.usedAbilities, abilityType],
         roundAbilityUses: [

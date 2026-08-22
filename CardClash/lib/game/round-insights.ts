@@ -1,5 +1,6 @@
 import { getCharacterAbility, matchesCharacterAbilityTarget } from './character-abilities';
 import { getAbilityNameOnly } from './ability-names';
+import { withEffectSource } from './effect-labels';
 import type { Effect, RoundResult, RoundTimeline, Side } from './types';
 
 export type RoundInsightTone = 'positive' | 'negative' | 'neutral' | 'accent';
@@ -171,7 +172,7 @@ export function getActiveEffectPreview(effects: Effect[], side: Side, roundNumbe
     .slice(0, 3)
     .map((effect) => ({
       id: `effect-${effect.id}`,
-      text: `تأثير نشط: ${EFFECT_LABELS[effect.kind] ?? effect.kind}`,
+      text: `تأثير نشط: ${withEffectSource(effect, EFFECT_LABELS[effect.kind] ?? effect.kind)}`,
       tone: effect.sourceSide === side ? 'positive' : 'negative',
     }));
 }

@@ -460,14 +460,14 @@ describe('تدقيق تسوية آثار القدرات في الجولة', () =
     const propaganda = usePlayerAbility(winningState('Propaganda'), 'Propaganda', { selection: 'mage' });
     const avatar = usePlayerAbility(winningState('Avatar'), 'Avatar');
 
-    expect(rescue.activeEffects).toContainEqual(expect.objectContaining({ kind: 'statModifier', createdAtRound: 3, data: { stat: 'defense', amount: 0 } }));
+    expect(rescue.activeEffects).toContainEqual(expect.objectContaining({ kind: 'statModifier', createdAtRound: 3, data: expect.objectContaining({ stat: 'defense', amount: 0, abilityType: 'Rescue' }) }));
     expect(doubleNext.activeEffects).toHaveLength(2);
     expect(doubleNext.activeEffects.map(effect => effect.createdAtRound).sort()).toEqual([3, 4]);
-    expect(subhan.activeEffects).toContainEqual(expect.objectContaining({ kind: 'statModifier', data: { stat: 'attack', amount: 2 } }));
-    expect(propaganda.activeEffects).toContainEqual(expect.objectContaining({ kind: 'statModifier', targetSide: 'bot', data: { stat: 'all_stats', amount: -2, targetClass: 'mage' } }));
+    expect(subhan.activeEffects).toContainEqual(expect.objectContaining({ kind: 'statModifier', data: expect.objectContaining({ stat: 'attack', amount: 2, abilityType: 'Subhan' }) }));
+    expect(propaganda.activeEffects).toContainEqual(expect.objectContaining({ kind: 'statModifier', targetSide: 'bot', data: expect.objectContaining({ stat: 'all_stats', amount: -2, targetClass: 'mage', abilityType: 'Propaganda' }) }));
     expect(avatar.activeEffects).toEqual(expect.arrayContaining([
-      expect.objectContaining({ data: { stat: 'attack', amount: 2 } }),
-      expect.objectContaining({ data: { stat: 'defense', amount: 2 } }),
+      expect.objectContaining({ data: expect.objectContaining({ stat: 'attack', amount: 2, abilityType: 'Avatar' }) }),
+      expect.objectContaining({ data: expect.objectContaining({ stat: 'defense', amount: 2, abilityType: 'Avatar' }) }),
     ]));
   });
 });

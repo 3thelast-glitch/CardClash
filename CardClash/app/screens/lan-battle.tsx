@@ -11,6 +11,7 @@ import { COLOR, FONT, RADIUS, SPACE } from '@/components/ui/design-tokens';
 import { useLanMultiplayer } from '@/lib/lan/lan-context';
 import { isLanGameOver } from '@/lib/lan/lan-match-engine';
 import { ABILITY_DETAILS } from '@/lib/game/ability-details';
+import { withEffectSource } from '@/lib/game/effect-labels';
 import { abilities as ALL_ABILITIES } from '@/data/abilities';
 import { determineRoundWinner } from '@/lib/game/cards-data-exports';
 import type { Effect, RoundResult, Side } from '@/lib/game/types';
@@ -47,10 +48,10 @@ function getActiveCardEffectBadges(effects: Effect[], side: Side, currentRound: 
     .map(effect => {
       const data = effect.data as { stat?: 'attack' | 'defense' | 'all_stats'; amount?: number; double?: boolean } | undefined;
       if (effect.kind === 'statModifier') {
-        if (data?.double) return { id: effect.id, label: 'تعزيز: الهجوم ×2', tone: 'buff' };
+        if (data?.double) return { id: effect.id, label: withEffectSource(effect, 'تعزيز: الهجوم ×2'), tone: 'buff' };
         const stat = data?.stat === 'defense' ? 'الدفاع' : data?.stat === 'all_stats' ? 'الهجوم والدفاع' : 'الهجوم';
         const amount = data?.amount ?? 0;
-        return { id: effect.id, label: `${amount >= 0 ? 'تعزيز' : 'إضعاف'}: ${stat} ${amount >= 0 ? '+' : ''}${amount}`, tone: amount >= 0 ? 'buff' : 'debuff' };
+        return { id: effect.id, label: withEffectSource(effect, `${amount >= 0 ? 'تعزيز' : 'إضعاف'}: ${stat} ${amount >= 0 ? '+' : ''}${amount}`), tone: amount >= 0 ? 'buff' : 'debuff' };
       }
       const labels: Partial<Record<Effect['kind'], ActiveCardEffectBadge>> = {
         protection: { id: effect.id, label: 'حماية من خسارة نقطة', tone: 'buff' },
@@ -66,7 +67,8 @@ function getActiveCardEffectBadges(effects: Effect[], side: Side, currentRound: 
         doubleOrNothing: { id: effect.id, label: 'خاص: دبل أو نثنق', tone: 'utility' },
         phantomBlade: { id: effect.id, label: 'تعزيز: شفرة الوهم', tone: 'buff' },
       };
-      return labels[effect.kind] ?? { id: effect.id, label: 'تأثير خاص فعّال', tone: 'utility' };
+      const badge = labels[effect.kind] ?? { id: effect.id, label: 'تأثير خاص فعّال', tone: 'utility' as const };
+      return { ...badge, label: withEffectSource(effect, badge.label) };
     });
 }
 

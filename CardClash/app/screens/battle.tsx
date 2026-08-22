@@ -49,6 +49,7 @@ import { useOrientationTransition } from '@/utils/orientation-transition';
 import { useGame } from '@/lib/game/game-context';
 import { RACE_EMOJI, RACE_LABELS, FactionAdvantage, Race, CardClass, AbilityType, RoundResult, Side } from '@/lib/game/types';
 import { getAbilityNameAr, getAbilityNameOnly, getAbilityDescription } from '@/lib/game/ability-names';
+import { withEffectSource } from '@/lib/game/effect-labels';
 import { AbilityCard } from '@/components/game/ability-card';
 import { abilities as ALL_ABILITIES } from '@/data/abilities';
 import { EffectToast, useEffectToast } from '@/components/game/EffectToast';
@@ -132,6 +133,7 @@ const STAT_LABELS: Record<string, string> = {
 // ─── Effect label builder ───────────────────────────────────────────────────
 function getEffectLabel(effect: any): string {
   const d = effect.data as any;
+  const withSource = (label: string) => withEffectSource(effect, label);
   switch (effect.kind) {
     case 'statModifier': {
       const stat = STAT_LABELS[d?.stat] ?? d?.stat ?? '؟';
@@ -139,37 +141,37 @@ function getEffectLabel(effect: any): string {
       const sign = amount >= 0 ? '+' : '';
       const onlyClass: string | undefined = d?.onlyClass;
       const multiplier: boolean = !!d?.multiplier;
-      if (multiplier) return `${stat} ×${amount > 0 ? amount : '½'}`;
-      if (onlyClass) return `جميع ${CLASS_LABELS_SHORT[onlyClass] ?? onlyClass} ${sign}${amount}`;
-      return `${stat} ${sign}${amount}`;
+      if (multiplier) return withSource(`${stat} ×${amount > 0 ? amount : '½'}`);
+      if (onlyClass) return withSource(`جميع ${CLASS_LABELS_SHORT[onlyClass] ?? onlyClass} ${sign}${amount}`);
+      return withSource(`${stat} ${sign}${amount}`);
     }
-    case 'protection': return '🛡 حماية';
-    case 'fortify': return '🔩 تحصين';
-    case 'halvePoints': return '½ تنصيف';
-    case 'silenceAbilities': return '🔇 ختم قدرات';
-    case 'doubleOrNothing': return '🎲 مضاعفة أو صفر';
-    case 'forcedOutcome': return '🎯 نتيجة مضمونة';
-    case 'starAdvantage': return '⭐ أفضلية نجوم';
-    case 'sacrifice': return '🩸 تضحية';
-    case 'greedBuff': return '💰 جشع';
-    case 'lifesteal': return '🩸 سرقة صحة';
-    case 'revengeBuff': return '😤 انتقام';
-    case 'suicidePact': return '💀 اتفاقية انتحار';
-    case 'compensationBuff': return '🎁 تعويض';
-    case 'weakeningDebuff': return '📉 إضعاف';
-    case 'explosionDebuff': return '💥 انفجار';
-    case 'consecutiveLoss': return '🔄 خسائر متتالية';
-    case 'shieldGuard': return '🛡 درع';
-    case 'trap': return '🪤 فخ';
-    case 'convertDebuffs': return '🔃 تحويل نيرف→بف';
-    case 'doubleBuffs': return '✨ مضاعفة البفات';
-    case 'conversion': return '🔄 تحويل بفات الخصم';
-    case 'takeIt': return '↩️ إعادة النيرف';
-    case 'deprivation': return '🚫 سلب بف';
-    case 'pool': return '🌊 تصفير الجولة';
-    case 'turinPenalty': return '⚠️ تخسر نصف الجولات';
-    case 'prediction': return '🔮 توقع';
-    default: return effect.kind ?? '؟';
+    case 'protection': return withSource('🛡 حماية');
+    case 'fortify': return withSource('🔩 تحصين');
+    case 'halvePoints': return withSource('½ تنصيف');
+    case 'silenceAbilities': return withSource('🔇 ختم قدرات');
+    case 'doubleOrNothing': return withSource('🎲 مضاعفة أو صفر');
+    case 'forcedOutcome': return withSource('🎯 نتيجة مضمونة');
+    case 'starAdvantage': return withSource('⭐ أفضلية نجوم');
+    case 'sacrifice': return withSource('🩸 تضحية');
+    case 'greedBuff': return withSource('💰 جشع');
+    case 'lifesteal': return withSource('🩸 سرقة صحة');
+    case 'revengeBuff': return withSource('😤 انتقام');
+    case 'suicidePact': return withSource('💀 اتفاقية انتحار');
+    case 'compensationBuff': return withSource('🎁 تعويض');
+    case 'weakeningDebuff': return withSource('📉 إضعاف');
+    case 'explosionDebuff': return withSource('💥 انفجار');
+    case 'consecutiveLoss': return withSource('🔄 خسائر متتالية');
+    case 'shieldGuard': return withSource('🛡 درع');
+    case 'trap': return withSource('🪤 فخ');
+    case 'convertDebuffs': return withSource('🔃 تحويل نيرف→بف');
+    case 'doubleBuffs': return withSource('✨ مضاعفة البفات');
+    case 'conversion': return withSource('🔄 تحويل بفات الخصم');
+    case 'takeIt': return withSource('↩️ إعادة النيرف');
+    case 'deprivation': return withSource('🚫 سلب بف');
+    case 'pool': return withSource('🌊 تصفير الجولة');
+    case 'turinPenalty': return withSource('⚠️ تخسر نصف الجولات');
+    case 'prediction': return withSource('🔮 توقع');
+    default: return withSource(effect.kind ?? '؟');
   }
 }
 
