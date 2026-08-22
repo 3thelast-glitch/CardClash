@@ -553,7 +553,9 @@ export default function BattleScreen() {
     if (currentPlayerCard && currentBotCard && phase === 'selection') {
       isAdvancingRound.current = false;
       isTransitioning.current = false;
-      playerAnim.value = 0; botAnim.value = 0; vsOpacity.value = 0; resultOp.value = 0;
+      // لا نستخدم صفراً هنا: لو أُلغي تأخير الحركة في انتقال جولة ما، تبقى
+      // الكروت ظاهرة بدلاً من ترك الساحة فارغة.
+      playerAnim.value = 0.92; botAnim.value = 0.92; vsOpacity.value = 0.55; resultOp.value = 0;
       setShowResult(false); setShowPlayerEffect(false); setShowBotEffect(false);
       setIsBattleFinished(false);
       playerAnim.value = withDelay(80, withTiming(1, { duration: 280 }));
@@ -561,6 +563,10 @@ export default function BattleScreen() {
       vsOpacity.value = withDelay(440, withTiming(1, { duration: 200 }));
       if (entranceTimeout.current) clearTimeout(entranceTimeout.current);
       entranceTimeout.current = setTimeout(() => {
+        // ضمان مرئية الكرتين في كل جولة حتى لو أُلغيت حركة Reanimated على جهاز ضعيف.
+        playerAnim.value = 1;
+        botAnim.value = 1;
+        vsOpacity.value = 1;
         setPhase('action');
         entranceTimeout.current = null;
       }, BATTLE_TIMINGS.cardEntrance);
