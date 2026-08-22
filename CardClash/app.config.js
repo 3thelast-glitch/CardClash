@@ -32,7 +32,7 @@ const isDeveloperBuild = buildVariant === 'developer';
 module.exports = {
   name: isDeveloperBuild ? 'Card Clash Dev' : 'Card Clash',
   slug: isDeveloperBuild ? 'card-battle-game-dev' : 'card-battle-game',
-  version: '1.0.3',
+  version: '1.0.4',
   orientation: 'default',
   icon: './assets/images/icon.png',
   scheme: isDeveloperBuild ? `${schemeFromBundleId}dev` : schemeFromBundleId,
@@ -48,7 +48,7 @@ module.exports = {
     },
   },
   android: {
-    versionCode: 19,
+    versionCode: 20,
     adaptiveIcon: {
       backgroundColor: '#1a1a2e',
       foregroundImage: './assets/images/android-icon-foreground.png',
@@ -84,7 +84,7 @@ module.exports = {
     'expo-asset',
     ['expo-screen-orientation', { initialOrientation: 'DEFAULT' }],
     ['expo-audio', { microphonePermission: 'Allow $(PRODUCT_NAME) to access your microphone.' }],
-    ['expo-video', { supportsBackgroundPlayback: true, supportsPictureInPicture: true }],
+    ['expo-video', { supportsBackgroundPlayback: false, supportsPictureInPicture: false }],
     'expo-web-browser',
     ['expo-splash-screen', {
       image: './assets/images/splash-icon.png',
