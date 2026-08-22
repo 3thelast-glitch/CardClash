@@ -489,9 +489,9 @@ export default function BattleScreen() {
   }, []);
 
   // animations
-  const playerAnim = useSharedValue(0);
-  const botAnim = useSharedValue(0);
-  const vsOpacity = useSharedValue(0);
+  const playerAnim = useSharedValue(1);
+  const botAnim = useSharedValue(1);
+  const vsOpacity = useSharedValue(1);
   const resultOp = useSharedValue(0);
   const flashAnim = useSharedValue(0);
 
@@ -540,13 +540,14 @@ export default function BattleScreen() {
     }, [state.playerDeck, state.botDeck, syncDecks])
   );
 
-  // ✅ FIX: استدعاء startBattle مرة واحدة فقط عند الدخول للشاشة
+  // إذا فتحت الشاشة قبل اكتمال dispatch من شاشة الترتيب، نعيد تهيئة المعركة
+  // عند وصول التشكيل بدلاً من البقاء في ساحة بلا كروت أو بحركة دخول عند الصفر.
   useEffect(() => {
     if (!battleStarted.current && state.totalRounds > 0 && state.playerDeck.length > 0 && !currentPlayerCard && !currentBotCard) {
       battleStarted.current = true;
       startBattle(state.playerDeck);
     }
-  }, []);
+  }, [currentBotCard, currentPlayerCard, startBattle, state.playerDeck, state.totalRounds]);
 
   useEffect(() => {
     if (currentPlayerCard && currentBotCard && phase === 'selection') {

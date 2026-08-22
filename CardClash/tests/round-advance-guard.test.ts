@@ -57,6 +57,9 @@ describe('Round advance guards', () => {
     expect(battleSource).toContain('const entranceTimeout = useRef');
     expect(battleSource).toContain('clearTimeout(entranceTimeout.current);');
     expect(battleSource).toContain('nextRound(state.currentRound);');
+    expect(battleSource).toContain('const playerAnim = useSharedValue(1);');
+    expect(battleSource).toContain('const botAnim = useSharedValue(1);');
+    expect(battleSource).toContain('}, [currentBotCard, currentPlayerCard, startBattle, state.playerDeck, state.totalRounds]);');
     expect(multiplayerSource).toContain("phase !== 'result'");
     expect(multiplayerSource).toContain('isAdvancingRound.current = true;');
     expect(multiplayerSource.indexOf('const webTimelineSteps = useMemo')).toBeLessThan(
