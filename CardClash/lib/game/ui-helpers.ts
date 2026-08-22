@@ -30,6 +30,57 @@ export const isPredictionComplete = (
 ) =>
   upcomingRounds.length > 0 && upcomingRounds.every((round) => selections[round]);
 
+/** هل يؤثر تعديل الإحصاء على الكرت الظاهر الآن فعلاً؟ */
+export function doesEffectApplyToCard(
+  effect: Effect,
+  card: Card | null | undefined,
+  ownScore?: number,
+  opponentScore?: number,
+): boolean {
+  if (effect.kind !== 'statModifier') return true;
+  const data = effect.data ?? {};
+  if (data.alignment && card && data.alignment !== getCardAlignment(card)) return false;
+  if (data.races && card && !data.races.includes(card.race)) return false;
+  if (typeof data.requiresHealthDeficit === 'number'
+    && (ownScore === undefined || opponentScore === undefined || ownScore > opponentScore - data.requiresHealthDeficit)) return false;
+  if (data.stat === 'all_stats' && data.targetClass && card && data.targetClass !== card.cardClass) return false;
+  return true;
+}
+
+export type DirectStatReason = { stat: 'attack' | 'defense'; amount: number; label: string };
+
+/** أسباب قدرات الشخصيات المباشرة التي لا تُخزن كتأثير نشط في GameState. */
+export function getDirectCharacterStatReasons(
+  ownCard: Card | null | undefined,
+  opponentCard: Card | null | undefined,
+  context: ProfessionalCombatContext = {},
+  opponentContext: ProfessionalCombatContext = {},
+): DirectStatReason[] {
+  if (!ownCard) return [];
+  const ownStats = { attack: ownCard.attack, defense: ownCard.defense };
+  applySpecialAbilityModifications(ownCard, opponentCard ?? null, ownStats, undefined, context);
+  const ownAbility = getCharacterAbility(ownCard);
+  const reasons: DirectStatReason[] = [];
+  const ownLabel = ownAbility ? `${ownCard.nameAr ?? ownCard.name} — ${ownAbility.nameAr}` : `${ownCard.nameAr ?? ownCard.name} — قدرة الشخصية`;
+  if (ownStats.attack !== ownCard.attack) reasons.push({ stat: 'attack', amount: ownStats.attack - ownCard.attack, label: ownLabel });
+  if (ownStats.defense !== ownCard.defense) reasons.push({ stat: 'defense', amount: ownStats.defense - ownCard.defense, label: ownLabel });
+
+  if (opponentCard) {
+    const opponentModifiers = getProfessionalCombatModifiers(
+      opponentCard,
+      ownCard,
+      { attack: opponentCard.attack, defense: opponentCard.defense },
+      { attack: ownStats.attack, defense: ownStats.defense },
+      opponentContext,
+    );
+    const opponentAbility = getCharacterAbility(opponentCard);
+    const opponentLabel = opponentAbility ? `${opponentCard.nameAr ?? opponentCard.name} — ${opponentAbility.nameAr}` : `${opponentCard.nameAr ?? opponentCard.name} — قدرة الخصم`;
+    if (opponentModifiers.opponentAttackPenalty) reasons.push({ stat: 'attack', amount: -opponentModifiers.opponentAttackPenalty, label: opponentLabel });
+    if (opponentModifiers.opponentDefensePenalty) reasons.push({ stat: 'defense', amount: -opponentModifiers.opponentDefensePenalty, label: opponentLabel });
+  }
+  return reasons;
+}
+
 export const buildPredictionSummary = (activeEffects: Effect[], sourceSide: Side = 'player') => {
   const predictionEffect = activeEffects.find(
     (effect) => effect.kind === 'prediction' && effect.sourceSide === sourceSide
@@ -185,10 +236,7 @@ export function getEffectiveStats(
 
     switch (eff.kind) {
       case 'statModifier': {
-        if (data.alignment && ownCard && data.alignment !== getCardAlignment(ownCard)) break;
-        if (Array.isArray(data.races) && ownCard && !data.races.includes(ownCard.race)) break;
-        if (typeof data.requiresHealthDeficit === 'number'
-          && (context.ownScore === undefined || context.opponentScore === undefined || context.ownScore > context.opponentScore - data.requiresHealthDeficit)) break;
+        if (!doesEffectApplyToCard(eff, ownCard, context.ownScore, context.opponentScore)) break;
         // تجاهل elementalOverride — لا يؤثر على القيم المعروضة
         if (data.stat === 'elementalOverride') break;
 

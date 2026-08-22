@@ -14,4 +14,9 @@ describe('effect source labels', () => {
   it('keeps character and legacy effects readable when no manual ability source exists', () => {
     expect(withEffectSource({ data: { stat: 'defense', amount: 2 } }, 'دفاع +2')).toBe('دفاع +2');
   });
+
+  it('names permanent character auras that begin before a player uses any ability card', () => {
+    expect(withEffectSource({ data: { stat: 'attack', amount: 2, sourceLabel: 'كايدو — قوة التنين' } }, 'هجوم +2'))
+      .toBe('كايدو — قوة التنين: هجوم +2');
+  });
 });

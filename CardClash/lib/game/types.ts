@@ -237,6 +237,8 @@ export interface AbilityData {
   requiresHealthDeficit?: number;
   targetClass?: CardClass | string;
   abilityType?: AbilityType;
+  /** تسمية مصدر غير يدوي، مثل هالة كايدو أو قدرة شخصية تظهر تلقائياً. */
+  sourceLabel?: string;
 }
 
 export type EffectKind =

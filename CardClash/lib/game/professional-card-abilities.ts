@@ -88,7 +88,7 @@ export function buildAllMightAlignmentEffects(deck: Card[], side: Side, totalRou
         createdAtRound: startsAtRound,
         expiresAtRound: totalRounds,
         priority: 80,
-        data: { stat: 'attack', amount: 3, alignment: 'good' },
+        data: { stat: 'attack', amount: 3, alignment: 'good', sourceLabel: 'أول مايت — رمز السلام الأخير' },
       },
       {
         id: `all-might-evil-defense-${side}-${index}`,
@@ -98,7 +98,7 @@ export function buildAllMightAlignmentEffects(deck: Card[], side: Side, totalRou
         createdAtRound: startsAtRound,
         expiresAtRound: totalRounds,
         priority: 80,
-        data: { stat: 'defense', amount: -3, alignment: 'evil' },
+        data: { stat: 'defense', amount: -3, alignment: 'evil', sourceLabel: 'أول مايت — رمز السلام الأخير' },
       },
     ] satisfies Effect[];
   });
@@ -112,8 +112,8 @@ export function buildKaidoFactionEffects(deck: Card[], side: Side, totalRounds: 
     if (card.id !== 'kaido') return [];
     const startsAtRound = index + 1;
     return [
-      { id: `kaido-faction-attack-${side}-${index}`, kind: 'statModifier' as const, sourceSide: side, targetSide: side, createdAtRound: startsAtRound, expiresAtRound: totalRounds, priority: 80, data: { stat: 'attack', amount: 2, races: KAIDO_AURA_RACES } },
-      { id: `kaido-faction-defense-${side}-${index}`, kind: 'statModifier' as const, sourceSide: side, targetSide: side, createdAtRound: startsAtRound, expiresAtRound: totalRounds, priority: 80, data: { stat: 'defense', amount: 2, races: KAIDO_AURA_RACES } },
+      { id: `kaido-faction-attack-${side}-${index}`, kind: 'statModifier' as const, sourceSide: side, targetSide: side, createdAtRound: startsAtRound, expiresAtRound: totalRounds, priority: 80, data: { stat: 'attack', amount: 2, races: KAIDO_AURA_RACES, sourceLabel: 'كايدو — قوة التنين' } },
+      { id: `kaido-faction-defense-${side}-${index}`, kind: 'statModifier' as const, sourceSide: side, targetSide: side, createdAtRound: startsAtRound, expiresAtRound: totalRounds, priority: 80, data: { stat: 'defense', amount: 2, races: KAIDO_AURA_RACES, sourceLabel: 'كايدو — قوة التنين' } },
     ] satisfies Effect[];
   });
 }
@@ -122,7 +122,7 @@ export function buildKaidoFactionEffects(deck: Card[], side: Side, totalRounds: 
 export function buildAlphonseGoodAlignmentEffects(deck: Card[], side: Side, totalRounds: number): Effect[] {
   return deck.flatMap((card, index) => {
     if (card.id !== 'alphonse_elric') return [];
-    return [{ id: `alphonse-good-attack-${side}-${index}`, kind: 'statModifier' as const, sourceSide: side, targetSide: side, createdAtRound: index + 1, expiresAtRound: totalRounds, priority: 80, data: { stat: 'attack', amount: 2, alignment: 'good', requiresHealthDeficit: 3 } }] satisfies Effect[];
+    return [{ id: `alphonse-good-attack-${side}-${index}`, kind: 'statModifier' as const, sourceSide: side, targetSide: side, createdAtRound: index + 1, expiresAtRound: totalRounds, priority: 80, data: { stat: 'attack', amount: 2, alignment: 'good', requiresHealthDeficit: 3, sourceLabel: 'ألفونس — رباط الروح' } }] satisfies Effect[];
   });
 }
 

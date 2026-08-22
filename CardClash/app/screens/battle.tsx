@@ -61,6 +61,8 @@ import {
   getRemainingRounds,
   getUpcomingPredictionRounds, isPredictionComplete,
   getEffectiveStats,
+  getDirectCharacterStatReasons,
+  doesEffectApplyToCard,
   shouldPlayRoundCardAudio,
 } from '@/lib/game/ui-helpers';
 import { COLOR, SPACE, RADIUS, FONT } from '@/components/ui/design-tokens';
@@ -242,9 +244,10 @@ const ac = StyleSheet.create({
 });
 
 // ─── Active Effects Bar ─────────────────────────────────────────────────────
-function ActiveEffectsBar({ effects, side, compact = false, roundNumber }: { effects: any[]; side: 'player' | 'bot'; compact?: boolean; roundNumber?: number }) {
-  const mine = effects.filter(e => e.targetSide === side || e.targetSide === 'all');
-  if (!mine.length) return null;
+function ActiveEffectsBar({ effects, side, card, ownScore, opponentScore, compact = false, roundNumber }: { effects: any[]; side: 'player' | 'bot'; card?: any; ownScore?: number; opponentScore?: number; compact?: boolean; roundNumber?: number }) {
+  const mine = effects.filter(e => (e.targetSide === side || e.targetSide === 'all') && doesEffectApplyToCard(e, card, ownScore, opponentScore));
+  const directReasons = getDirectCharacterStatReasons(card, undefined, { ownScore, opponentScore });
+  if (!mine.length && !directReasons.length) return null;
   const BUFF_KINDS = new Set(['greedBuff', 'lifesteal', 'revengeBuff', 'compensationBuff', 'consecutiveLoss', 'shieldGuard', 'doubleBuffs', 'protection', 'fortify', 'starAdvantage']);
   return (
     <View testID={`active-effects-${side}`} style={[eff.row, compact && eff.sideColumn]}>
@@ -269,6 +272,16 @@ function ActiveEffectsBar({ effects, side, compact = false, roundNumber }: { eff
                 <Text style={[eff.badgeText, { color }]}>{roundsLeft}ج</Text>
               </View>
             )}
+          </View>
+        );
+      })}
+      {directReasons.map((reason, index) => {
+        const isBuff = reason.amount > 0;
+        const color = isBuff ? '#4ade80' : '#f87171';
+        const stat = reason.stat === 'attack' ? 'هجوم' : 'دفاع';
+        return (
+          <View key={`character-${reason.stat}-${index}`} style={[eff.chip, compact && eff.sideChip, { borderColor: color + '66', backgroundColor: color + '18' }]}>
+            <Text numberOfLines={compact ? 2 : 1} style={[eff.label, compact && eff.sideLabel, { color }]}>{`${reason.label}: ${stat} ${reason.amount > 0 ? '+' : ''}${reason.amount}`}</Text>
           </View>
         );
       })}
@@ -997,7 +1010,7 @@ export default function BattleScreen() {
             <View testID="battle-player-panel" style={[S.playerPanel, !isLandscape && S.panelPortrait]}>
               <Text style={S.panelLabel}>{playerLabel}</Text>
               <View style={S.cardWithSideEffects}>
-                <ActiveEffectsBar effects={state.activeEffects} side="player" compact roundNumber={activeRoundNumber} />
+                <ActiveEffectsBar effects={state.activeEffects} side="player" card={displayPlayerCard} ownScore={state.playerScore} opponentScore={state.botScore} compact roundNumber={activeRoundNumber} />
                 <Animated.View style={playerStyle}>
                   <LuxuryCharacterCardAnimated
                     card={displayPlayerCard}
@@ -1160,7 +1173,7 @@ export default function BattleScreen() {
                     }
                   />
                 </Animated.View>
-                <ActiveEffectsBar effects={state.activeEffects} side="bot" compact roundNumber={activeRoundNumber} />
+                <ActiveEffectsBar effects={state.activeEffects} side="bot" card={displayBotCard} ownScore={state.botScore} opponentScore={state.playerScore} compact roundNumber={activeRoundNumber} />
               </View>
               {activeDamageNumbers.filter(n => n.side === 'bot').map(n => (
                 <DamageNumber key={n.id} value={n.value} variant={n.variant} onComplete={() => removeDmg(n.id)} />

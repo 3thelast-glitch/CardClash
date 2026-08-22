@@ -14,8 +14,8 @@ import { ABILITY_DETAILS } from '@/lib/game/ability-details';
 import { withEffectSource } from '@/lib/game/effect-labels';
 import { abilities as ALL_ABILITIES } from '@/data/abilities';
 import { determineRoundWinner } from '@/lib/game/cards-data-exports';
-import type { Effect, RoundResult, Side } from '@/lib/game/types';
-import { shouldPlayRoundCardAudio } from '@/lib/game/ui-helpers';
+import type { Card, Effect, RoundResult, Side } from '@/lib/game/types';
+import { doesEffectApplyToCard, shouldPlayRoundCardAudio } from '@/lib/game/ui-helpers';
 import { useBattleLayout } from '@/utils/layout';
 import { RoundTimelinePanel } from '@/components/game/RoundInsightPanel';
 import { buildRoundTimeline } from '@/lib/game/round-insights';
@@ -36,10 +36,11 @@ function getFactionLabel(advantage: 'strong' | 'weak' | 'neutral' | undefined): 
 
 type ActiveCardEffectBadge = { id: string; label: string; tone: 'buff' | 'debuff' | 'utility' };
 
-function getActiveCardEffectBadges(effects: Effect[], side: Side, currentRound: number): ActiveCardEffectBadge[] {
+function getActiveCardEffectBadges(effects: Effect[], side: Side, currentRound: number, card?: Card, ownScore?: number, opponentScore?: number): ActiveCardEffectBadge[] {
   const roundNumber = currentRound + 1;
   return effects
     .filter(effect => effect.targetSide === side || effect.targetSide === 'all')
+    .filter(effect => doesEffectApplyToCard(effect, card, ownScore, opponentScore))
     .filter(effect => effect.createdAtRound <= roundNumber && (effect.expiresAtRound === undefined || roundNumber <= effect.expiresAtRound) && (effect.charges === undefined || effect.charges > 0))
     .filter(effect => {
       const appliesToRound = (effect.data as { appliesToRound?: number } | undefined)?.appliesToRound;
@@ -137,8 +138,8 @@ export default function LanBattleScreen() {
   const myAbilities = isHost ? match.hostAbilities : match.guestAbilities;
   const mySide: Side = isHost ? 'player' : 'bot';
   const opponentSide: Side = isHost ? 'bot' : 'player';
-  const myEffectBadges = getActiveCardEffectBadges(match.activeEffects, mySide, match.currentRound);
-  const opponentEffectBadges = getActiveCardEffectBadges(match.activeEffects, opponentSide, match.currentRound);
+  const myEffectBadges = getActiveCardEffectBadges(match.activeEffects, mySide, match.currentRound, myCard, myScore, opponentScore);
+  const opponentEffectBadges = getActiveCardEffectBadges(match.activeEffects, opponentSide, match.currentRound, opponentCard, opponentScore, myScore);
   const usedAbilities = useMemo(() => [
     ...match.hostAbilities.filter(ability => ability.used).map((ability, index) => ({
       id: `host-${ability.type}-${index}`,
