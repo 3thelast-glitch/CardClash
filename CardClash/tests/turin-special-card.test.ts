@@ -30,8 +30,9 @@ describe('Turin special card', () => {
     expect(lanBattle).toContain("turinPenalty.targetSide === 'player' ? 'guest'");
     expect(insights).toContain("turinPenalty: 'لعنة تورين: خسارة هذه الجولة'");
     expect(cardRenderer).not.toContain('turinAudioAuthorized');
-    expect(cardRenderer).toContain('player.muted = true;');
-    expect(cardRenderer).toContain('player.pause();');
+    expect(cardRenderer).toContain('player.muted = !audioEnabled;');
+    expect(cardRenderer).toContain('if (shouldAnimate) player.play();');
+    expect(cardRenderer).not.toContain('player.volume = 0;\n        player.pause();\n    }, [player]);');
     expect(cardRenderer).toContain('key={`card-video-asset-${String(videoAsset)}`}');
     expect(cardRenderer).toContain('key={`card-video-uri-${customUri}`}');
   });

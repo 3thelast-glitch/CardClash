@@ -20,4 +20,11 @@ describe('Android card media renderer', () => {
     expect(source).toContain('onFirstFrameRender={() => setHasRenderedFirstFrame(true)}');
     expect(source).toContain('testID="card-video-loading"');
   });
+
+  it('does not touch a player during an extra unmount cleanup after useVideoPlayer releases it', () => {
+    const source = readFileSync(cardComponentPath, 'utf8');
+
+    expect(source).toContain('يدير useVideoPlayer عملية release عند إلغاء تركيب CardVideo');
+    expect(source).not.toContain('player.volume = 0;\n        player.pause();\n    }, [player]);');
+  });
 });

@@ -506,12 +506,9 @@ const CardVideo = ({ source, imgStyle, imageFit, audioEnabled, shouldAnimate }: 
         else player.pause();
     }, [audioEnabled, player, shouldAnimate]);
 
-    useEffect(() => () => {
-        // يمنع بقاء صوت مشغل الجولة السابقة بعد تبدل الكرت داخل نفس موضع الساحة.
-        player.muted = true;
-        player.volume = 0;
-        player.pause();
-    }, [player]);
+    // يدير useVideoPlayer عملية release عند إلغاء تركيب CardVideo. لا نلمس
+    // اللاعب في cleanup ثانٍ، لأن React قد يحرره أولاً ثم يحاول هذا الـcleanup
+    // استدعاء pause/mute على كائن أصلي محرر فيسقط التطبيق على Android.
 
     return (
         <View style={imgStyle as any}>
