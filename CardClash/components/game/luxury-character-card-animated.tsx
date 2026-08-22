@@ -21,6 +21,7 @@ import { Card, CardAlignment, CardClass, CardRarity, Race, RACE_EMOJI, RACE_LABE
 import { getCardImage } from '../../lib/game/get-card-image';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 import { CARD_ALIGNMENT_META, getCardAlignment } from '@/lib/game/card-alignment';
+import { getCardAbilityDisplayText } from '@/lib/game/card-ability-text';
 
 const CLASS_LABELS: Record<CardClass, string> = {
     warrior: 'محارب', knight: 'فارس', mage: 'ساحر', archer: 'رامي',
@@ -652,7 +653,7 @@ const TacticalRarityCard = ({
     const badgeFont = Math.max(8, Math.min(11, 10 * sc));
     const showEnglishName = !isCompact && !!card.nameEn;
     const starCount = Math.max(0, Math.min(5, card.stars ?? 5));
-    const abilityText = card.specialAbility?.trim();
+    const abilityText = getCardAbilityDisplayText(card);
     type MetaItem = { key: 'class'; label: string };
     const classLabel = card.cardClass ? CLASS_LABELS[card.cardClass] : undefined;
     const metaItems: MetaItem[] = [
@@ -776,7 +777,8 @@ export function LuxuryCharacterCardAnimated({
     }, [videoAudioEnabled]);
     const rarity: CardRarity = card.rarity ?? 'common';
     const theme = RARITY_THEMES[rarity] ?? RARITY_THEMES.common;
-    const hasAbility = !!card.specialAbility && rarity !== 'legendary';
+    const abilityText = getCardAbilityDisplayText(card);
+    const hasAbility = !!abilityText;
     const stars = rarity === 'legendary' ? 0 : (card.stars ?? 0);
 
     // القيم المعروضة — إذا لم تُمرَّر effectiveAttack/effectiveDefense نستخدم القيم الأصلية
@@ -961,7 +963,7 @@ export function LuxuryCharacterCardAnimated({
                     {/* ability */}
                     {hasAbility && (
                         <View style={[styles.abilityContainer, { bottom: abilityBottom, left: Math.max(4, 8 * scW), right: Math.max(4, 8 * scW) }]}>
-                            <AbilityBanner text={card.specialAbility!} rarity={rarity} theme={theme} sc={sc} />
+                            <AbilityBanner text={abilityText!} rarity={rarity} theme={theme} sc={sc} />
                         </View>
                     )}
 

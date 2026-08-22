@@ -10,6 +10,7 @@ import { LuxuryBackground } from '@/components/game/luxury-background';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { useGame } from '@/lib/game/game-context';
 import { useCards } from '@/lib/game/useCards';
+import { getCardAbilityDisplayText } from '@/lib/game/card-ability-text';
 import { Card, AbilityType } from '@/lib/game/types';
 import { ALL_ABILITIES, NAME_TO_ABILITY_TYPE } from '@/lib/game/abilities';
 import { getDisabledAbilityIds } from '@/lib/game/abilities-store';
@@ -284,7 +285,7 @@ export default function CardSelectionScreen() {
   const allAssigned = cardRounds.every(cr => cr.round !== null);
   const selectedCardRound = focusedCardIndex !== null ? cardRounds[focusedCardIndex]?.round ?? null : null;
   const focusedCard = focusedCardIndex !== null ? cardRounds[focusedCardIndex]?.card : undefined;
-  const focusedAbilityPreview = focusedCard?.specialAbility?.trim();
+  const focusedAbilityPreview = focusedCard ? getCardAbilityDisplayText(focusedCard) : undefined;
   const suggestedRound = selectedCardRound === null
     ? Array.from({ length: totalRounds }, (_, i) => i + 1).find(round => !cardRounds.some(cr => cr.round === round)) ?? null
     : null;
