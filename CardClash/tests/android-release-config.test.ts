@@ -5,11 +5,11 @@ import { describe, expect, it } from 'vitest';
 const appConfigPath = resolve(process.cwd(), 'app.config.js');
 
 describe('Android release configuration', () => {
-  it('uses a newer Android build code for the all-round card-visibility fix', () => {
+  it('uses a newer Android build code for the mobile round-timeline redesign', () => {
     const source = readFileSync(appConfigPath, 'utf8');
 
-    expect(source).toContain("version: '1.0.5'");
-    expect(source).toContain('versionCode: 21');
+    expect(source).toContain("version: '1.0.6'");
+    expect(source).toContain('versionCode: 22');
   });
 
   it('does not keep Card Clash video resources alive in the background or PiP', () => {

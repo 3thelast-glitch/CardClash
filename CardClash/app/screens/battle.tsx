@@ -1053,14 +1053,17 @@ export default function BattleScreen() {
             <View testID="battle-command-panel" style={[
               S.centerPanel,
               !isLandscape && S.centerPanelPortrait,
+              !isLandscape && phase === 'result' && S.centerPanelPortraitResult,
               {
                 width: isLandscape ? centerWidth : portraitCommandWidth,
                 gap: Math.max(6, arenaGap),
               },
             ]}>
-              <Animated.View style={vsStyle}>
-                <Text style={[S.vsText, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
-              </Animated.View>
+              {(isLandscape || phase !== 'result') && (
+                <Animated.View style={vsStyle}>
+                  <Text style={[S.vsText, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
+                </Animated.View>
+              )}
 
               {phase === 'action' && expectedRoundResult && (
                 <RoundInsightPanel
@@ -1094,7 +1097,7 @@ export default function BattleScreen() {
                 />
               )}
 
-              {phase === 'result' && lastRoundResult && (
+              {phase === 'result' && lastRoundResult && (isLandscape || lastRoundTimeline.length === 0) && (
                 <RoundInsightPanel
                   testID="round-event-log"
                   title={`📝 أحداث الجولة ${lastRoundResult.round}`}
@@ -1372,6 +1375,7 @@ const S = StyleSheet.create({
   panelPortrait: { minHeight: 0 },
   centerPanel: { width: 120, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
   centerPanelPortrait: { minHeight: 0, maxHeight: 156, flexGrow: 0, flexShrink: 1, gap: 6, alignSelf: 'center' },
+  centerPanelPortraitResult: { maxHeight: 188, flexShrink: 0, gap: 4 },
   panelLabel: { color: 'rgba(191,250,242,0.72)', fontSize: FONT.xs, letterSpacing: 0.5 },
 
   vsText: { fontSize: 28, opacity: 0.85 },
