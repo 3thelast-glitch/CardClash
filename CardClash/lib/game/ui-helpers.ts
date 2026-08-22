@@ -62,8 +62,18 @@ export function getDirectCharacterStatReasons(
   const ownAbility = getCharacterAbility(ownCard);
   const reasons: DirectStatReason[] = [];
   const ownLabel = ownAbility ? `${ownCard.nameAr ?? ownCard.name} — ${ownAbility.nameAr}` : `${ownCard.nameAr ?? ownCard.name} — قدرة الشخصية`;
-  if (ownStats.attack !== ownCard.attack) reasons.push({ stat: 'attack', amount: ownStats.attack - ownCard.attack, label: ownLabel });
-  if (ownStats.defense !== ownCard.defense) reasons.push({ stat: 'defense', amount: ownStats.defense - ownCard.defense, label: ownLabel });
+  const opponentAbility = opponentCard ? getCharacterAbility(opponentCard) : undefined;
+  const opponentModifiers = opponentAbility?.statModifiers;
+  const opponentModifierApplies = !opponentModifiers?.opponentRaces
+    || !!ownCard && opponentModifiers.opponentRaces.includes(ownCard.race);
+  const inheritedAttackPenalty = opponentModifierApplies ? (opponentModifiers?.opponentAttackPenalty ?? 0) : 0;
+  if (inheritedAttackPenalty > 0 && opponentCard && opponentAbility) {
+    reasons.push({ stat: 'attack', amount: -inheritedAttackPenalty, label: `${opponentCard.nameAr ?? opponentCard.name} — ${opponentAbility.nameAr}` });
+  }
+  const ownAttackChange = ownStats.attack - ownCard.attack + inheritedAttackPenalty;
+  const ownDefenseChange = ownStats.defense - ownCard.defense;
+  if (ownAttackChange !== 0 && ownAbility) reasons.push({ stat: 'attack', amount: ownAttackChange, label: ownLabel });
+  if (ownDefenseChange !== 0 && ownAbility) reasons.push({ stat: 'defense', amount: ownDefenseChange, label: ownLabel });
 
   if (opponentCard) {
     const opponentModifiers = getProfessionalCombatModifiers(
@@ -73,7 +83,6 @@ export function getDirectCharacterStatReasons(
       { attack: ownStats.attack, defense: ownStats.defense },
       opponentContext,
     );
-    const opponentAbility = getCharacterAbility(opponentCard);
     const opponentLabel = opponentAbility ? `${opponentCard.nameAr ?? opponentCard.name} — ${opponentAbility.nameAr}` : `${opponentCard.nameAr ?? opponentCard.name} — قدرة الخصم`;
     if (opponentModifiers.opponentAttackPenalty) reasons.push({ stat: 'attack', amount: -opponentModifiers.opponentAttackPenalty, label: opponentLabel });
     if (opponentModifiers.opponentDefensePenalty) reasons.push({ stat: 'defense', amount: -opponentModifiers.opponentDefensePenalty, label: opponentLabel });

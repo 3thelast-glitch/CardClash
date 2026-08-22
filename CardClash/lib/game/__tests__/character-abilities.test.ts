@@ -8,7 +8,7 @@ import {
   applyPostBattlePassive,
   resolveSpecialAbility,
 } from '../rage-engine';
-import { applySpecialAbilityModifications, getEffectiveStats } from '../ui-helpers';
+import { applySpecialAbilityModifications, getDirectCharacterStatReasons, getEffectiveStats } from '../ui-helpers';
 import type { Card, GameState } from '../types';
 
 const makeCard = (id: string, overrides: Partial<Card> = {}): Card => ({
@@ -112,6 +112,18 @@ describe('تدقيق قدرات الشخصيات: تعديل الإحصاءات'
 
     expect(determineRoundWinner(player, makima).winner).toBe('bot');
     expect(determineRoundWinner(makeCard('human-player', { attack: 21, defense: 0, race: 'human' }), makima).winner).toBe('player');
+  });
+
+  it('يعرض اسم قدرة الشخصية التي منحت بوفاً أو نيرفاً مباشراً', () => {
+    const makima = makeCard('makima', { nameAr: 'ماكيما', attack: 18, defense: 0 });
+    const monster = makeCard('monster', { race: 'monster', attack: 21, defense: 0 });
+
+    expect(getDirectCharacterStatReasons(makima, monster)).toContainEqual(
+      expect.objectContaining({ stat: 'attack', amount: 4, label: 'ماكيما — السيطرة' }),
+    );
+    expect(getDirectCharacterStatReasons(monster, makima)).toContainEqual(
+      expect.objectContaining({ stat: 'attack', amount: -4, label: 'ماكيما — السيطرة' }),
+    );
   });
 
   it('يمنح Kaido الفصائل المؤهلة +2 هجوم و+2 دفاع بعد ظهوره', () => {

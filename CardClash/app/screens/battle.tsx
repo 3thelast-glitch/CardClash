@@ -244,9 +244,14 @@ const ac = StyleSheet.create({
 });
 
 // ─── Active Effects Bar ─────────────────────────────────────────────────────
-function ActiveEffectsBar({ effects, side, card, ownScore, opponentScore, compact = false, roundNumber }: { effects: any[]; side: 'player' | 'bot'; card?: any; ownScore?: number; opponentScore?: number; compact?: boolean; roundNumber?: number }) {
+function ActiveEffectsBar({ effects, side, card, opponentCard, ownScore, opponentScore, compact = false, roundNumber }: { effects: any[]; side: 'player' | 'bot'; card?: any; opponentCard?: any; ownScore?: number; opponentScore?: number; compact?: boolean; roundNumber?: number }) {
   const mine = effects.filter(e => (e.targetSide === side || e.targetSide === 'all') && doesEffectApplyToCard(e, card, ownScore, opponentScore));
-  const directReasons = getDirectCharacterStatReasons(card, undefined, { ownScore, opponentScore });
+  const directReasons = getDirectCharacterStatReasons(
+    card,
+    opponentCard,
+    { ownScore, opponentScore },
+    { ownScore: opponentScore, opponentScore: ownScore },
+  );
   if (!mine.length && !directReasons.length) return null;
   const BUFF_KINDS = new Set(['greedBuff', 'lifesteal', 'revengeBuff', 'compensationBuff', 'consecutiveLoss', 'shieldGuard', 'doubleBuffs', 'protection', 'fortify', 'starAdvantage']);
   return (
@@ -1010,7 +1015,7 @@ export default function BattleScreen() {
             <View testID="battle-player-panel" style={[S.playerPanel, !isLandscape && S.panelPortrait]}>
               <Text style={S.panelLabel}>{playerLabel}</Text>
               <View style={S.cardWithSideEffects}>
-                <ActiveEffectsBar effects={state.activeEffects} side="player" card={displayPlayerCard} ownScore={state.playerScore} opponentScore={state.botScore} compact roundNumber={activeRoundNumber} />
+                <ActiveEffectsBar effects={state.activeEffects} side="player" card={displayPlayerCard} opponentCard={displayBotCard} ownScore={state.playerScore} opponentScore={state.botScore} compact roundNumber={activeRoundNumber} />
                 <Animated.View style={playerStyle}>
                   <LuxuryCharacterCardAnimated
                     card={displayPlayerCard}
@@ -1173,7 +1178,7 @@ export default function BattleScreen() {
                     }
                   />
                 </Animated.View>
-                <ActiveEffectsBar effects={state.activeEffects} side="bot" card={displayBotCard} ownScore={state.botScore} opponentScore={state.playerScore} compact roundNumber={activeRoundNumber} />
+                <ActiveEffectsBar effects={state.activeEffects} side="bot" card={displayBotCard} opponentCard={displayPlayerCard} ownScore={state.botScore} opponentScore={state.playerScore} compact roundNumber={activeRoundNumber} />
               </View>
               {activeDamageNumbers.filter(n => n.side === 'bot').map(n => (
                 <DamageNumber key={n.id} value={n.value} variant={n.variant} onComplete={() => removeDmg(n.id)} />
