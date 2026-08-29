@@ -12,7 +12,7 @@ import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue, useAnimatedStyle,
-  withTiming, withDelay, withSpring,
+  withTiming, withDelay,
 } from 'react-native-reanimated';
 import { useSettings } from '@/lib/game/hooks/useSettings';
 

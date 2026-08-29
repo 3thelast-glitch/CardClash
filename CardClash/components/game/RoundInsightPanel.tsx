@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedText as Text } from '@/components/ui/ThemedText';
 import type { RoundInsight, RoundInsightTone, RoundTimelineStep } from '@/lib/game/round-insights';

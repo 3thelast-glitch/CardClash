@@ -31,7 +31,7 @@ async function expectInsideViewport(page: Page, locator: Locator): Promise<Bound
 async function openSinglePlayerBattle(page: Page) {
   await page.goto('/screens/splash');
   await expect(page.getByText('ابدأ المواجهة')).toBeVisible();
-  await page.getByText('ابدأ المواجهة').click();
+  await page.getByText('ابدأ المواجهة').click({ force: true });
 
   await expect(page.getByText('لعب فردي', { exact: true })).toBeVisible();
   await page.getByText('لعب فردي', { exact: true }).click();

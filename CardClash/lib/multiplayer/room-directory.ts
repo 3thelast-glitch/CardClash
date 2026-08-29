@@ -7,7 +7,7 @@ export type PublicRoom = {
 };
 
 type RoomDirectoryResponse = {
-  rooms?: Array<{ id?: unknown; status?: unknown; players?: unknown; createdAt?: unknown }>;
+  rooms?: { id?: unknown; status?: unknown; players?: unknown; createdAt?: unknown }[];
 };
 
 export function resolveRoomDirectoryUrl(webSocketUrl = resolveMultiplayerWebSocketUrl()): string {

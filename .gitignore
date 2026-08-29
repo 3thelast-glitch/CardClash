@@ -1,2 +1,56 @@
-node_modules
-node_modules
+# dependencies
+node_modules/
+CardClash/node_modules/
+
+# Expo / build output
+.expo/
+CardClash/.expo/
+dist/
+CardClash/dist/
+web-build/
+CardClash/web-build/
+expo-env.d.ts
+CardClash/expo-env.d.ts
+
+# generated test output
+playwright-report/
+test-results/
+CardClash/playwright-report/
+CardClash/test-results/
+coverage/
+CardClash/coverage/
+*.tsbuildinfo
+
+# local env files
+.env
+.env.*
+!.env.example
+
+# native/generated folders
+ios/
+android/
+CardClash/ios/
+CardClash/android/
+
+# package manager policy: this repo uses pnpm
+package-lock.json
+yarn.lock
+
+# IDE/editor/local history
+.vscode/
+.idea/
+.history/
+.snapshots/
+.git_disabled/
+*.swp
+*.swo
+*~
+
+# OS/log/archive noise
+.DS_Store
+Thumbs.db
+logs/
+*.log
+*.tgz
+*.tar.gz
+.cache/

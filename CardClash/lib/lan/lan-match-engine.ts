@@ -1,6 +1,5 @@
-import type { Card, RoundResult } from '../game/types';
+import type { Card, RoundResult, RoundTimeline } from '../game/types';
 import { determineRoundWinner } from '../game/cards-data-exports';
-import type { RoundTimeline } from '../game/types';
 
 export type LanPlayerRole = 'host' | 'guest';
 export type LanRoundWinner = LanPlayerRole | 'draw';

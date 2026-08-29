@@ -27,7 +27,7 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   useEffect(() => {
     op.value = withDelay(delay, withTiming(1, { duration: 400 }));
     y.value = withDelay(delay, withSpring(0, { damping: 16 }));
-  }, []);
+  }, [delay, op, y]);
   const s = useAnimatedStyle(() => ({ opacity: op.value, transform: [{ translateY: y.value }] }));
   return <Animated.View style={s}>{children}</Animated.View>;
 }
@@ -46,7 +46,7 @@ function PulsingPlay({ onPress, label, enabled }: { onPress: () => void; label: 
         withTiming(1.00, { duration: 850, easing: Easing.inOut(Easing.sin) })
       ), -1, false
     );
-  }, [enabled]);
+  }, [enabled, scale]);
   const s = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <Animated.View style={[s, { width: '100%' }]}>

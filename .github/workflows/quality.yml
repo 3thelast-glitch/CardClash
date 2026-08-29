@@ -55,10 +55,10 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Responsive Web E2E
-        run: pnpm test:ui -- e2e/ability-card-responsive.spec.ts
+        run: pnpm exec playwright test e2e/ability-card-responsive.spec.ts
 
       - name: Visual Card Artwork E2E
-        run: pnpm test:ui -- e2e/card-artwork-visual.spec.ts
+        run: pnpm exec playwright test e2e/card-artwork-visual.spec.ts
 
       - name: Upload Playwright report on failure
         if: failure()

@@ -14,7 +14,7 @@ export interface UseBattleAbilitiesReturn {
   openPredictionModal: (type: PredictionAbilityType) => void;
   closePredictionModal: () => void;
   handleSelectPrediction: (round: number, outcome: 'win' | 'loss') => void;
-  handleConfirmPrediction: (useAbility: (type: AbilityType, payload?: any) => void) => void;
+  handleConfirmPrediction: (activateAbility: (type: AbilityType, payload?: any) => void) => void;
 
   // Popularity / Sniping Modal (round picker)
   showPopularityModal: boolean;
@@ -23,7 +23,7 @@ export interface UseBattleAbilitiesReturn {
   openPopularityModal: (type: PopularityAbilityType) => void;
   closePopularityModal: () => void;
   handleSelectPopularityRound: (round: number) => void;
-  handleConfirmPopularity: (useAbility: (type: AbilityType, payload?: any) => void) => void;
+  handleConfirmPopularity: (activateAbility: (type: AbilityType, payload?: any) => void) => void;
 
   // Subhan Modal (attack guess input)
   showSubhanModal: boolean;
@@ -31,7 +31,7 @@ export interface UseBattleAbilitiesReturn {
   openSubhanModal: () => void;
   closeSubhanModal: () => void;
   handleSubhanGuessChange: (value: string) => void;
-  handleConfirmSubhan: (useAbility: (type: AbilityType, payload?: any) => void) => void;
+  handleConfirmSubhan: (activateAbility: (type: AbilityType, payload?: any) => void) => void;
 }
 
 export function useBattleAbilities(): UseBattleAbilitiesReturn {
@@ -66,8 +66,8 @@ export function useBattleAbilities(): UseBattleAbilitiesReturn {
   }, []);
 
   const handleConfirmPrediction = useCallback(
-    (useAbility: (type: AbilityType, payload?: any) => void) => {
-      useAbility(predictionAbilityType, { predictions: predictionSelections });
+    (activateAbility: (type: AbilityType, payload?: any) => void) => {
+      activateAbility(predictionAbilityType, { predictions: predictionSelections });
       setShowPredictionModal(false);
       setPredictionSelections({});
       if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -92,9 +92,9 @@ export function useBattleAbilities(): UseBattleAbilitiesReturn {
   }, []);
 
   const handleConfirmPopularity = useCallback(
-    (useAbility: (type: AbilityType, payload?: any) => void) => {
+    (activateAbility: (type: AbilityType, payload?: any) => void) => {
       if (selectedPopularityRound === null) return;
-      useAbility(popularityAbilityType, { round: selectedPopularityRound });
+      activateAbility(popularityAbilityType, { round: selectedPopularityRound });
       setShowPopularityModal(false);
       setSelectedPopularityRound(null);
       if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -119,10 +119,10 @@ export function useBattleAbilities(): UseBattleAbilitiesReturn {
   }, []);
 
   const handleConfirmSubhan = useCallback(
-    (useAbility: (type: AbilityType, payload?: any) => void) => {
+    (activateAbility: (type: AbilityType, payload?: any) => void) => {
       const guessedAttack = parseInt(subhanGuess, 10);
       if (Number.isNaN(guessedAttack)) return;
-      useAbility('Subhan', { guessedAttack });
+      activateAbility('Subhan', { guessedAttack });
       setShowSubhanModal(false);
       setSubhanGuess('');
       if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

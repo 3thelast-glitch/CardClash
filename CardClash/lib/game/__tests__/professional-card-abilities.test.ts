@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ALL_CARDS, determineRoundWinner } from '../cards-data-exports';
+import { ALL_CARDS } from '../cards-data-exports';
 import { gameReducer } from '../game-context';
 import {
   PROFESSIONAL_CARD_ABILITIES,

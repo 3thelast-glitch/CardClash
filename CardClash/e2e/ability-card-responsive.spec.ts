@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+const abilityArtworkSelector = '[data-testid="ability-artwork-image"]';
+
 const viewports = [
   { name: 'هاتف صغير عمودي', width: 320, height: 568 },
   { name: 'هاتف قياسي عمودي', width: 375, height: 667 },
@@ -14,19 +16,29 @@ const viewports = [
 for (const viewport of viewports) {
   test(`كروت القدرات تستجيب في ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    await page.goto('/screens/abilities');
+    await page.goto('/screens/abilities', { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByText('القدرات', { exact: true })).toBeVisible({ timeout: 20_000 });
+    await page.waitForFunction((selector) =>
+      Array.from(document.querySelectorAll(selector)).some((node) => {
+        const target = node instanceof HTMLImageElement ? node : node.querySelector('img') ?? node;
+        const rect = target.getBoundingClientRect();
+        return rect.width > 100 && rect.height > 100;
+      }),
+      abilityArtworkSelector,
+    );
 
-    const layout = await page.evaluate(() => {
+    const layout = await page.evaluate((selector) => {
       const body = document.body;
       const root = document.documentElement;
-      const cardImages = Array.from(document.querySelectorAll('img')).filter((img) => {
-        const rect = img.getBoundingClientRect();
+      const cardImages = Array.from(document.querySelectorAll(selector)).filter((node) => {
+        const target = node instanceof HTMLImageElement ? node : node.querySelector('img') ?? node;
+        const rect = target.getBoundingClientRect();
         return rect.width > 100 && rect.height > 100;
       });
-      const cardRects = cardImages.map((img) => {
-        const rect = img.getBoundingClientRect();
+      const cardRects = cardImages.map((node) => {
+        const target = node instanceof HTMLImageElement ? node : node.querySelector('img') ?? node;
+        const rect = target.getBoundingClientRect();
         return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height };
       });
       return {
@@ -36,7 +48,7 @@ for (const viewport of viewports) {
         scrollHeight: Math.max(body.scrollHeight, root.scrollHeight),
         cardRects,
       };
-    });
+    }, abilityArtworkSelector);
 
     expect(layout.scrollWidth, `${viewport.name}: تم العثور على تمرير أفقي`).toBeLessThanOrEqual(layout.viewportWidth + 2);
     expect(layout.cardRects.length, `${viewport.name}: لم تظهر صور كروت كبيرة`).toBeGreaterThan(0);

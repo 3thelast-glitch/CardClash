@@ -1,9 +1,13 @@
 services:
   - type: web
     name: card-clash-rooms
+    rootDir: CardClash
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm build:multiplayer
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build:multiplayer
     startCommand: pnpm start:multiplayer
     healthCheckPath: /health
     autoDeployTrigger: commit
+    envVars:
+      - key: MULTIPLAYER_PORT
+        value: $PORT
