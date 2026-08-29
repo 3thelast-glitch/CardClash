@@ -1,4 +1,4 @@
-name: Build and publish Android APK
+name: Build and publish Android APKs
 
 on:
   push:
@@ -10,10 +10,6 @@ on:
         description: Release tag, for example v1.0.7
         required: true
         type: string
-      artifact_url:
-        description: Optional direct Expo EAS APK URL. Leave empty to build a new APK.
-        required: false
-        type: string
 
 permissions:
   contents: write
@@ -24,8 +20,12 @@ concurrency:
 
 jobs:
   build-and-publish:
-    name: Build Player APK and publish Release
+    name: Build Player and Developer APKs
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: '1'
+
     defaults:
       run:
         working-directory: CardClash
@@ -37,7 +37,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 9.12.0
           run_install: false
 
       - name: Setup Node.js
@@ -47,6 +47,25 @@ jobs:
           cache: pnpm
           cache-dependency-path: CardClash/pnpm-lock.yaml
 
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install required Android SDK packages
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            'platform-tools' \
+            'platforms;android-36' \
+            'build-tools;36.0.0'
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -55,7 +74,7 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
-            TAG="${GITHUB_REF_NAME}"
+            TAG="$GITHUB_REF_NAME"
           else
             TAG="${{ inputs.tag }}"
           fi
@@ -66,119 +85,134 @@ jobs:
             exit 1
           fi
 
+          VERSION="${TAG#v}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "apk_name=CardClash-${TAG}.apk" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "player_apk=CardClash-Player-${TAG}.apk" >> "$GITHUB_OUTPUT"
+          echo "developer_apk=CardClash-Developer-${TAG}.apk" >> "$GITHUB_OUTPUT"
 
-      - name: Validate app version for tagged releases
-        if: github.event_name == 'push'
+      - name: Validate app version
         shell: bash
+        env:
+          TAG_VERSION: ${{ steps.release.outputs.version }}
         run: |
-          TAG_VERSION="${{ steps.release.outputs.tag }}"
-          TAG_VERSION="${TAG_VERSION#v}"
-
           CONFIG_VERSION="$(node -e "const c=require('./app.config.js'); process.stdout.write(c.version)")"
 
-          echo "Tag version:    $TAG_VERSION"
-          echo "App version:    $CONFIG_VERSION"
+          echo "Release version: $TAG_VERSION"
+          echo "App version:     $CONFIG_VERSION"
 
           if [ "$TAG_VERSION" != "$CONFIG_VERSION" ]; then
-            echo "Tag version does not match app.config.js version."
+            echo "Release tag version does not match app.config.js version."
             exit 1
           fi
 
-      - name: Use supplied APK URL
-        if: github.event_name == 'workflow_dispatch' && inputs.artifact_url != ''
-        id: supplied-apk
+      - name: Prepare release directory
+        run: mkdir -p release-assets
+
+      - name: Build Player APK
         shell: bash
         env:
-          ARTIFACT_URL: ${{ inputs.artifact_url }}
+          APP_VARIANT: player
+          APK_NAME: ${{ steps.release.outputs.player_apk }}
         run: |
-          echo "artifact_url=$ARTIFACT_URL" >> "$GITHUB_OUTPUT"
+          rm -rf android
+          pnpm exec expo prebuild --platform android --clean --no-install
 
-      - name: Build Player APK with EAS
-        if: github.event_name == 'push' || inputs.artifact_url == ''
-        id: eas-build
+          cat >> android/gradle.properties <<'EOF'
+          kotlin.compiler.execution.strategy=in-process
+          org.gradle.daemon=false
+          EOF
+
+          cd android
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          cd ..
+
+          APK_PATH="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
+          if [ -z "$APK_PATH" ]; then
+            echo "Player APK was not produced."
+            exit 1
+          fi
+
+          cp "$APK_PATH" "release-assets/$APK_NAME"
+
+      - name: Build Developer APK
         shell: bash
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APP_VARIANT: developer
+          APK_NAME: ${{ steps.release.outputs.developer_apk }}
         run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "Missing GitHub Actions secret: EXPO_TOKEN"
-            echo "Create an Expo access token and save it as the repository secret EXPO_TOKEN."
+          rm -rf android
+          pnpm exec expo prebuild --platform android --clean --no-install
+
+          cat >> android/gradle.properties <<'EOF'
+          kotlin.compiler.execution.strategy=in-process
+          org.gradle.daemon=false
+          EOF
+
+          cd android
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          cd ..
+
+          APK_PATH="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
+          if [ -z "$APK_PATH" ]; then
+            echo "Developer APK was not produced."
             exit 1
           fi
 
-          npx eas-cli@latest build \
-            --platform android \
-            --profile player \
-            --non-interactive \
-            --wait \
-            --json > eas-build.json
+          cp "$APK_PATH" "release-assets/$APK_NAME"
 
-          cat eas-build.json
-
-          ARTIFACT_URL="$(node - <<'NODE'
-          const fs = require('fs');
-          const raw = JSON.parse(fs.readFileSync('eas-build.json', 'utf8'));
-          const build = Array.isArray(raw) ? raw[0] : raw;
-          const url = build?.artifacts?.applicationArchiveUrl;
-          if (!url) process.exit(1);
-          process.stdout.write(url);
-          NODE
-          )"
-
-          if [ -z "$ARTIFACT_URL" ]; then
-            echo "EAS build completed but no applicationArchiveUrl was returned."
-            exit 1
-          fi
-
-          echo "artifact_url=$ARTIFACT_URL" >> "$GITHUB_OUTPUT"
-
-      - name: Download and validate APK
+      - name: Validate APK files and signatures
         shell: bash
         env:
-          BUILT_URL: ${{ steps.eas-build.outputs.artifact_url }}
-          SUPPLIED_URL: ${{ steps.supplied-apk.outputs.artifact_url }}
-          APK_NAME: ${{ steps.release.outputs.apk_name }}
+          PLAYER_APK: ${{ steps.release.outputs.player_apk }}
+          DEVELOPER_APK: ${{ steps.release.outputs.developer_apk }}
         run: |
-          ARTIFACT_URL="${BUILT_URL:-$SUPPLIED_URL}"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          AAPT="$ANDROID_HOME/build-tools/36.0.0/aapt"
 
-          if [ -z "$ARTIFACT_URL" ]; then
-            echo "No APK artifact URL is available."
-            exit 1
-          fi
+          for APK in "$PLAYER_APK" "$DEVELOPER_APK"; do
+            FILE="release-assets/$APK"
 
-          curl --fail --location --retry 5 --retry-all-errors --connect-timeout 30 \
-            --output "$APK_NAME" "$ARTIFACT_URL"
+            test -s "$FILE"
+            unzip -tq "$FILE"
+            unzip -l "$FILE" | grep -q 'AndroidManifest.xml'
 
-          test -s "$APK_NAME"
+            echo "Validating signature: $APK"
+            "$APKSIGNER" verify --verbose "$FILE"
 
-          MIME_TYPE="$(file --brief --mime-type "$APK_NAME")"
-          if [ "$MIME_TYPE" != "application/vnd.android.package-archive" ] && [ "$MIME_TYPE" != "application/zip" ]; then
-            echo "Expected an APK, but received MIME type: $MIME_TYPE"
-            exit 1
-          fi
+            echo "Android package metadata:"
+            "$AAPT" dump badging "$FILE" | head -n 3
 
-          unzip -tq "$APK_NAME"
-          unzip -l "$APK_NAME" | grep -q 'AndroidManifest.xml'
+            echo "SHA-256:"
+            sha256sum "$FILE"
+          done
 
-          echo "APK validated successfully:"
-          file "$APK_NAME"
-          sha256sum "$APK_NAME"
+      - name: Upload APK workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CardClash-${{ steps.release.outputs.tag }}-Android-APKs
+          path: |
+            CardClash/release-assets/${{ steps.release.outputs.player_apk }}
+            CardClash/release-assets/${{ steps.release.outputs.developer_apk }}
+          if-no-files-found: error
 
-      - name: Publish APK to GitHub Releases
+      - name: Publish APKs to GitHub Releases
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.release.outputs.tag }}
-          APK_NAME: ${{ steps.release.outputs.apk_name }}
+          PLAYER_APK: ${{ steps.release.outputs.player_apk }}
+          DEVELOPER_APK: ${{ steps.release.outputs.developer_apk }}
         run: |
+          PLAYER_FILE="release-assets/$PLAYER_APK"
+          DEVELOPER_FILE="release-assets/$DEVELOPER_APK"
+
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK_NAME" \
+            gh release upload "$TAG" "$PLAYER_FILE" "$DEVELOPER_FILE" \
               --repo "${{ github.repository }}" \
               --clobber
           else
-            gh release create "$TAG" "$APK_NAME" \
+            gh release create "$TAG" "$PLAYER_FILE" "$DEVELOPER_FILE" \
               --repo "${{ github.repository }}" \
               --target "${{ github.sha }}" \
               --title "Card Clash Android $TAG" \
@@ -190,12 +224,15 @@ jobs:
         shell: bash
         env:
           TAG: ${{ steps.release.outputs.tag }}
-          APK_NAME: ${{ steps.release.outputs.apk_name }}
+          PLAYER_APK: ${{ steps.release.outputs.player_apk }}
+          DEVELOPER_APK: ${{ steps.release.outputs.developer_apk }}
         run: |
           {
             echo "## Android release published"
             echo
             echo "- Release: **$TAG**"
-            echo "- APK: **$APK_NAME**"
-            echo "- Location: GitHub → Releases"
+            echo "- Player: **$PLAYER_APK**"
+            echo "- Developer: **$DEVELOPER_APK**"
+            echo "- Build method: local Gradle build on GitHub Actions"
+            echo "- Expo token required: **No**"
           } >> "$GITHUB_STEP_SUMMARY"
