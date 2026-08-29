@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadStats, saveStats, updateStatsAfterMatch, resetStats } from '../storage';
 import { DEFAULT_STATS } from '../types';
 
@@ -11,8 +12,6 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
     clear: vi.fn(),
   },
 }));
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 describe('نظام الإحصائيات', () => {
   let mockStorage: any = {};

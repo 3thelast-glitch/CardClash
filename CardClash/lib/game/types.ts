@@ -323,7 +323,7 @@ export interface GameState {
   botAbilities: AbilityState[];
   usedAbilities: AbilityType[];
   /** أحداث القدرات المقبولة خلال الجولة الحالية لبناء شرح النتيجة. */
-  roundAbilityUses?: Array<{ side: Side; abilityType: AbilityType; before: { player: CombatCardSnapshot; bot: CombatCardSnapshot } }>;
+  roundAbilityUses?: { side: Side; abilityType: AbilityType; before: { player: CombatCardSnapshot; bot: CombatCardSnapshot } }[];
   /** نتيجة نهائية يفرضها كرت خاص وتُنهي المباراة قبل اكتمال كل الجولات. */
   forcedMatchOutcome?: 'draw';
   /** تُسجل مؤقتاً حتى تُربط قدرة البوت بنتيجة الجولة الحالية. */
@@ -346,7 +346,7 @@ export interface CombatCardSnapshot {
 export interface RoundTimeline {
   before: { player: CombatCardSnapshot; bot: CombatCardSnapshot };
   after: { player: CombatCardSnapshot; bot: CombatCardSnapshot };
-  abilityUses: Array<{ side: Side; abilityType: AbilityType }>;
+  abilityUses: { side: Side; abilityType: AbilityType }[];
 }
 
 export interface RoundResult {

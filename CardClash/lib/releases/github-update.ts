@@ -1,4 +1,4 @@
-export const GITHUB_RELEASES_LATEST_URL = 'https://api.github.com/repos/3thelast-glitch/CardClash/releases/latest';
+export const GITHUB_RELEASES_LATEST_URL = 'https://api.github.com/repos/ayf09/CardClash/releases/latest';
 
 export type GithubReleaseAsset = { name: string; browser_download_url: string };
 export type GithubRelease = { tag_name: string; html_url: string; assets: GithubReleaseAsset[] };

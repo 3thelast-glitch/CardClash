@@ -102,6 +102,9 @@ export function resolveMultiplayerWebSocketUrl(
     const protocol = currentLocation.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${protocol}//${currentLocation.host}/multiplayer`;
   }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('EXPO_PUBLIC_MP_SERVER_URL must be set for production native multiplayer builds.');
+  }
   return 'ws://localhost:3001/multiplayer';
 }
 

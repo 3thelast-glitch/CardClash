@@ -102,12 +102,12 @@ const usePlayerAbility = (
 const playRound = (state: GameState): GameState => gameReducer(state, { type: 'PLAY_ROUND' });
 const nextRound = (state: GameState): GameState => gameReducer(state, { type: 'NEXT_ROUND' });
 
-const activationCases: Array<{
+const activationCases: {
   ability: Exclude<AbilityType, 'LoseHalfRounds'>;
   data?: Record<string, unknown>;
   effect?: EffectKind;
   requiresCriticalHealth?: boolean;
-}> = [
+}[] = [
   { ability: 'LogicalEncounter', data: { predictions: { 3: 'win' } }, effect: 'prediction' },
   { ability: 'Recall' },
   { ability: 'Protection', effect: 'protection' },

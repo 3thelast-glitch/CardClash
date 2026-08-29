@@ -72,6 +72,16 @@ describe('MultiplayerClient', () => {
       .toBe('ws://localhost:8081/multiplayer');
   });
 
+  it('fails fast in production native builds when no server URL is configured', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = 'production';
+      expect(() => resolveMultiplayerWebSocketUrl(undefined, null)).toThrow(/EXPO_PUBLIC_MP_SERVER_URL/);
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+  });
+
   it('opens a connection, sends room commands, and stores the room session', async () => {
     const { client, sockets } = makeClient();
     const connection = client.connect();

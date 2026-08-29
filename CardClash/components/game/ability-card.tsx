@@ -55,6 +55,8 @@ export const ABILITY_IMAGES: Record<string, any> = {
     'Eclipse_Art': require('../../assets/abilities/Eclipse_Art.png'),
     'Elemental_Mastery_Art': require('../../assets/abilities/Elemental Mastery_Art.png'),
     'Explosion_Art': require('../../assets/abilities/Explosion_Art.png'),
+    'Change_Faction_Art': require('../../assets/abilities/Swap Class_Art.png'),
+    'Faction_Mastery_Art': require('../../assets/abilities/Elemental Mastery_Art.png'),
     'Greed_Art': require('../../assets/abilities/Greed_Art.png'),
     'Halve_Points_Art': require('../../assets/abilities/Halve_Points_Art.png.png'),
     'LOGICAL_ENCOUNTER_Art': require('../../assets/abilities/LOGICAL ENCOUNTER_Art.png'),
@@ -225,7 +227,6 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
     const bottomBarHeight = Math.max(24, Math.round(38 * scaleFactor));
     const iconCircleSize = Math.max(16, Math.round(22 * scaleFactor));
     const iconSize = Math.max(8, Math.round(12 * scaleFactor));
-    const nameEnSize = Math.max(7, Math.round(10 * scaleFactor));
     const nameArSize = Math.max(10, Math.round(Math.min(theme.titleSize + 1, 16) * scaleFactor));
     const dividerMargin = Math.max(2, Math.round(6 * scaleFactor));
     const descSize = Math.max(8, Math.round(9.5 * scaleFactor));
@@ -275,6 +276,7 @@ export function AbilityCard({ ability, showActionButtons = true, onToggleDisable
                         <AbilityArtworkVideo source={videoSource} />
                     ) : (
                         <Image
+                            testID="ability-artwork-image"
                             source={imageSource}
                             style={[StyleSheet.absoluteFillObject, styles.artworkImage]}
                             resizeMode="cover"
@@ -427,7 +429,7 @@ const styles = StyleSheet.create({
     outerShell:        { width: CARD_W, height: CARD_H, shadowOffset: { width: 0, height: 6 }, elevation: 18 },
     cardContainer:     { flex: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: '#090d16', flexDirection: 'column' },
     artworkSection:    { ...StyleSheet.absoluteFillObject, zIndex: 0, position: 'absolute', overflow: 'hidden', backgroundColor: '#0b1324' },
-    artworkImage:      { width: '100%', height: '100%', backgroundColor: '#0b1324' },
+    artworkImage:      { width: '100%', height: '100%', backgroundColor: '#0b1324', objectFit: 'cover' },
     blackOverlay:      { backgroundColor: 'rgba(0,0,0,0.22)' },
     legendaryEdgeGlow: { ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderRadius: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 12, elevation: 5 },
     shimmerStreak:     { position: 'absolute', top: 0, bottom: 0, width: 28, backgroundColor: 'rgba(255,255,255,0.04)', borderLeftWidth: 1, borderRightWidth: 1, transform: [{ skewX: '-18deg' }] },

@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+const abilityArtworkSelector = '[data-testid="ability-artwork-image"]';
+
 const viewports = [
   { id: 'phone-small-portrait', name: 'هاتف صغير عمودي', width: 320, height: 568 },
   { id: 'phone-portrait', name: 'هاتف قياسي عمودي', width: 375, height: 667 },
@@ -18,20 +20,24 @@ test.describe('المقارنة البصرية لتوافق كروت القدر�
       await page.goto('/screens/abilities', { waitUntil: 'domcontentloaded' });
       await expect(page.getByText('القدرات', { exact: true })).toBeVisible({ timeout: 30_000 });
 
-      await page.waitForFunction(() =>
-        Array.from(document.querySelectorAll('img')).some((image) => {
-          const rect = image.getBoundingClientRect();
+      await page.waitForFunction((selector) =>
+        Array.from(document.querySelectorAll(selector)).some((node) => {
+          const target = node instanceof HTMLImageElement ? node : node.querySelector('img') ?? node;
+          const rect = target.getBoundingClientRect();
           return rect.width > 100 && rect.height > 100;
         }),
+        abilityArtworkSelector,
       );
 
-      const measurement = await page.evaluate(() => {
+      const measurement = await page.evaluate((selector) => {
         const body = document.body;
         const root = document.documentElement;
-        const images = Array.from(document.querySelectorAll('img'))
-          .map((image) => {
-            const rect = image.getBoundingClientRect();
-            const style = getComputedStyle(image);
+        const images = Array.from(document.querySelectorAll(selector))
+          .map((node) => {
+            const image = node instanceof HTMLImageElement ? node : node.querySelector('img');
+            const target = image ?? node;
+            const rect = target.getBoundingClientRect();
+            const style = getComputedStyle(target);
             return {
               left: rect.left,
               right: rect.right,
@@ -40,8 +46,8 @@ test.describe('المقارنة البصرية لتوافق كروت القدر�
               width: rect.width,
               height: rect.height,
               objectFit: style.objectFit,
-              naturalWidth: image.naturalWidth,
-              naturalHeight: image.naturalHeight,
+              naturalWidth: image?.naturalWidth ?? 0,
+              naturalHeight: image?.naturalHeight ?? 0,
             };
           })
           .filter((image) => image.width > 100 && image.height > 100);
@@ -52,7 +58,7 @@ test.describe('المقارنة البصرية لتوافق كروت القدر�
           scrollWidth: Math.max(body.scrollWidth, root.scrollWidth),
           images,
         };
-      });
+      }, abilityArtworkSelector);
 
       await testInfo.attach(`قياسات-${viewport.id}.json`, {
         body: JSON.stringify(measurement, null, 2),

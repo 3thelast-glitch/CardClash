@@ -25,13 +25,12 @@ import {
 } from './types';
 import { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive } from './rage-engine';
 import { applyCombatCharacterSpecials } from './ui-helpers';
-import { getCardAlignment } from './card-alignment';
+import { attachCardAlignments, getCardAlignment } from './card-alignment';
 
 import { getRarityFromStars } from './card-rarity';
 import { normalizeCardPower } from './card-power-balance';
 import { rebalanceCardStats } from './card-stat-rebalance';
 import { attachProfessionalCardAbilities } from './professional-card-abilities';
-import { attachCardAlignments } from './card-alignment';
 
 // re-export so callers can use them directly from this module if needed
 export { resolveSpecialAbility, applyOnSpawnPassive, applyPostBattlePassive };

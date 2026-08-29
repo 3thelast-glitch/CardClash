@@ -5,11 +5,6 @@ import { Platform } from "react-native";
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, NotoKufiArabic_400Regular, NotoKufiArabic_600SemiBold, NotoKufiArabic_900Black } from '@expo-google-fonts/noto-kufi-arabic';
 import { RobotoCondensed_400Regular, RobotoCondensed_700Bold } from '@expo-google-fonts/roboto-condensed';
-
-if (Platform.OS !== 'web') {
-  SplashScreen.preventAutoHideAsync();
-}
-
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -33,6 +28,10 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
+
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync();
+}
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };

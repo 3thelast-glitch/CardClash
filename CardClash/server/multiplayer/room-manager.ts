@@ -1,4 +1,5 @@
 import { isValidInviteCode, normalizeInviteCode } from '../../lib/multiplayer/invites';
+import { getCardAlignment } from '../../lib/game/card-alignment';
 
 export interface Player {
   id: string;
@@ -424,4 +425,3 @@ export class RoomManager {
 export const roomManager = new RoomManager();
 
 setInterval(() => roomManager.cleanupExpiredRooms(), 5 * 60 * 1000);
-import { getCardAlignment } from '../../lib/game/card-alignment';

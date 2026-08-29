@@ -91,7 +91,7 @@ function waitForHistory(ability: AbilityType) {
   return ['Recall', 'Arise', 'Revive', 'Disaster', 'Merge'].includes(ability);
 }
 
-function useAbility(state: GameState, ability: AbilityType): GameState {
+function applyAbility(state: GameState, ability: AbilityType): GameState {
   return gameReducer(state, {
     type: 'USE_ABILITY',
     payload: { abilityType: ability, isPlayer: true, data: dataFor(ability, state) },
@@ -118,7 +118,7 @@ function simulate(playerDeck: Card[], botDeck: Card[], playerAbility?: AbilityTy
     if (round === 0 && playerAbility !== 'StealAbility') {
       state = gameReducer(state, { type: 'USE_ABILITY', payload: { abilityType: 'Reduction', isPlayer: false } });
     }
-    if (shouldUseNow) state = useAbility(state, playerAbility);
+    if (shouldUseNow) state = applyAbility(state, playerAbility);
     state = gameReducer(state, { type: 'PLAY_ROUND' });
     if (round < ROUNDS_PER_MATCH - 1) {
       state = gameReducer(state, { type: 'NEXT_ROUND', payload: { fromRound: round } });

@@ -42,7 +42,7 @@ const formatHealthDelta = (side: Side, delta: number): RoundInsight | null => {
 };
 
 const getCharacterEvents = (result: RoundResult): RoundInsight[] => {
-  const entries: Array<{ side: Side; card: RoundResult['playerCard']; won: boolean }> = [
+  const entries: { side: Side; card: RoundResult['playerCard']; won: boolean }[] = [
     { side: 'player', card: result.playerCard, won: result.winner === 'player' },
     { side: 'bot', card: result.botCard, won: result.winner === 'bot' },
   ];
