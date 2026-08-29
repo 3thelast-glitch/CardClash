@@ -119,14 +119,19 @@ export default function CardSelectionScreen() {
   const modalPadding = height < 400 ? 10 : 20;
   const modalGap = height < 400 ? 8 : 12;
   const modalHeaderMargin = height < 400 ? 8 : 16;
-  // الهاتف العمودي يستخدم سكة أفقية حتى يظهر كل كرت كاملاً ولا يُقص الكرت الثالث.
-  const abilityPreviewHorizontal = !isLandscape && width < 520;
-  const abilityModalWidth = Math.min(width - Math.max(20, modalPadding * 2), 700);
-  const abilityPreviewCardH = abilityPreviewHorizontal
-    ? Math.max(182, Math.min(238, Math.round(height * 0.34)))
+  // على الهاتف العمودي نعرض القدرات الثلاث معاً داخل صف واحد بدلاً من إخفاء الثالثة خلف السحب.
+  const abilityMobileThreeAcross = !isLandscape && width < 520;
+  const abilityPreviewHorizontal = false;
+  const abilityModalWidth = Math.min(width - Math.max(12, modalPadding), 700);
+  const abilityPreviewGap = abilityMobileThreeAcross ? 6 : modalGap;
+  const abilityRailHorizontalPadding = Math.max(4, modalPadding / 2);
+  const abilityModalInnerWidth = Math.max(0, abilityModalWidth - modalPadding * 2 - abilityRailHorizontalPadding * 2);
+  const abilityPreviewCardW = abilityMobileThreeAcross
+    ? Math.max(88, Math.floor((abilityModalInnerWidth - abilityPreviewGap * 2) / 3))
+    : Math.round(Math.max(200, Math.min(300, Math.round(height * 0.52))) * (160 / 240));
+  const abilityPreviewCardH = abilityMobileThreeAcross
+    ? Math.round(abilityPreviewCardW * (330 / 220))
     : Math.max(200, Math.min(300, Math.round(height * 0.52)));
-  const abilityPreviewCardW = Math.round(abilityPreviewCardH * (160 / 240));
-  const abilityPreviewGap = abilityPreviewHorizontal ? Math.max(10, modalGap) : modalGap;
 
   const game = useGame();
   const { state, rarityWeights } = game;
@@ -542,7 +547,7 @@ export default function CardSelectionScreen() {
               contentContainerStyle={[
                 styles.abilitiesModalRail,
                 abilityPreviewHorizontal && styles.abilitiesModalRailHorizontal,
-                { gap: abilityPreviewGap, paddingHorizontal: Math.max(4, modalPadding / 2), paddingVertical: Math.max(6, modalPadding / 2) },
+                { gap: abilityPreviewGap, paddingHorizontal: abilityRailHorizontalPadding, paddingVertical: Math.max(6, modalPadding / 2) },
               ]}
             >
               {assignedAbilities.length > 0 ? (

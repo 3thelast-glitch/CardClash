@@ -371,7 +371,8 @@ export default function BattleScreen() {
   const modalGap = height < 400 ? 8 : 16;
   const modalTitleMargin = height < 400 ? 6 : 16;
   const modalCancelMargin = height < 400 ? 6 : 16;
-  const portraitCommandWidth = Math.min(cardWidth, 340);
+  // في العمودي يجب أن تستخدم لوحة الأوامر عرض المنطقة الوسطى، لا عرض البطاقة الضيق.
+  const portraitCommandWidth = Math.min(centerWidth, 340);
   const commandButtonWidth = isLandscape
     ? actionButtonWidth
     : Math.max(104, Math.floor((portraitCommandWidth - Math.max(8, arenaGap)) / 2));
@@ -571,7 +572,7 @@ export default function BattleScreen() {
         entranceTimeout.current = null;
       }, BATTLE_TIMINGS.cardEntrance);
     }
-  }, [currentPlayerCard, currentBotCard, phase, state.currentRound]);
+  }, [currentPlayerCard?.id, currentBotCard?.id, phase, state.currentRound]);
 
   // ── Bot AI: يقرر ويستخدم قدرته قبل الهجوم ──────────────────────────────
   const runBotAbility = useCallback(() => {
@@ -1374,7 +1375,8 @@ const S = StyleSheet.create({
   // الوضع العمودي يوزع البوت أعلى شريط الأوامر واللاعب أسفله.
   panelPortrait: { minHeight: 0 },
   centerPanel: { width: 120, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
-  centerPanelPortrait: { minHeight: 0, maxHeight: 156, flexGrow: 0, flexShrink: 1, gap: 6, alignSelf: 'center' },
+  // نحجز مساحة ثابتة لأزرار المعاينة/القدرة/الهجوم حتى لا يضغطها Flex إلى الصفر على Android.
+  centerPanelPortrait: { minHeight: 136, maxHeight: 190, flexGrow: 0, flexShrink: 0, gap: 6, alignSelf: 'center' },
   centerPanelPortraitResult: { maxHeight: 188, flexShrink: 0, gap: 4 },
   panelLabel: { color: 'rgba(191,250,242,0.72)', fontSize: FONT.xs, letterSpacing: 0.5 },
 
