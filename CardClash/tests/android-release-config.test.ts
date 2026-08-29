@@ -8,8 +8,8 @@ describe('Android release configuration', () => {
   it('uses the expected app version and Android build code for the release', () => {
     const source = readFileSync(appConfigPath, 'utf8');
 
-    expect(source).toContain("version: '1.0.7'");
-    expect(source).toContain('versionCode: 23');
+    expect(source).toContain("version: '1.0.8'");
+    expect(source).toContain('versionCode: 24');
   });
 
   it('does not keep Card Clash video resources alive in the background or PiP', () => {
