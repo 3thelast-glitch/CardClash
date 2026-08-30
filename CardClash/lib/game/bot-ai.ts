@@ -1,13 +1,14 @@
 /**
- * Bot Brain v2.1 — Utility AI
+ * Bot Brain v2.2 — Utility AI
  *
- * فروق حقيقية بين المستويات الخمسة:
+ * المستويات الأربعة تشترك في نفس نسب ندرة الكروت الخاصة باللاعب.
+ * الصعوبة تغيّر جودة الاختيار داخل الندرة وتوقيت القدرات فقط، ولا تمنح البوت
+ * فرصة أعلى للحصول على Legendary أو Special.
  *
- *  1  سهل      — عشوائي تماماً، قدرات نادرة وعشوائية
- *  2  متوسط    — أفضل نصف الكروت، قدرات عشوائية خفيفة
- *  3  صعب      — نفس الكروت لكن يحسب التوقيت + threshold أعلى + noise أقل
- *  4  خيالي    — Utility AI كامل + ذاكرة فصائل + عشوائية كروت خفيفة (5؉)
- *  5  أسطوري   — كل ما سبق + ذاكرة شاملة + mode أسرع + يحتفظ بأقوى قدرة للنهاية + عشوائية كروت (3؉)
+ *  1  سهل      — اختيار عشوائي داخل الندرة المسحوبة، قدرات نادرة وعشوائية
+ *  2  متوسط    — يفضّل النصف الأقوى داخل الندرة، قدرات عشوائية خفيفة
+ *  3  صعب      — يفضّل الثلث الأقوى داخل الندرة + توقيت أذكى + noise أقل
+ *  4  أسطوري   — Utility AI كامل + ذاكرة + أفضل اختيار داخل الندرة + حفظ أقوى قدرة للنهاية
  */
 
 import { Card, GameState, AbilityType, AbilityState, RoundResult, CardClass, Race } from './types';
@@ -16,6 +17,16 @@ import type { DifficultyLevel } from '@/app/screens/difficulty';
 
 // ──────────────────────────────── Types ────────────────────────────────
 export type BotMode = 'aggressive' | 'balanced' | 'safe';
+export type BotRarityKey = 'common' | 'rare' | 'epic' | 'legendary' | 'special';
+export type BotRarityWeights = Record<BotRarityKey, number>;
+
+export const DEFAULT_BOT_RARITY_WEIGHTS: BotRarityWeights = {
+  common: 52,
+  rare: 25,
+  epic: 14,
+  legendary: 7,
+  special: 2,
+};
 
 export interface UtilityBreakdown {
   winChance: number;
@@ -52,7 +63,6 @@ export interface PlayerMovePrediction {
   confidence: number;
   sampleCount: number;
 }
-
 
 // ──────────────────────────────── Weights ────────────────────────────────
 type WeightMap = Record<keyof UtilityBreakdown, number>;
@@ -439,80 +449,120 @@ export function decideBotAbility(
 }
 
 // ──────────────────────────────── Card selection ────────────────────────────────
-function pickRandom(count: number): Card[] {
-  return [...ALL_CARDS].sort(() => Math.random() - 0.5).slice(0, count);
+const BOT_RARITY_KEYS: BotRarityKey[] = ['common', 'rare', 'epic', 'legendary', 'special'];
+
+function getCardRarity(card: Card): BotRarityKey {
+  const rarity = card.rarity ?? 'common';
+  return BOT_RARITY_KEYS.includes(rarity as BotRarityKey) ? rarity as BotRarityKey : 'common';
 }
 
-function pickBalanced(count: number): Card[] {
-  const top = [...ALL_CARDS]
-    .sort((a, b) => cardPower(b) - cardPower(a))
-    .slice(0, Math.ceil(ALL_CARDS.length / 2));
-  const shuffled = [...top].sort(() => Math.random() - 0.5);
-  return Array.from({ length: count }, (_, i) => shuffled[i % shuffled.length]);
+function normalizeRarityWeights(weights?: BotRarityWeights): BotRarityWeights {
+  if (!weights) return DEFAULT_BOT_RARITY_WEIGHTS;
+  const total = BOT_RARITY_KEYS.reduce((sum, key) => sum + Math.max(0, weights[key] ?? 0), 0);
+  return total > 0 ? weights : DEFAULT_BOT_RARITY_WEIGHTS;
 }
 
-function pickBalancedHard(count: number): Card[] {
-  const top = [...ALL_CARDS]
-    .sort((a, b) => cardPower(b) - cardPower(a))
-    .slice(0, Math.ceil(ALL_CARDS.length / 3));
-  const shuffled = [...top].sort(() => Math.random() - 0.5);
-  return Array.from({ length: count }, (_, i) => shuffled[i % shuffled.length]);
+function rollRarity(pool: Card[], weights: BotRarityWeights): BotRarityKey {
+  const available = BOT_RARITY_KEYS.filter(key => pool.some(card => getCardRarity(card) === key));
+  if (available.length === 0) return 'common';
+
+  let total = available.reduce((sum, key) => sum + Math.max(0, weights[key] ?? 0), 0);
+  const source = total > 0 ? weights : DEFAULT_BOT_RARITY_WEIGHTS;
+  if (total <= 0) total = available.reduce((sum, key) => sum + Math.max(0, source[key] ?? 0), 0);
+  if (total <= 0) return available[0];
+
+  const roll = Math.random() * total;
+  let cumulative = 0;
+  for (const key of available) {
+    cumulative += Math.max(0, source[key] ?? 0);
+    if (roll < cumulative) return key;
+  }
+  return available[available.length - 1];
 }
 
-function pickSmart(count: number, playerCards: Card[], randomnessFraction: number): Card[] {
-  const memory   = getBotMemory();
-  const selected: Card[] = [];
+function chooseCardForDifficulty(
+  bucket: Card[],
+  difficulty: DifficultyLevel,
+  playerCard?: Card,
+): Card {
+  if (bucket.length === 1) return bucket[0];
+  if (difficulty <= 1) return bucket[Math.floor(Math.random() * bucket.length)];
 
-  for (let i = 0; i < count; i++) {
-    const playerCard = playerCards[i % playerCards.length];
-    const pool = ALL_CARDS.filter(c => !selected.some(s => s.id === c.id));
+  if (difficulty === 2) {
+    const topHalf = [...bucket]
+      .sort((a, b) => cardPower(b) - cardPower(a))
+      .slice(0, Math.max(1, Math.ceil(bucket.length / 2)));
+    return topHalf[Math.floor(Math.random() * topHalf.length)];
+  }
 
-    const scored = pool.map(card => ({
+  if (playerCard) {
+    const memory = getBotMemory();
+    const scored = bucket.map(card => ({
       card,
       score: cardPowerAgainst(card, playerCard)
         + (card.race !== playerCard.race
           && (memory.playerFavoredFactions[playerCard.race] ?? 0) >= 2 ? 10 : 0),
-    }));
-    scored.sort((a, b) => b.score - a.score);
+    })).sort((a, b) => b.score - a.score);
 
+    const randomnessFraction = difficulty >= 4 ? 0.05 : 0.20;
     if (Math.random() < randomnessFraction) {
-      const top5 = scored.slice(0, Math.min(5, scored.length));
-      selected.push(top5[Math.floor(Math.random() * top5.length)].card);
-    } else {
-      selected.push(scored[0].card);
+      const candidates = scored.slice(0, Math.min(5, scored.length));
+      return candidates[Math.floor(Math.random() * candidates.length)].card;
     }
+    return scored[0].card;
+  }
+
+  const topThird = [...bucket]
+    .sort((a, b) => cardPower(b) - cardPower(a))
+    .slice(0, Math.max(1, Math.ceil(bucket.length / 3)));
+
+  if (difficulty >= 4) {
+    // الأسطوري يختار الأقوى غالباً، لكن يبقى مقيداً بندرة الكرت التي سُحبت له.
+    if (Math.random() >= 0.05) return topThird[0];
+  }
+  return topThird[Math.floor(Math.random() * topThird.length)];
+}
+
+/**
+ * يولّد رزمة البوت من نفس نسب الندرة المطبقة على اللاعب.
+ * playerCards اختيارية فقط للمحاكاة/الاختبارات الاستراتيجية؛ مسار Solo لا يمررها
+ * حتى لا يعرف البوت ترتيب اللاعب مسبقاً.
+ */
+export function getBotCards(
+  count: number,
+  difficulty: DifficultyLevel,
+  playerCards?: Card[],
+  rarityWeights: BotRarityWeights = DEFAULT_BOT_RARITY_WEIGHTS,
+): Card[] {
+  if (count <= 0 || ALL_CARDS.length === 0) return [];
+
+  const weights = normalizeRarityWeights(rarityWeights);
+  const selected: Card[] = [];
+  const maxCount = Math.min(count, ALL_CARDS.length);
+
+  for (let i = 0; i < maxCount; i++) {
+    const pool = ALL_CARDS.filter(card => !selected.some(selectedCard => selectedCard.id === card.id));
+    if (pool.length === 0) break;
+
+    const rarity = rollRarity(pool, weights);
+    const bucket = pool.filter(card => getCardRarity(card) === rarity);
+    const playerCard = playerCards && playerCards.length > 0
+      ? playerCards[i % playerCards.length]
+      : undefined;
+    const picked = chooseCardForDifficulty(bucket.length > 0 ? bucket : pool, difficulty, playerCard);
+    selected.push(picked);
   }
 
   return selected;
 }
 
-export function getBotCards(
-  count: number,
-  difficulty: DifficultyLevel,
-  playerCards?: Card[],
-): Card[] {
-  if (difficulty <= 1) return pickRandom(count);
-  if (difficulty === 2) return pickBalanced(count);
-
-  const hasPlayerCards = playerCards && playerCards.length > 0;
-  if (difficulty === 3) {
-    return hasPlayerCards
-      ? pickSmart(count, playerCards, 0.20)
-      : pickBalancedHard(count);
-  }
-
-  return hasPlayerCards
-    ? pickSmart(count, playerCards, 0.05)
-    : pickBalancedHard(count);
-}
-
 // ──────────────────────────────── Strategy label ────────────────────────────────
 export function getBotStrategyDescription(difficulty: DifficultyLevel): string {
   switch (difficulty) {
-    case 1: return 'البوت يختار عشوائياً وقد يستخدم قدرة نادرة';
-    case 2: return 'البوت يختار من أفضل نصف الكروت ويستخدم القدرات بعشوائية';
-    case 3: return 'البوت يختار من أقوى الكروت ويوقّت قدراته بذكاء';
-    case 4: return 'البوت يتذكر أنماطك، يحسب منفعة كل قرار، ويحتفظ بأقوى قدرة للنهاية';
-    default: return 'البوت يستخدم استراتيجية متوازنة';
+    case 1: return 'نفس نسب ندرة اللاعب، واختيار عشوائي داخل كل ندرة';
+    case 2: return 'نفس نسب ندرة اللاعب، ويختار من النصف الأقوى داخل الندرة';
+    case 3: return 'نفس نسب ندرة اللاعب، ويختار من الأقوى ويوقّت قدراته بذكاء';
+    case 4: return 'نفس نسب ندرة اللاعب، مع Utility AI وذاكرة وحفظ أقوى قدرة للنهاية';
+    default: return 'البوت يستخدم نفس نسب ندرة اللاعب';
   }
 }
