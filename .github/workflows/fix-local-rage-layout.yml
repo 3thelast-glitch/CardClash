@@ -47,18 +47,15 @@ jobs:
               'rage state',
           )
 
-          old_rage_handler = """  // 🔥 Rage Mode: تحديث الكرت الحالي في الملعب قبل الهجوم
-          const handleRageActivate = useCallback((rageCard: any) => {
-            const newDeck = [...state.playerDeck];
-            newDeck[state.currentRound] = rageCard;
-            setPlayerDeck(newDeck);
-            if (currentPlayerCard?.id && currentPlayerCard.rageMode?.oncePer === 'match') {
-              rageState.current.activatedThisMatch.add(currentPlayerCard.id);
-            }
-            setRageEvent(null);
-          }, [state.playerDeck, state.currentRound, setPlayerDeck, currentPlayerCard]);"""
-          old_rage_handler = textwrap.dedent(old_rage_handler)
-          new_rage_handler = """  // 🔥 Rage Mode: يدعم كرت المضيف وكرت الضيف في اللعب المحلي بصورة مستقلة.
+          rage_start_marker = "  // 🔥 Rage Mode: تحديث الكرت الحالي في الملعب قبل الهجوم"
+          rage_end_marker = "\n\n  const handleExecuteAttack"
+          rage_start = source.find(rage_start_marker)
+          rage_end = source.find(rage_end_marker, rage_start)
+          if rage_start < 0 or rage_end < 0:
+              raise SystemExit('Could not locate rage activation handler')
+
+          rage_handler = textwrap.dedent("""\
+          // 🔥 Rage Mode: يدعم كرت المضيف وكرت الضيف في اللعب المحلي بصورة مستقلة.
           const handleRageActivate = useCallback((rageCard: any) => {
             const sourceCard = rageOwnerSide === 'player' ? currentPlayerCard : currentBotCard;
             const ownerRageState = rageStates.current[rageOwnerSide];
@@ -87,9 +84,9 @@ jobs:
 
             setRageOwnerSide(side);
             setRageEvent(event);
-          }, [currentPlayerCard, currentBotCard]);"""
-          new_rage_handler = textwrap.dedent(new_rage_handler)
-          replace_once(old_rage_handler, new_rage_handler, 'rage activation handler')
+          }, [currentPlayerCard, currentBotCard]);""")
+          rage_handler = textwrap.indent(rage_handler, '  ')
+          source = source[:rage_start] + rage_handler + source[rage_end:]
 
           replace_once(
               "  const isExpectedLoss = expectedRoundResult?.winner === 'bot';\n  const canRageNow = isExpectedLoss && !!currentPlayerCard && shouldTriggerRage(currentPlayerCard, rageState.current);\n  const isFinalRoundResult = !!lastRoundResult && lastRoundResult.round >= state.totalRounds;",
