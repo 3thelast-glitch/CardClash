@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Card } from '../../../lib/game/types';
 import { Player, RoomManager } from '../room-manager';
 
 function player(id: string): Player {
@@ -7,9 +8,35 @@ function player(id: string): Player {
 
 const card = (attack: number, race: string = 'human', overrides: Record<string, unknown> = {}) => ({ id: `card-${attack}-${race}`, race, attack, defense: 1, ...overrides });
 
+/** Tests inject explicit fixtures; production RoomManager resolves only repository-owned card IDs. */
+class TestRoomManager extends RoomManager {
+  private readonly testCatalog: Map<string, Card>;
+
+  constructor() {
+    const catalog = new Map<string, Card>();
+    super((cardIds) => {
+      const resolved = cardIds.map((cardId) => catalog.get(cardId));
+      return resolved.every((item): item is Card => Boolean(item)) ? resolved.map((item) => ({ ...item })) : null;
+    });
+    this.testCatalog = catalog;
+  }
+
+  override setPlayerCards(playerId: string, cards: any[], rounds: number) {
+    const cardIds = cards.map((item) => {
+      this.testCatalog.set(item.id, item as Card);
+      return item.id as string;
+    });
+    return super.setPlayerCards(playerId, cardIds, rounds);
+  }
+
+  override revealCard(playerId: string, roundIndex: number, revealedCard: any) {
+    return super.revealCard(playerId, roundIndex, revealedCard.id as string);
+  }
+}
+
 describe('RoomManager turn protocol', () => {
   it('rejects out-of-turn reveals and alternates turns across rounds', () => {
-    const manager = new RoomManager();
+    const manager = new TestRoomManager();
     const host = player('host-turn-test');
     const guest = player('guest-turn-test');
     const room = manager.createRoom(host, 'TURN01');
@@ -38,7 +65,7 @@ describe('RoomManager turn protocol', () => {
   });
 
   it('starts only after both confirmed decks are ready and assigns the first turn to the host', () => {
-    const manager = new RoomManager();
+    const manager = new TestRoomManager();
     const host = player('host-start-test');
     const guest = player('guest-start-test');
     const room = manager.createRoom(host, 'START1');
@@ -59,7 +86,7 @@ describe('RoomManager turn protocol', () => {
   });
 
   it('applies the faction multiplier without forcing a round winner', () => {
-    const manager = new RoomManager();
+    const manager = new TestRoomManager();
     const host = player('host-faction-test');
     const guest = player('guest-faction-test');
     manager.createRoom(host, 'FACT01');
@@ -80,7 +107,7 @@ describe('RoomManager turn protocol', () => {
   });
 
   it('keeps All Might’s good and evil alignment aura active after he appears', () => {
-    const manager = new RoomManager();
+    const manager = new TestRoomManager();
     const host = player('host-all-might-test');
     const guest = player('guest-all-might-test');
     manager.createRoom(host, 'MIGHT1');
@@ -106,7 +133,7 @@ describe('RoomManager turn protocol', () => {
   });
 
   it('marks and stores Artorias’s one-round swap for the following web-room round', () => {
-    const manager = new RoomManager();
+    const manager = new TestRoomManager();
     const host = player('host-artorias-test');
     const guest = player('guest-artorias-test');
     manager.createRoom(host, 'ARTOR1');
@@ -130,7 +157,7 @@ describe('RoomManager turn protocol', () => {
   });
 
   it('copies the prior opponent defense only when Itachi appears after the opening web-room round', () => {
-    const manager = new RoomManager();
+    const manager = new TestRoomManager();
     const host = player('host-itachi-test');
     const guest = player('guest-itachi-test');
     manager.createRoom(host, 'YATA01');
@@ -155,7 +182,7 @@ describe('RoomManager turn protocol', () => {
   });
 
   it('applies Makima control and keeps Bulma’s class scan private in the web-room result', () => {
-    const manager = new RoomManager();
+    const manager = new TestRoomManager();
     const host = player('host-makima-bulma-test');
     const guest = player('guest-makima-bulma-test');
     manager.createRoom(host, 'MAKIMA');
@@ -173,7 +200,7 @@ describe('RoomManager turn protocol', () => {
     expect(makimaResult?.p1Card.attack).toBe(22);
     expect(makimaResult?.p2Card.attack).toBe(17);
 
-    const scanManager = new RoomManager();
+    const scanManager = new TestRoomManager();
     const scanHost = player('host-bulma-test');
     const scanGuest = player('guest-bulma-test');
     scanManager.createRoom(scanHost, 'BULMA1');
@@ -192,7 +219,7 @@ describe('RoomManager turn protocol', () => {
   });
 
   it('applies Kaido, Alphonse, Chopper, and Toge at their required web-room moments', () => {
-    const manager = new RoomManager();
+    const manager = new TestRoomManager();
     const host = player('host-pro-sequence-test');
     const guest = player('guest-pro-sequence-test');
     manager.createRoom(host, 'PROSEQ');
@@ -225,7 +252,7 @@ describe('RoomManager turn protocol', () => {
   });
 
   it('activates Alphonse’s good-card attack aura only at a three-point health deficit in web rooms', () => {
-    const manager = new RoomManager();
+    const manager = new TestRoomManager();
     const host = player('host-alphonse-test');
     const guest = player('guest-alphonse-test');
     manager.createRoom(host, 'ALPHON');

@@ -58,6 +58,7 @@ export interface MatchSettings {
 export interface RoomSession {
   playerId: string;
   roomId: string;
+  reconnectToken: string;
 }
 
 export interface WebSocketLike {
@@ -88,13 +89,25 @@ export interface MultiplayerClientOptions {
 const OPEN = 1;
 type BrowserLocation = { protocol: string; host: string };
 
+export class MultiplayerConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MultiplayerConfigurationError';
+  }
+}
+
 /** يتيح لخادم الغرف المنشور مشاركة نطاق الويب نفسه، مع دعم عنوان WSS صريح عند فصل الاستضافة. */
 export function resolveMultiplayerWebSocketUrl(
   configuredUrl = process.env.EXPO_PUBLIC_MP_SERVER_URL,
   browserLocation?: BrowserLocation | null,
 ): string {
   const configured = configuredUrl?.trim();
-  if (configured) return configured;
+  if (configured) {
+    if (!/^wss?:\/\//i.test(configured)) {
+      throw new MultiplayerConfigurationError('EXPO_PUBLIC_MP_SERVER_URL must use ws:// or wss://.');
+    }
+    return configured;
+  }
   const currentLocation = browserLocation ?? (typeof globalThis !== 'undefined' && 'location' in globalThis
     ? globalThis.location as unknown as BrowserLocation
     : null);
@@ -103,12 +116,10 @@ export function resolveMultiplayerWebSocketUrl(
     return `${protocol}//${currentLocation.host}/multiplayer`;
   }
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('EXPO_PUBLIC_MP_SERVER_URL must be set for production native multiplayer builds.');
+    throw new MultiplayerConfigurationError('EXPO_PUBLIC_MP_SERVER_URL must be set for production native multiplayer builds.');
   }
   return 'ws://localhost:3001/multiplayer';
 }
-
-const DEFAULT_URL = resolveMultiplayerWebSocketUrl();
 
 /**
  * Client-side transport for the multiplayer protocol.
@@ -118,7 +129,7 @@ const DEFAULT_URL = resolveMultiplayerWebSocketUrl();
  * listeners or leaking ping/retry timers.
  */
 export class MultiplayerClient {
-  private readonly url: string;
+  private readonly configuredUrl?: string;
   private readonly webSocketFactory: WebSocketFactory;
   private readonly autoReconnect: boolean;
   private readonly maxReconnectAttempts: number;
@@ -142,7 +153,10 @@ export class MultiplayerClient {
   private readonly errorHandlers = new Set<ClientErrorHandler>();
 
   constructor(options: MultiplayerClientOptions = {}) {
-    this.url = options.url ?? DEFAULT_URL;
+    // Resolve the environment-backed default only when connect() is requested.
+    // The singleton below is imported during app startup, so resolving here would
+    // turn a missing multiplayer URL into a native release boot crash.
+    this.configuredUrl = options.url?.trim() || undefined;
     this.webSocketFactory = options.webSocketFactory ?? defaultWebSocketFactory;
     this.autoReconnect = options.autoReconnect ?? true;
     this.maxReconnectAttempts = options.maxReconnectAttempts ?? 5;
@@ -168,7 +182,8 @@ export class MultiplayerClient {
       };
 
       try {
-        const socket = this.webSocketFactory(this.url);
+        const url = resolveMultiplayerWebSocketUrl(this.configuredUrl);
+        const socket = this.webSocketFactory(url);
         this.socket = socket;
 
         socket.onopen = () => {
@@ -206,7 +221,8 @@ export class MultiplayerClient {
         const error = cause instanceof Error ? cause : new Error('Unable to create WebSocket');
         this.emitError(error);
         settle(() => reject(error));
-        this.scheduleReconnect();
+        if (error instanceof MultiplayerConfigurationError) this.setStatus('failed');
+        else this.scheduleReconnect();
       }
     });
 
@@ -275,8 +291,8 @@ export class MultiplayerClient {
     return this.send('QUEUE_MATCHMAKING', { playerId, playerName, rating });
   }
 
-  cancelMatchmaking(playerId: string): boolean {
-    return this.send('CANCEL_MATCHMAKING', { playerId });
+  cancelMatchmaking(): boolean {
+    return this.send('CANCEL_MATCHMAKING', {});
   }
 
   joinRoom(roomId: string, playerId: string, playerName: string): boolean {
@@ -284,35 +300,35 @@ export class MultiplayerClient {
     return this.send('JOIN_ROOM', { roomId: roomId.trim().toUpperCase(), playerId, playerName });
   }
 
-  reconnect(playerId: string, roomId: string): boolean {
-    this.setSession({ playerId, roomId });
-    return this.send('RECONNECT', { playerId, roomId });
+  reconnect(session: RoomSession): boolean {
+    this.setSession(session);
+    return this.send('RECONNECT', session);
   }
 
-  leaveRoom(playerId: string): boolean {
-    const sent = this.send('LEAVE_ROOM', { playerId });
+  leaveRoom(): boolean {
+    const sent = this.send('LEAVE_ROOM', {});
     if (sent) this.session = null;
     return sent;
   }
 
-  setCards(playerId: string, cards: Card[], rounds: number): boolean {
-    return this.send('SET_CARDS', { playerId, cards, rounds });
+  setCards(cards: Card[], rounds: number): boolean {
+    return this.send('SET_CARDS', { cardIds: cards.map((card) => card.id), rounds });
   }
 
-  setReady(playerId: string, isReady: boolean): boolean {
-    return this.send('PLAYER_READY', { playerId, isReady });
+  setReady(isReady: boolean): boolean {
+    return this.send('PLAYER_READY', { isReady });
   }
 
-  setMatchSettings(playerId: string, settings: MatchSettings): boolean {
-    return this.send('MATCH_SETTINGS', { playerId, ...settings });
+  setMatchSettings(settings: MatchSettings): boolean {
+    return this.send('MATCH_SETTINGS', settings);
   }
 
-  setArrangementReady(playerId: string, cards: Card[]): boolean {
-    return this.send('ARRANGEMENT_READY', { playerId, cards });
+  setArrangementReady(cards: Card[]): boolean {
+    return this.send('ARRANGEMENT_READY', { cardIds: cards.map((card) => card.id) });
   }
 
-  revealCard(playerId: string, roundIndex: number, card: Card): boolean {
-    return this.send('REVEAL_CARD', { playerId, roundIndex, card });
+  revealCard(roundIndex: number, cardId: string): boolean {
+    return this.send('REVEAL_CARD', { roundIndex, cardId });
   }
 
   ping(): boolean {
@@ -368,17 +384,29 @@ export class MultiplayerClient {
     if (message.type === 'ROOM_CREATED') {
       const roomId = readString(message.payload, 'roomId');
       const playerId = readString(message.payload, 'playerId') ?? this.pendingPlayerId;
-      if (roomId && playerId) this.session = { roomId, playerId };
+      const reconnectToken = readString(message.payload, 'reconnectToken');
+      if (roomId && playerId && reconnectToken) this.session = { roomId, playerId, reconnectToken };
     }
 
     if (message.type === 'ROOM_JOINED') {
       const roomId = readString(message.payload, 'roomId');
-      if (roomId && this.pendingPlayerId) this.session = { roomId, playerId: this.pendingPlayerId };
+      const reconnectToken = readString(message.payload, 'reconnectToken');
+      if (roomId && this.pendingPlayerId && reconnectToken) {
+        this.session = { roomId, playerId: this.pendingPlayerId, reconnectToken };
+      }
     }
 
     if (message.type === 'MATCH_FOUND') {
       const roomId = readString(message.payload, 'roomId');
-      if (roomId && this.pendingPlayerId) this.session = { roomId, playerId: this.pendingPlayerId };
+      const reconnectToken = readString(message.payload, 'reconnectToken');
+      if (roomId && this.pendingPlayerId && reconnectToken) {
+        this.session = { roomId, playerId: this.pendingPlayerId, reconnectToken };
+      }
+    }
+
+    if (message.type === 'RECONNECTED' && this.session) {
+      const reconnectToken = readString(message.payload, 'reconnectToken');
+      if (reconnectToken) this.session = { ...this.session, reconnectToken };
     }
 
     if (message.type === 'GAME_OVER' || message.type === 'OPPONENT_LEFT_PERMANENTLY') {

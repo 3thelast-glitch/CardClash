@@ -1,5 +1,8 @@
 import { isValidInviteCode, normalizeInviteCode } from '../../lib/multiplayer/invites';
 import { getCardAlignment } from '../../lib/game/card-alignment';
+import type { Card } from '../../lib/game/types';
+import type { RoundAdvantage } from '../../lib/multiplayer/protocol';
+import { resolveTrustedCardIds, type CardIdResolver } from './card-catalog';
 
 export interface Player {
   id: string;
@@ -8,7 +11,7 @@ export interface Player {
   isReady: boolean;
   rating?: number;
   tier?: string;
-  cards?: any[];
+  cards?: Card[];
   rounds?: number;
 }
 
@@ -24,7 +27,7 @@ export interface MatchSettings {
 // ─── Round State ────────────────────────────────────────────────────────────────
 export interface RevealedCard {
   playerId: string;
-  card: any;
+  card: Card;
   roundIndex: number;
 }
 
@@ -37,12 +40,12 @@ export interface RoundState {
 
 export interface RoundResult {
   roundIndex: number;
-  p1Card: any;
-  p2Card: any;
+  p1Card: Card;
+  p2Card: Card;
   winner: 'player1' | 'player2' | 'draw';
   p1Score: number;
   p2Score: number;
-  advantage: 'faction' | 'attack' | 'draw';
+  advantage: RoundAdvantage;
   p1FactionAdvantage: 'strong' | 'weak' | 'neutral';
   p2FactionAdvantage: 'strong' | 'weak' | 'neutral';
   /** يرسل الخادم هذه الإشارة للطرفين لتبديل بطاقة الجولة التالية في ترتيبهما المحلي. */
@@ -95,18 +98,18 @@ function getFactionAdvantage(faction: string, opponentFaction: string): 'strong'
   return 'neutral';
 }
 
-function hasAllMightAppeared(deck: any[] | undefined, roundIndex: number): boolean {
+function hasAllMightAppeared(deck: Card[] | undefined, roundIndex: number): boolean {
   return Boolean(deck?.slice(0, roundIndex + 1).some(card => card?.id === 'all_might'));
 }
 
-function hasCardAppeared(deck: any[] | undefined, roundIndex: number, cardId: string): boolean {
+function hasCardAppeared(deck: Card[] | undefined, roundIndex: number, cardId: string): boolean {
   return Boolean(deck?.slice(0, roundIndex + 1).some(card => card?.id === cardId));
 }
 
 const KAIDO_AURA_RACES = new Set(['orc', 'dragon', 'demon', 'undead', 'monster']);
 const CLASS_LABELS: Record<string, string> = { warrior: 'محارب', knight: 'فارس', mage: 'ساحر', archer: 'رامي', berserker: 'ضاري', paladin: 'بالادين', swordsman: 'سياف', fighter: 'مقاتل', guardian: 'حارس', healer: 'طبيب' };
 
-function buildBulmaScan(opponentDeck: any[] | undefined, currentRound: number): string {
+function buildBulmaScan(opponentDeck: Card[] | undefined, currentRound: number): string {
   const counts = (opponentDeck ?? []).slice(currentRound + 1).reduce<Record<string, number>>((result, card) => {
     const cardClass = card?.cardClass;
     if (typeof cardClass === 'string') result[cardClass] = (result[cardClass] ?? 0) + 1;
@@ -116,14 +119,14 @@ function buildBulmaScan(opponentDeck: any[] | undefined, currentRound: number): 
   return `ماسح بولما — فئات الكروت القادمة للخصم: ${summary || 'لا توجد كروت قادمة'}`;
 }
 
-function resolveCards(
+function resolveRoundCards(
   roundIndex: number,
-  rawP1Card: any,
-  rawP2Card: any,
+  rawP1Card: Card,
+  rawP2Card: Card,
   p1Score: number,
   p2Score: number,
-  p1Deck?: any[],
-  p2Deck?: any[],
+  p1Deck?: Card[],
+  p2Deck?: Card[],
   previousRound?: RoundResult,
 ): RoundResult {
   const previousP1Card = previousRound?.p1Card;
@@ -165,7 +168,7 @@ function resolveCards(
   const p2Net = Math.max(0, Math.floor(p2Raw - (p1Card.defense ?? 0)));
 
   let winner: 'player1' | 'player2' | 'draw';
-  let advantage: 'faction' | 'attack' | 'draw' = 'draw';
+  let advantage: RoundAdvantage = 'draw';
 
   if (p1Net > p2Net) { winner = 'player1'; advantage = p1FactionAdvantage === 'strong' ? 'faction' : 'attack'; }
   else if (p2Net > p1Net) { winner = 'player2'; advantage = p2FactionAdvantage === 'strong' ? 'faction' : 'attack'; }
@@ -200,6 +203,8 @@ function resolveCards(
 export class RoomManager {
   private rooms: Map<string, Room> = new Map();
   private playerToRoom: Map<string, string> = new Map();
+
+  constructor(private readonly resolveCardIds: CardIdResolver = resolveTrustedCardIds) {}
 
   private generateRoomId(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -261,7 +266,7 @@ export class RoomManager {
   // ── جديد: حفظ إعدادات المباراة في الغرفة ────────────────────────────────
   setMatchSettings(roomId: string, settings: MatchSettings): Room | null {
     const room = this.rooms.get(roomId);
-    if (!room) return null;
+    if (!room || !Number.isInteger(settings.rounds) || settings.rounds < 1 || settings.rounds > 20) return null;
     room.matchSettings = settings;
     room.totalRounds = settings.rounds;
     return room;
@@ -275,9 +280,13 @@ export class RoomManager {
     return room;
   }
 
-  setPlayerCards(playerId: string, cards: any[], rounds: number): Room | null {
+  setPlayerCards(playerId: string, cardIds: string[], rounds: number): Room | null {
     const room = this.getPlayerRoom(playerId);
-    if (!room) return null;
+    if (!room || room.status !== 'waiting') return null;
+    if (!Number.isInteger(rounds) || rounds < 1 || rounds > 20 || cardIds.length !== rounds) return null;
+    if (room.totalRounds && room.totalRounds !== rounds) return null;
+    const cards = this.resolveCardIds(cardIds);
+    if (!cards || cards.length !== rounds) return null;
     if (room.player1?.id === playerId) {
       room.player1.cards = cards;
       room.player1.rounds = rounds;
@@ -315,18 +324,20 @@ export class RoomManager {
     return room;
   }
 
-  revealCard(playerId: string, roundIndex: number, card: any): RoundResult | null {
+  revealCard(playerId: string, roundIndex: number, cardId: string): RoundResult | null {
     const room = this.getPlayerRoom(playerId);
     if (!room || !room.player1 || !room.player2) return null;
     if (room.status !== 'playing' || room.currentTurnPlayerId !== playerId) return null;
     if (room.currentRound.roundIndex !== roundIndex) return null;
     const isP1 = room.player1.id === playerId;
+    const card = (isP1 ? room.player1.cards : room.player2.cards)?.[roundIndex];
+    if (!card || card.id !== cardId) return null;
     const reveal: RevealedCard = { playerId, card, roundIndex };
     if (isP1) room.currentRound.p1Card = reveal;
     else room.currentRound.p2Card = reveal;
     if (room.currentRound.p1Card && room.currentRound.p2Card && !room.currentRound.resolved) {
       room.currentRound.resolved = true;
-      const result = resolveCards(
+      const result = resolveRoundCards(
         roundIndex,
         room.currentRound.p1Card.card,
         room.currentRound.p2Card.card,
@@ -376,6 +387,13 @@ export class RoomManager {
 
   getCurrentTurnPlayerId(roomId: string): string | null {
     return this.rooms.get(roomId)?.currentTurnPlayerId ?? null;
+  }
+
+  getExpectedCardId(playerId: string, roundIndex: number): string | null {
+    const room = this.getPlayerRoom(playerId);
+    if (!room || !room.player1 || !room.player2 || room.currentRound.roundIndex !== roundIndex) return null;
+    const player = room.player1.id === playerId ? room.player1 : room.player2.id === playerId ? room.player2 : null;
+    return player?.cards?.[roundIndex]?.id ?? null;
   }
 
   isGameOver(room: Room): boolean {

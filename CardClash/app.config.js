@@ -32,7 +32,7 @@ const isDeveloperBuild = buildVariant === 'developer';
 module.exports = {
   name: isDeveloperBuild ? 'Card Clash Dev' : 'Card Clash',
   slug: isDeveloperBuild ? 'card-battle-game-dev' : 'card-battle-game',
-  version: '1.0.8',
+  version: '1.0.9',
   orientation: 'default',
   icon: './assets/images/icon.png',
   scheme: isDeveloperBuild ? `${schemeFromBundleId}dev` : schemeFromBundleId,
@@ -48,7 +48,7 @@ module.exports = {
     },
   },
   android: {
-    versionCode: 24,
+    versionCode: 25,
     adaptiveIcon: {
       backgroundColor: '#1a1a2e',
       foregroundImage: './assets/images/android-icon-foreground.png',

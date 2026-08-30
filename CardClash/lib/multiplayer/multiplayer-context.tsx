@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { mpClient, MPMessage } from './websocket-client';
+import { mpClient, MPMessage, MultiplayerConfigurationError } from './websocket-client';
+import type { RoundAdvantage } from './protocol';
 import { Card } from '../game/types';
 import { DEFAULT_RANKED_PROFILE, loadRankedProfile, recordRankedResult, type RankedProfile } from './ranked-profile';
 
@@ -13,10 +14,12 @@ export interface RoundResult {
   winner: 'player1' | 'player2' | 'draw';
   p1Score: number;
   p2Score: number;
-  advantage: 'element' | 'attack' | 'draw';
+  advantage: RoundAdvantage;
   nextRoundCardsSwapped?: boolean;
   nextRoundP1AttackBonus?: number;
   nextRoundP2AttackBonus?: number;
+  /** نسخة الخادم الموثوقة لكرت اللاعب التالي فقط؛ لا تتضمن كرت الخصم. */
+  nextOwnCard?: Card | null;
   /** كشف بولما الخاص باللاعب الذي استلم النتيجة. */
   personalInsight?: string;
   timeline?: {
@@ -42,7 +45,6 @@ interface MultiplayerState {
   isPlayerReady: boolean;
   isOpponentReady: boolean;
   playerCards: Card[];
-  opponentCards: Card[];
   currentRound: number;
   totalRounds: number;
   playerScore: number;
@@ -75,7 +77,7 @@ type MultiplayerAction =
   | { type: 'SET_PLAYER_NAME'; payload: string }
   | { type: 'SET_OPPONENT_READY'; payload: boolean }
   | { type: 'SET_PLAYER_CARDS'; payload: Card[] }
-  | { type: 'START_BATTLE'; payload: { totalRounds: number; p1Score: number; p2Score: number; isHost: boolean; p1Cards: Card[]; p2Cards: Card[] } }
+  | { type: 'START_BATTLE'; payload: { totalRounds: number; p1Score: number; p2Score: number; isHost: boolean; playerCards: Card[] } }
   | { type: 'OPPONENT_REVEALED' }
   | { type: 'ROUND_RESULT'; payload: RoundResult }
   | { type: 'NEXT_ROUND' }
@@ -106,7 +108,6 @@ const initialState: MultiplayerState = {
   isPlayerReady: false,
   isOpponentReady: false,
   playerCards: [],
-  opponentCards: [],
   currentRound: 0,
   totalRounds: 0,
   playerScore: 3,
@@ -155,8 +156,8 @@ function multiplayerReducer(state: MultiplayerState, action: MultiplayerAction):
     case 'CLEAR_MATCHMAKING': return { ...state, matchmaking: { status: 'idle', position: null, searchRange: null } };
     case 'SET_ERROR': return { ...state, lastError: action.payload };
     case 'START_BATTLE': {
-      const { totalRounds, p1Score, p2Score, isHost, p1Cards, p2Cards } = action.payload;
-      return { ...state, status: 'playing', currentRound: 0, totalRounds, playerScore: isHost ? p1Score : p2Score, opponentScore: isHost ? p2Score : p1Score, playerCards: isHost ? p1Cards : p2Cards, opponentCards: isHost ? p2Cards : p1Cards, opponentRevealedThisRound: false, lastRoundResult: null, opponentArrangementReady: false };
+      const { totalRounds, p1Score, p2Score, isHost, playerCards } = action.payload;
+      return { ...state, status: 'playing', currentRound: 0, totalRounds, playerScore: isHost ? p1Score : p2Score, opponentScore: isHost ? p2Score : p1Score, playerCards, opponentRevealedThisRound: false, lastRoundResult: null, opponentArrangementReady: false };
     }
     case 'OPPONENT_REVEALED': return { ...state, opponentRevealedThisRound: true };
     case 'ROUND_RESULT': {
@@ -164,24 +165,10 @@ function multiplayerReducer(state: MultiplayerState, action: MultiplayerAction):
       const playerIsP1 = state.isHost;
       const nextIndex = state.currentRound + 1;
       const playerCards = [...state.playerCards];
-      const opponentCards = [...state.opponentCards];
-      if (r.nextRoundCardsSwapped && playerCards[nextIndex] && opponentCards[nextIndex]) {
-        const nextPlayerCard = playerCards[nextIndex];
-        playerCards[nextIndex] = opponentCards[nextIndex];
-        opponentCards[nextIndex] = nextPlayerCard;
-      }
-      const playerNextAttackBonus = playerIsP1 ? r.nextRoundP1AttackBonus : r.nextRoundP2AttackBonus;
-      const opponentNextAttackBonus = playerIsP1 ? r.nextRoundP2AttackBonus : r.nextRoundP1AttackBonus;
-      if (playerNextAttackBonus && playerCards[nextIndex]) {
-        playerCards[nextIndex] = { ...playerCards[nextIndex], attack: playerCards[nextIndex].attack + playerNextAttackBonus };
-      }
-      if (opponentNextAttackBonus && opponentCards[nextIndex]) {
-        opponentCards[nextIndex] = { ...opponentCards[nextIndex], attack: opponentCards[nextIndex].attack + opponentNextAttackBonus };
-      }
+      if (r.nextOwnCard && nextIndex < state.totalRounds) playerCards[nextIndex] = r.nextOwnCard;
       return {
         ...state,
         playerCards,
-        opponentCards,
         lastRoundResult: r,
         playerScore: playerIsP1 ? r.p1Score : r.p2Score,
         opponentScore: playerIsP1 ? r.p2Score : r.p1Score,
@@ -268,9 +255,12 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
     try {
       await client.connect();
       dispatch({ type: 'SET_CONNECTED', payload: true });
-    } catch {
+    } catch (cause) {
       dispatch({ type: 'SET_CONNECTED', payload: false });
-      throw new Error('Connection failed');
+      if (cause instanceof MultiplayerConfigurationError) {
+        dispatch({ type: 'SET_ERROR', payload: 'رابط خادم اللعب الجماعي غير مضبوط في هذه النسخة.' });
+      }
+      throw cause;
     }
   }, []);
 
@@ -391,7 +381,10 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (!pendingBattleStart) return;
-    const isHost = state.playerId === pendingBattleStart.player1.id;
+    const isHost = pendingBattleStart.position === 'player1';
+    if (pendingBattleStart.opponent?.id && pendingBattleStart.opponent?.name) {
+      dispatch({ type: 'SET_OPPONENT', payload: { opponentId: pendingBattleStart.opponent.id, opponentName: pendingBattleStart.opponent.name } });
+    }
     dispatch({
       type: 'START_BATTLE',
       payload: {
@@ -399,8 +392,7 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
         p1Score: pendingBattleStart.p1Score,
         p2Score: pendingBattleStart.p2Score,
         isHost,
-        p1Cards: pendingBattleStart.player1.cards ?? [],
-        p2Cards: pendingBattleStart.player2.cards ?? [],
+        playerCards: pendingBattleStart.you?.cards ?? [],
       },
     });
     setPendingBattleStart(null);
@@ -426,35 +418,37 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
   }, [state.playerId, send]);
 
   const leaveRoom = useCallback(() => {
-    send({ type: 'LEAVE_ROOM', payload: { playerId: state.playerId } });
+    wsClientRef.current?.leaveRoom();
+    wsClientRef.current?.setSession(null);
     dispatch({ type: 'RESET' });
-  }, [state.playerId, send]);
+  }, []);
 
   const setPlayerCards = useCallback((cards: Card[], rounds: number) => {
     dispatch({ type: 'SET_PLAYER_CARDS', payload: cards });
-    send({ type: 'SET_CARDS', payload: { playerId: state.playerId, cards, rounds } });
-  }, [state.playerId, send]);
+    send({ type: 'SET_CARDS', payload: { cardIds: cards.map((card) => card.id), rounds } });
+  }, [send]);
 
   const setPlayerReady = useCallback((isReady: boolean) => {
     dispatch({ type: 'SET_PLAYER_READY', payload: isReady });
-    send({ type: 'PLAYER_READY', payload: { playerId: state.playerId, isReady } });
-  }, [state.playerId, send]);
+    send({ type: 'PLAYER_READY', payload: { isReady } });
+  }, [send]);
 
   const revealCard = useCallback((roundIndex: number, card: Card) => {
     dispatch({ type: 'SET_STATUS', payload: 'revealing' });
-    send({ type: 'REVEAL_CARD', payload: { playerId: state.playerId, roundIndex, card } });
-  }, [state.playerId, send]);
+    send({ type: 'REVEAL_CARD', payload: { roundIndex, cardId: card.id } });
+  }, [send]);
 
   const advanceToNextRound = useCallback(() => {
     dispatch({ type: 'NEXT_ROUND' });
   }, []);
 
   const sendMatchSettings = useCallback((settings: MatchSettings) => {
-    send({ type: 'MATCH_SETTINGS', payload: { playerId: state.playerId, ...settings } });
-  }, [state.playerId, send]);
+    send({ type: 'MATCH_SETTINGS', payload: settings });
+  }, [send]);
 
   const sendArrangementReady = useCallback((cards: Card[]): boolean => {
-    const sent = send({ type: 'ARRANGEMENT_READY', payload: { playerId: state.playerId, cards } });
+    dispatch({ type: 'SET_ERROR', payload: null });
+    const sent = send({ type: 'ARRANGEMENT_READY', payload: { cardIds: cards.map((card) => card.id) } });
     if (!sent) {
       dispatch({ type: 'SET_PLAYER_READY', payload: false });
       dispatch({ type: 'SET_ERROR', payload: 'انقطع الاتصال قبل تأكيد تشكيلتك. أعد الاتصال ثم حاول مرة أخرى.' });
@@ -462,7 +456,7 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
     }
     dispatch({ type: 'SET_PLAYER_READY', payload: true });
     return true;
-  }, [state.playerId, send]);
+  }, [send]);
 
   const queueRankedMatch = useCallback((playerName: string) => {
     dispatch({ type: 'SET_PLAYER_NAME', payload: playerName });
@@ -471,9 +465,9 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
   }, [state.playerId, state.rankedProfile.rating]);
 
   const cancelMatchmaking = useCallback(() => {
-    wsClientRef.current?.cancelMatchmaking(state.playerId);
+    wsClientRef.current?.cancelMatchmaking();
     dispatch({ type: 'CLEAR_MATCHMAKING' });
-  }, [state.playerId]);
+  }, []);
 
   return (
     <MultiplayerContext.Provider value={{

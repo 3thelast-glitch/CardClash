@@ -25,6 +25,7 @@ export class LanSession {
   private hostedRoom: LanRoom | null = null;
   private selfId = '';
   private selfName = '';
+  private nativeModulesUnavailable = false;
 
   constructor(private readonly events: LanSessionEvents) {}
 
@@ -36,8 +37,12 @@ export class LanSession {
    * React Native يلمس NativeModules فور تشغيل الـ JS bundle، وأي build قديم أو
    * جهاز لا يحتوي الوحدة الأصلية المطابقة يمكن أن يغلق التطبيق قبل ظهور الواجهة.
    */
-  private ensureNativeModules() {
-    if (this.zeroconf && this.tcpSocket && this.network) return;
+  private ensureNativeModules(): boolean {
+    if (this.zeroconf && this.tcpSocket && this.network) return true;
+    if (this.nativeModulesUnavailable) {
+      this.events.onState('failed', 'ميزة اللعب المحلي غير متاحة في هذا الإصدار من التطبيق. أعد تثبيت أحدث نسخة.');
+      return false;
+    }
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -55,17 +60,20 @@ export class LanSession {
       zeroconf.on('remove', (name: string) => { this.rooms.delete(name); this.emitRooms(); });
       zeroconf.on('error', () => this.events.onState('failed', 'تعذر اكتشاف الغرف المحلية. تحقق من Wi‑Fi وصلاحية الشبكة.'));
       this.zeroconf = zeroconf;
+      return true;
     } catch (error) {
+      console.warn('[LAN] Native modules are unavailable:', error instanceof Error ? error.message : 'unknown error');
       this.network = null;
       this.tcpSocket = null;
       this.zeroconf = null;
+      this.nativeModulesUnavailable = true;
       this.events.onState('failed', 'ميزة اللعب المحلي غير متاحة في هذا الإصدار من التطبيق. أعد تثبيت أحدث نسخة.');
-      throw error;
+      return false;
     }
   }
 
   async host(playerId: string, playerName: string): Promise<LanRoom> {
-    this.ensureNativeModules();
+    if (!this.ensureNativeModules()) throw new Error('Native LAN modules are unavailable');
     this.stop();
     this.selfId = playerId;
     this.selfName = playerName.trim().slice(0, 20) || 'لاعب محلي';
@@ -87,7 +95,7 @@ export class LanSession {
   }
 
   discover() {
-    this.ensureNativeModules();
+    if (!this.ensureNativeModules()) return;
     this.zeroconf!.stop('DNSSD' as any);
     this.rooms.clear();
     this.events.onRooms([]);
@@ -96,7 +104,7 @@ export class LanSession {
   }
 
   async join(room: LanRoom, playerId: string, playerName: string): Promise<void> {
-    this.ensureNativeModules();
+    if (!this.ensureNativeModules()) throw new Error('Native LAN modules are unavailable');
     this.socket?.destroy();
     this.selfId = playerId;
     this.selfName = playerName.trim().slice(0, 20) || 'لاعب محلي';
