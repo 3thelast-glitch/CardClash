@@ -30,6 +30,7 @@ import { doesRoundPickerNeedScroll, getRoundPickerLayout } from '@/utils/round-p
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
 import { useLanMultiplayer } from '@/lib/lan/lan-context';
 import { shouldUseStaticCardMedia } from '@/lib/game/long-match-media';
+import { getBotCards } from '@/lib/game/bot-ai';
 
 // Multiplayer — يبقى الاستدعاء آمناً إذا لم يكن Provider موجوداً في سياق الاختبار.
 function useSafeMultiplayer() {
@@ -263,8 +264,10 @@ export default function CardSelectionScreen() {
       setPlayerDeck(sorted);
       setWaitingForOpponent(mp.sendArrangementReady(sorted));
     } else {
+      // Solo: البوت يستخدم نفس نسب الندرة المضبوطة للاعب، من دون قراءة ترتيب كروت اللاعب.
+      const botDeck = getBotCards(sorted.length, state.difficulty, undefined, rarityWeights);
       setPlayerDeck(sorted);
-      startBattle(sorted, assignedAbilities);
+      startBattle(sorted, assignedAbilities, botDeck);
       router.push('/screens/battle' as any);
     }
   };
@@ -459,7 +462,7 @@ export default function CardSelectionScreen() {
             ]}
           >
             {focusedCardIndex !== null && cardRounds[focusedCardIndex] && (
-              <View style={[styles.focusCardColumn, { width: focusCardW }]}>
+              <View style={[styles.focusCardColumn, { width: focusCardW }]}> 
                 <LuxuryCharacterCardAnimated
                   card={cardRounds[focusedCardIndex].card}
                   style={{ width: focusCardW, height: focusCardH }}
@@ -533,7 +536,7 @@ export default function CardSelectionScreen() {
             onPress={e => e.stopPropagation()}
             style={[styles.abilitiesModalContent, { width: abilityModalWidth, padding: modalPadding, maxHeight: Math.max(280, height * 0.88) }]}
           >
-            <View style={[styles.abilitiesModalHeader, { marginBottom: modalHeaderMargin }]}>
+            <View style={[styles.abilitiesModalHeader, { marginBottom: modalHeaderMargin }]}> 
               <Text style={styles.abilitiesModalTitle} numberOfLines={1}>قدراتك لهذه الجلسة ⚡</Text>
               <TouchableOpacity onPress={() => setIsAbilitiesModalOpen(false)} style={{ padding: 4 }}>
                 <Text style={{ color: '#94a3b8', fontSize: 20 }}>✕</Text>
