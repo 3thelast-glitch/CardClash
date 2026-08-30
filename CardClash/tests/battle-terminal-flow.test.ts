@@ -16,9 +16,14 @@ describe('ability preview and terminal battle flow', () => {
     expect(cardSelection).toContain('Math.floor((abilityModalInnerWidth - abilityPreviewGap * 2) / 3)');
   });
 
-  it('keeps portrait battle commands visible and uses stable card identities for the action transition', () => {
+  it('keeps portrait battle commands visible and gives card rage a dedicated row', () => {
     expect(battle).toContain('const portraitCommandWidth = Math.min(centerWidth, 340);');
-    expect(battle).toContain('centerPanelPortrait: { minHeight: 136, maxHeight: 190, flexGrow: 0, flexShrink: 0');
+    expect(battle).toContain('const commandFullButtonWidth = isLandscape');
+    expect(battle).toContain('centerPanelPortrait: { minHeight: 176, maxHeight: 330, flexGrow: 0, flexShrink: 0');
+    expect(battle).toContain("actionButtonsPortrait: { flexDirection: 'column'");
+    expect(battle).toContain('testID="guest-rage-button"');
+    expect(battle).toContain("onPress={() => openRageForSide('bot')}");
+    expect(battle).toContain("const rageStates = useRef({ player: buildRageState(), bot: buildRageState() });");
     expect(battle).toContain('[currentPlayerCard?.id, currentBotCard?.id, phase, state.currentRound]');
   });
 
