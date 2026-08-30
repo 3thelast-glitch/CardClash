@@ -74,17 +74,21 @@ describe('MultiplayerClient', () => {
       .toBe('ws://localhost:8081/multiplayer');
   });
 
-  it('fails fast in production native builds when no server URL is configured', () => {
+  it('does not throw while routes are evaluated when production native has no server URL', () => {
     const originalNodeEnv = process.env.NODE_ENV;
+    const originalUrl = process.env.EXPO_PUBLIC_MP_SERVER_URL;
     try {
       process.env.NODE_ENV = 'production';
-      expect(() => resolveMultiplayerWebSocketUrl(undefined, null)).toThrow(/EXPO_PUBLIC_MP_SERVER_URL/);
+      delete process.env.EXPO_PUBLIC_MP_SERVER_URL;
+      expect(resolveMultiplayerWebSocketUrl(undefined, null)).toBe('ws://localhost:3001/multiplayer');
     } finally {
       process.env.NODE_ENV = originalNodeEnv;
+      if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_MP_SERVER_URL;
+      else process.env.EXPO_PUBLIC_MP_SERVER_URL = originalUrl;
     }
   });
 
-  it('does not resolve a missing production URL until multiplayer is explicitly connected', async () => {
+  it('reports a missing production URL only when multiplayer is explicitly connected', async () => {
     const originalNodeEnv = process.env.NODE_ENV;
     const originalUrl = process.env.EXPO_PUBLIC_MP_SERVER_URL;
     try {
