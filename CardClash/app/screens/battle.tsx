@@ -373,9 +373,12 @@ export default function BattleScreen() {
   const modalCancelMargin = height < 400 ? 6 : 16;
   // في العمودي يجب أن تستخدم لوحة الأوامر عرض المنطقة الوسطى، لا عرض البطاقة الضيق.
   const portraitCommandWidth = Math.min(centerWidth, 340);
+  const commandFullButtonWidth = isLandscape
+    ? actionButtonWidth
+    : Math.max(220, portraitCommandWidth - Math.max(8, arenaGap));
   const commandButtonWidth = isLandscape
     ? actionButtonWidth
-    : Math.max(104, Math.floor((portraitCommandWidth - Math.max(8, arenaGap)) / 2));
+    : Math.max(104, Math.floor((commandFullButtonWidth - Math.max(8, arenaGap)) / 2));
 
   // ✅ Step 1: تهيئة الـ hook — جاهز للربط في الخطوات القادمة
   const { settings } = useSettings();
@@ -401,7 +404,7 @@ export default function BattleScreen() {
   const {
     state, playRound, isGameOver, currentPlayerCard, currentBotCard,
     lastRoundResult, expectedRoundResult, useAbility: activateAbility,
-    resetGame, nextRound, startBattle, setPlayerDeck, syncDecks, grantDeveloperNothingHappened,
+    resetGame, nextRound, startBattle, syncDecks, grantDeveloperNothingHappened,
   } = useGame();
 
   const [phase, setPhase] = useState<BattlePhase>('selection');
@@ -423,7 +426,8 @@ export default function BattleScreen() {
   const [activeDamageNumbers, setActiveDamageNumbers] = useState<{ id: string; side: 'player' | 'bot'; value: number; variant: DamageNumberVariant }[]>([]);
   // 🔥 Rage Mode
   const [rageEvent, setRageEvent] = useState<ReturnType<typeof buildRageTriggerEvent> | null>(null);
-  const rageState = useRef(buildRageState());
+  const [rageOwnerSide, setRageOwnerSide] = useState<Side>('player');
+  const rageStates = useRef({ player: buildRageState(), bot: buildRageState() });
 
   // ── Choice modal state ──
   const [choiceModal, setChoiceModal] = useState<{
@@ -596,16 +600,36 @@ export default function BattleScreen() {
     }
   }, [currentPlayerCard, state, activateAbility, isLocalTwoPlayer]);
 
-  // 🔥 Rage Mode: تحديث الكرت الحالي في الملعب قبل الهجوم
+  // 🔥 Rage Mode: يدعم كرت المضيف وكرت الضيف في اللعب المحلي بصورة مستقلة.
   const handleRageActivate = useCallback((rageCard: any) => {
-    const newDeck = [...state.playerDeck];
-    newDeck[state.currentRound] = rageCard;
-    setPlayerDeck(newDeck);
-    if (currentPlayerCard?.id && currentPlayerCard.rageMode?.oncePer === 'match') {
-      rageState.current.activatedThisMatch.add(currentPlayerCard.id);
+    const sourceCard = rageOwnerSide === 'player' ? currentPlayerCard : currentBotCard;
+    const ownerRageState = rageStates.current[rageOwnerSide];
+    const newPlayerDeck = [...state.playerDeck];
+    const newBotDeck = [...state.botDeck];
+
+    if (rageOwnerSide === 'player') newPlayerDeck[state.currentRound] = rageCard;
+    else newBotDeck[state.currentRound] = rageCard;
+
+    syncDecks(newPlayerDeck, newBotDeck);
+    if (sourceCard?.id && sourceCard.rageMode?.oncePer === 'match') {
+      ownerRageState.activatedThisMatch.add(sourceCard.id);
     }
     setRageEvent(null);
-  }, [state.playerDeck, state.currentRound, setPlayerDeck, currentPlayerCard]);
+  }, [rageOwnerSide, currentPlayerCard, currentBotCard, state.playerDeck, state.botDeck, state.currentRound, syncDecks]);
+
+  const openRageForSide = useCallback((side: Side) => {
+    const sourceCard = side === 'player' ? currentPlayerCard : currentBotCard;
+    const ownerRageState = rageStates.current[side];
+    if (!sourceCard || !shouldTriggerRage(sourceCard, ownerRageState)) return;
+
+    const tempState = { activatedThisMatch: new Set(ownerRageState.activatedThisMatch) };
+    const rageCard = applyRageToCard(sourceCard, tempState);
+    const event = buildRageTriggerEvent(sourceCard, rageCard);
+    if (!event) return;
+
+    setRageOwnerSide(side);
+    setRageEvent(event);
+  }, [currentPlayerCard, currentBotCard]);
 
   const handleExecuteAttack = useCallback(() => {
     if (isTransitioning.current) return;
@@ -922,8 +946,14 @@ export default function BattleScreen() {
   // حد الصحة ثابت خلال المباراة ويزداد فقط عند اكتساب صحة تتجاوز الحد السابق.
   const maxScore = Math.max(state.totalRounds, state.playerMaxHealth, state.botMaxHealth);
 
-  const isExpectedLoss = expectedRoundResult?.winner === 'bot';
-  const canRageNow = isExpectedLoss && !!currentPlayerCard && shouldTriggerRage(currentPlayerCard, rageState.current);
+  const expectedWinner = expectedRoundResult?.winner;
+  const canPlayerRageNow = expectedWinner === 'bot'
+    && !!currentPlayerCard
+    && shouldTriggerRage(currentPlayerCard, rageStates.current.player);
+  const canGuestRageNow = isLocalTwoPlayer
+    && expectedWinner === 'player'
+    && !!currentBotCard
+    && shouldTriggerRage(currentBotCard, rageStates.current.bot);
   const isFinalRoundResult = !!lastRoundResult && lastRoundResult.round >= state.totalRounds;
 
   const CHOICE_ABILITIES = ['Propaganda', 'AddElement', 'SwapClass', 'Dilemma', 'Recall', 'Revive', 'Arise', 'Disaster', 'Merge', 'Sniping', 'Subhan'];
@@ -1123,45 +1153,68 @@ export default function BattleScreen() {
                   !isLandscape && S.actionButtonsPortrait,
                   { gap: Math.max(6, arenaGap) },
                 ]}>
-                  {/* Ability button */}
-                  <TouchableOpacity
-                    style={[S.abilityBtn, { width: commandButtonWidth, height: actionButtonHeight }, state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled]}
-                    onPress={() => { setAbilityOwnerSide('player'); setIsAbilitiesModalOpen(true); }}
-                    disabled={state.playerAbilities.every(a => a.used)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={S.abilityBtnText}>{isLocalTwoPlayer ? '✨ قدرة المضيف' : '✨ قدرة'}</Text>
-                  </TouchableOpacity>
-
-                  {isLocalTwoPlayer && (
+                  {/* الهجوم يأخذ صفاً مستقلاً في العمودي حتى لا يزاحم القدرات أو الغضب. */}
+                  <View style={[S.commandButtonRow, isLandscape && S.commandButtonColumn]}>
                     <TouchableOpacity
-                      style={[S.abilityBtn, S.guestAbilityBtn, { width: commandButtonWidth, height: actionButtonHeight }, state.botAbilities.every(a => a.used) && S.abilityBtnDisabled]}
-                      onPress={() => { setAbilityOwnerSide('bot'); setIsAbilitiesModalOpen(true); }}
-                      disabled={state.botAbilities.every(a => a.used)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={S.abilityBtnText}>✨ قدرة الضيف</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Attack button */}
-                  <TouchableOpacity style={[S.attackBtn, { width: commandButtonWidth, height: actionButtonHeight }]} onPress={handleExecuteAttack} activeOpacity={0.85}>
-                    <Text style={S.attackBtnText}>⚔️ هجوم</Text>
-                  </TouchableOpacity>
-
-                  {canRageNow && (
-                    <TouchableOpacity
-                      style={[S.rageBtn, { width: commandButtonWidth, height: actionButtonHeight }]}
-                      onPress={() => {
-                        const tempState = { activatedThisMatch: new Set(rageState.current.activatedThisMatch) };
-                        const rageCard = applyRageToCard(currentPlayerCard!, tempState);
-                        const re = buildRageTriggerEvent(currentPlayerCard!, rageCard);
-                        if (re) setRageEvent(re);
-                      }}
+                      style={[S.attackBtn, { width: commandFullButtonWidth, height: actionButtonHeight }]}
+                      onPress={handleExecuteAttack}
                       activeOpacity={0.85}
                     >
-                      <Text style={S.rageBtnText}>🔥 RAGE</Text>
+                      <Text style={S.attackBtnText}>⚔️ هجوم</Text>
                     </TouchableOpacity>
+                  </View>
+
+                  {/* قدرات الطرفين في صف مستقل. */}
+                  <View style={[S.commandButtonRow, isLandscape && S.commandButtonColumn]}>
+                    <TouchableOpacity
+                      style={[
+                        S.abilityBtn,
+                        { width: isLocalTwoPlayer ? commandButtonWidth : commandFullButtonWidth, height: actionButtonHeight },
+                        state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled,
+                      ]}
+                      onPress={() => { setAbilityOwnerSide('player'); setIsAbilitiesModalOpen(true); }}
+                      disabled={state.playerAbilities.every(a => a.used)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={S.abilityBtnText}>{isLocalTwoPlayer ? '✨ قدرة المضيف' : '✨ قدرة'}</Text>
+                    </TouchableOpacity>
+
+                    {isLocalTwoPlayer && (
+                      <TouchableOpacity
+                        style={[S.abilityBtn, S.guestAbilityBtn, { width: commandButtonWidth, height: actionButtonHeight }, state.botAbilities.every(a => a.used) && S.abilityBtnDisabled]}
+                        onPress={() => { setAbilityOwnerSide('bot'); setIsAbilitiesModalOpen(true); }}
+                        disabled={state.botAbilities.every(a => a.used)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={S.abilityBtnText}>✨ قدرة الضيف</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* الغضب للكرت الذي سيخسر، في صف كامل وواضح. */}
+                  {(canPlayerRageNow || canGuestRageNow) && (
+                    <View style={[S.commandButtonRow, isLandscape && S.commandButtonColumn]}>
+                      {canPlayerRageNow && (
+                        <TouchableOpacity
+                          testID="player-rage-button"
+                          style={[S.rageBtn, { width: commandFullButtonWidth, height: actionButtonHeight }]}
+                          onPress={() => openRageForSide('player')}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={S.rageBtnText}>🔥 غضب {playerLabel}</Text>
+                        </TouchableOpacity>
+                      )}
+                      {canGuestRageNow && (
+                        <TouchableOpacity
+                          testID="guest-rage-button"
+                          style={[S.rageBtn, S.guestRageBtn, { width: commandFullButtonWidth, height: actionButtonHeight }]}
+                          onPress={() => openRageForSide('bot')}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={S.rageBtnText}>🔥 غضب {opponentLabel}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   )}
                 </View>
               )}
@@ -1454,7 +1507,7 @@ const S = StyleSheet.create({
   panelPortrait: { minHeight: 0 },
   centerPanel: { width: 120, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
   // نحجز مساحة ثابتة لأزرار المعاينة/القدرة/الهجوم حتى لا يضغطها Flex إلى الصفر على Android.
-  centerPanelPortrait: { minHeight: 136, maxHeight: 190, flexGrow: 0, flexShrink: 0, gap: 6, alignSelf: 'center' },
+  centerPanelPortrait: { minHeight: 176, maxHeight: 330, flexGrow: 0, flexShrink: 0, gap: 6, alignSelf: 'center' },
   centerPanelPortraitResult: { maxHeight: 188, flexShrink: 0, gap: 4 },
   panelLabel: { color: 'rgba(191,250,242,0.72)', fontSize: FONT.xs, letterSpacing: 0.5 },
 
@@ -1466,7 +1519,9 @@ const S = StyleSheet.create({
   resultDraw: { color: '#fbbf24' },
 
   actionButtons: { gap: SPACE.sm, alignItems: 'center', width: '100%' },
-  actionButtonsPortrait: { flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'center', gap: 8 },
+  actionButtonsPortrait: { flexDirection: 'column', flexWrap: 'nowrap', justifyContent: 'center', gap: 8 },
+  commandButtonRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  commandButtonColumn: { flexDirection: 'column', width: 'auto', gap: 8 },
   abilityBtn: { 
     width: 110, 
     height: 44, 
@@ -1513,6 +1568,7 @@ const S = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
+  guestRageBtn: { backgroundColor: 'rgba(168,85,247,0.20)', borderColor: 'rgba(192,132,252,0.72)' },
   rageBtnText: { color: '#fed7aa', fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },
   nextBtn: { 
     width: 110, 
