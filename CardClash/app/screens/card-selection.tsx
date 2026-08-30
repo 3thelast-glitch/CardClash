@@ -210,6 +210,10 @@ export default function CardSelectionScreen() {
   }, [mp?.state?.status, isOnlineMultiplayer, router]);
 
   useEffect(() => {
+    if (isOnlineMultiplayer && mp?.state?.lastError) setWaitingForOpponent(false);
+  }, [isOnlineMultiplayer, mp?.state?.lastError]);
+
+  useEffect(() => {
     if (isLanMultiplayer && lan.match.phase === 'playing') router.replace('/screens/lan-battle' as any);
   }, [isLanMultiplayer, lan.match.phase, router]);
 

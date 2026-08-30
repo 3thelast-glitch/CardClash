@@ -15,5 +15,16 @@ describe('Android LAN startup safety', () => {
     expect(source).toContain("require('react-native-tcp-socket')");
     expect(source).toContain("require('react-native-zeroconf')");
     expect(source).toContain("require('expo-network')");
+    expect(source).toContain('private ensureNativeModules(): boolean');
+    expect(source).toContain('return false;');
+    const moduleLoader = source.slice(source.indexOf('private ensureNativeModules()'), source.indexOf('async host('));
+    expect(moduleLoader).not.toContain('throw error;');
+  });
+
+  it('keeps LAN screen action failures inside the screen instead of creating unhandled rejections', () => {
+    const screen = readFileSync(resolve(process.cwd(), 'app/screens/local-lan.tsx'), 'utf8');
+    expect(screen).toContain('try {');
+    expect(screen).toContain('} catch {');
+    expect(screen).toContain('LanSession already publishes a user-facing failed state');
   });
 });

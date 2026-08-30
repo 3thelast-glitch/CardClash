@@ -5,6 +5,8 @@ import {
   type WebSocketLike,
 } from '../websocket-client';
 
+const RECONNECT_TOKEN = 'a'.repeat(43);
+
 class MockWebSocket implements WebSocketLike {
   readyState = 0;
   onopen: (() => void) | null = null;
@@ -82,6 +84,26 @@ describe('MultiplayerClient', () => {
     }
   });
 
+  it('does not resolve a missing production URL until multiplayer is explicitly connected', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalUrl = process.env.EXPO_PUBLIC_MP_SERVER_URL;
+    try {
+      process.env.NODE_ENV = 'production';
+      delete process.env.EXPO_PUBLIC_MP_SERVER_URL;
+      const factory = vi.fn();
+      const client = new MultiplayerClient({ webSocketFactory: factory, autoReconnect: false });
+
+      expect(client.getStatus()).toBe('idle');
+      await expect(client.connect()).rejects.toThrow(/EXPO_PUBLIC_MP_SERVER_URL/);
+      expect(factory).not.toHaveBeenCalled();
+      expect(client.getStatus()).toBe('failed');
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+      if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_MP_SERVER_URL;
+      else process.env.EXPO_PUBLIC_MP_SERVER_URL = originalUrl;
+    }
+  });
+
   it('opens a connection, sends room commands, and stores the room session', async () => {
     const { client, sockets } = makeClient();
     const connection = client.connect();
@@ -97,10 +119,20 @@ describe('MultiplayerClient', () => {
 
     sockets[0].receive({
       type: 'ROOM_CREATED',
-      payload: { roomId: 'AB12CD', playerId: 'player_1' },
+      payload: { roomId: 'AB12CD', playerId: 'player_1', reconnectToken: RECONNECT_TOKEN },
     });
 
-    expect(client.getSession()).toEqual({ roomId: 'AB12CD', playerId: 'player_1' });
+    expect(client.getSession()).toEqual({ roomId: 'AB12CD', playerId: 'player_1', reconnectToken: RECONNECT_TOKEN });
+
+    expect(client.setCards([{ id: 'card_1', attack: 999 } as any], 1)).toBe(true);
+    expect(sentMessages(sockets[0])).toContainEqual({
+      type: 'SET_CARDS',
+      payload: { cardIds: ['card_1'], rounds: 1 },
+    });
+
+    expect(client.leaveRoom()).toBe(true);
+    expect(sentMessages(sockets[0])).toContainEqual({ type: 'LEAVE_ROOM', payload: {} });
+    expect(client.getSession()).toBeNull();
   });
 
   it('dispatches typed messages once and supports unsubscription', async () => {
@@ -147,7 +179,7 @@ describe('MultiplayerClient', () => {
     await connection;
 
     client.createRoom('player_1', 'Fahad');
-    sockets[0].receive({ type: 'ROOM_CREATED', payload: { roomId: 'AB12CD', playerId: 'player_1' } });
+    sockets[0].receive({ type: 'ROOM_CREATED', payload: { roomId: 'AB12CD', playerId: 'player_1', reconnectToken: RECONNECT_TOKEN } });
     sockets[0].close();
 
     expect(client.getStatus()).toBe('reconnecting');
@@ -157,7 +189,7 @@ describe('MultiplayerClient', () => {
     sockets[1].open();
     expect(sentMessages(sockets[1])).toContainEqual({
       type: 'RECONNECT',
-      payload: { roomId: 'AB12CD', playerId: 'player_1' },
+      payload: { roomId: 'AB12CD', playerId: 'player_1', reconnectToken: RECONNECT_TOKEN },
     });
   });
 
@@ -173,6 +205,6 @@ describe('MultiplayerClient', () => {
 
     expect(sockets).toHaveLength(1);
     expect(client.getStatus()).toBe('disconnected');
-    expect(client.setReady('player_1', true)).toBe(false);
+    expect(client.setReady(true)).toBe(false);
   });
 });

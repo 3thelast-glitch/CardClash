@@ -63,7 +63,6 @@ export default function MultiplayerBattleScreen() {
   // ─── State ──────────────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<MPBattlePhase>('waiting_start');
   const [myCards, setMyCards] = useState<any[]>([]);
-  const [opponentCards, setOpponentCards] = useState<any[]>([]);
   const [currentRound, setCurrentRound] = useState(0);
   const [totalRounds, setTotalRounds] = useState(0);
   const [myScore, setMyScore] = useState(3);
@@ -93,47 +92,42 @@ export default function MultiplayerBattleScreen() {
   }, []);
 
   const hydrateBattle = useCallback((payload: {
-    player1: { id: string; cards?: any[] };
-    player2: { id: string; cards?: any[] };
+    position: 'player1' | 'player2';
+    you: { id: string; cards?: any[] };
+    opponent: { id: string };
     totalRounds: number;
     p1Score: number;
     p2Score: number;
     turnPlayerId?: string | null;
   }) => {
-    const iAmP1 = payload.player1.id === playerId;
+    const iAmP1 = payload.position === 'player1';
     isAdvancingRound.current = false;
     setIsPlayer1(iAmP1);
-    setMyCards(iAmP1 ? payload.player1.cards ?? [] : payload.player2.cards ?? []);
-    setOpponentCards(iAmP1 ? payload.player2.cards ?? [] : payload.player1.cards ?? []);
+    setMyCards(payload.you.cards ?? []);
     setTotalRounds(payload.totalRounds);
     setMyScore(iAmP1 ? payload.p1Score : payload.p2Score);
     setOppScore(iAmP1 ? payload.p2Score : payload.p1Score);
-    setTurnPlayerId(payload.turnPlayerId ?? payload.player1.id);
+    setTurnPlayerId(payload.turnPlayerId ?? (iAmP1 ? payload.you.id : payload.opponent.id));
     setCurrentRound(0);
     setEndBattleClicked(false);
     setPhase('selection');
     enterCards();
-  }, [enterCards, playerId]);
+  }, [enterCards]);
 
   // إذا وصل BATTLE_START قبل تثبيت شاشة الساحة، تُستعاد الحالة من MultiplayerProvider بدلاً من ضياع الرسالة.
   useEffect(() => {
-    if (multiplayer.state.status !== 'playing' || !multiplayer.state.totalRounds || !multiplayer.state.playerCards.length || !multiplayer.state.opponentCards.length) return;
+    if (multiplayer.state.status !== 'playing' || !multiplayer.state.totalRounds || !multiplayer.state.playerCards.length) return;
     const p1IsMe = multiplayer.state.isHost;
     hydrateBattle({
-      player1: {
-        id: p1IsMe ? multiplayer.state.playerId : multiplayer.state.opponentId ?? 'opponent',
-        cards: p1IsMe ? multiplayer.state.playerCards : multiplayer.state.opponentCards,
-      },
-      player2: {
-        id: p1IsMe ? multiplayer.state.opponentId ?? 'opponent' : multiplayer.state.playerId,
-        cards: p1IsMe ? multiplayer.state.opponentCards : multiplayer.state.playerCards,
-      },
+      position: p1IsMe ? 'player1' : 'player2',
+      you: { id: multiplayer.state.playerId, cards: multiplayer.state.playerCards },
+      opponent: { id: multiplayer.state.opponentId ?? 'opponent' },
       totalRounds: multiplayer.state.totalRounds,
       p1Score: p1IsMe ? multiplayer.state.playerScore : multiplayer.state.opponentScore,
       p2Score: p1IsMe ? multiplayer.state.opponentScore : multiplayer.state.playerScore,
       turnPlayerId: multiplayer.state.isHost ? multiplayer.state.playerId : multiplayer.state.opponentId,
     });
-  }, [hydrateBattle, multiplayer.state.isHost, multiplayer.state.opponentCards, multiplayer.state.opponentId, multiplayer.state.opponentScore, multiplayer.state.playerCards, multiplayer.state.playerId, multiplayer.state.playerScore, multiplayer.state.status, multiplayer.state.totalRounds]);
+  }, [hydrateBattle, multiplayer.state.isHost, multiplayer.state.opponentId, multiplayer.state.opponentScore, multiplayer.state.playerCards, multiplayer.state.playerId, multiplayer.state.playerScore, multiplayer.state.status, multiplayer.state.totalRounds]);
 
   // ─── WebSocket listeners ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -161,6 +155,14 @@ export default function MultiplayerBattleScreen() {
 
       const p1Card = r.p1Card ? { ...r.p1Card, winState: p1WinState } : undefined;
       const p2Card = r.p2Card ? { ...r.p2Card, winState: p2WinState } : undefined;
+
+      if (r.nextOwnCard && Number.isInteger(r.roundIndex)) {
+        setMyCards((cards) => {
+          const next = [...cards];
+          next[r.roundIndex + 1] = r.nextOwnCard;
+          return next;
+        });
+      }
 
       setLastResult({
         ...r,
@@ -216,12 +218,11 @@ export default function MultiplayerBattleScreen() {
 
   // ─── الكرت الحالي ────────────────────────────────────────────────────────────
   const myCurrentCard = myCards[currentRound];
-  const oppCurrentCard = opponentCards[currentRound];
 
   // ─── كشف كرتي ────────────────────────────────────────────────────────────────
   const handleReveal = useCallback(() => {
     if (!myCurrentCard || turnPlayerId !== playerId) return;
-    mpClient.revealCard(playerId, currentRound, myCurrentCard);
+    mpClient.revealCard(currentRound, myCurrentCard.id);
     setPhase('waiting_opponent');
   }, [myCurrentCard, playerId, currentRound, turnPlayerId]);
 
@@ -281,7 +282,7 @@ export default function MultiplayerBattleScreen() {
   }
 
   const myCard = phase === 'result' && lastResult ? (isPlayer1 ? lastResult.p1Card : lastResult.p2Card) : myCurrentCard;
-  const oppCard = phase === 'result' && lastResult ? (isPlayer1 ? lastResult.p2Card : lastResult.p1Card) : (oppCardRevealed ? oppCurrentCard : null);
+  const oppCard = phase === 'result' && lastResult ? (isPlayer1 ? lastResult.p2Card : lastResult.p1Card) : null;
 
   return (
     <View style={S.root}>
@@ -368,13 +369,13 @@ export default function MultiplayerBattleScreen() {
           )}
 
           {/* CTA */}
-          {phase === 'selection' && turnPlayerId === params.playerId && (
+          {phase === 'selection' && turnPlayerId === playerId && (
             <TouchableOpacity style={[S.btn, S.btnAttack, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]} onPress={handleReveal} activeOpacity={0.85}>
               <Text style={S.btnIcon}>⚔️</Text>
               <Text style={S.btnText}>اكشف كرتك</Text>
             </TouchableOpacity>
           )}
-          {phase === 'selection' && turnPlayerId !== params.playerId && (
+          {phase === 'selection' && turnPlayerId !== playerId && (
             <View style={[S.btn, S.btnWait, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]}> 
               <Text style={S.btnText}>⌛ دور الخصم أولاً...</Text>
             </View>

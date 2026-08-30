@@ -141,6 +141,8 @@ export default function MultiplayerLobbyScreen() {
     if (state.lastError) {
       setError(state.lastError === 'Invite code is invalid or already in use'
         ? 'رمز الدعوة غير صالح أو مستخدم بالفعل.'
+        : state.lastError === 'رابط خادم اللعب الجماعي غير مضبوط في هذه النسخة.'
+          ? state.lastError
         : 'تعذر إتمام الطلب. تأكد من الرمز وحاول مجدداً.');
       setIsConnecting(false);
     }
@@ -156,8 +158,10 @@ export default function MultiplayerLobbyScreen() {
     try {
       await connect();
       action();
-    } catch {
-      setError('تعذر الاتصال بخادم اللعب الجماعي');
+    } catch (cause) {
+      setError(cause instanceof Error && cause.name === 'MultiplayerConfigurationError'
+        ? 'رابط خادم اللعب الجماعي غير مضبوط في هذه النسخة.'
+        : 'تعذر الاتصال بخادم اللعب الجماعي');
       setIsConnecting(false);
     }
   };

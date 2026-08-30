@@ -2,7 +2,7 @@
 
 ## نظرة عامة
 
-نظام اللعب الجماعي يسمح للاعبين باللعب ضد بعضهم البعض عبر الإنترنت في الوقت الفعلي باستخدام نظام P2P (Peer-to-Peer) مع خادم وسيط للمطابقة.
+نظام اللعب الجماعي يسمح للاعبين باللعب ضد بعضهم البعض عبر الإنترنت في الوقت الفعلي. الخادم هو المرجع للحالة والبطاقات والنتائج؛ الاتصال ليس P2P بين الهاتفين.
 
 ## البنية المعمارية
 
@@ -53,17 +53,17 @@
 
 ### رسائل اللعب
 ```typescript
-// اختيار البطاقات
-{ type: 'CARDS_SELECTED', payload: { playerId, cards, rounds } }
+// اختيار البطاقات — معرفات فقط، ويحلها الخادم من كتالوجه
+{ type: 'ARRANGEMENT_READY', payload: { cardIds } }
 
 // جاهز للبدء
-{ type: 'PLAYER_READY', payload: { playerId } }
+{ type: 'PLAYER_READY', payload: { isReady: true } }
 
 // بدء المعركة
-{ type: 'START_BATTLE', payload: { player1Cards, player2Cards } }
+{ type: 'BATTLE_START', payload: { position, you: { cards }, opponent } }
 
 // كشف البطاقة
-{ type: 'REVEAL_CARD', payload: { playerId, roundIndex, card } }
+{ type: 'REVEAL_CARD', payload: { roundIndex, cardId } }
 
 // نتيجة الجولة
 { type: 'ROUND_RESULT', payload: { winner, player1Damage, player2Damage } }
@@ -75,9 +75,11 @@
 ## الأمان ومنع الغش
 
 ### 1. التحقق من الحركات
-- الخادم يتحقق من صحة جميع الحركات
-- لا يمكن للاعب تعديل بطاقات الخصم
-- التحقق من توقيت الحركات
+- يربط الخادم كل WebSocket بلاعب واحد، ويرفض `playerId` المخالف
+- تتطلب العودة `reconnectToken` سريًا يدور بعد كل إعادة اتصال
+- الخادم يحل معرّفات البطاقات من كتالوجه ولا يثق بإحصاءات الهاتف
+- لا يرسل الخادم تشكيلة الخصم المستقبلية
+- يتحقق الخادم من الدور ورقم الجولة ومعرّف البطاقة المتوقع
 
 ### 2. مزامنة الحالة
 - الخادم هو مصدر الحقيقة الوحيد

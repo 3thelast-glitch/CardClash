@@ -39,7 +39,13 @@ export default function LocalLanScreen() {
 
   const run = async (action: () => Promise<void> | void) => {
     setBusy(true);
-    try { await action(); } finally { setBusy(false); }
+    try {
+      await action();
+    } catch {
+      // LanSession already publishes a user-facing failed state and notice.
+    } finally {
+      setBusy(false);
+    }
   };
 
   const renderRoom = (item: LanRoom) => (
