@@ -18,6 +18,7 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import textwrap
 
           path = Path('CardClash/app/screens/battle.tsx')
           source = path.read_text(encoding='utf-8')
@@ -29,43 +30,24 @@ jobs:
               source = source.replace(old, new, 1)
 
           replace_once(
-          """  const portraitCommandWidth = Math.min(centerWidth, 340);
-          const commandButtonWidth = isLandscape
-            ? actionButtonWidth
-            : Math.max(104, Math.floor((portraitCommandWidth - Math.max(8, arenaGap)) / 2));
-          """,
-          """  const portraitCommandWidth = Math.min(centerWidth, 340);
-          const commandFullButtonWidth = isLandscape
-            ? actionButtonWidth
-            : Math.max(220, portraitCommandWidth - Math.max(8, arenaGap));
-          const commandButtonWidth = isLandscape
-            ? actionButtonWidth
-            : Math.max(104, Math.floor((commandFullButtonWidth - Math.max(8, arenaGap)) / 2));
-          """,
-          'command button widths',
+              "  const portraitCommandWidth = Math.min(centerWidth, 340);\n  const commandButtonWidth = isLandscape\n    ? actionButtonWidth\n    : Math.max(104, Math.floor((portraitCommandWidth - Math.max(8, arenaGap)) / 2));",
+              "  const portraitCommandWidth = Math.min(centerWidth, 340);\n  const commandFullButtonWidth = isLandscape\n    ? actionButtonWidth\n    : Math.max(220, portraitCommandWidth - Math.max(8, arenaGap));\n  const commandButtonWidth = isLandscape\n    ? actionButtonWidth\n    : Math.max(104, Math.floor((commandFullButtonWidth - Math.max(8, arenaGap)) / 2));",
+              'command button widths',
           )
 
           replace_once(
-          """    resetGame, nextRound, startBattle, setPlayerDeck, syncDecks, grantDeveloperNothingHappened,
-          """,
-          """    resetGame, nextRound, startBattle, syncDecks, grantDeveloperNothingHappened,
-          """,
-          'game context destructure',
+              "    resetGame, nextRound, startBattle, setPlayerDeck, syncDecks, grantDeveloperNothingHappened,",
+              "    resetGame, nextRound, startBattle, syncDecks, grantDeveloperNothingHappened,",
+              'game context destructure',
           )
 
           replace_once(
-          """  const [rageEvent, setRageEvent] = useState<ReturnType<typeof buildRageTriggerEvent> | null>(null);
-          const rageState = useRef(buildRageState());
-          """,
-          """  const [rageEvent, setRageEvent] = useState<ReturnType<typeof buildRageTriggerEvent> | null>(null);
-          const [rageOwnerSide, setRageOwnerSide] = useState<Side>('player');
-          const rageState = useRef(buildRageState());
-          """,
-          'rage owner state',
+              "  const [rageEvent, setRageEvent] = useState<ReturnType<typeof buildRageTriggerEvent> | null>(null);\n  const rageState = useRef(buildRageState());",
+              "  const [rageEvent, setRageEvent] = useState<ReturnType<typeof buildRageTriggerEvent> | null>(null);\n  const [rageOwnerSide, setRageOwnerSide] = useState<Side>('player');\n  const rageStates = useRef({ player: buildRageState(), bot: buildRageState() });",
+              'rage state',
           )
 
-          replace_once(
-          """  // 🔥 Rage Mode: تحديث الكرت الحالي في الملعب قبل الهجوم
+          old_rage_handler = """  // 🔥 Rage Mode: تحديث الكرت الحالي في الملعب قبل الهجوم
           const handleRageActivate = useCallback((rageCard: any) => {
             const newDeck = [...state.playerDeck];
             newDeck[state.currentRound] = rageCard;
@@ -74,11 +56,12 @@ jobs:
               rageState.current.activatedThisMatch.add(currentPlayerCard.id);
             }
             setRageEvent(null);
-          }, [state.playerDeck, state.currentRound, setPlayerDeck, currentPlayerCard]);
-          """,
-          """  // 🔥 Rage Mode: يدعم كرت المضيف وكرت الضيف في اللعب المحلي.
+          }, [state.playerDeck, state.currentRound, setPlayerDeck, currentPlayerCard]);"""
+          old_rage_handler = textwrap.dedent(old_rage_handler)
+          new_rage_handler = """  // 🔥 Rage Mode: يدعم كرت المضيف وكرت الضيف في اللعب المحلي بصورة مستقلة.
           const handleRageActivate = useCallback((rageCard: any) => {
             const sourceCard = rageOwnerSide === 'player' ? currentPlayerCard : currentBotCard;
+            const ownerRageState = rageStates.current[rageOwnerSide];
             const newPlayerDeck = [...state.playerDeck];
             const newBotDeck = [...state.botDeck];
 
@@ -87,197 +70,131 @@ jobs:
 
             syncDecks(newPlayerDeck, newBotDeck);
             if (sourceCard?.id && sourceCard.rageMode?.oncePer === 'match') {
-              rageState.current.activatedThisMatch.add(sourceCard.id);
+              ownerRageState.activatedThisMatch.add(sourceCard.id);
             }
             setRageEvent(null);
           }, [rageOwnerSide, currentPlayerCard, currentBotCard, state.playerDeck, state.botDeck, state.currentRound, syncDecks]);
 
           const openRageForSide = useCallback((side: Side) => {
             const sourceCard = side === 'player' ? currentPlayerCard : currentBotCard;
-            if (!sourceCard || !shouldTriggerRage(sourceCard, rageState.current)) return;
+            const ownerRageState = rageStates.current[side];
+            if (!sourceCard || !shouldTriggerRage(sourceCard, ownerRageState)) return;
 
-            const tempState = { activatedThisMatch: new Set(rageState.current.activatedThisMatch) };
+            const tempState = { activatedThisMatch: new Set(ownerRageState.activatedThisMatch) };
             const rageCard = applyRageToCard(sourceCard, tempState);
             const event = buildRageTriggerEvent(sourceCard, rageCard);
             if (!event) return;
 
             setRageOwnerSide(side);
             setRageEvent(event);
-          }, [currentPlayerCard, currentBotCard]);
-          """,
-          'rage activation handler',
-          )
+          }, [currentPlayerCard, currentBotCard]);"""
+          new_rage_handler = textwrap.dedent(new_rage_handler)
+          replace_once(old_rage_handler, new_rage_handler, 'rage activation handler')
 
           replace_once(
-          """  const isExpectedLoss = expectedRoundResult?.winner === 'bot';
-          const canRageNow = isExpectedLoss && !!currentPlayerCard && shouldTriggerRage(currentPlayerCard, rageState.current);
-          const isFinalRoundResult = !!lastRoundResult && lastRoundResult.round >= state.totalRounds;
-          """,
-          """  const expectedWinner = expectedRoundResult?.winner;
-          const canPlayerRageNow = expectedWinner === 'bot'
-            && !!currentPlayerCard
-            && shouldTriggerRage(currentPlayerCard, rageState.current);
-          const canGuestRageNow = isLocalTwoPlayer
-            && expectedWinner === 'player'
-            && !!currentBotCard
-            && shouldTriggerRage(currentBotCard, rageState.current);
-          const isFinalRoundResult = !!lastRoundResult && lastRoundResult.round >= state.totalRounds;
-          """,
-          'rage availability',
+              "  const isExpectedLoss = expectedRoundResult?.winner === 'bot';\n  const canRageNow = isExpectedLoss && !!currentPlayerCard && shouldTriggerRage(currentPlayerCard, rageState.current);\n  const isFinalRoundResult = !!lastRoundResult && lastRoundResult.round >= state.totalRounds;",
+              "  const expectedWinner = expectedRoundResult?.winner;\n  const canPlayerRageNow = expectedWinner === 'bot'\n    && !!currentPlayerCard\n    && shouldTriggerRage(currentPlayerCard, rageStates.current.player);\n  const canGuestRageNow = isLocalTwoPlayer\n    && expectedWinner === 'player'\n    && !!currentBotCard\n    && shouldTriggerRage(currentBotCard, rageStates.current.bot);\n  const isFinalRoundResult = !!lastRoundResult && lastRoundResult.round >= state.totalRounds;",
+              'rage availability',
           )
 
-          replace_once(
-          """              {phase === 'action' && (
-                <View style={[
-                  S.actionButtons,
-                  !isLandscape && S.actionButtonsPortrait,
-                  { gap: Math.max(6, arenaGap) },
-                ]}>
-                  {/* Ability button */}
+          start_marker = "              {phase === 'action' && ("
+          end_marker = "\n\n              {phase === 'result' && !isGameOver"
+          start = source.find(start_marker)
+          end = source.find(end_marker, start)
+          if start < 0 or end < 0:
+              raise SystemExit('Could not locate action controls block')
+
+          action_block = textwrap.dedent("""\
+          {phase === 'action' && (
+            <View style={[
+              S.actionButtons,
+              !isLandscape && S.actionButtonsPortrait,
+              { gap: Math.max(6, arenaGap) },
+            ]}>
+              {/* الهجوم يأخذ صفاً مستقلاً في العمودي حتى لا يزاحم القدرات أو الغضب. */}
+              <View style={[S.commandButtonRow, isLandscape && S.commandButtonColumn]}>
+                <TouchableOpacity
+                  style={[S.attackBtn, { width: commandFullButtonWidth, height: actionButtonHeight }]}
+                  onPress={handleExecuteAttack}
+                  activeOpacity={0.85}
+                >
+                  <Text style={S.attackBtnText}>⚔️ هجوم</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* قدرات الطرفين في صف مستقل. */}
+              <View style={[S.commandButtonRow, isLandscape && S.commandButtonColumn]}>
+                <TouchableOpacity
+                  style={[
+                    S.abilityBtn,
+                    { width: isLocalTwoPlayer ? commandButtonWidth : commandFullButtonWidth, height: actionButtonHeight },
+                    state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled,
+                  ]}
+                  onPress={() => { setAbilityOwnerSide('player'); setIsAbilitiesModalOpen(true); }}
+                  disabled={state.playerAbilities.every(a => a.used)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={S.abilityBtnText}>{isLocalTwoPlayer ? '✨ قدرة المضيف' : '✨ قدرة'}</Text>
+                </TouchableOpacity>
+
+                {isLocalTwoPlayer && (
                   <TouchableOpacity
-                    style={[S.abilityBtn, { width: commandButtonWidth, height: actionButtonHeight }, state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled]}
-                    onPress={() => { setAbilityOwnerSide('player'); setIsAbilitiesModalOpen(true); }}
-                    disabled={state.playerAbilities.every(a => a.used)}
+                    style={[S.abilityBtn, S.guestAbilityBtn, { width: commandButtonWidth, height: actionButtonHeight }, state.botAbilities.every(a => a.used) && S.abilityBtnDisabled]}
+                    onPress={() => { setAbilityOwnerSide('bot'); setIsAbilitiesModalOpen(true); }}
+                    disabled={state.botAbilities.every(a => a.used)}
                     activeOpacity={0.8}
                   >
-                    <Text style={S.abilityBtnText}>{isLocalTwoPlayer ? '✨ قدرة المضيف' : '✨ قدرة'}</Text>
+                    <Text style={S.abilityBtnText}>✨ قدرة الضيف</Text>
                   </TouchableOpacity>
+                )}
+              </View>
 
-                  {isLocalTwoPlayer && (
+              {/* الغضب للكرت الذي سيخسر، في صف كامل وواضح. */}
+              {(canPlayerRageNow || canGuestRageNow) && (
+                <View style={[S.commandButtonRow, isLandscape && S.commandButtonColumn]}>
+                  {canPlayerRageNow && (
                     <TouchableOpacity
-                      style={[S.abilityBtn, S.guestAbilityBtn, { width: commandButtonWidth, height: actionButtonHeight }, state.botAbilities.every(a => a.used) && S.abilityBtnDisabled]}
-                      onPress={() => { setAbilityOwnerSide('bot'); setIsAbilitiesModalOpen(true); }}
-                      disabled={state.botAbilities.every(a => a.used)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={S.abilityBtnText}>✨ قدرة الضيف</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Attack button */}
-                  <TouchableOpacity style={[S.attackBtn, { width: commandButtonWidth, height: actionButtonHeight }]} onPress={handleExecuteAttack} activeOpacity={0.85}>
-                    <Text style={S.attackBtnText}>⚔️ هجوم</Text>
-                  </TouchableOpacity>
-
-                  {canRageNow && (
-                    <TouchableOpacity
-                      style={[S.rageBtn, { width: commandButtonWidth, height: actionButtonHeight }]}
-                      onPress={() => {
-                        const tempState = { activatedThisMatch: new Set(rageState.current.activatedThisMatch) };
-                        const rageCard = applyRageToCard(currentPlayerCard!, tempState);
-                        const re = buildRageTriggerEvent(currentPlayerCard!, rageCard);
-                        if (re) setRageEvent(re);
-                      }}
+                      testID="player-rage-button"
+                      style={[S.rageBtn, { width: commandFullButtonWidth, height: actionButtonHeight }]}
+                      onPress={() => openRageForSide('player')}
                       activeOpacity={0.85}
                     >
-                      <Text style={S.rageBtnText}>🔥 RAGE</Text>
+                      <Text style={S.rageBtnText}>🔥 غضب {playerLabel}</Text>
+                    </TouchableOpacity>
+                  )}
+                  {canGuestRageNow && (
+                    <TouchableOpacity
+                      testID="guest-rage-button"
+                      style={[S.rageBtn, S.guestRageBtn, { width: commandFullButtonWidth, height: actionButtonHeight }]}
+                      onPress={() => openRageForSide('bot')}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={S.rageBtnText}>🔥 غضب {opponentLabel}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
               )}
-          """,
-          """              {phase === 'action' && (
-                <View style={[
-                  S.actionButtons,
-                  !isLandscape && S.actionButtonsPortrait,
-                  { gap: Math.max(6, arenaGap) },
-                ]}>
-                  {/* الهجوم يأخذ صفاً مستقلاً في العمودي حتى لا يزاحم القدرات أو الغضب. */}
-                  <View style={[S.commandButtonRow, isLandscape && S.commandButtonColumn]}>
-                    <TouchableOpacity
-                      style={[S.attackBtn, { width: commandFullButtonWidth, height: actionButtonHeight }]}
-                      onPress={handleExecuteAttack}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={S.attackBtnText}>⚔️ هجوم</Text>
-                    </TouchableOpacity>
-                  </View>
+            </View>
+          )}""")
+          action_block = textwrap.indent(action_block, '              ')
+          source = source[:start] + action_block + source[end:]
 
-                  {/* قدرات الطرفين في صف مستقل. */}
-                  <View style={[S.commandButtonRow, isLandscape && S.commandButtonColumn]}>
-                    <TouchableOpacity
-                      style={[
-                        S.abilityBtn,
-                        { width: isLocalTwoPlayer ? commandButtonWidth : commandFullButtonWidth, height: actionButtonHeight },
-                        state.playerAbilities.every(a => a.used) && S.abilityBtnDisabled,
-                      ]}
-                      onPress={() => { setAbilityOwnerSide('player'); setIsAbilitiesModalOpen(true); }}
-                      disabled={state.playerAbilities.every(a => a.used)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={S.abilityBtnText}>{isLocalTwoPlayer ? '✨ قدرة المضيف' : '✨ قدرة'}</Text>
-                    </TouchableOpacity>
-
-                    {isLocalTwoPlayer && (
-                      <TouchableOpacity
-                        style={[S.abilityBtn, S.guestAbilityBtn, { width: commandButtonWidth, height: actionButtonHeight }, state.botAbilities.every(a => a.used) && S.abilityBtnDisabled]}
-                        onPress={() => { setAbilityOwnerSide('bot'); setIsAbilitiesModalOpen(true); }}
-                        disabled={state.botAbilities.every(a => a.used)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={S.abilityBtnText}>✨ قدرة الضيف</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  {/* زر الغضب للكرت الذي سيخسر، بعرض كامل وواضح. */}
-                  {(canPlayerRageNow || canGuestRageNow) && (
-                    <View style={[S.commandButtonRow, isLandscape && S.commandButtonColumn]}>
-                      {canPlayerRageNow && (
-                        <TouchableOpacity
-                          testID="player-rage-button"
-                          style={[S.rageBtn, { width: commandFullButtonWidth, height: actionButtonHeight }]}
-                          onPress={() => openRageForSide('player')}
-                          activeOpacity={0.85}
-                        >
-                          <Text style={S.rageBtnText}>🔥 غضب {playerLabel}</Text>
-                        </TouchableOpacity>
-                      )}
-                      {canGuestRageNow && (
-                        <TouchableOpacity
-                          testID="guest-rage-button"
-                          style={[S.rageBtn, S.guestRageBtn, { width: commandFullButtonWidth, height: actionButtonHeight }]}
-                          onPress={() => openRageForSide('bot')}
-                          activeOpacity={0.85}
-                        >
-                          <Text style={S.rageBtnText}>🔥 غضب {opponentLabel}</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  )}
-                </View>
-              )}
-          """,
-          'action controls',
+          replace_once(
+              "  centerPanelPortrait: { minHeight: 136, maxHeight: 190, flexGrow: 0, flexShrink: 0, gap: 6, alignSelf: 'center' },",
+              "  centerPanelPortrait: { minHeight: 176, maxHeight: 330, flexGrow: 0, flexShrink: 0, gap: 6, alignSelf: 'center' },",
+              'portrait command panel space',
           )
 
           replace_once(
-          """  centerPanelPortrait: { minHeight: 136, maxHeight: 190, flexGrow: 0, flexShrink: 0, gap: 6, alignSelf: 'center' },
-          """,
-          """  centerPanelPortrait: { minHeight: 176, maxHeight: 330, flexGrow: 0, flexShrink: 0, gap: 6, alignSelf: 'center' },
-          """,
-          'portrait command panel space',
+              "  actionButtons: { gap: SPACE.sm, alignItems: 'center', width: '100%' },\n  actionButtonsPortrait: { flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'center', gap: 8 },",
+              "  actionButtons: { gap: SPACE.sm, alignItems: 'center', width: '100%' },\n  actionButtonsPortrait: { flexDirection: 'column', flexWrap: 'nowrap', justifyContent: 'center', gap: 8 },\n  commandButtonRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },\n  commandButtonColumn: { flexDirection: 'column', width: 'auto', gap: 8 },",
+              'action button layout styles',
           )
 
           replace_once(
-          """  actionButtons: { gap: SPACE.sm, alignItems: 'center', width: '100%' },
-          actionButtonsPortrait: { flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'center', gap: 8 },
-          """,
-          """  actionButtons: { gap: SPACE.sm, alignItems: 'center', width: '100%' },
-          actionButtonsPortrait: { flexDirection: 'column', flexWrap: 'nowrap', justifyContent: 'center', gap: 8 },
-          commandButtonRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-          commandButtonColumn: { flexDirection: 'column', width: 'auto', gap: 8 },
-          """,
-          'action button layout styles',
-          )
-
-          replace_once(
-          """  rageBtnText: { color: '#fed7aa', fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },
-          """,
-          """  guestRageBtn: { backgroundColor: 'rgba(168,85,247,0.20)', borderColor: 'rgba(192,132,252,0.72)' },
-          rageBtnText: { color: '#fed7aa', fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },
-          """,
-          'guest rage style',
+              "  rageBtnText: { color: '#fed7aa', fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },",
+              "  guestRageBtn: { backgroundColor: 'rgba(168,85,247,0.20)', borderColor: 'rgba(192,132,252,0.72)' },\n  rageBtnText: { color: '#fed7aa', fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },",
+              'guest rage style',
           )
 
           path.write_text(source, encoding='utf-8')
