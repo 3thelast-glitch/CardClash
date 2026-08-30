@@ -96,6 +96,20 @@ export class MultiplayerConfigurationError extends Error {
   }
 }
 
+function getBrowserLocation(browserLocation?: BrowserLocation | null): BrowserLocation | null {
+  return browserLocation ?? (typeof globalThis !== 'undefined' && 'location' in globalThis
+    ? globalThis.location as unknown as BrowserLocation
+    : null);
+}
+
+export function hasMultiplayerServerConfiguration(
+  configuredUrl = process.env.EXPO_PUBLIC_MP_SERVER_URL,
+  browserLocation?: BrowserLocation | null,
+): boolean {
+  if (configuredUrl?.trim()) return true;
+  return Boolean(getBrowserLocation(browserLocation)?.host);
+}
+
 /** يتيح لخادم الغرف المنشور مشاركة نطاق الويب نفسه، مع دعم عنوان WSS صريح عند فصل الاستضافة. */
 export function resolveMultiplayerWebSocketUrl(
   configuredUrl = process.env.EXPO_PUBLIC_MP_SERVER_URL,
@@ -108,16 +122,16 @@ export function resolveMultiplayerWebSocketUrl(
     }
     return configured;
   }
-  const currentLocation = browserLocation ?? (typeof globalThis !== 'undefined' && 'location' in globalThis
-    ? globalThis.location as unknown as BrowserLocation
-    : null);
+  const currentLocation = getBrowserLocation(browserLocation);
   if (currentLocation?.host) {
     const protocol = currentLocation.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${protocol}//${currentLocation.host}/multiplayer`;
   }
-  if (process.env.NODE_ENV === 'production') {
-    throw new MultiplayerConfigurationError('EXPO_PUBLIC_MP_SERVER_URL must be set for production native multiplayer builds.');
-  }
+
+  // Keep route/module evaluation safe in native release builds. Expo Router may
+  // evaluate route dependencies while building the route tree, so throwing here
+  // can crash the whole app before the multiplayer UI is ever opened. connect()
+  // performs the strict production configuration check at the point of use.
   return 'ws://localhost:3001/multiplayer';
 }
 
@@ -182,6 +196,10 @@ export class MultiplayerClient {
       };
 
       try {
+        if (process.env.NODE_ENV === 'production' && !hasMultiplayerServerConfiguration(this.configuredUrl)) {
+          throw new MultiplayerConfigurationError('EXPO_PUBLIC_MP_SERVER_URL must be set for production native multiplayer builds.');
+        }
+
         const url = resolveMultiplayerWebSocketUrl(this.configuredUrl);
         const socket = this.webSocketFactory(url);
         this.socket = socket;
