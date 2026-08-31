@@ -946,14 +946,17 @@ export default function BattleScreen() {
   // حد الصحة ثابت خلال المباراة ويزداد فقط عند اكتساب صحة تتجاوز الحد السابق.
   const maxScore = Math.max(state.totalRounds, state.playerMaxHealth, state.botMaxHealth);
 
-  const expectedWinner = expectedRoundResult?.winner;
-  const canPlayerRageNow = expectedWinner === 'bot'
-    && !!currentPlayerCard
+  // الغضب فعل للكرت نفسه، وليس فعلاً مشروطاً بتوقع خسارة الجولة.
+  // لذلك يبقى الزر متاحاً متى كان للكرت Rage صالح، حتى لو كانت المعاينة الحالية تتوقع فوزه.
+  const canPlayerRageNow = !!currentPlayerCard
     && shouldTriggerRage(currentPlayerCard, rageStates.current.player);
   const canGuestRageNow = isLocalTwoPlayer
-    && expectedWinner === 'player'
     && !!currentBotCard
     && shouldTriggerRage(currentBotCard, rageStates.current.bot);
+  // إذا كان لدى الطرفين غضب في نفس الجولة نتقاسم الصف، وإلا يأخذ الزر كامل العرض.
+  const rageButtonWidth = !isLandscape && canPlayerRageNow && canGuestRageNow
+    ? commandButtonWidth
+    : commandFullButtonWidth;
   const isFinalRoundResult = !!lastRoundResult && lastRoundResult.round >= state.totalRounds;
 
   const CHOICE_ABILITIES = ['Propaganda', 'AddElement', 'SwapClass', 'Dilemma', 'Recall', 'Revive', 'Arise', 'Disaster', 'Merge', 'Sniping', 'Subhan'];
@@ -1197,7 +1200,7 @@ export default function BattleScreen() {
                       {canPlayerRageNow && (
                         <TouchableOpacity
                           testID="player-rage-button"
-                          style={[S.rageBtn, { width: commandFullButtonWidth, height: actionButtonHeight }]}
+                          style={[S.rageBtn, { width: rageButtonWidth, height: actionButtonHeight }]}
                           onPress={() => openRageForSide('player')}
                           activeOpacity={0.85}
                         >
@@ -1207,7 +1210,7 @@ export default function BattleScreen() {
                       {canGuestRageNow && (
                         <TouchableOpacity
                           testID="guest-rage-button"
-                          style={[S.rageBtn, S.guestRageBtn, { width: commandFullButtonWidth, height: actionButtonHeight }]}
+                          style={[S.rageBtn, S.guestRageBtn, { width: rageButtonWidth, height: actionButtonHeight }]}
                           onPress={() => openRageForSide('bot')}
                           activeOpacity={0.85}
                         >
