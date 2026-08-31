@@ -24,6 +24,12 @@ describe('ability preview and terminal battle flow', () => {
     expect(battle).toContain('testID="guest-rage-button"');
     expect(battle).toContain("onPress={() => openRageForSide('bot')}");
     expect(battle).toContain("const rageStates = useRef({ player: buildRageState(), bot: buildRageState() });");
+    expect(battle).toContain('const canPlayerRageNow = !!currentPlayerCard');
+    expect(battle).toContain('const canGuestRageNow = isLocalTwoPlayer');
+    expect(battle).toContain('const rageButtonWidth = !isLandscape && canPlayerRageNow && canGuestRageNow');
+    expect(battle).toContain('width: rageButtonWidth, height: actionButtonHeight');
+    expect(battle).not.toContain("const canPlayerRageNow = expectedWinner === 'bot'");
+    expect(battle).not.toContain("&& expectedWinner === 'player'");
     expect(battle).toContain('[currentPlayerCard?.id, currentBotCard?.id, phase, state.currentRound]');
   });
 
