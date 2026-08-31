@@ -366,6 +366,11 @@ export default function BattleScreen() {
   const modalAvailableH = height * 0.95 - 100; // safe area margin for modal padding, title, cancel button
   const modalAbilityCardH = Math.max(140, Math.min(240, modalAvailableH));
   const modalAbilityCardW = Math.round(modalAbilityCardH * (160 / 240));
+  // History windows must fit inside the actual safe viewport, especially on short landscape phones.
+  const modalMaxHeight = Math.max(180, height - insets.top - insets.bottom - 16);
+  const historyModalHeight = Math.min(modalMaxHeight, Math.max(240, height * 0.88));
+  const historyAbilityCardH = Math.max(104, Math.min(188, modalMaxHeight * 0.5));
+  const historyAbilityCardW = Math.round(historyAbilityCardH * (160 / 240));
 
   const modalPadding = height < 400 ? 10 : 16;
   const modalGap = height < 400 ? 8 : 16;
@@ -1272,9 +1277,19 @@ export default function BattleScreen() {
       {/* ── History Modal ── */}
       <Modal visible={isHistoryModalOpen} transparent animationType="fade" onRequestClose={() => setIsHistoryModalOpen(false)}>
         <TouchableOpacity style={cm.overlay} activeOpacity={1} onPress={() => setIsHistoryModalOpen(false)}>
-          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[cm.box, { width: 340 }]}>
-            <Text style={cm.title}>📜 سجل الجولات</Text>
-            <ScrollView style={{ maxHeight: 320 }}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={e => e.stopPropagation()}
+            style={[cm.box, S.historyModalBox, { height: historyModalHeight, padding: modalPadding }]}
+          >
+            <Text style={[cm.title, { marginBottom: modalTitleMargin }]}>📜 سجل الجولات</Text>
+            <ScrollView
+              testID="round-history-scroll"
+              style={S.historyScroll}
+              contentContainerStyle={S.historyScrollContent}
+              showsVerticalScrollIndicator
+              nestedScrollEnabled
+            >
               {roundHistory.length === 0 ? (
                 <Text style={{ color: '#94a3b8', textAlign: 'center', padding: 16 }}>لا توجد جولات مكتملة بعد</Text>
               ) : roundHistory.map((h, i) => (
@@ -1286,7 +1301,7 @@ export default function BattleScreen() {
                 </View>
               ))}
             </ScrollView>
-            <TouchableOpacity style={cm.cancel} onPress={() => setIsHistoryModalOpen(false)}>
+            <TouchableOpacity style={[cm.cancel, { marginTop: modalCancelMargin }]} onPress={() => setIsHistoryModalOpen(false)}>
               <Text style={cm.cancelText}>إغلاق</Text>
             </TouchableOpacity>
           </TouchableOpacity>
@@ -1296,17 +1311,28 @@ export default function BattleScreen() {
       {/* ── Used abilities history — local two-player only ── */}
       <Modal visible={isUsedAbilitiesModalOpen} transparent animationType="slide" onRequestClose={() => setIsUsedAbilitiesModalOpen(false)}>
         <TouchableOpacity style={cm.overlay} activeOpacity={1} onPress={() => setIsUsedAbilitiesModalOpen(false)}>
-          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[S.abilitiesBox, { padding: modalPadding }]}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={e => e.stopPropagation()}
+            style={[S.abilitiesBox, S.historyAbilitiesBox, { maxHeight: historyModalHeight, padding: modalPadding }]}
+          >
             <Text style={[cm.title, { marginBottom: modalTitleMargin }]}>⚡ كروت القدرات المستخدمة</Text>
-            <Text style={S.usedAbilityHint}>يمكن الرجوع هنا إلى كروت المضيف والضيف التي فُعّلت في هذه المباراة.</Text>
+            <Text style={S.usedAbilityHint}>يمكن الرجوع لكل قدرات المضيف والضيف المستخدمة. اسحب يمينًا ويسارًا لعرض السجل كاملًا.</Text>
             {usedLocalAbilities.length === 0 ? (
               <Text style={S.emptyAbilityHistory}>لا توجد كروت قدرات مستخدمة بعد</Text>
             ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={S.usedAbilitiesScroll}>
+              <ScrollView
+                testID="used-abilities-history-scroll"
+                horizontal
+                nestedScrollEnabled
+                showsHorizontalScrollIndicator
+                style={[S.usedAbilitiesViewport, { maxHeight: historyAbilityCardH + 44 }]}
+                contentContainerStyle={S.usedAbilitiesScroll}
+              >
                 {usedLocalAbilities.map(entry => (
                   <View key={entry.id} style={S.usedAbilityEntry}>
                     <Text style={[S.usedAbilityOwner, { color: entry.ownerColor }]}>استعملها {entry.owner}</Text>
-                    <AbilityCard ability={entry.ability} showActionButtons={false} style={{ width: modalAbilityCardW, height: modalAbilityCardH }} />
+                    <AbilityCard ability={entry.ability} showActionButtons={false} style={{ width: historyAbilityCardW, height: historyAbilityCardH }} />
                   </View>
                 ))}
               </ScrollView>
@@ -1615,9 +1641,14 @@ const S = StyleSheet.create({
     alignSelf: 'center',
     justifyContent: 'center',
   },
+  historyModalBox: { width: '94%', maxWidth: 560, alignSelf: 'center' },
+  historyScroll: { flex: 1, minHeight: 0, width: '100%' },
+  historyScrollContent: { paddingBottom: 4 },
+  historyAbilitiesBox: { width: '94%', justifyContent: 'flex-start' },
   usedAbilityHint: { color: '#94a3b8', fontSize: 11, textAlign: 'center', writingDirection: 'rtl', marginBottom: 8 },
   emptyAbilityHistory: { color: '#94a3b8', textAlign: 'center', paddingVertical: 24, writingDirection: 'rtl' },
+  usedAbilitiesViewport: { width: '100%', flexGrow: 0, flexShrink: 1 },
   usedAbilitiesScroll: { flexDirection: 'row', gap: 12, paddingHorizontal: 12, paddingVertical: 8, alignItems: 'flex-start' },
-  usedAbilityEntry: { alignItems: 'center', gap: 6 },
+  usedAbilityEntry: { alignItems: 'center', gap: 6, flexShrink: 0 },
   usedAbilityOwner: { fontSize: 11, fontWeight: '800', writingDirection: 'rtl' },
 });
