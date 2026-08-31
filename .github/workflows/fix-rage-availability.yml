@@ -24,27 +24,31 @@ jobs:
           path = Path('CardClash/app/screens/battle.tsx')
           text = path.read_text()
 
-          old = """  const expectedWinner = expectedRoundResult?.winner;
-  const canPlayerRageNow = expectedWinner === 'bot'
-    && !!currentPlayerCard
-    && shouldTriggerRage(currentPlayerCard, rageStates.current.player);
-  const canGuestRageNow = isLocalTwoPlayer
-    && expectedWinner === 'player'
-    && !!currentBotCard
-    && shouldTriggerRage(currentBotCard, rageStates.current.bot);
-"""
-          new = """  // الغضب فعل للكرت نفسه، وليس فعلاً مشروطاً بتوقع خسارة الجولة.
-  // لذلك يبقى الزر متاحاً متى كان للكرت Rage صالح، حتى لو كانت المعاينة الحالية تتوقع فوزه.
-  const canPlayerRageNow = !!currentPlayerCard
-    && shouldTriggerRage(currentPlayerCard, rageStates.current.player);
-  const canGuestRageNow = isLocalTwoPlayer
-    && !!currentBotCard
-    && shouldTriggerRage(currentBotCard, rageStates.current.bot);
-  // إذا كان لدى الطرفين غضب في نفس الجولة نتقاسم الصف، وإلا يأخذ الزر كامل العرض.
-  const rageButtonWidth = !isLandscape && canPlayerRageNow && canGuestRageNow
-    ? commandButtonWidth
-    : commandFullButtonWidth;
-"""
+          old = "\n".join([
+              "  const expectedWinner = expectedRoundResult?.winner;",
+              "  const canPlayerRageNow = expectedWinner === 'bot'",
+              "    && !!currentPlayerCard",
+              "    && shouldTriggerRage(currentPlayerCard, rageStates.current.player);",
+              "  const canGuestRageNow = isLocalTwoPlayer",
+              "    && expectedWinner === 'player'",
+              "    && !!currentBotCard",
+              "    && shouldTriggerRage(currentBotCard, rageStates.current.bot);",
+              "",
+          ])
+          new = "\n".join([
+              "  // الغضب فعل للكرت نفسه، وليس فعلاً مشروطاً بتوقع خسارة الجولة.",
+              "  // لذلك يبقى الزر متاحاً متى كان للكرت Rage صالح، حتى لو كانت المعاينة الحالية تتوقع فوزه.",
+              "  const canPlayerRageNow = !!currentPlayerCard",
+              "    && shouldTriggerRage(currentPlayerCard, rageStates.current.player);",
+              "  const canGuestRageNow = isLocalTwoPlayer",
+              "    && !!currentBotCard",
+              "    && shouldTriggerRage(currentBotCard, rageStates.current.bot);",
+              "  // إذا كان لدى الطرفين غضب في نفس الجولة نتقاسم الصف، وإلا يأخذ الزر كامل العرض.",
+              "  const rageButtonWidth = !isLandscape && canPlayerRageNow && canGuestRageNow",
+              "    ? commandButtonWidth",
+              "    : commandFullButtonWidth;",
+              "",
+          ])
           if old not in text:
               raise SystemExit('rage eligibility marker not found')
           text = text.replace(old, new, 1)
