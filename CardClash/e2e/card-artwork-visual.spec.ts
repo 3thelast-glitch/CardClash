@@ -1,9 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-// Scope artwork to accessible AbilityCard content instead of the removed
-// renderer-specific testID. Lucide icons render as SVG, so large descendant
-// <img> nodes here are the actual ability artwork surfaces.
-const abilityArtworkSelector = '[aria-label] img';
+// Unified ability artwork renders as card-sized <img> nodes. Full-screen
+// background imagery is intentionally excluded by the viewport-width bound.
+const abilityArtworkSelector = 'img';
 
 const viewports = [
   { id: 'phone-small-portrait', name: 'هاتف صغير عمودي', width: 320, height: 568 },
@@ -27,7 +26,9 @@ test.describe('المقارنة البصرية لتوافق كروت القدر�
         Array.from(document.querySelectorAll(selector)).some((node) => {
           const target = node instanceof HTMLImageElement ? node : node.querySelector('img') ?? node;
           const rect = target.getBoundingClientRect();
-          return rect.width > 100 && rect.height > 100;
+          return rect.width > 100
+            && rect.height > 100
+            && rect.width < window.innerWidth * 0.9;
         }),
         abilityArtworkSelector,
       );
@@ -53,7 +54,11 @@ test.describe('المقارنة البصرية لتوافق كروت القدر�
               naturalHeight: image?.naturalHeight ?? 0,
             };
           })
-          .filter((image) => image.width > 100 && image.height > 100);
+          .filter((image) =>
+            image.width > 100
+            && image.height > 100
+            && image.width < window.innerWidth * 0.9,
+          );
 
         return {
           viewportWidth: window.innerWidth,
