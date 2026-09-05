@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const cardComponentPath = resolve(process.cwd(), 'components/game/luxury-character-card-animated.tsx');
+const cardComponentPath = resolve(process.cwd(), 'components/cards/CardArtwork.tsx');
 
 describe('Android card media renderer', () => {
   it('uses the current Expo video renderer configured for overlapping card views', () => {
@@ -21,10 +21,11 @@ describe('Android card media renderer', () => {
     expect(source).toContain('testID="card-video-loading"');
   });
 
-  it('does not touch a player during an extra unmount cleanup after useVideoPlayer releases it', () => {
+  it('does not add an extra unmount cleanup that touches a released video player', () => {
     const source = readFileSync(cardComponentPath, 'utf8');
 
-    expect(source).toContain('يدير useVideoPlayer عملية release عند إلغاء تركيب CardVideo');
-    expect(source).not.toContain('player.volume = 0;\n        player.pause();\n    }, [player]);');
+    expect(source).not.toContain('player.volume = 0;\n      player.pause();');
+    expect(source).toContain('if (active) player.play();');
+    expect(source).toContain('else player.pause();');
   });
 });
