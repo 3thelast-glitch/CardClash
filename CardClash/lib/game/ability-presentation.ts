@@ -1,6 +1,6 @@
 import type { AbilityType, CharacterAbilityId } from './types';
 import { getAbilityNameOnly } from './ability-names';
-import { SEMANTIC_COLOR } from '@/components/ui/design-tokens';
+import { SEMANTIC_COLOR } from '../../components/ui/design-tokens';
 
 export type AbilityPresentationFamily =
   | 'damage'
