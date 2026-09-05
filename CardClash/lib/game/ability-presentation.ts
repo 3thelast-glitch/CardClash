@@ -163,6 +163,7 @@ export const MANUAL_ABILITY_FAMILY = {
   Explosion: 'damage',
   DoublePoints: 'stat_up',
   ElementalMastery: 'stat_up',
+  LoseHalfRounds: 'stat_down',
   AbsoluteDominance: 'control',
   InfinityLoop: 'utility',
   PhantomBlade: 'damage',
