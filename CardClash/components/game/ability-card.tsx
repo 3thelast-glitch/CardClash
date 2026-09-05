@@ -43,7 +43,7 @@ export interface AbilityData {
   nameAr: string;
   description: string;
   descriptionWarning?: string;
-  icon: React.ComponentType<{ size?: number; color?: string }>;
+  icon?: React.ComponentType<{ size?: number; color?: string }> | null;
   rarity: string;
   imageUrl?: string;
   isActive?: boolean;
@@ -220,7 +220,7 @@ function AbilityCardImpl({ ability, showActionButtons = true, onToggleDisabled, 
     () => getAbilityPresentation(canonicalType ?? String(ability.id)),
     [ability.id, canonicalType],
   );
-  const Icon = ability.icon;
+  const Icon = ability.icon ?? Sparkles;
   const key = artKey(ability.nameEn);
   const videoSource = ABILITY_VIDEOS[key];
   const imageSource = ability.imageUrl
