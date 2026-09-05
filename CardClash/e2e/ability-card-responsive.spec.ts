@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-// AbilityCard exposes the visible rules surface with accessibilityLabel. Scope
-// large images to that semantic card subtree instead of relying on a legacy
-// renderer-specific testID that disappeared when the card system was unified.
-const abilityArtworkSelector = '[aria-label] img';
+// The unified AbilityCard no longer exposes a renderer-specific artwork testID.
+// Card artwork is the set of large, card-sized <img> nodes; full-screen
+// background art is excluded by the upper viewport-width bound below.
+const abilityArtworkSelector = 'img';
 
 const viewports = [
   { name: 'هاتف صغير عمودي', width: 320, height: 568 },
@@ -26,7 +26,9 @@ for (const viewport of viewports) {
       Array.from(document.querySelectorAll(selector)).some((node) => {
         const target = node instanceof HTMLImageElement ? node : node.querySelector('img') ?? node;
         const rect = target.getBoundingClientRect();
-        return rect.width > 100 && rect.height > 100;
+        return rect.width > 100
+          && rect.height > 100
+          && rect.width < window.innerWidth * 0.9;
       }),
       abilityArtworkSelector,
     );
@@ -37,7 +39,9 @@ for (const viewport of viewports) {
       const cardImages = Array.from(document.querySelectorAll(selector)).filter((node) => {
         const target = node instanceof HTMLImageElement ? node : node.querySelector('img') ?? node;
         const rect = target.getBoundingClientRect();
-        return rect.width > 100 && rect.height > 100;
+        return rect.width > 100
+          && rect.height > 100
+          && rect.width < window.innerWidth * 0.9;
       });
       const cardRects = cardImages.map((node) => {
         const target = node instanceof HTMLImageElement ? node : node.querySelector('img') ?? node;
