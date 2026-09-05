@@ -8,8 +8,15 @@ import {
 } from '../ability-presentation';
 
 describe('ability presentation coverage', () => {
-  it('covers every selectable runtime ability exactly once', () => {
-    expect(new Set(Object.keys(MANUAL_ABILITY_PRESENTATION))).toEqual(new Set(ALL_ABILITIES));
+  it('covers every selectable runtime ability and keeps the automatic Turin penalty presentable', () => {
+    const presentationIds = new Set(Object.keys(MANUAL_ABILITY_PRESENTATION));
+    const selectablePresentationIds = new Set(
+      [...presentationIds].filter((id) => id !== 'LoseHalfRounds'),
+    );
+
+    expect(selectablePresentationIds).toEqual(new Set(ALL_ABILITIES));
+    expect(presentationIds.has('LoseHalfRounds')).toBe(true);
+    expect(getAbilityPresentation('LoseHalfRounds').family).toBe('stat_down');
   });
 
   it('covers every declared character presentation id', () => {
