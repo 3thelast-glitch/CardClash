@@ -61,6 +61,7 @@ export default function MultiplayerBattleScreen() {
     arenaGap,
     centerWidth,
     actionButtonWidth,
+    actionButtonHeight,
     hudPadding,
     isCompact,
     isLandscape,
