@@ -12,7 +12,13 @@ export interface RoundInsight {
 }
 
 export interface RoundTimelineStep extends RoundInsight {
-  label: 'قبل الاستخدام' | 'بعد الاستخدام' | 'سبب الفوز';
+  label:
+    | 'قبل الاستخدام'
+    | 'بعد الاستخدام'
+    | 'سبب الفوز'
+    | 'قبل التأثير'
+    | 'بعد التأثير'
+    | 'سبب النتيجة';
 }
 
 const sideLabel = (side: Side) => (side === 'player' ? 'أنت' : 'البوت');
