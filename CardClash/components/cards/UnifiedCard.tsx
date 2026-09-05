@@ -1,6 +1,5 @@
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import React, { memo, useEffect } from 'react';
 import {
-  AppState,
   Pressable,
   StyleSheet,
   View,
@@ -12,7 +11,6 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useVideoPlayer, VideoView } from 'expo-video';
 import {
   Ban,
   Check,
@@ -33,17 +31,18 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import type { Card, CardAlignment, CardRarity } from '@/lib/game/types';
-import { getCardImage } from '@/lib/game/get-card-image';
 import { getCardAbilityDisplayText } from '@/lib/game/card-ability-text';
 import { CARD_ALIGNMENT_META, getCardAlignment } from '@/lib/game/card-alignment';
 import { getCardRarityVisual } from '@/lib/presentation/card-rarity-visuals';
+import { buildCardAccessibilitySummary } from '@/lib/presentation/card-visibility';
 import {
+  useCardFlipAnimation,
   useCardPresentationMotion,
   type CardDrawOrigin,
 } from '@/hooks/useCardAnimations';
 import { useMotionPreferences } from '@/hooks/useMotionPreferences';
-import { useSettings } from '@/lib/game/hooks/useSettings';
 import { ANIM_DURATION } from '@/constants/animationConfig';
+import { CardArtwork, CARD_IMAGE_FIT_OVERRIDES } from './CardArtwork';
 import { RarityFrame } from './RarityFrame';
 import { ThemedText } from '@/components/ui/ThemedText';
 import {
@@ -54,6 +53,8 @@ import {
   SPACE,
   TOUCH_TARGET,
 } from '@/components/ui/design-tokens';
+
+export { CARD_IMAGE_FIT_OVERRIDES };
 
 export type UnifiedCardVariant =
   | 'thumbnail'
@@ -68,6 +69,7 @@ export interface UnifiedCardPresentationState {
   pending?: boolean;
   targeted?: boolean;
   damaged?: boolean;
+  /** Accepted state may request a one-shot neutral-back-to-front reveal. */
   revealed?: boolean;
   transformed?: boolean;
 }
@@ -84,6 +86,7 @@ export interface UnifiedCardProps {
   style?: StyleProp<ViewStyle>;
   imageSource?: ImageSourcePropType | null;
   showAbility?: boolean;
+  showStats?: boolean;
   effectiveAttack?: number;
   effectiveDefense?: number;
   presentationState?: UnifiedCardPresentationState;
@@ -95,27 +98,14 @@ export interface UnifiedCardProps {
   playAudio?: boolean;
   mediaMode?: 'auto' | 'static';
   slashEffect?: boolean;
+  imageOffsetY?: number;
+  fitInsideBorder?: boolean;
 }
 
 const ALIGNMENT_MEDALLIONS: Record<CardAlignment, ImageSourcePropType> = {
   good: require('../../assets/icons/alignments/good-medallion.png'),
   evil: require('../../assets/icons/alignments/evil-medallion.png'),
   neutral: require('../../assets/icons/alignments/neutral-medallion.png'),
-};
-
-// Transparent silhouettes that should remain fully visible instead of cropped.
-export const CARD_IMAGE_FIT_OVERRIDES: Record<string, 'cover' | 'contain'> = {
-  ay_raikage: 'contain',
-  bam: 'contain',
-  trunks: 'contain',
-  nelliel_tu: 'contain',
-  emlyn_white: 'contain',
-  riza_hawkeye: 'contain',
-  leafa: 'contain',
-  ebisu: 'contain',
-  ino_yamanaka: 'contain',
-  yosaku: 'contain',
-  yonji: 'contain',
 };
 
 const VARIANT_BOUNDS: Record<
@@ -132,122 +122,6 @@ const VARIANT_BOUNDS: Record<
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
-}
-
-function CardVideoSurface({
-  source,
-  contentFit,
-  active,
-  playAudio,
-}: {
-  source: string | number;
-  contentFit: 'cover' | 'contain';
-  active: boolean;
-  playAudio: boolean;
-}) {
-  const player = useVideoPlayer(source as never, (instance) => {
-    instance.loop = true;
-    instance.muted = !playAudio;
-    instance.volume = playAudio ? 0.82 : 0;
-    if (active) instance.play();
-  });
-
-  useEffect(() => {
-    player.loop = true;
-    player.muted = !playAudio;
-    player.volume = playAudio ? 0.82 : 0;
-    if (active) player.play();
-    else player.pause();
-  }, [active, playAudio, player]);
-
-  return (
-    <VideoView
-      player={player}
-      style={StyleSheet.absoluteFill}
-      contentFit={contentFit}
-      nativeControls={false}
-      surfaceType="textureView"
-      useExoShutter={false}
-    />
-  );
-}
-
-function Artwork({
-  card,
-  imageSource,
-  mediaMode,
-  playAudio,
-}: {
-  card: Card;
-  imageSource?: ImageSourcePropType | null;
-  mediaMode: 'auto' | 'static';
-  playAudio: boolean;
-}) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const [appActive, setAppActive] = useState(AppState.currentState === 'active');
-  const { reduceMotion } = useMotionPreferences();
-  const { settings } = useSettings();
-  const rarity = card.rarity ?? 'common';
-  const visual = getCardRarityVisual(rarity);
-  const rawVideo = (card as Card & { videoUrl?: string | number }).videoUrl;
-  const customImage = (card as Card & { customImage?: string }).customImage;
-  const resolvedImage = imageSource === undefined ? getCardImage(card) : imageSource;
-  const contentFit = customImage ? 'contain' : (CARD_IMAGE_FIT_OVERRIDES[card.id] ?? 'cover');
-  const videoAllowed =
-    mediaMode === 'auto' &&
-    !reduceMotion &&
-    settings.animationsEnabled &&
-    appActive;
-  const audioAllowed = playAudio && settings.soundEnabled && videoAllowed;
-
-  useEffect(() => {
-    setImageFailed(false);
-  }, [card.id, imageSource]);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      setAppActive(state === 'active');
-    });
-    return () => subscription.remove();
-  }, []);
-
-  if (rawVideo && videoAllowed) {
-    return (
-      <CardVideoSurface
-        source={rawVideo}
-        contentFit={contentFit}
-        active={videoAllowed}
-        playAudio={audioAllowed}
-      />
-    );
-  }
-
-  const staticSource = customImage ? { uri: customImage } : resolvedImage;
-  if (staticSource && !imageFailed) {
-    return (
-      <Image
-        source={staticSource as never}
-        style={StyleSheet.absoluteFill}
-        contentFit={contentFit}
-        cachePolicy="memory-disk"
-        transition={reduceMotion ? 0 : 140}
-        onError={() => setImageFailed(true)}
-        accessible={false}
-      />
-    );
-  }
-
-  return (
-    <LinearGradient
-      colors={visual.surfaceGradient}
-      style={[StyleSheet.absoluteFill, styles.fallback]}
-    >
-      <Sparkles size={28} color={visual.color} />
-      <ThemedText type="caption" style={styles.fallbackText}>
-        الصورة غير متاحة
-      </ThemedText>
-    </LinearGradient>
-  );
 }
 
 function RarityFlourish({ rarity, active }: { rarity: CardRarity; active: boolean }) {
@@ -270,8 +144,13 @@ function RarityFlourish({ rarity, active }: { rarity: CardRarity; active: boolea
   }, [active, progress, reduceMotion, visual.motion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    opacity: progress.value < 0.82 ? progress.value * 0.5 : (1 - progress.value) * 2.7,
-    transform: [{ translateX: -160 + progress.value * 430 }, { rotate: '-18deg' }],
+    opacity: progress.value < 0.82
+      ? progress.value * 0.5
+      : (1 - progress.value) * 2.7,
+    transform: [
+      { translateX: -160 + progress.value * 430 },
+      { rotate: '-18deg' },
+    ],
   }));
 
   if (!active || reduceMotion || visual.motion === 'quiet') return null;
@@ -284,7 +163,13 @@ function RarityFlourish({ rarity, active }: { rarity: CardRarity; active: boolea
       style={[styles.flourish, animatedStyle]}
     >
       <LinearGradient
-        colors={['transparent', `${visual.color}66`, 'rgba(255,255,255,0.5)', `${visual.color}44`, 'transparent']}
+        colors={[
+          'transparent',
+          `${visual.color}66`,
+          'rgba(255,255,255,0.5)',
+          `${visual.color}44`,
+          'transparent',
+        ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.flourishGradient}
@@ -307,36 +192,41 @@ function Stat({
   const changed = base !== effective;
   const positive = effective > base;
   const Icon = kind === 'attack' ? Sword : Shield;
-  const tint = kind === 'attack' ? SEMANTIC_COLOR.status.danger : SEMANTIC_COLOR.accent.secondary;
+  const tint = kind === 'attack'
+    ? SEMANTIC_COLOR.status.danger
+    : SEMANTIC_COLOR.accent.secondary;
   const label = kind === 'attack' ? 'الهجوم' : 'الدفاع';
 
   return (
     <View
       style={[styles.stat, prominent && styles.statProminent]}
+      accessible
       accessibilityLabel={`${label} ${effective}${changed ? `، القيمة الأساسية ${base}` : ''}`}
     >
-      <Icon size={prominent ? 18 : 14} color={tint} accessibilityElementsHidden />
-      {changed ? (
-        <ThemedText
-          type="numeric"
-          style={[
-            styles.statValue,
-            prominent && styles.statValueProminent,
-            { color: positive ? SEMANTIC_COLOR.status.success : SEMANTIC_COLOR.status.danger },
-          ]}
-        >
-          {effective}
-        </ThemedText>
-      ) : (
-        <ThemedText type="numeric" style={[styles.statValue, prominent && styles.statValueProminent]}>
-          {effective}
-        </ThemedText>
-      )}
+      <Icon size={prominent ? 18 : 14} color={tint} />
+      <ThemedText
+        type="numeric"
+        style={[
+          styles.statValue,
+          prominent && styles.statValueProminent,
+          changed && {
+            color: positive
+              ? SEMANTIC_COLOR.status.success
+              : SEMANTIC_COLOR.status.danger,
+          },
+        ]}
+      >
+        {effective}
+      </ThemedText>
       {changed ? (
         <ThemedText
           type="caption"
           forceLtr
-          style={{ color: positive ? SEMANTIC_COLOR.status.success : SEMANTIC_COLOR.status.danger }}
+          style={{
+            color: positive
+              ? SEMANTIC_COLOR.status.success
+              : SEMANTIC_COLOR.status.danger,
+          }}
         >
           {positive ? `+${effective - base}` : String(effective - base)}
         </ThemedText>
@@ -345,17 +235,21 @@ function Stat({
   );
 }
 
-function FaceDown() {
+function CardBack() {
   return (
-    <View style={styles.back}>
+    <View style={styles.back} accessible accessibilityLabel="بطاقة مخفية">
       <LinearGradient
         pointerEvents="none"
-        colors={['rgba(57,230,208,0.12)', 'rgba(8,13,22,0.06)', 'rgba(141,164,255,0.12)']}
+        colors={[
+          'rgba(57,230,208,0.12)',
+          'rgba(8,13,22,0.06)',
+          'rgba(141,164,255,0.12)',
+        ]}
         style={StyleSheet.absoluteFill}
       />
       <View pointerEvents="none" style={styles.backRingOuter} />
       <View pointerEvents="none" style={styles.backRingInner} />
-      <EyeOff size={30} color={SEMANTIC_COLOR.accent.primary} accessibilityElementsHidden />
+      <EyeOff size={30} color={SEMANTIC_COLOR.accent.primary} />
       <ThemedText type="label" forceLtr style={styles.backTitle}>CARD CLASH</ThemedText>
       <ThemedText type="caption" style={styles.backSub}>بطاقة مخفية</ThemedText>
     </View>
@@ -374,28 +268,252 @@ function StateBadges({
       {state.pending ? (
         <View style={styles.stateChip}>
           <Clock3 size={12} color={SEMANTIC_COLOR.status.warning} />
-          <ThemedText type="caption" style={{ color: SEMANTIC_COLOR.status.warning }}>بانتظار التأكيد</ThemedText>
+          <ThemedText type="caption" style={{ color: SEMANTIC_COLOR.status.warning }}>
+            بانتظار التأكيد
+          </ThemedText>
         </View>
       ) : null}
       {state.targeted ? (
         <View style={styles.stateChip}>
           <Crosshair size={12} color={SEMANTIC_COLOR.status.danger} />
-          <ThemedText type="caption" style={{ color: SEMANTIC_COLOR.status.danger }}>مستهدف</ThemedText>
+          <ThemedText type="caption" style={{ color: SEMANTIC_COLOR.status.danger }}>
+            مستهدف
+          </ThemedText>
         </View>
       ) : null}
       {state.transformed ? (
         <View style={styles.stateChip}>
           <Zap size={12} color={SEMANTIC_COLOR.rarity.special} />
-          <ThemedText type="caption" style={{ color: SEMANTIC_COLOR.rarity.special }}>تحول</ThemedText>
+          <ThemedText type="caption" style={{ color: SEMANTIC_COLOR.rarity.special }}>
+            تحول
+          </ThemedText>
         </View>
       ) : null}
       {unavailableReason ? (
         <View style={styles.stateChip}>
           <Ban size={12} color={SEMANTIC_COLOR.text.secondary} />
-          <ThemedText type="caption" numberOfLines={2} style={styles.unavailableText}>{unavailableReason}</ThemedText>
+          <ThemedText type="caption" numberOfLines={2} style={styles.unavailableText}>
+            {unavailableReason}
+          </ThemedText>
         </View>
       ) : null}
     </View>
+  );
+}
+
+interface FrontProps {
+  card: Card;
+  rarity: CardRarity;
+  selected: boolean;
+  disabled: boolean;
+  inspection: boolean;
+  compact: boolean;
+  battle: boolean;
+  state: UnifiedCardPresentationState;
+  selectionLabel?: string;
+  imageSource?: ImageSourcePropType | null;
+  abilityText?: string;
+  showStats: boolean;
+  attack: number;
+  defense: number;
+  unavailableReason?: string;
+  mediaMode: 'auto' | 'static';
+  playAudio: boolean;
+  slashEffect: boolean;
+  imageOffsetY: number;
+  fitInsideBorder: boolean;
+}
+
+function CardFront({
+  card,
+  rarity,
+  selected,
+  disabled,
+  inspection,
+  compact,
+  battle,
+  state,
+  selectionLabel,
+  imageSource,
+  abilityText,
+  showStats,
+  attack,
+  defense,
+  unavailableReason,
+  mediaMode,
+  playAudio,
+  slashEffect,
+  imageOffsetY,
+  fitInsideBorder,
+}: FrontProps) {
+  const visual = getCardRarityVisual(rarity);
+  const alignment = getCardAlignment(card);
+  const alignmentMeta = CARD_ALIGNMENT_META[alignment];
+
+  return (
+    <RarityFrame
+      rarity={rarity}
+      selected={selected}
+      playable={state.playable}
+      targeted={state.targeted}
+      disabled={disabled}
+      contentSized={inspection}
+      style={!inspection ? styles.fill : undefined}
+    >
+      <View style={[styles.face, disabled && styles.disabledFace]}>
+        <View style={[styles.art, inspection && styles.artInspection]}>
+          <CardArtwork
+            card={card}
+            imageSource={imageSource}
+            mediaMode={mediaMode}
+            playAudio={playAudio}
+            imageOffsetY={imageOffsetY}
+            fitInsideBorder={fitInsideBorder}
+          />
+          <LinearGradient
+            pointerEvents="none"
+            colors={[
+              'rgba(8,13,22,0.02)',
+              'rgba(8,13,22,0.12)',
+              'rgba(8,13,22,0.92)',
+            ]}
+            locations={[0, 0.58, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View pointerEvents="none" style={styles.insetShade} />
+
+          {slashEffect ? (
+            <View
+              pointerEvents="none"
+              style={styles.zoroSlashOverlay}
+              accessibilityElementsHidden
+            >
+              <View style={[styles.zoroSlashLine, styles.zoroSlashLineOne]} />
+              <View style={[styles.zoroSlashLine, styles.zoroSlashLineTwo]} />
+              <View style={styles.zoroSlashLabel}>
+                <ThemedText type="caption" style={styles.zoroSlashLabelText}>
+                  قطع زورو
+                </ThemedText>
+              </View>
+            </View>
+          ) : null}
+
+          <View
+            style={[
+              styles.rarityPill,
+              {
+                backgroundColor: visual.badgeBackground,
+                borderColor: visual.insetColor,
+              },
+            ]}
+          >
+            <ThemedText type="caption" style={{ color: visual.color }}>
+              {visual.symbol} {visual.labelAr}
+            </ThemedText>
+          </View>
+
+          <View
+            style={[
+              styles.alignmentBadge,
+              {
+                borderColor: alignmentMeta.borderColor,
+                backgroundColor: alignmentMeta.backgroundColor,
+              },
+            ]}
+            accessibilityLabel={`تصنيف الكرت: ${alignmentMeta.label}`}
+          >
+            <Image
+              source={ALIGNMENT_MEDALLIONS[alignment]}
+              style={styles.alignmentMedallion}
+              contentFit="contain"
+              accessible={false}
+            />
+          </View>
+
+          {selected ? (
+            <View style={styles.selectedBadge} accessibilityLabel="محدد">
+              <Check size={14} color={SEMANTIC_COLOR.text.inverse} />
+            </View>
+          ) : null}
+
+          {state.damaged ? <View pointerEvents="none" style={styles.damageEdge} /> : null}
+          <RarityFlourish rarity={rarity} active={Boolean(state.revealed || selected)} />
+        </View>
+
+        <View style={[styles.copy, inspection && styles.copyInspection]}>
+          <View style={styles.nameCopy}>
+            <ThemedText
+              type="defaultSemiBold"
+              numberOfLines={inspection ? undefined : compact ? 1 : 2}
+              style={[styles.name, inspection && styles.nameInspection]}
+            >
+              {card.nameAr || card.name}
+            </ThemedText>
+            {(inspection || !compact) && (card.nameEn ?? card.name) ? (
+              <ThemedText
+                type="caption"
+                numberOfLines={inspection ? 2 : 1}
+                style={styles.nameEn}
+                forceLtr
+              >
+                {card.nameEn ?? card.name}
+              </ThemedText>
+            ) : null}
+          </View>
+
+          {showStats ? (
+            <View style={styles.stats}>
+              <Stat
+                kind="attack"
+                base={card.attack}
+                effective={attack}
+                prominent={battle || inspection}
+              />
+              <Stat
+                kind="defense"
+                base={card.defense}
+                effective={defense}
+                prominent={battle || inspection}
+              />
+              {inspection && card.hp !== undefined ? (
+                <View style={styles.hpStat} accessibilityLabel={`الصحة ${card.hp}`}>
+                  <ThemedText type="caption" style={styles.hpLabel}>HP</ThemedText>
+                  <ThemedText type="numeric" style={styles.statValueProminent}>
+                    {card.hp}
+                  </ThemedText>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {abilityText ? (
+            <View style={[styles.ability, inspection && styles.abilityInspection]}>
+              <Sparkles
+                size={inspection ? 16 : 13}
+                color={SEMANTIC_COLOR.accent.primary}
+              />
+              <ThemedText
+                type={inspection ? 'default' : 'caption'}
+                numberOfLines={inspection ? undefined : compact ? 1 : 2}
+                style={[styles.abilityText, inspection && styles.abilityTextInspection]}
+              >
+                {abilityText}
+              </ThemedText>
+            </View>
+          ) : null}
+
+          {selectionLabel ? (
+            <View style={styles.selectionLabel}>
+              <ThemedText type="label" style={styles.selectionLabelText}>
+                {selectionLabel}
+              </ThemedText>
+            </View>
+          ) : null}
+
+          <StateBadges state={state} unavailableReason={unavailableReason} />
+        </View>
+      </View>
+    </RarityFrame>
   );
 }
 
@@ -411,6 +529,7 @@ function UnifiedCardImpl({
   style,
   imageSource,
   showAbility = variant === 'inspection' || variant === 'ability',
+  showStats = true,
   effectiveAttack,
   effectiveDefense,
   presentationState,
@@ -422,6 +541,8 @@ function UnifiedCardImpl({
   playAudio = false,
   mediaMode = 'auto',
   slashEffect = false,
+  imageOffsetY = 0,
+  fitInsideBorder = false,
 }: UnifiedCardProps) {
   const { width: viewportWidth } = useWindowDimensions();
   const hidden = variant === 'faceDown' || !card;
@@ -429,60 +550,75 @@ function UnifiedCardImpl({
   const visual = getCardRarityVisual(rarity);
   const bounds = VARIANT_BOUNDS[variant];
   const flattenedStyle = StyleSheet.flatten(style) ?? {};
-  const explicitWidth = typeof flattenedStyle.width === 'number' ? flattenedStyle.width : undefined;
-  const fallbackWidth = clamp(viewportWidth * bounds.viewportFraction, bounds.min, bounds.max);
-  const cardWidth = explicitWidth ?? fallbackWidth;
+  const explicitWidth = typeof flattenedStyle.width === 'number'
+    ? flattenedStyle.width
+    : undefined;
+  const responsiveWidth = clamp(
+    viewportWidth * bounds.viewportFraction,
+    bounds.min,
+    bounds.max,
+  );
   const inspection = variant === 'inspection';
+  const cardWidth = inspection
+    ? Math.max(bounds.min, explicitWidth ?? responsiveWidth)
+    : explicitWidth ?? responsiveWidth;
   const compact = variant === 'thumbnail' || cardWidth < 150;
   const battle = variant === 'battle';
-  const state: UnifiedCardPresentationState = {
-    transformed: card?._rageActive || card?.isRagedVersion,
-    ...presentationState,
-  };
+  const state: UnifiedCardPresentationState = hidden
+    ? {}
+    : {
+        transformed: Boolean(card._rageActive || card.isRagedVersion),
+        ...presentationState,
+      };
   const attack = card ? (effectiveAttack ?? card.attack) : 0;
   const defense = card ? (effectiveDefense ?? card.defense) : 0;
-  const abilityText = hidden || !showAbility || !card ? undefined : getCardAbilityDisplayText(card);
-  const alignment = card ? getCardAlignment(card) : 'neutral';
-  const alignmentMeta = CARD_ALIGNMENT_META[alignment];
-  const effectiveInstanceKey = instanceKey ?? `${card?.id ?? 'hidden'}:${variant}`;
+  const abilityText = hidden || !showAbility || !card
+    ? undefined
+    : getCardAbilityDisplayText(card);
+  const effectiveInstanceKey = instanceKey
+    ?? `${card?.id ?? 'hidden'}:${selectionLabel ?? ''}:${variant}`;
   const motion = useCardPresentationMotion({
     instanceKey: effectiveInstanceKey,
     selected,
-    revealed: Boolean(state.revealed),
     playEntrance: playEntranceAnimation,
     entranceDelay,
     drawOrigin,
   });
+  const flip = useCardFlipAnimation({
+    instanceKey: effectiveInstanceKey,
+    playFlip: !hidden && Boolean(state.revealed),
+    delayMs: entranceDelay,
+  });
 
-  const accessibilityLabel = hidden
-    ? 'بطاقة خصم مخفية'
-    : [
-        card.nameAr || card.name,
-        `الندرة ${visual.labelAr}`,
-        `الهجوم ${attack}`,
-        `الدفاع ${defense}`,
-        card.hp !== undefined ? `الصحة ${card.hp}` : null,
-        abilityText && inspection ? `القدرة ${abilityText}` : null,
-        unavailableReason ? `غير متاحة: ${unavailableReason}` : null,
-      ].filter(Boolean).join('، ');
+  const accessibilityLabel = buildCardAccessibilitySummary({
+    card,
+    hidden,
+    rarityLabel: visual.labelAr,
+    attack,
+    defense,
+    includeStats: showStats,
+    abilityText,
+    includeAbility: inspection,
+    unavailableReason,
+  });
 
   const handleAccessibilityAction = (event: AccessibilityActionEvent) => {
     if (event.nativeEvent.actionName === 'longpress' && onInspect) onInspect();
     if (event.nativeEvent.actionName === 'activate' && onPress && !disabled) onPress();
   };
 
+  const dimensionsStyle: ViewStyle = inspection
+    ? { width: cardWidth, maxWidth: '100%', height: undefined }
+    : { width: cardWidth, maxWidth: '100%', aspectRatio: 0.72 };
+
   return (
     <Animated.View
       style={[
         styles.motionLayer,
-        {
-          width: cardWidth,
-          maxWidth: '100%',
-          aspectRatio: inspection ? undefined : 0.72,
-          minHeight: inspection ? Math.max(390, cardWidth / 0.82) : undefined,
-        },
-        motion.animatedStyle,
+        dimensionsStyle,
         style,
+        inspection && styles.inspectionOverride,
+        motion.animatedStyle,
       ]}
     >
       <Pressable
@@ -494,135 +630,77 @@ function UnifiedCardImpl({
         onPressOut={motion.onPressOut}
         accessibilityRole={interactive && (onPress || onInspect) ? 'button' : undefined}
         accessibilityLabel={accessibilityLabel}
-        accessibilityHint={onInspect && !inspection ? 'اضغط مطولاً أو استخدم زر التفاصيل لفتح البطاقة كاملة' : undefined}
-        accessibilityActions={onInspect ? [{ name: 'activate' }, { name: 'longpress', label: 'عرض التفاصيل' }] : undefined}
+        accessibilityHint={
+          onInspect && !inspection
+            ? 'اضغط مطولاً أو استخدم زر التفاصيل لفتح البطاقة كاملة'
+            : undefined
+        }
+        accessibilityActions={
+          onInspect
+            ? [
+                { name: 'activate' },
+                { name: 'longpress', label: 'عرض التفاصيل' },
+              ]
+            : undefined
+        }
         onAccessibilityAction={onInspect ? handleAccessibilityAction : undefined}
-        accessibilityState={{ selected, disabled, busy: Boolean(state.pending) }}
+        accessibilityState={{
+          selected,
+          disabled,
+          busy: Boolean(state.pending),
+        }}
         style={styles.pressable}
       >
-        <RarityFrame
-          rarity={rarity}
-          selected={selected}
-          playable={state.playable}
-          targeted={state.targeted}
-          disabled={disabled}
-          style={styles.fill}
-        >
-          {hidden ? (
-            <FaceDown />
-          ) : (
-            <View style={[styles.face, disabled && styles.disabledFace]}>
-              <View style={[styles.art, inspection && styles.artInspection]}>
-                <Artwork
-                  card={card}
-                  imageSource={imageSource}
-                  mediaMode={mediaMode}
-                  playAudio={playAudio}
-                />
-                <LinearGradient
-                  pointerEvents="none"
-                  colors={['rgba(8,13,22,0.02)', 'rgba(8,13,22,0.12)', 'rgba(8,13,22,0.92)']}
-                  locations={[0, 0.58, 1]}
-                  style={StyleSheet.absoluteFill}
-                />
-                <View pointerEvents="none" style={styles.insetShade} />
+        {hidden ? (
+          <RarityFrame rarity="common" style={styles.fill}>
+            <CardBack />
+          </RarityFrame>
+        ) : (
+          <View style={[styles.flipStage, inspection && styles.flipStageInspection]}>
+            <Animated.View
+              style={[
+                inspection ? styles.flipFrontInspection : styles.flipFront,
+                flip.frontStyle,
+              ]}
+            >
+              <CardFront
+                card={card}
+                rarity={rarity}
+                selected={selected}
+                disabled={disabled}
+                inspection={inspection}
+                compact={compact}
+                battle={battle}
+                state={state}
+                selectionLabel={selectionLabel}
+                imageSource={imageSource}
+                abilityText={abilityText}
+                showStats={showStats}
+                attack={attack}
+                defense={defense}
+                unavailableReason={unavailableReason}
+                mediaMode={mediaMode}
+                playAudio={playAudio}
+                slashEffect={slashEffect}
+                imageOffsetY={imageOffsetY}
+                fitInsideBorder={fitInsideBorder}
+              />
+            </Animated.View>
 
-                {slashEffect ? (
-                  <View pointerEvents="none" style={styles.zoroSlashOverlay} accessibilityElementsHidden>
-                    <View style={[styles.zoroSlashLine, styles.zoroSlashLineOne]} />
-                    <View style={[styles.zoroSlashLine, styles.zoroSlashLineTwo]} />
-                    <View style={styles.zoroSlashLabel}>
-                      <ThemedText type="caption" style={styles.zoroSlashLabelText}>قطع زورو</ThemedText>
-                    </View>
-                  </View>
-                ) : null}
-
-                <View style={[styles.rarityPill, { backgroundColor: visual.badgeBackground, borderColor: visual.insetColor }]}>
-                  <ThemedText type="caption" style={{ color: visual.color }}>
-                    {visual.symbol} {visual.labelAr}
-                  </ThemedText>
-                </View>
-
-                <View
-                  style={[styles.alignmentBadge, { borderColor: alignmentMeta.borderColor, backgroundColor: alignmentMeta.backgroundColor }]}
-                  accessibilityLabel={`تصنيف الكرت: ${alignmentMeta.label}`}
-                >
-                  <Image
-                    source={ALIGNMENT_MEDALLIONS[alignment]}
-                    style={styles.alignmentMedallion}
-                    contentFit="contain"
-                    accessible={false}
-                  />
-                </View>
-
-                {selected ? (
-                  <View style={styles.selectedBadge} accessibilityLabel="محدد">
-                    <Check size={14} color={SEMANTIC_COLOR.text.inverse} />
-                  </View>
-                ) : null}
-
-                {state.damaged ? <View pointerEvents="none" style={styles.damageEdge} /> : null}
-                <RarityFlourish rarity={rarity} active={Boolean(state.revealed || selected)} />
-              </View>
-
-              <View style={[styles.copy, inspection && styles.copyInspection]}>
-                <View style={styles.nameRow}>
-                  <View style={styles.nameCopy}>
-                    <ThemedText
-                      type="defaultSemiBold"
-                      numberOfLines={inspection ? undefined : compact ? 1 : 2}
-                      style={[styles.name, inspection && styles.nameInspection]}
-                    >
-                      {card.nameAr || card.name}
-                    </ThemedText>
-                    {(inspection || !compact) && (card.nameEn ?? card.name) ? (
-                      <ThemedText
-                        type="caption"
-                        numberOfLines={inspection ? 2 : 1}
-                        style={styles.nameEn}
-                        forceLtr
-                      >
-                        {card.nameEn ?? card.name}
-                      </ThemedText>
-                    ) : null}
-                  </View>
-                </View>
-
-                <View style={styles.stats}>
-                  <Stat kind="attack" base={card.attack} effective={attack} prominent={battle || inspection} />
-                  <Stat kind="defense" base={card.defense} effective={defense} prominent={battle || inspection} />
-                  {inspection && card.hp !== undefined ? (
-                    <View style={styles.hpStat} accessibilityLabel={`الصحة ${card.hp}`}>
-                      <ThemedText type="caption" style={styles.hpLabel}>HP</ThemedText>
-                      <ThemedText type="numeric" style={styles.statValueProminent}>{card.hp}</ThemedText>
-                    </View>
-                  ) : null}
-                </View>
-
-                {abilityText ? (
-                  <View style={[styles.ability, inspection && styles.abilityInspection]}>
-                    <Sparkles size={inspection ? 16 : 13} color={SEMANTIC_COLOR.accent.primary} accessibilityElementsHidden />
-                    <ThemedText
-                      type={inspection ? 'default' : 'caption'}
-                      numberOfLines={inspection ? undefined : compact ? 1 : 2}
-                      style={[styles.abilityText, inspection && styles.abilityTextInspection]}
-                    >
-                      {abilityText}
-                    </ThemedText>
-                  </View>
-                ) : null}
-
-                {selectionLabel ? (
-                  <View style={styles.selectionLabel}>
-                    <ThemedText type="label" style={styles.selectionLabelText}>{selectionLabel}</ThemedText>
-                  </View>
-                ) : null}
-
-                <StateBadges state={state} unavailableReason={unavailableReason} />
-              </View>
-            </View>
-          )}
-        </RarityFrame>
+            {state.revealed ? (
+              <Animated.View
+                pointerEvents="none"
+                importantForAccessibility="no-hide-descendants"
+                accessibilityElementsHidden
+                style={[styles.flipBack, flip.backStyle]}
+              >
+                <RarityFrame rarity="common" style={styles.fill}>
+                  <CardBack />
+                </RarityFrame>
+              </Animated.View>
+            ) : null}
+          </View>
+        )}
       </Pressable>
 
       {!hidden && onInspect && !inspection ? (
@@ -650,8 +728,18 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignSelf: 'center',
   },
+  inspectionOverride: {
+    height: undefined,
+    minHeight: 0,
+    aspectRatio: undefined,
+  },
   pressable: { flex: 1 },
   fill: { flex: 1 },
+  flipStage: { flex: 1, position: 'relative' },
+  flipStageInspection: { flex: 0 },
+  flipFront: { ...StyleSheet.absoluteFillObject },
+  flipFrontInspection: { position: 'relative' },
+  flipBack: { ...StyleSheet.absoluteFillObject },
   face: {
     flex: 1,
     backgroundColor: SEMANTIC_COLOR.surface.default,
@@ -664,7 +752,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   artInspection: {
-    flex: undefined,
+    flex: 0,
     height: 250,
   },
   insetShade: {
@@ -672,12 +760,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(243,246,252,0.08)',
   },
-  fallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACE.sm,
-  },
-  fallbackText: { color: SEMANTIC_COLOR.text.secondary },
   rarityPill: {
     position: 'absolute',
     top: SPACE.sm,
@@ -721,7 +803,6 @@ const styles = StyleSheet.create({
     padding: SPACE.lg,
     gap: SPACE.md,
   },
-  nameRow: { flexDirection: 'row-reverse', alignItems: 'flex-start', gap: SPACE.sm },
   nameCopy: { flex: 1 },
   name: {
     fontSize: FONT.md,
@@ -768,7 +849,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hpLabel: { color: SEMANTIC_COLOR.status.success, fontFamily: FONT_FAMILY.latinBold },
+  hpLabel: {
+    color: SEMANTIC_COLOR.status.success,
+    fontFamily: FONT_FAMILY.latinBold,
+  },
   ability: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -833,6 +917,7 @@ const styles = StyleSheet.create({
   },
   back: {
     flex: 1,
+    minHeight: 180,
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACE.sm,
