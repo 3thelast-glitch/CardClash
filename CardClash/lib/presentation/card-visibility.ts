@@ -1,4 +1,4 @@
-import type { Card } from '@/lib/game/types';
+import type { Card } from '../game/types';
 
 export interface CardAccessibilitySummaryOptions {
   card?: Card;
@@ -30,7 +30,7 @@ export function buildCardAccessibilitySummary({
 }: CardAccessibilitySummaryOptions): string {
   if (hidden || !card) return 'بطاقة خصم مخفية';
 
-  const pieces: Array<string | null> = [
+  const pieces: (string | null)[] = [
     card.nameAr || card.name,
     rarityLabel ? `الندرة ${rarityLabel}` : null,
     includeStats && attack !== undefined ? `الهجوم ${attack}` : null,
