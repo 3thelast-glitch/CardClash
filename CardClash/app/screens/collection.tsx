@@ -1,7 +1,7 @@
 import React from 'react';
 import { Redirect, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import { ArrowLeft, Image as ImageIcon, Wrench, Zap } from 'lucide-react-native';
+import { ArrowLeft, Image as ImageIcon, Layers3, Wrench, Zap } from 'lucide-react-native';
 import { StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 
 import { LuxuryBackground } from '@/components/game/luxury-background';
@@ -13,6 +13,7 @@ import { isDeveloperBuild } from '@/lib/build-variant';
 
 const CATEGORIES = [
   { id: 'cards', title: 'الكروت', subtitle: 'استعرض المحتوى والصور والإحصاءات.', route: '/screens/cards-gallery', accent: SEMANTIC_COLOR.rarity.rare, Icon: ImageIcon },
+  { id: 'card-system', title: 'مختبر نظام البطاقات', subtitle: 'عاين الندرة والحالات والمقاسات والوجه المخفي في مكان واحد.', route: '/screens/card-system-preview', accent: SEMANTIC_COLOR.accent.secondary, Icon: Layers3 },
   { id: 'abilities', title: 'القدرات', subtitle: 'راجع بطاقات القدرات ووصف كل تأثير.', route: '/screens/abilities', accent: SEMANTIC_COLOR.rarity.epic, Icon: Zap },
   { id: 'admin', title: 'إدارة المحتوى', subtitle: 'أدوات المطور لإضافة وتصدير المحتوى.', route: '/screens/content-admin', accent: SEMANTIC_COLOR.accent.primary, Icon: Wrench },
 ] as const;
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
   header: { width: '100%', maxWidth: 760, alignSelf: 'center', alignItems: 'flex-end', gap: SPACE.sm },
   title: { color: SEMANTIC_COLOR.text.primary, textAlign: 'right' },
   subtitle: { color: SEMANTIC_COLOR.text.secondary, textAlign: 'right' },
-  grid: { flex: 1, width: '100%', maxWidth: 980, alignSelf: 'center', gap: SPACE.md, justifyContent: 'center' },
+  grid: { flex: 1, width: '100%', maxWidth: 1180, alignSelf: 'center', gap: SPACE.md, justifyContent: 'center' },
   gridLandscape: { flexDirection: 'row', alignItems: 'stretch' },
   hitArea: { width: '100%' },
   hitAreaLandscape: { flex: 1 },
