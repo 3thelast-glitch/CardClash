@@ -1,106 +1,78 @@
 /**
- * Card Rarity System
- * Drives all visual and animation configuration per rarity tier.
+ * Card rarity helpers.
+ *
+ * The visual source of truth lives in lib/presentation/card-rarity-visuals.ts.
+ * This module keeps the legacy RarityConfig API for existing consumers while
+ * preventing a second palette from drifting away from the design system.
  */
-
 import type { CardRarity } from './types';
+import {
+  CARD_RARITY_VISUALS,
+  getCardRarityVisual,
+  type CardRarityVisual,
+} from '@/lib/presentation/card-rarity-visuals';
 
 export interface RarityConfig {
-    /** Gradient color stops for card background */
-    gradient: readonly [string, string, string];
-    /** Primary border color */
-    borderColor: string;
-    /** Border width in dp */
-    borderWidth: number;
-    /** Glow / shadow color (undefined = no glow) */
-    glowColor: string | undefined;
-    /** Shadow radius for 3D depth */
-    shadowRadius: number;
-    /** Shadow opacity for 3D depth */
-    shadowOpacity: number;
-    /** Whether to render the pulsing glow ring */
-    hasPulsingGlow: boolean;
-    /** Whether to render fire particles overlay */
-    hasParticles: boolean;
-    /** Label text */
-    label: string;
-    /** Display colour for the badge pill */
-    badgeColor: string;
+  /** Gradient color stops for card background */
+  gradient: readonly [string, string, string];
+  /** Primary border color */
+  borderColor: string;
+  /** Border width in dp */
+  borderWidth: number;
+  /** Glow / shadow color (undefined = no glow) */
+  glowColor: string | undefined;
+  /** Shadow radius for 3D depth */
+  shadowRadius: number;
+  /** Shadow opacity for 3D depth */
+  shadowOpacity: number;
+  /** Whether a focused/revealed card may render a short rim flourish */
+  hasPulsingGlow: boolean;
+  /** Kept for compatibility. Continuous per-card particles are disabled. */
+  hasParticles: boolean;
+  /** Arabic rarity label */
+  label: string;
+  /** Display colour for the badge pill */
+  badgeColor: string;
+  /** Full typed visual record for new consumers. */
+  visual: CardRarityVisual;
 }
 
-export const RARITY_CONFIG: Record<CardRarity, RarityConfig> = {
-    common: {
-        gradient: ['#312e81', '#4338ca', '#4f46e5'],
-        borderColor: '#4F46E5',
-        borderWidth: 2,
-        glowColor: undefined,
-        shadowRadius: 8,
-        shadowOpacity: 0.35,
-        hasPulsingGlow: false,
-        hasParticles: false,
-        label: 'Common',
-        badgeColor: '#6366f1',
-    },
-    rare: {
-        gradient: ['#78350f', '#d97706', '#f59e0b'],
-        borderColor: '#F59E0B',
-        borderWidth: 2.5,
-        glowColor: '#fbbf24',
-        shadowRadius: 14,
-        shadowOpacity: 0.5,
-        hasPulsingGlow: false,
-        hasParticles: false,
-        label: 'Rare',
-        badgeColor: '#f59e0b',
-    },
-    epic: {
-        gradient: ['#4c1d95', '#7c3aed', '#8B5CF6'],
-        borderColor: '#8B5CF6',
-        borderWidth: 3,
-        glowColor: '#8B5CF6',
-        shadowRadius: 18,
-        shadowOpacity: 0.6,
-        hasPulsingGlow: true,
-        hasParticles: false,
-        label: 'Epic',
-        badgeColor: '#8b5cf6',
-    },
-    legendary: {
-        gradient: ['#7f1d1d', '#b91c1c', '#EF4444'],
-        borderColor: '#EF4444',
-        borderWidth: 3.5,
-        glowColor: '#ef4444',
-        shadowRadius: 24,
-        shadowOpacity: 0.7,
-        hasPulsingGlow: true,
-        hasParticles: true,
-        label: 'Legendary',
-        badgeColor: '#ef4444',
-    },
-    special: {
-        gradient: ['#0f172a', '#831843', '#f0abfc'],
-        borderColor: '#f0abfc',
-        borderWidth: 4,
-        glowColor: '#e879f9',
-        shadowRadius: 32,
-        shadowOpacity: 0.85,
-        hasPulsingGlow: true,
-        hasParticles: true,
-        label: 'Special',
-        badgeColor: '#e879f9',
-    },
-} as const;
+function legacyAdapter(rarity: CardRarity): RarityConfig {
+  const visual = CARD_RARITY_VISUALS[rarity];
+  return {
+    gradient: visual.rimGradient,
+    borderColor: visual.color,
+    borderWidth: visual.borderWidth,
+    glowColor: visual.glowColor,
+    shadowRadius: visual.shadowRadius,
+    shadowOpacity: visual.shadowOpacity,
+    hasPulsingGlow: visual.motion !== 'quiet',
+    hasParticles: false,
+    label: visual.labelAr,
+    badgeColor: visual.color,
+    visual,
+  };
+}
 
-/** Resolve rarity with a safe fallback */
+export const RARITY_CONFIG = {
+  common: legacyAdapter('common'),
+  rare: legacyAdapter('rare'),
+  epic: legacyAdapter('epic'),
+  legendary: legacyAdapter('legendary'),
+  special: legacyAdapter('special'),
+} as const satisfies Record<CardRarity, RarityConfig>;
+
+/** Resolve rarity with a safe fallback. */
 export function getRarityConfig(rarity?: CardRarity): RarityConfig {
-    return RARITY_CONFIG[rarity ?? 'common'];
+  return RARITY_CONFIG[rarity ?? 'common'];
 }
 
-/** Resolve rarity directly from star count */
+export { getCardRarityVisual };
+
+/** Resolve rarity directly from star count. */
 export function getRarityFromStars(stars?: number): CardRarity {
-    if (!stars || stars <= 2) return 'common';
-    if (stars === 3) return 'rare';
-    if (stars === 4) return 'epic';
-    return 'legendary';
+  if (!stars || stars <= 2) return 'common';
+  if (stars === 3) return 'rare';
+  if (stars === 4) return 'epic';
+  return 'legendary';
 }
-
