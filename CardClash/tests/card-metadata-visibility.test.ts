@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Card } from '@/lib/game/types';
-import { buildCardAccessibilitySummary } from '@/lib/presentation/card-visibility';
+import type { Card } from '../lib/game/types';
+import { buildCardAccessibilitySummary } from '../lib/presentation/card-visibility';
 
 const card = {
   id: 'visibility-fixture',
