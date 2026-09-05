@@ -1,8 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 
-// Unified ability artwork renders as card-sized <img> nodes. Full-screen
-// background imagery is intentionally excluded by the viewport-width bound.
-const abilityArtworkSelector = 'img';
+// Inspect real AbilityCard shells and their media descendants. React Native Web
+// can render Image as either an <img> or a background-image wrapper, so this
+// avoids coupling the visual test to one renderer implementation.
+const abilityNames = ['مصادفة منطقية', 'استدعاء', 'حماية'];
 
 const viewports = [
   { id: 'phone-small-portrait', name: 'هاتف صغير عمودي', width: 320, height: 568 },
@@ -15,6 +16,62 @@ const viewports = [
   { id: 'tablet-landscape', name: 'جهاز لوحي أفقي', width: 1024, height: 768 },
 ];
 
+async function inspectAbilityCard(label: Locator) {
+  await label.waitFor({ state: 'attached', timeout: 20_000 });
+  return label.evaluate((node) => {
+    let current = node as HTMLElement | null;
+    let candidate: HTMLElement | null = null;
+
+    while (current && current !== document.body) {
+      const rect = current.getBoundingClientRect();
+      if (
+        rect.width >= 150
+        && rect.width <= 300
+        && rect.height >= 220
+        && rect.height <= 380
+      ) {
+        candidate = current;
+      } else if (candidate && (rect.width > 320 || rect.height > 420)) {
+        break;
+      }
+      current = current.parentElement;
+    }
+
+    if (!candidate) throw new Error('Ability card shell was not found');
+    const rect = candidate.getBoundingClientRect();
+    const media = Array.from(candidate.querySelectorAll<HTMLElement>('*'))
+      .map((element) => {
+        const style = getComputedStyle(element);
+        const isImage = element instanceof HTMLImageElement;
+        const hasBackgroundImage = style.backgroundImage !== 'none' && style.backgroundImage.includes('url(');
+        if (!isImage && !hasBackgroundImage) return null;
+        const mediaRect = element.getBoundingClientRect();
+        return {
+          left: mediaRect.left,
+          right: mediaRect.right,
+          top: mediaRect.top,
+          bottom: mediaRect.bottom,
+          width: mediaRect.width,
+          height: mediaRect.height,
+          fit: isImage ? style.objectFit : style.backgroundSize,
+        };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry && entry.width > 20 && entry.height > 20));
+
+    return {
+      rect: {
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+      },
+      media,
+    };
+  });
+}
+
 test.describe('المقارنة البصرية لتوافق كروت القدرات', () => {
   for (const viewport of viewports) {
     test(`يحافظ على ملء الصور وتوافق الكرت في ${viewport.name}`, async ({ page }, testInfo) => {
@@ -22,69 +79,39 @@ test.describe('المقارنة البصرية لتوافق كروت القدر�
       await page.goto('/screens/abilities', { waitUntil: 'domcontentloaded' });
       await expect(page.getByText('القدرات', { exact: true })).toBeVisible({ timeout: 30_000 });
 
-      await page.waitForFunction(
-        (selector) => Array.from(document.querySelectorAll(selector)).some((node) => {
-          const target = node instanceof HTMLImageElement ? node : node.querySelector('img') ?? node;
-          const rect = target.getBoundingClientRect();
-          return rect.width > 100
-            && rect.height > 100
-            && rect.width < window.innerWidth * 0.9;
-        }),
-        abilityArtworkSelector,
-        { timeout: 10_000 },
-      );
+      const cards = [];
+      for (const abilityName of abilityNames) {
+        cards.push(await inspectAbilityCard(page.getByText(abilityName, { exact: true }).first()));
+      }
 
-      const measurement = await page.evaluate((selector) => {
+      const measurement = await page.evaluate(() => {
         const body = document.body;
         const root = document.documentElement;
-        const images = Array.from(document.querySelectorAll(selector))
-          .map((node) => {
-            const image = node instanceof HTMLImageElement ? node : node.querySelector('img');
-            const target = image ?? node;
-            const rect = target.getBoundingClientRect();
-            const style = getComputedStyle(target);
-            return {
-              left: rect.left,
-              right: rect.right,
-              top: rect.top,
-              bottom: rect.bottom,
-              width: rect.width,
-              height: rect.height,
-              objectFit: style.objectFit,
-              naturalWidth: image?.naturalWidth ?? 0,
-              naturalHeight: image?.naturalHeight ?? 0,
-            };
-          })
-          .filter((image) =>
-            image.width > 100
-            && image.height > 100
-            && image.width < window.innerWidth * 0.9,
-          );
-
         return {
           viewportWidth: window.innerWidth,
           viewportHeight: window.innerHeight,
           scrollWidth: Math.max(body.scrollWidth, root.scrollWidth),
-          images,
         };
-      }, abilityArtworkSelector);
+      });
 
+      const report = { ...measurement, cards };
       await testInfo.attach(`قياسات-${viewport.id}.json`, {
-        body: JSON.stringify(measurement, null, 2),
+        body: JSON.stringify(report, null, 2),
         contentType: 'application/json',
       });
       await page.screenshot({
         path: testInfo.outputPath(`كروت-القدرات-${viewport.id}.png`),
-        fullPage: true,
+        fullPage: false,
       });
 
-      expect(measurement.images.length, `${viewport.name}: لم تظهر صور كروت`).toBeGreaterThan(0);
+      expect(cards.length, `${viewport.name}: لم تظهر كروت القدرات`).toBe(abilityNames.length);
       expect(measurement.scrollWidth, `${viewport.name}: ظهر تمرير أفقي`).toBeLessThanOrEqual(viewport.width + 2);
 
-      for (const image of measurement.images) {
-        expect(image.left, `${viewport.name}: قص من اليسار`).toBeGreaterThanOrEqual(-2);
-        expect(image.right, `${viewport.name}: قص من اليمين`).toBeLessThanOrEqual(viewport.width + 2);
-        expect(['cover', 'contain', 'scale-down']).toContain(image.objectFit);
+      for (const card of cards) {
+        expect(card.rect.left, `${viewport.name}: قص من اليسار`).toBeGreaterThanOrEqual(-2);
+        expect(card.rect.right, `${viewport.name}: قص من اليمين`).toBeLessThanOrEqual(viewport.width + 2);
+        expect(card.media.length, `${viewport.name}: لم يتم العثور على artwork داخل الكرت`).toBeGreaterThan(0);
+        expect(card.media.some((entry) => ['cover', 'contain'].includes(entry.fit)), `${viewport.name}: artwork لا يملك سياسة ملء صالحة`).toBe(true);
       }
     });
   }
