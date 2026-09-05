@@ -1,296 +1,242 @@
-/**
- * BattleHUD — Animated Heads-Up Display for the battle screen.
- *
- * Shows:
- *  - Player + Bot HP bars (animated color shift, flash pulse)
- *  - Score display (player score vs bot score)
- *  - Round counter with progress dots
- *  - Turn indicator badge
- */
-
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
-    useSharedValue,
-    useAnimatedStyle,
-    withTiming,
-    withSequence,
-    interpolateColor,
-    Easing,
+  Easing,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
 import { ANIM_DURATION, HP_COLORS } from '@/constants/animationConfig';
-
-// ─── HP Bar ───────────────────────────────────────────────────────────────────
+import { useMotionPreferences } from '@/hooks/useMotionPreferences';
+import { ThemedText } from '@/components/ui/ThemedText';
+import {
+  FONT,
+  RADIUS,
+  SEMANTIC_COLOR,
+  SPACE,
+} from '@/components/ui/design-tokens';
 
 interface HpBarProps {
-    current: number;
-    max: number;
-    label: string;
-    width?: number;
-    height?: number;
-    direction?: 'ltr' | 'rtl';
+  current: number;
+  max: number;
+  label: string;
+  width?: number;
+  height?: number;
+  direction?: 'ltr' | 'rtl';
 }
 
-function HpBar({ current, max, label, width = 130, height = 12, direction = 'ltr' }: HpBarProps) {
-    const fraction = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
-    const fillWidth = useSharedValue(fraction * width);
-    const colorProgress = useSharedValue(fraction);
-    const pulseOpacity = useSharedValue(0);
+function HpBar({ current, max, label, width = 132, height = 12, direction = 'ltr' }: HpBarProps) {
+  const fraction = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
+  const fillWidth = useSharedValue(fraction * width);
+  const colorProgress = useSharedValue(fraction);
+  const pulseOpacity = useSharedValue(0);
+  const { reduceMotion } = useMotionPreferences();
 
-    useEffect(() => {
-        fillWidth.value = withTiming(fraction * width, {
-            duration: ANIM_DURATION.HP_BAR,
-            easing: Easing.out(Easing.quad),
-        });
-        colorProgress.value = withTiming(fraction, { duration: ANIM_DURATION.HP_BAR });
-        pulseOpacity.value = withSequence(
-            withTiming(0.5, { duration: 80 }),
-            withTiming(0, { duration: 300 })
-        );
-    }, [current, fraction, width]);
-
-    const fillStyle = useAnimatedStyle(() => {
-        const bg = interpolateColor(
-            colorProgress.value,
-            [0, 0.3, 0.6, 1],
-            [HP_COLORS.LOW, HP_COLORS.HALF, HP_COLORS.FULL, HP_COLORS.FULL]
-        );
-        return {
-            width: fillWidth.value,
-            backgroundColor: bg,
-        };
+  useEffect(() => {
+    if (reduceMotion) {
+      fillWidth.value = fraction * width;
+      colorProgress.value = fraction;
+      pulseOpacity.value = 0;
+      return;
+    }
+    fillWidth.value = withTiming(fraction * width, {
+      duration: ANIM_DURATION.HP_BAR,
+      easing: Easing.out(Easing.quad),
     });
-
-    const pulseStyle = useAnimatedStyle(() => ({
-        opacity: pulseOpacity.value,
-    }));
-
-    return (
-        <View style={[styles.hpBarWrapper, { width }]}>
-            <Text style={styles.hpLabel}>{label}</Text>
-            <View style={[styles.hpTrack, { width, height, borderRadius: height / 2 }]}>
-                <Animated.View
-                    style={[
-                        styles.hpFill,
-                        { height, borderRadius: height / 2 },
-                        direction === 'rtl' ? { right: 0 } : { left: 0 },
-                        fillStyle,
-                    ]}
-                />
-                <Animated.View
-                    style={[StyleSheet.absoluteFillObject, { borderRadius: height / 2, backgroundColor: '#fff' }, pulseStyle]}
-                />
-                <View style={styles.hpTextWrap}>
-                    <Text style={[styles.hpText, { fontSize: height * 0.75 }]}>
-                        {current}/{max}
-                    </Text>
-                </View>
-            </View>
-        </View>
+    colorProgress.value = withTiming(fraction, { duration: ANIM_DURATION.HP_BAR });
+    pulseOpacity.value = withSequence(
+      withTiming(0.24, { duration: 80 }),
+      withTiming(0, { duration: 220 }),
     );
-}
+  }, [colorProgress, fillWidth, fraction, pulseOpacity, reduceMotion, width]);
 
-// ─── Score Display ────────────────────────────────────────────────────────────
+  const fillStyle = useAnimatedStyle(() => ({
+    width: fillWidth.value,
+    backgroundColor: interpolateColor(
+      colorProgress.value,
+      [0, 0.3, 0.6, 1],
+      [HP_COLORS.LOW, HP_COLORS.HALF, HP_COLORS.FULL, HP_COLORS.FULL],
+    ),
+  }));
 
-interface ScoreDisplayProps {
-    playerScore: number;
-    botScore: number;
-    maxScore: number;
-}
+  const pulseStyle = useAnimatedStyle(() => ({ opacity: pulseOpacity.value }));
 
-function ScoreDisplay({ playerScore, botScore, maxScore }: ScoreDisplayProps) {
-    return (
-        <View style={styles.scoreWrapper}>
-            <Text style={[styles.scoreNum, { color: '#4ade80' }]}>{playerScore}</Text>
-            <Text style={styles.scoreSep}>•</Text>
-            <Text style={[styles.scoreNum, { color: '#f87171' }]}>{botScore}</Text>
+  return (
+    <View
+      style={[styles.hpBarWrapper, { width }]}
+      accessibilityLabel={`${label}: ${current} من ${max}`}
+    >
+      <ThemedText type="caption" style={styles.hpLabel}>{label}</ThemedText>
+      <View style={[styles.hpTrack, { width, height, borderRadius: height / 2 }]}> 
+        <Animated.View
+          style={[
+            styles.hpFill,
+            { height, borderRadius: height / 2 },
+            direction === 'rtl' ? { right: 0 } : { left: 0 },
+            fillStyle,
+          ]}
+        />
+        <Animated.View
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={[StyleSheet.absoluteFillObject, styles.flash, { borderRadius: height / 2 }, pulseStyle]}
+        />
+        <View style={styles.hpTextWrap}>
+          <ThemedText type="numeric" style={[styles.hpText, { fontSize: Math.max(9, height * 0.72) }]}>
+            {current}/{max}
+          </ThemedText>
         </View>
-    );
+      </View>
+    </View>
+  );
 }
 
-// ─── Round Dots ───────────────────────────────────────────────────────────────
+function ScoreDisplay({ playerScore, botScore }: { playerScore: number; botScore: number }) {
+  return (
+    <View style={styles.scoreWrapper} accessibilityLabel={`النتيجة ${playerScore} مقابل ${botScore}`}>
+      <ThemedText type="numeric" style={[styles.scoreNum, { color: SEMANTIC_COLOR.status.success }]}>
+        {playerScore}
+      </ThemedText>
+      <ThemedText type="numeric" style={styles.scoreSep}>:</ThemedText>
+      <ThemedText type="numeric" style={[styles.scoreNum, { color: SEMANTIC_COLOR.status.danger }]}>
+        {botScore}
+      </ThemedText>
+    </View>
+  );
+}
 
 function RoundDots({ current, total }: { current: number; total: number }) {
-    return (
-        <View style={styles.dotsRow}>
-            {Array.from({ length: Math.min(total, 10) }).map((_, i) => (
-                <View
-                    key={i}
-                    style={[
-                        styles.dot,
-                        i < current
-                            ? styles.dotDone
-                            : i === current
-                                ? styles.dotCurrent
-                                : styles.dotFuture,
-                    ]}
-                />
-            ))}
-        </View>
-    );
+  return (
+    <View style={styles.dotsRow} accessibilityLabel={`الجولة ${Math.min(current + 1, total)} من ${total}`}>
+      {Array.from({ length: Math.min(total, 10) }).map((_, index) => (
+        <View
+          key={`round-${index}`}
+          accessibilityElementsHidden
+          style={[
+            styles.dot,
+            index < current
+              ? styles.dotDone
+              : index === current
+                ? styles.dotCurrent
+                : styles.dotFuture,
+          ]}
+        />
+      ))}
+    </View>
+  );
 }
 
-// ─── Main HUD ─────────────────────────────────────────────────────────────────
-
 interface BattleHUDProps {
-    playerScore: number;
-    botScore: number;
-    maxScore: number;
-    currentRound: number;
-    totalRounds: number;
-    turn?: 'player' | 'bot' | 'none';
+  playerScore: number;
+  botScore: number;
+  maxScore: number;
+  currentRound: number;
+  totalRounds: number;
+  turn?: 'player' | 'bot' | 'none';
+  playerLabel?: string;
+  opponentLabel?: string;
 }
 
 export function BattleHUD({
-    playerScore,
-    botScore,
-    maxScore,
-    currentRound,
-    totalRounds,
-    turn = 'none',
+  playerScore,
+  botScore,
+  maxScore,
+  currentRound,
+  totalRounds,
+  turn = 'none',
+  playerLabel = 'أنت',
+  opponentLabel = 'الخصم',
 }: BattleHUDProps) {
-    return (
-        <View style={styles.container}>
-            {/* Player HP */}
-            <HpBar
-                current={playerScore}
-                max={maxScore}
-                label="👤 أنت"
-                width={130}
-                height={13}
-                direction="ltr"
-            />
-
-            {/* Center: score + round */}
-            <View style={styles.centerCol}>
-                <Text style={styles.roundLabel}>
-                    جولة {Math.min(currentRound + 1, totalRounds)} / {totalRounds}
-                </Text>
-                <ScoreDisplay playerScore={playerScore} botScore={botScore} maxScore={maxScore} />
-                <RoundDots current={currentRound} total={totalRounds} />
-                {turn !== 'none' && (
-                    <View style={[styles.turnBadge, { backgroundColor: turn === 'player' ? '#22c55e33' : '#ef444433' }]}>
-                        <Text style={[styles.turnText, { color: turn === 'player' ? '#4ade80' : '#f87171' }]}>
-                            {turn === 'player' ? '🎯 دورك' : '🤖 دور البوت'}
-                        </Text>
-                    </View>
-                )}
-            </View>
-
-            {/* Bot HP */}
-            <HpBar
-                current={botScore}
-                max={maxScore}
-                label="🤖 البوت"
-                width={130}
-                height={13}
-                direction="rtl"
-            />
-        </View>
-    );
+  return (
+    <View style={styles.container}>
+      <HpBar current={playerScore} max={maxScore} label={playerLabel} />
+      <View style={styles.centerCol}>
+        <ThemedText type="caption">
+          جولة {Math.min(currentRound + 1, totalRounds)} / {totalRounds}
+        </ThemedText>
+        <ScoreDisplay playerScore={playerScore} botScore={botScore} />
+        <RoundDots current={currentRound} total={totalRounds} />
+        {turn !== 'none' && (
+          <View
+            style={[
+              styles.turnBadge,
+              turn === 'player' ? styles.turnPlayer : styles.turnOpponent,
+            ]}
+            accessibilityLiveRegion="polite"
+          >
+            <ThemedText
+              type="label"
+              style={turn === 'player' ? styles.turnPlayerText : styles.turnOpponentText}
+            >
+              {turn === 'player' ? 'دورك الآن' : 'دور الخصم'}
+            </ThemedText>
+          </View>
+        )}
+      </View>
+      <HpBar current={botScore} max={maxScore} label={opponentLabel} direction="rtl" />
+    </View>
+  );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-    container: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        backgroundColor: 'rgba(0,0,0,0.55)',
-        borderRadius: 16,
-        gap: 8,
-    },
-    hpBarWrapper: {
-        alignItems: 'flex-start',
-        gap: 4,
-    },
-    hpLabel: {
-        color: '#9ca3af',
-        fontSize: 10,
-        fontWeight: '600',
-        letterSpacing: 0.4,
-    },
-    hpTrack: {
-        backgroundColor: HP_COLORS.TRACK,
-        overflow: 'hidden',
-        position: 'relative',
-    },
-    hpFill: {
-        position: 'absolute',
-        top: 0, bottom: 0,
-    },
-    hpTextWrap: {
-        ...StyleSheet.absoluteFillObject,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    hpText: {
-        color: '#fff',
-        fontWeight: '800',
-        textShadowColor: 'rgba(0,0,0,0.6)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
-    },
-    centerCol: {
-        alignItems: 'center',
-        gap: 4,
-        flex: 1,
-    },
-    roundLabel: {
-        color: '#9ca3af',
-        fontSize: 9,
-        fontWeight: '600',
-        letterSpacing: 0.5,
-    },
-    scoreWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    scoreNum: {
-        fontSize: 26,
-        fontWeight: '900',
-        textShadowColor: 'rgba(0,0,0,0.5)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
-    },
-    scoreSep: {
-        color: '#6b7280',
-        fontSize: 20,
-        fontWeight: '300',
-    },
-    dotsRow: {
-        flexDirection: 'row',
-        gap: 4,
-        alignItems: 'center',
-    },
-    dot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-    },
-    dotDone: {
-        backgroundColor: '#4ade80',
-    },
-    dotCurrent: {
-        backgroundColor: '#facc15',
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-    },
-    dotFuture: {
-        backgroundColor: '#374151',
-    },
-    turnBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 3,
-        borderRadius: 12,
-    },
-    turnText: {
-        fontSize: 11,
-        fontWeight: '700',
-    },
+  container: {
+    minHeight: 82,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
+    backgroundColor: 'rgba(11,20,34,0.92)',
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    borderRadius: RADIUS.lg,
+    gap: SPACE.sm,
+  },
+  hpBarWrapper: { alignItems: 'flex-start', gap: SPACE.xs },
+  hpLabel: { color: SEMANTIC_COLOR.text.secondary },
+  hpTrack: {
+    backgroundColor: HP_COLORS.TRACK,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  hpFill: { position: 'absolute', top: 0, bottom: 0 },
+  flash: { backgroundColor: '#FFFFFF' },
+  hpTextWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  hpText: {
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.70)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  centerCol: { alignItems: 'center', gap: SPACE.xs, flex: 1 },
+  scoreWrapper: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+  scoreNum: { fontSize: FONT.xl },
+  scoreSep: { color: SEMANTIC_COLOR.text.secondary, fontSize: FONT.lg },
+  dotsRow: { flexDirection: 'row', gap: SPACE.xs, alignItems: 'center' },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  dotDone: { backgroundColor: SEMANTIC_COLOR.status.success },
+  dotCurrent: { backgroundColor: SEMANTIC_COLOR.accent.primary, width: 9, height: 9, borderRadius: 5 },
+  dotFuture: { backgroundColor: SEMANTIC_COLOR.border.subtle },
+  turnBadge: {
+    minHeight: 28,
+    paddingHorizontal: SPACE.sm,
+    paddingVertical: 2,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+  },
+  turnPlayer: {
+    borderColor: 'rgba(57,230,208,0.55)',
+    backgroundColor: 'rgba(57,230,208,0.10)',
+  },
+  turnOpponent: {
+    borderColor: 'rgba(141,164,255,0.52)',
+    backgroundColor: 'rgba(141,164,255,0.10)',
+  },
+  turnPlayerText: { color: SEMANTIC_COLOR.accent.primary, fontSize: FONT.xs },
+  turnOpponentText: { color: '#C9D4FF', fontSize: FONT.xs },
 });

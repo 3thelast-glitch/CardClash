@@ -1,39 +1,21 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
-import { ThemedText as Text } from '@/components/ui/ThemedText';
 import { Redirect, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import { ScreenContainer } from '@/components/screen-container';
+import { ArrowLeft, Image as ImageIcon, Wrench, Zap } from 'lucide-react-native';
+import { StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+
 import { LuxuryBackground } from '@/components/game/luxury-background';
-import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL } from '@/components/ui/design-tokens';
+import { ScreenContainer } from '@/components/screen-container';
+import { ObsidianPanel } from '@/components/ui/ObsidianPanel';
+import { ThemedText as Text } from '@/components/ui/ThemedText';
+import { FONT, RADIUS, SEMANTIC_COLOR, SPACE, TOUCH_TARGET } from '@/components/ui/design-tokens';
 import { isDeveloperBuild } from '@/lib/build-variant';
 
-const COLLECTION_CATEGORIES = [
-  {
-    id: 'cards',
-    icon: '🃏',
-    title: 'الكروت',
-    subtitle: 'استعرض كروت اللعب الخاصة بك',
-    route: '/screens/cards-gallery' as const,
-    accentColor: '#3B82F6', // Blue
-  },
-  {
-    id: 'abilities',
-    icon: '⚡',
-    title: 'القدرات',
-    subtitle: 'استعرض قدرات البطاقات والمهارات',
-    route: '/screens/abilities' as const,
-    accentColor: '#D946EF',
-  },
-  {
-    id: 'content-admin',
-    icon: '🛠️',
-    title: 'إدارة المحتوى',
-    subtitle: 'أضف كروتاً وصدّر كود TypeScript',
-    route: '/screens/content-admin' as const,
-    accentColor: '#39E6D0',
-  },
-];
+const CATEGORIES = [
+  { id: 'cards', title: 'الكروت', subtitle: 'استعرض المحتوى والصور والإحصاءات.', route: '/screens/cards-gallery', accent: SEMANTIC_COLOR.rarity.rare, Icon: ImageIcon },
+  { id: 'abilities', title: 'القدرات', subtitle: 'راجع بطاقات القدرات ووصف كل تأثير.', route: '/screens/abilities', accent: SEMANTIC_COLOR.rarity.epic, Icon: Zap },
+  { id: 'admin', title: 'إدارة المحتوى', subtitle: 'أدوات المطور لإضافة وتصدير المحتوى.', route: '/screens/content-admin', accent: SEMANTIC_COLOR.accent.primary, Icon: Wrench },
+] as const;
 
 export default function CollectionScreen() {
   const router = useRouter();
@@ -44,60 +26,42 @@ export default function CollectionScreen() {
     return <Redirect href="/screens/game-mode" />;
   }
 
-  const handleCategoryPress = (route: any) => {
-    // Basic navigation, can add alerts for unhandled routes if needed
-    router.push(route);
-  };
-
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
-        <View style={[styles.container, isLandscape && { paddingTop: SPACE.md, paddingBottom: SPACE.md }]}>
-          {/* Back button */}
-          <TouchableOpacity
-            style={[styles.backBtn, isLandscape && { marginBottom: SPACE.sm }]}
-            onPress={() => router.push('/screens/game-mode' as any)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.backBtnText}>← رجوع</Text>
+        <View style={styles.container}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="رجوع" style={styles.back} onPress={() => router.push('/screens/game-mode' as any)}>
+            <ArrowLeft size={20} color={SEMANTIC_COLOR.accent.primary} />
+            <Text type="label" style={styles.backText}>رجوع</Text>
           </TouchableOpacity>
 
-          {/* Title */}
-          <View style={[styles.header, isLandscape && { marginBottom: SPACE.md }]}>
-            <Text style={[styles.title, isLandscape && { fontSize: FONT.xl }]}>استعراض المجموعة</Text>
-            <Text style={[styles.subtitle, isLandscape && { fontSize: FONT.sm, marginTop: 0 }]}>اختر القسم لعرض مقتنياتك</Text>
+          <View style={styles.header}>
+            <Text type="title" style={styles.title}>مكتبة المطور</Text>
+            <Text style={styles.subtitle}>محتوى اللعبة وأدوات الإدارة — متاحة فقط في نسخة Developer.</Text>
           </View>
 
-          {/* Category boxes grid */}
-          <View style={[styles.grid, { flexDirection: isLandscape ? 'row' : 'column' }]}>
-            {COLLECTION_CATEGORIES.map((category) => (
+          <View style={[styles.grid, isLandscape && styles.gridLandscape]}>
+            {CATEGORIES.map(({ id, title, subtitle, route, accent, Icon }) => (
               <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.card,
-                  { flex: 1, width: isLandscape ? undefined : '100%', marginBottom: isLandscape ? 0 : SPACE.sm }
-                ]}
-                onPress={() => handleCategoryPress(category.route)}
-                activeOpacity={0.8}
+                key={id}
+                accessibilityRole="button"
+                accessibilityLabel={`${title}. ${subtitle}`}
+                activeOpacity={0.84}
+                onPress={() => router.push(route as any)}
+                style={[styles.hitArea, isLandscape && styles.hitAreaLandscape]}
               >
-                {/* Accent top bar */}
-                <View style={[styles.cardTopAccent, { backgroundColor: category.accentColor, marginBottom: isLandscape ? SPACE.md : SPACE.sm }]} />
-
-                <View style={[isLandscape ? {} : { flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: SPACE.md, justifyContent: 'space-between' }]}>
-                  <Text style={[styles.icon, isLandscape ? {} : { fontSize: 32, marginBottom: 0, marginRight: SPACE.md }]}>{category.icon}</Text>
-
-                  <View style={[isLandscape ? { alignItems: 'center' } : { flex: 1, alignItems: 'flex-start' }]}>
-                    <Text style={[styles.cardTitle, { color: category.accentColor }, isLandscape && { fontSize: FONT.lg }]}>
-                      {category.title}
-                    </Text>
-                    <Text style={[styles.cardSubtitle, isLandscape && { fontSize: FONT.xs, marginBottom: SPACE.md }, !isLandscape && { marginBottom: 0, textAlign: 'left' }]}>{category.subtitle}</Text>
+                <ObsidianPanel raised style={styles.card}>
+                  <View style={[styles.icon, { borderColor: `${accent}80`, backgroundColor: `${accent}14` }]}>
+                    <Icon size={28} color={accent} />
                   </View>
-
-                  {/* Bottom arrow */}
-                  <View style={[styles.cardArrow, { borderColor: category.accentColor + '50' }, !isLandscape && { transform: [{ scale: 0.8 }] }]}>
-                    <Text style={[styles.cardArrowText, { color: category.accentColor }]}>→</Text>
+                  <View style={styles.copy}>
+                    <Text type="defaultSemiBold" style={[styles.cardTitle, { color: accent }]}>{title}</Text>
+                    <Text style={styles.cardSubtitle}>{subtitle}</Text>
                   </View>
-                </View>
+                  <View style={[styles.arrowShell, { borderColor: `${accent}66` }]}>
+                    <ArrowLeft size={18} color={accent} />
+                  </View>
+                </ObsidianPanel>
               </TouchableOpacity>
             ))}
           </View>
@@ -108,96 +72,20 @@ export default function CollectionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: SPACE.lg,
-    paddingTop: SPACE.xl,
-    paddingBottom: SPACE.xxl,
-  },
-
-  backBtn: {
-    alignSelf: 'flex-start',
-    paddingVertical: SPACE.sm,
-    paddingHorizontal: SPACE.md,
-    borderRadius: RADIUS.sm,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1,
-    borderColor: 'rgba(228,165,42,0.3)',
-    marginBottom: SPACE.xl,
-  },
-  backBtnText: {
-    color: COLOR.gold,
-    fontSize: FONT.md,
-  },
-
-  header: {
-    alignItems: 'center',
-    marginBottom: SPACE.xxl,
-  },
-  title: {
-    fontSize: FONT.hero,
-    color: COLOR.gold,
-    letterSpacing: 1,
-    textShadowColor: 'rgba(228,165,42,0.4)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 16,
-  },
-  subtitle: {
-    fontSize: FONT.base,
-    color: COLOR.textMuted,
-    marginTop: SPACE.xs,
-  },
-
-  grid: {
-    flex: 1,
-    gap: SPACE.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  card: {
-    ...GLASS_PANEL,
-    paddingTop: 0,
-    paddingBottom: SPACE.md,
-    justifyContent: 'flex-start',
-    overflow: 'hidden',
-    maxWidth: 400, // Limit width on tablets
-  },
-
-  cardTopAccent: {
-    width: '100%',
-    height: 4,
-    marginBottom: SPACE.xl,
-  },
-
-  icon: {
-    fontSize: 44,
-    marginBottom: SPACE.md,
-  },
-
-  cardTitle: {
-    fontSize: FONT.xl,
-    textAlign: 'center',
-    marginBottom: SPACE.xs,
-  },
-
-  cardSubtitle: {
-    fontSize: FONT.sm,
-    color: COLOR.textMuted,
-    textAlign: 'center',
-    marginBottom: SPACE.xl,
-  },
-
-  cardArrow: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.full,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  cardArrowText: {
-    fontSize: FONT.lg,
-  },
+  container: { flex: 1, padding: SPACE.xl, gap: SPACE.xl, backgroundColor: 'rgba(8,13,22,0.34)' },
+  back: { minHeight: TOUCH_TARGET.default, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, paddingHorizontal: SPACE.md, borderRadius: RADIUS.md, borderWidth: 1, borderColor: SEMANTIC_COLOR.border.subtle, backgroundColor: 'rgba(19,30,47,0.72)' },
+  backText: { color: SEMANTIC_COLOR.accent.primary },
+  header: { width: '100%', maxWidth: 760, alignSelf: 'center', alignItems: 'flex-end', gap: SPACE.sm },
+  title: { color: SEMANTIC_COLOR.text.primary, textAlign: 'right' },
+  subtitle: { color: SEMANTIC_COLOR.text.secondary, textAlign: 'right' },
+  grid: { flex: 1, width: '100%', maxWidth: 980, alignSelf: 'center', gap: SPACE.md, justifyContent: 'center' },
+  gridLandscape: { flexDirection: 'row', alignItems: 'stretch' },
+  hitArea: { width: '100%' },
+  hitAreaLandscape: { flex: 1 },
+  card: { minHeight: 150, flexDirection: 'row-reverse', alignItems: 'center', gap: SPACE.md },
+  icon: { width: 58, height: 58, borderRadius: RADIUS.lg, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  copy: { flex: 1, gap: SPACE.xs },
+  cardTitle: { fontSize: FONT.lg, textAlign: 'right' },
+  cardSubtitle: { color: SEMANTIC_COLOR.text.secondary, fontSize: FONT.sm, textAlign: 'right' },
+  arrowShell: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });

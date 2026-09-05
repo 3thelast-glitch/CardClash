@@ -10,7 +10,7 @@ describe('Wi-Fi local multiplayer flow', () => {
     const config = source('app/screens/rounds-config.tsx');
     const context = source('lib/lan/lan-context.tsx');
     expect(lobby).toContain("router.replace('/screens/rounds-config'");
-    expect(config).toContain('lan.configureMatch(rounds, withAbility, rarityWeights)');
+    expect(config).toContain('lan.configureMatch(rounds, withAbilities, rarityWeights)');
     expect(config).toContain("gameState.matchMode === 'lan'");
     expect(config).toContain('setRarityWeights(lan.match.rarityWeights as RarityWeights)');
     expect(context).toContain('rarityWeights: LanRarityWeights');
@@ -30,14 +30,14 @@ describe('Wi-Fi local multiplayer flow', () => {
   it('uses a responsive one-column phone layout and a balanced wide-screen room layout', () => {
     const lobby = source('app/screens/local-lan.tsx');
     expect(lobby).toContain('useWindowDimensions');
-    expect(lobby).toContain('const isWideLayout = width >= 720;');
-    expect(lobby).toContain('testID="lan-room-layout"');
+    expect(lobby).toContain('const wide = width >= 760;');
+    expect(lobby).toContain('styles.columns');
     expect(lobby).toContain('columnsWide');
-    expect(lobby).toContain('leftPaneWide');
-    expect(lobby).toContain('rightPaneWide');
+    expect(lobby).toContain('controlPanelWide');
+    expect(lobby).toContain('roomsPanel');
     expect(lobby).toContain('ScrollView');
-    expect(lobby).toContain('emptyState');
-    expect(lobby).toContain('rooms.map(renderRoom)');
+    expect(lobby).toContain('rooms.length === 0');
+    expect(lobby).toContain('rooms.map((room)');
     expect(lobby).not.toContain('FlatList');
   });
 

@@ -1,105 +1,172 @@
 /**
- * Design Tokens — single source of truth for all screens.
- * Contains the advanced palette and professional typography system.
+ * Obsidian Arcana design tokens.
+ *
+ * Semantic tokens are the source of truth. Legacy aliases remain so the
+ * existing screens can migrate incrementally without changing gameplay code.
  */
+export const SEMANTIC_COLOR = {
+  background: {
+    base: '#080D16',
+    arena: '#0B1422',
+  },
+  surface: {
+    default: '#131E2F',
+    raised: '#1B2A40',
+  },
+  border: {
+    subtle: '#2B3D55',
+    active: '#39E6D0',
+  },
+  accent: {
+    primary: '#39E6D0',
+    secondary: '#8DA4FF',
+  },
+  text: {
+    primary: '#F3F6FC',
+    secondary: '#B7C4D8',
+    inverse: '#061318',
+  },
+  status: {
+    success: '#4ADE80',
+    warning: '#FBBF24',
+    danger: '#FB7185',
+  },
+  rarity: {
+    common: '#A8B4C7',
+    rare: '#60A5FA',
+    epic: '#C084FC',
+    legendary: '#F4C96A',
+    special: '#F0ABFC',
+  },
+} as const;
 
-// ── Colors ────────────────────────────────────────────────────────────────────
+export const RARITY_COLOR = SEMANTIC_COLOR.rarity;
+
+/**
+ * Compatibility palette. New code should prefer SEMANTIC_COLOR.
+ * The misleading gold aliases intentionally point to teal until all legacy
+ * consumers are migrated.
+ */
 export const COLOR = {
-    // Primary Palette — Card Clash vault: dark ink + cyan energy + restrained gold
-    bgDeep: '#061017',      // Ink background for every screen
-    bgArena: '#07141B',     // Arena surface, distinct but not purple
-    bgCard: 'rgba(9,25,32,0.96)', // Elevated archive panel
-    gold: '#39E6D0',        // Primary action / active border (legacy token name retained)
-    goldAccent: '#9CFFF2',  // Bright active glow
-    goldDim: 'rgba(57,230,208,0.32)', // Subtle cyan border
-    goldFill: 'rgba(57,230,208,0.12)',// Soft cyan fill
-    textPrimary: '#F2F7F1', // Warm readable white
-    textMuted: 'rgba(203,221,221,0.62)', // Muted but accessible text
+  bgDeep: SEMANTIC_COLOR.background.base,
+  bgArena: SEMANTIC_COLOR.background.arena,
+  bgCard: SEMANTIC_COLOR.surface.default,
+  surfaceRaised: SEMANTIC_COLOR.surface.raised,
+  borderSubtle: SEMANTIC_COLOR.border.subtle,
+  primary: SEMANTIC_COLOR.accent.primary,
+  secondary: SEMANTIC_COLOR.accent.secondary,
+  gold: SEMANTIC_COLOR.accent.primary,
+  goldAccent: '#9CFFF2',
+  goldDim: 'rgba(57,230,208,0.32)',
+  goldFill: 'rgba(57,230,208,0.12)',
+  textPrimary: SEMANTIC_COLOR.text.primary,
+  textMuted: SEMANTIC_COLOR.text.secondary,
+  green: SEMANTIC_COLOR.status.success,
+  amber: SEMANTIC_COLOR.status.warning,
+  red: SEMANTIC_COLOR.status.danger,
+  gray: '#6B7C93',
+  white: '#FFFFFF',
 
-    // Elements
-    fire: '#FF4500',        // High attack
-    water: '#1E90FF',       // High defense
-    earth: '#228B22',       // High HP
-    light: '#F4C96A',       // Balanced / legendary accent
-    lightning: '#8A2BE2',   // Speed
-    ice: '#00CED1',         // Control
-
-    // Status Colors
-    green: '#4ADE80',       // Full life, Win
-    amber: '#F4C96A',       // Warning, Medium
-    red: '#FB7185',         // Danger, Defeat
-    gray: '#666666',        // Disabled, locked
-    white: '#FFFFFF',
+  // Legacy elemental accents retained for old effects.
+  fire: '#FF6B45',
+  water: '#60A5FA',
+  earth: '#4ADE80',
+  light: SEMANTIC_COLOR.rarity.legendary,
+  lightning: '#A78BFA',
+  ice: '#67E8F9',
 } as const;
 
-// ── Spacing ───────────────────────────────────────────────────────────────────
 export const SPACE = {
-    xs: 4,
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 24,
-    xxl: 32,
+  xxs: 2,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+  xxxl: 40,
 } as const;
 
-// ── Border Radius ─────────────────────────────────────────────────────────────
 export const RADIUS = {
-    sm: 8,
-    md: 12,
-    lg: 18,
-    pill: 32,
-    full: 999,
+  xs: 6,
+  sm: 8,
+  md: 12,
+  lg: 18,
+  xl: 24,
+  pill: 32,
+  full: 999,
 } as const;
 
-// ── Typography System ─────────────────────────────────────────────────────────
 export const FONT_FAMILY = {
-    bold: 'DG-Bold',
-    medium: 'DG-Bold',
-    regular: 'DG-Bold',
-    latin: 'RobotoCondensed_400Regular',
-    latinBold: 'RobotoCondensed_700Bold',
+  regular: 'NotoKufiArabic_400Regular',
+  medium: 'NotoKufiArabic_600SemiBold',
+  semibold: 'NotoKufiArabic_600SemiBold',
+  bold: 'NotoKufiArabic_900Black',
+  latin: 'RobotoCondensed_400Regular',
+  latinBold: 'RobotoCondensed_700Bold',
+  display: 'DG-Bold',
 } as const;
 
 export const FONT = {
-    // Typography Scale (increased +2px for custom Arabic font)
-    xs: 14, // Subtext (Regular)
-    sm: 16, // Labels (Medium)
-    md: 18, // Body (Regular)
-    base: 20, // Stats (SemiBold) / M
-    lg: 22,
-    xl: 26, // Card Names (Bold) / L
-    xxl: 30,
-    hero: 34, // Game Title (Bold) / XL
+  xs: 12,
+  sm: 14,
+  md: 16,
+  base: 18,
+  lg: 22,
+  xl: 26,
+  xxl: 30,
+  hero: 36,
 } as const;
 
-// ── Shadows ───────────────────────────────────────────────────────────────────
+export const LINE_HEIGHT = {
+  xs: 18,
+  sm: 22,
+  md: 25,
+  base: 28,
+  lg: 34,
+  xl: 40,
+  hero: 48,
+} as const;
+
 export const SHADOW = {
-    card: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
-    },
-    gold: {
-        shadowColor: '#0B948C',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 12,
-        elevation: 10,
-    },
-    none: {
-        shadowColor: 'transparent',
-        shadowOpacity: 0,
-        elevation: 0,
-    },
+  card: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  active: {
+    shadowColor: SEMANTIC_COLOR.accent.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  gold: {
+    shadowColor: SEMANTIC_COLOR.accent.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  none: {
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
 } as const;
 
-// ── Glass Panel ───────────────────────────────────────────────────────────────
 export const GLASS_PANEL = {
-    backgroundColor: COLOR.bgCard,
-    borderRadius: RADIUS.md, // 12px everywhere
-    borderWidth: 1,
-    borderColor: 'rgba(57,230,208,0.22)',
-    ...SHADOW.card,
+  backgroundColor: 'rgba(19,30,47,0.92)',
+  borderRadius: RADIUS.lg,
+  borderWidth: 1,
+  borderColor: SEMANTIC_COLOR.border.subtle,
+  ...SHADOW.card,
+} as const;
+
+export const TOUCH_TARGET = {
+  compact: 44,
+  default: 48,
+  large: 52,
 } as const;

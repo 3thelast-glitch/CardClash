@@ -25,6 +25,6 @@ describe('Android LAN startup safety', () => {
     const screen = readFileSync(resolve(process.cwd(), 'app/screens/local-lan.tsx'), 'utf8');
     expect(screen).toContain('try {');
     expect(screen).toContain('} catch {');
-    expect(screen).toContain('LanSession already publishes a user-facing failed state');
+    expect(screen).toContain('LAN context/session owns the user-facing failure notice.');
   });
 });
