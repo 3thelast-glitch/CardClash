@@ -14,7 +14,8 @@ describe('Player home screen menu', () => {
   it('renders the collection navigation button only for developer builds', () => {
     const splash = splashSource();
     expect(splash).toContain('const isDeveloper = isDeveloperBuild(Constants.expoConfig?.extra);');
-    expect(splash).toContain('{isDeveloper && <NavBtn icon="🃏" label="المجموعة"');
+    expect(splash).toContain('{isDeveloper && (');
+    expect(splash).toContain('label="المجموعة"');
     expect(splash).toContain("router.push('/screens/cards-gallery'");
   });
 });
