@@ -38,7 +38,7 @@ export interface RarityConfig {
 }
 
 function legacyAdapter(rarity: CardRarity): RarityConfig {
-  const visual = CARD_RARITY_VISUALS[rarity];
+  const visual: CardRarityVisual = CARD_RARITY_VISUALS[rarity];
   return {
     gradient: visual.rimGradient,
     borderColor: visual.color,
