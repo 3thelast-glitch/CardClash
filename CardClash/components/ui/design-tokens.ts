@@ -1,8 +1,11 @@
+import { RARITY_BASE_COLORS } from '@/lib/presentation/card-rarity-visuals';
+
 /**
  * Obsidian Arcana design tokens.
  *
  * Semantic tokens are the source of truth. Legacy aliases remain so the
  * existing screens can migrate incrementally without changing gameplay code.
+ * Rarity colors are derived from the typed card presentation registry.
  */
 export const SEMANTIC_COLOR = {
   background: {
@@ -31,16 +34,10 @@ export const SEMANTIC_COLOR = {
     warning: '#FBBF24',
     danger: '#FB7185',
   },
-  rarity: {
-    common: '#A8B4C7',
-    rare: '#60A5FA',
-    epic: '#C084FC',
-    legendary: '#F4C96A',
-    special: '#F0ABFC',
-  },
+  rarity: RARITY_BASE_COLORS,
 } as const;
 
-export const RARITY_COLOR = SEMANTIC_COLOR.rarity;
+export const RARITY_COLOR = RARITY_BASE_COLORS;
 
 /**
  * Compatibility palette. New code should prefer SEMANTIC_COLOR.
