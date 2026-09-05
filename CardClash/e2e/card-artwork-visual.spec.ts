@@ -22,8 +22,8 @@ test.describe('المقارنة البصرية لتوافق كروت القدر�
       await page.goto('/screens/abilities', { waitUntil: 'domcontentloaded' });
       await expect(page.getByText('القدرات', { exact: true })).toBeVisible({ timeout: 30_000 });
 
-      await page.waitForFunction((selector) =>
-        Array.from(document.querySelectorAll(selector)).some((node) => {
+      await page.waitForFunction(
+        (selector) => Array.from(document.querySelectorAll(selector)).some((node) => {
           const target = node instanceof HTMLImageElement ? node : node.querySelector('img') ?? node;
           const rect = target.getBoundingClientRect();
           return rect.width > 100
@@ -31,6 +31,7 @@ test.describe('المقارنة البصرية لتوافق كروت القدر�
             && rect.width < window.innerWidth * 0.9;
         }),
         abilityArtworkSelector,
+        { timeout: 10_000 },
       );
 
       const measurement = await page.evaluate((selector) => {
