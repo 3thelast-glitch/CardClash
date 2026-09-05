@@ -1,38 +1,71 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import type { Card } from '@/lib/game/types';
+import { buildCardAccessibilitySummary } from '@/lib/presentation/card-visibility';
 
-const characterCardSource = readFileSync(
-    resolve(process.cwd(), 'components/game/luxury-character-card-animated.tsx'),
-    'utf8',
-);
-const fullArtCardSource = readFileSync(
-    resolve(process.cwd(), 'components/game/full-art-tactical-card.tsx'),
-    'utf8',
-);
+const card = {
+  id: 'visibility-fixture',
+  name: 'Hidden Hero',
+  nameAr: 'البطل المخفي',
+  attack: 77,
+  defense: 66,
+  hp: 5,
+  rarity: 'legendary',
+  race: 'human',
+  cardClass: 'warrior',
+  specialAbility: 'سر بالغ الأهمية',
+} as Card;
 
 describe('character card optional metadata', () => {
-    it('does not render an element chip or visible faction text, and uses a corner medallion instead', () => {
-        expect(characterCardSource).not.toContain('ELEMENT_EMOJI');
-        expect(characterCardSource).toContain('const FactionCornerMedallion =');
-        expect(characterCardSource).toContain('<FactionCornerMedallion card={card} sc={sc} />');
-        expect(characterCardSource).not.toContain('const raceLabel = card.race ?');
+  it('never leaks private identity, rarity, stats or ability text for a hidden card', () => {
+    const summary = buildCardAccessibilitySummary({
+      card,
+      hidden: true,
+      rarityLabel: 'أسطوري',
+      attack: card.attack,
+      defense: card.defense,
+      includeAbility: true,
+      abilityText: card.specialAbility,
     });
 
-    it('does not render the metadata rail when the card class is absent', () => {
-        expect(characterCardSource).toContain('const hasMeta = metaItems.length > 0;');
-        expect(characterCardSource).toContain('{hasMeta && (');
-        expect(characterCardSource).toContain('const metaHeight = hasMeta ?');
+    expect(summary).toBe('بطاقة خصم مخفية');
+    expect(summary).not.toContain(card.nameAr);
+    expect(summary).not.toContain('77');
+    expect(summary).not.toContain('66');
+    expect(summary).not.toContain('سر بالغ الأهمية');
+    expect(summary).not.toContain('أسطوري');
+  });
+
+  it('exposes only the requested public card fields and does not invent total power or element metadata', () => {
+    const summary = buildCardAccessibilitySummary({
+      card,
+      hidden: false,
+      rarityLabel: 'أسطوري',
+      attack: 80,
+      defense: 64,
+      includeStats: true,
+      includeAbility: false,
     });
 
-    it('keeps a text fallback only for factions without a generated medallion', () => {
-        expect(characterCardSource).toContain('const fallbackLabel = race ? RACE_LABELS[race] : undefined;');
-        expect(characterCardSource).toContain('styles.factionFallbackChip');
-        expect(fullArtCardSource).toContain('styles.factionFallbackLabel');
+    expect(summary).toContain('البطل المخفي');
+    expect(summary).toContain('الهجوم 80');
+    expect(summary).toContain('الدفاع 64');
+    expect(summary).not.toContain('human');
+    expect(summary).not.toContain('warrior');
+    expect(summary).not.toContain('144');
+    expect(summary).not.toContain('سر بالغ الأهمية');
+  });
+
+  it('includes complete ability text only when inspection explicitly requests it', () => {
+    const text = 'قدرة طويلة: الشرط الأول ثم التأثير الثاني ثم المدة الدقيقة بدون اختصار.';
+    const summary = buildCardAccessibilitySummary({
+      card,
+      hidden: false,
+      rarityLabel: 'أسطوري',
+      includeStats: false,
+      abilityText: text,
+      includeAbility: true,
     });
 
-    it('does not display an attack-plus-defense total power chip', () => {
-        expect(characterCardSource).not.toContain('const effectivePower =');
-        expect(characterCardSource).not.toContain('⚡ {effectivePower}');
-    });
+    expect(summary).toContain(text);
+  });
 });
