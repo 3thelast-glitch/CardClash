@@ -34,6 +34,8 @@ interface Props {
 export function LuxuryCharacterCardAnimated({
   card,
   style,
+  imageOffsetY = 0,
+  fitInsideBorder = false,
   isOpenedView = false,
   effectiveAttack,
   effectiveDefense,
@@ -69,6 +71,8 @@ export function LuxuryCharacterCardAnimated({
       playAudio={playAudio}
       mediaMode={mediaMode}
       slashEffect={slashEffect}
+      imageOffsetY={imageOffsetY}
+      fitInsideBorder={fitInsideBorder}
       presentationState={{
         damaged: card.winState === 'lose',
         transformed: Boolean(card._rageActive || card.isRagedVersion),
