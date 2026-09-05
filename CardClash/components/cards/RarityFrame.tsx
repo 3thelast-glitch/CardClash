@@ -11,6 +11,8 @@ export interface RarityFrameProps {
   targeted?: boolean;
   playable?: boolean;
   disabled?: boolean;
+  /** Let children define height, used by full inspection/rules content. */
+  contentSized?: boolean;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   innerStyle?: StyleProp<ViewStyle>;
@@ -26,6 +28,7 @@ export function RarityFrame({
   targeted = false,
   playable = false,
   disabled = false,
+  contentSized = false,
   children,
   style,
   innerStyle,
@@ -41,6 +44,7 @@ export function RarityFrame({
     <View
       style={[
         styles.outer,
+        !contentSized && styles.fill,
         {
           borderColor: visual.color,
           shadowColor: visual.glowColor ?? '#000000',
@@ -66,11 +70,12 @@ export function RarityFrame({
         locations={[0, 0.52, 1]}
         start={{ x: 0.08, y: 0 }}
         end={{ x: 0.92, y: 1 }}
-        style={[styles.rim, { padding: visual.borderWidth + 1 }]}
+        style={[styles.rim, !contentSized && styles.fill, { padding: visual.borderWidth + 1 }]}
       >
         <View
           style={[
             styles.inset,
+            !contentSized && styles.fill,
             { borderColor: visual.insetColor },
           ]}
         >
@@ -78,7 +83,7 @@ export function RarityFrame({
             colors={visual.surfaceGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.inner, innerStyle]}
+            style={[styles.inner, !contentSized && styles.fill, innerStyle]}
           >
             {children}
           </LinearGradient>
@@ -89,8 +94,8 @@ export function RarityFrame({
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   outer: {
-    flex: 1,
     position: 'relative',
     overflow: 'visible',
     borderRadius: RADIUS.lg,
@@ -103,18 +108,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     transform: [{ scale: 1.025 }],
   },
-  rim: {
-    flex: 1,
-    borderRadius: RADIUS.lg,
-  },
+  rim: { borderRadius: RADIUS.lg },
   inset: {
-    flex: 1,
     borderRadius: RADIUS.lg - 3,
     borderWidth: 1,
     overflow: 'hidden',
   },
   inner: {
-    flex: 1,
     overflow: 'hidden',
     borderRadius: RADIUS.lg - 4,
   },
