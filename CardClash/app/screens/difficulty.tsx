@@ -14,13 +14,13 @@ import type { DifficultyLevel } from '@/lib/game/difficulty-types';
 
 export type { DifficultyLevel };
 
-const LEVELS: Array<{
+const LEVELS: {
   level: DifficultyLevel;
   label: string;
   description: string;
   accent: string;
   Icon: typeof Leaf;
-}> = [
+}[] = [
   { level: 1, label: 'سهل', description: 'اختيارات هادئة للتعرف على القواعد.', accent: SEMANTIC_COLOR.status.success, Icon: Leaf },
   { level: 2, label: 'متوسط', description: 'قرارات متوازنة وتحدٍ مناسب.', accent: SEMANTIC_COLOR.accent.secondary, Icon: Gauge },
   { level: 3, label: 'صعب', description: 'خصم يستغل الترتيب والقدرات بجدية.', accent: SEMANTIC_COLOR.status.warning, Icon: Flame },
