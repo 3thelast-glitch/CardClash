@@ -7,28 +7,38 @@ import { LEGENDARY_IMAGES, LEGENDARY_VIDEOS, LEGENDARY_GIFS } from '@/assets/cha
 import { SPECIAL_IMAGES, SPECIAL_VIDEOS } from '@/assets/characters/special';
 import { RAGE_IMAGES, RAGE_VIDEOS } from '@/assets/characters/rage';
 
-// ─── خرائط الصور لكل ندرة ────────────────────────────────────────────────────
-const IMAGE_MAPS: Record<string, Record<string, any>> = {
-    common: COMMON_IMAGES,
-    rare: RARE_IMAGES,
-    epic: EPIC_IMAGES,
-    legendary: LEGENDARY_IMAGES,
-    special: SPECIAL_IMAGES,
+const IMAGE_MAPS: Record<CardRarity, Record<string, ImageSourcePropType>> = {
+  common: COMMON_IMAGES,
+  rare: RARE_IMAGES,
+  epic: EPIC_IMAGES,
+  legendary: LEGENDARY_IMAGES,
+  special: SPECIAL_IMAGES,
 };
 
-// ─── خرائط الفيديو لكل ندرة ──────────────────────────────────────────────────
-const VIDEO_MAPS: Record<string, Record<string, any>> = {
-    common: COMMON_VIDEOS,
-    rare: RARE_VIDEOS,
-    epic: EPIC_VIDEOS,
-    legendary: LEGENDARY_VIDEOS,
-    special: SPECIAL_VIDEOS,
+const VIDEO_MAPS: Record<CardRarity, Record<string, number>> = {
+  common: COMMON_VIDEOS,
+  rare: RARE_VIDEOS,
+  epic: EPIC_VIDEOS,
+  legendary: LEGENDARY_VIDEOS,
+  special: SPECIAL_VIDEOS,
 };
 
-// ─── خرائط GIF لكل ندرة ──────────────────────────────────────────────────────
-const GIF_MAPS: Record<string, Record<string, any>> = {
-    epic: EPIC_GIFS,
-    legendary: LEGENDARY_GIFS,
+const GIF_MAPS: Partial<Record<CardRarity, Record<string, ImageSourcePropType>>> = {
+  epic: EPIC_GIFS,
+  legendary: LEGENDARY_GIFS,
+};
+
+export interface CardMediaResolution {
+  readonly rarity: CardRarity;
+  readonly imageSource: ImageSourcePropType | null;
+  readonly videoSource: number | string | null;
+  readonly isCustomImage: boolean;
+}
+
+type MediaCard = Card & {
+  customImage?: string;
+  finalImage?: ImageSourcePropType;
+  videoUrl?: string | number;
 };
 
 /**
@@ -36,65 +46,66 @@ const GIF_MAPS: Record<string, Record<string, any>> = {
  * الترتيب: special → legendary → epic → rare → common
  */
 export function resolveRarityFromAssets(cardId: string): CardRarity {
-    const order: CardRarity[] = ['special', 'legendary', 'epic', 'rare', 'common'];
-    for (const rarity of order) {
-        if (VIDEO_MAPS[rarity]?.[cardId]) return rarity;
-        if (GIF_MAPS[rarity]?.[cardId]) return rarity;
-        if (IMAGE_MAPS[rarity]?.[cardId]) return rarity;
-    }
-    return 'common';
+  const order: CardRarity[] = ['special', 'legendary', 'epic', 'rare', 'common'];
+  for (const rarity of order) {
+    if (VIDEO_MAPS[rarity]?.[cardId]) return rarity;
+    if (GIF_MAPS[rarity]?.[cardId]) return rarity;
+    if (IMAGE_MAPS[rarity]?.[cardId]) return rarity;
+  }
+  return 'common';
+}
+
+function resolveStaticImage(card: MediaCard, rarity: CardRarity): ImageSourcePropType | null {
+  if (card.customImage) return { uri: card.customImage };
+  if (card.finalImage) return card.finalImage;
+
+  const gif = GIF_MAPS[rarity]?.[card.id];
+  if (gif) return gif;
+
+  const localImage = IMAGE_MAPS[rarity]?.[card.id];
+  if (localImage) return localImage;
+
+  if (card.imageUrl) return { uri: card.imageUrl };
+  return null;
 }
 
 /**
- * يرجع مصدر الصورة للكرت.
- * - يحدد الندرة تلقائياً من مجلدات الأصول إذا لم تكن محددة.
- * - إذا كان للكرت فيديو/GIF محلي، يُسجَّل في card.videoUrl تلقائياً.
+ * Pure media resolver used by presentation components.
+ * It never assigns to card.videoUrl or any other game object field, so rendering
+ * cannot change authoritative/cached card data as a side effect.
  */
-export function getCardImage(
-    card: Card & { customImage?: string; finalImage?: ImageSourcePropType }
-): ImageSourcePropType | null {
-    // ─── اعتراض الغضب كأولوية قصوى ──────────────────────────────────────────
-    if ((card as any).isRagedVersion) {
-        const rageFileName = `${card.id}_rage`;
-        const rageVideo = RAGE_VIDEOS[rageFileName];
-        if (rageVideo) {
-            (card as any).videoUrl = rageVideo;
-            return null;
-        }
-        const rageImage = RAGE_IMAGES[rageFileName];
-        if (rageImage) {
-            (card as any).videoUrl = null;
-            return rageImage;
-        }
+export function getCardMedia(card: MediaCard): CardMediaResolution {
+  if (card.isRagedVersion) {
+    const rageKey = `${card.id}_rage`;
+    const rageVideo = RAGE_VIDEOS[rageKey];
+    const rageImage = RAGE_IMAGES[rageKey];
+    if (rageVideo || rageImage) {
+      return {
+        rarity: card.rarity ?? resolveRarityFromAssets(card.id),
+        imageSource: rageImage ?? null,
+        videoSource: rageVideo ?? null,
+        isCustomImage: false,
+      };
     }
+  }
 
-    // صورة مخصصة من المستخدم تتقدم على الكل
-    if ((card as any).customImage) return { uri: (card as any).customImage };
-    if (card.finalImage) return card.finalImage;
+  const rarity = card.rarity ?? resolveRarityFromAssets(card.id);
+  const explicitVideo = card.videoUrl ?? null;
+  const localVideo = VIDEO_MAPS[rarity]?.[card.id] ?? null;
 
-    // ─── تحديد الندرة من الأصول فقط إذا لم تكن محددة مسبقاً ────────────────
-    const rarity: CardRarity = card.rarity ?? resolveRarityFromAssets(card.id);
+  return {
+    rarity,
+    imageSource: resolveStaticImage(card, rarity),
+    videoSource: explicitVideo ?? localVideo,
+    isCustomImage: Boolean(card.customImage),
+  };
+}
 
-    // ─── فيديو محلي ──────────────────────────────────────────────────────────
-    const localVideo = VIDEO_MAPS[rarity]?.[card.id];
-    if (localVideo) {
-        (card as any).videoUrl = localVideo;
-        return null;
-    }
-
-    // ─── GIF محلي ────────────────────────────────────────────────────────────
-    const localGif = GIF_MAPS[rarity]?.[card.id];
-    if (localGif) {
-        (card as any).videoUrl = null;
-        return localGif;
-    }
-
-    // ─── صورة محلية ──────────────────────────────────────────────────────────
-    const local = IMAGE_MAPS[rarity]?.[card.id];
-    if (local) return local;
-
-    // ─── صورة عن بعد (imageUrl) ───────────────────────────────────────────────
-    if (card.imageUrl) return { uri: card.imageUrl };
-
-    return null;
+/**
+ * Backward-compatible image helper. For cards whose primary local asset is a
+ * video this returns the best available static poster/fallback, but never mutates
+ * the card to communicate the video. New video-aware UI should call getCardMedia.
+ */
+export function getCardImage(card: MediaCard): ImageSourcePropType | null {
+  return getCardMedia(card).imageSource;
 }
