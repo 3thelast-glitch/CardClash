@@ -56,12 +56,17 @@ function VideoSurface({
   playAudio: boolean;
   style: StyleProp<ViewStyle>;
 }) {
+  const [hasRenderedFirstFrame, setHasRenderedFirstFrame] = useState(false);
   const player = useVideoPlayer(source as never, (instance) => {
     instance.loop = true;
     instance.muted = !playAudio;
     instance.volume = playAudio ? 0.82 : 0;
     if (active) instance.play();
   });
+
+  useEffect(() => {
+    setHasRenderedFirstFrame(false);
+  }, [source]);
 
   useEffect(() => {
     player.loop = true;
@@ -72,14 +77,24 @@ function VideoSurface({
   }, [active, playAudio, player]);
 
   return (
-    <VideoView
-      player={player}
-      style={style as never}
-      contentFit={contentFit}
-      nativeControls={false}
-      surfaceType="textureView"
-      useExoShutter={false}
-    />
+    <View style={style}>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit={contentFit}
+        nativeControls={false}
+        surfaceType="textureView"
+        useExoShutter={false}
+        onFirstFrameRender={() => setHasRenderedFirstFrame(true)}
+      />
+      {!hasRenderedFirstFrame ? (
+        <View
+          testID="card-video-loading"
+          pointerEvents="none"
+          style={styles.videoLoadingCover}
+        />
+      ) : null}
+    </View>
   );
 }
 
@@ -132,10 +147,7 @@ export function CardArtwork({
         },
       ];
     }
-    return [
-      styles.shiftedMedia,
-      { top: imageOffsetY },
-    ];
+    return [styles.shiftedMedia, { top: imageOffsetY }];
   }, [fitInsideBorder, imageOffsetY]);
 
   useEffect(() => {
@@ -187,6 +199,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '100%',
+  },
+  videoLoadingCover: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: SEMANTIC_COLOR.background.arena,
   },
   fallback: {
     alignItems: 'center',
