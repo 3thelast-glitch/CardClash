@@ -1,4 +1,4 @@
-import type { CardRarity } from '@/lib/game/types';
+import type { CardRarity } from '../game/types';
 
 export type RarityOrnament = 'steel' | 'sapphire' | 'amethyst' | 'crown' | 'prism';
 export type RarityMotionPolicy = 'quiet' | 'focus' | 'reveal';
