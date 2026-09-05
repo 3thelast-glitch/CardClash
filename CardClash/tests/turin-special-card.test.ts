@@ -19,21 +19,18 @@ describe('Turin special card', () => {
     expect(turin?.specialAbility).toContain('نصف الجولات الأولى');
   });
 
-  it('uses Turin forced loss when choosing the only active card video audio and labels the effect in Arabic', () => {
+  it('uses Turin forced loss when choosing audio authority and keeps presentation audio optional', () => {
     const battle = source('app/screens/battle.tsx');
     const lanBattle = source('app/screens/lan-battle.tsx');
     const insights = source('lib/game/round-insights.ts');
-    const cardRenderer = source('components/game/luxury-character-card-animated.tsx');
+    const artwork = source('components/cards/CardArtwork.tsx');
 
     expect(battle).toContain('turinPenaltyAudioWinner ?? computedWinner');
     expect(lanBattle).toContain("label: 'لعنة تورين: تخسر هذه الجولة'");
     expect(lanBattle).toContain("turinPenalty.targetSide === 'player' ? 'guest'");
     expect(insights).toContain("turinPenalty: 'لعنة تورين: خسارة هذه الجولة'");
-    expect(cardRenderer).not.toContain('turinAudioAuthorized');
-    expect(cardRenderer).toContain('player.muted = !audioEnabled;');
-    expect(cardRenderer).toContain('if (shouldAnimate) player.play();');
-    expect(cardRenderer).not.toContain('player.volume = 0;\n        player.pause();\n    }, [player]);');
-    expect(cardRenderer).toContain('key={`card-video-asset-${String(videoAsset)}`}');
-    expect(cardRenderer).toContain('key={`card-video-uri-${customUri}`}');
+    expect(artwork).toContain('instance.muted = !playAudio;');
+    expect(artwork).toContain('if (active) instance.play();');
+    expect(artwork).not.toContain('player.volume = 0;\n      player.pause();');
   });
 });
