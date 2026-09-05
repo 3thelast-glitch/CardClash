@@ -10,7 +10,7 @@ import {
   CARD_RARITY_VISUALS,
   getCardRarityVisual,
   type CardRarityVisual,
-} from '@/lib/presentation/card-rarity-visuals';
+} from '../presentation/card-rarity-visuals';
 
 export interface RarityConfig {
   /** Gradient color stops for card background */
