@@ -1,4 +1,4 @@
-import { RARITY_BASE_COLORS } from '@/lib/presentation/card-rarity-visuals';
+import { RARITY_BASE_COLORS } from '../../lib/presentation/card-rarity-visuals';
 
 /**
  * Obsidian Arcana design tokens.
