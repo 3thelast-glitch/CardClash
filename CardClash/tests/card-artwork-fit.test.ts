@@ -29,41 +29,44 @@ describe('card artwork fit policy', () => {
   });
 
   it('preserves full silhouettes for the character cards with narrow transparent artwork', () => {
-    const characterCard = readComponent('components/game/luxury-character-card-animated.tsx');
+    const artwork = readComponent('components/cards/CardArtwork.tsx');
     const affectedIds = [
       'ay_raikage', 'bam', 'trunks', 'nelliel_tu', 'emlyn_white', 'riza_hawkeye',
       'leafa', 'ebisu', 'ino_yamanaka', 'yosaku', 'yonji',
     ];
 
-    expect(characterCard).toMatch(/CARD_IMAGE_FIT_OVERRIDES/);
+    expect(artwork).toMatch(/CARD_IMAGE_FIT_OVERRIDES/);
     for (const id of affectedIds) {
-      expect(characterCard, id).toMatch(new RegExp(`${id}: ['\"]contain['\"]`));
+      expect(artwork, id).toMatch(new RegExp(`${id}: ['\"]contain['\"]`));
     }
-    expect(characterCard).toMatch(/resizeMode=\{isCustomImage \? 'contain' : imageFit\}/);
+    expect(artwork).toContain("media.isCustomImage ? 'contain'");
+    expect(artwork).toContain('contentFit={contentFit}');
   });
 
-  it('keeps premium, legendary, and special artwork filling the frame', () => {
+  it('keeps premium artwork on explicit contain/cover policies and never stretches it', () => {
     const premiumComponents = [
       'components/game/RarityCard.tsx',
       'components/game/epic-card-template.tsx',
       'components/game/elven-luxury-card.tsx',
-      'components/game/card-item.tsx',
+      'components/cards/CardArtwork.tsx',
     ];
 
     for (const relativePath of premiumComponents) {
       const source = readComponent(relativePath);
-      expect(source, relativePath).toMatch(/contentFit="(?:contain|cover)"/);
+      expect(source, relativePath).toMatch(/contentFit="(?:contain|cover)"|contentFit=\{contentFit\}/);
       expect(source, relativePath).not.toMatch(/contentFit="stretch"/);
     }
   });
 
-  it('renders Zoro cut slashes over the affected opposing character card', () => {
+  it('renders Zoro cut slashes over the affected opposing character card through the unified surface', () => {
     const battle = readComponent('app/screens/battle.tsx');
-    const characterCard = readComponent('components/game/luxury-character-card-animated.tsx');
+    const unified = readComponent('components/cards/UnifiedCard.tsx');
+    const adapter = readComponent('components/game/luxury-character-card-animated.tsx');
 
     expect(battle).toMatch(/slashEffect=\{botZoroCutActive\}/);
     expect(battle).toMatch(/slashEffect=\{playerZoroCutActive\}/);
-    expect(characterCard).toMatch(/zoroSlashOverlay/);
-    expect(characterCard).toMatch(/قطع زورو/);
+    expect(adapter).toContain('slashEffect={slashEffect}');
+    expect(unified).toMatch(/zoroSlashOverlay/);
+    expect(unified).toMatch(/قطع زورو/);
   });
 });

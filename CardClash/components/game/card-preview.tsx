@@ -8,13 +8,22 @@ import { SEMANTIC_COLOR, SPACE } from '@/components/ui/design-tokens';
 interface CardPreviewProps {
   card: Card;
   onPress?: () => void;
+  onInspect?: () => void;
   style?: StyleProp<ViewStyle>;
   selected?: boolean;
+  instanceKey?: string;
 }
 
 const RARITIES: CardRarity[] = ['common', 'rare', 'epic', 'legendary', 'special'];
 
-export function CardPreview({ card, onPress, style, selected = false }: CardPreviewProps) {
+export function CardPreview({
+  card,
+  onPress,
+  onInspect,
+  style,
+  selected = false,
+  instanceKey,
+}: CardPreviewProps) {
   const [localRarity, setLocalRarity] = useState<CardRarity>(card.rarity ?? 'common');
   const [isActive, setIsActive] = useState(true);
   const previewCard = useMemo(() => ({ ...card, rarity: localRarity }), [card, localRarity]);
@@ -33,6 +42,9 @@ export function CardPreview({ card, onPress, style, selected = false }: CardPrev
         disabled={!isActive}
         interactive={isActive}
         onPress={onPress}
+        onInspect={onInspect}
+        instanceKey={instanceKey ?? `preview:${card.id}`}
+        mediaMode="static"
       />
 
       {__DEV__ && (

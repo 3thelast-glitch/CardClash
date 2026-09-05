@@ -19,12 +19,15 @@ describe('ميداليات تصنيف الكروت', () => {
     }
   });
 
-  it('يربط القالبين المستخدمين ميداليات الخير والشر والمحايد', () => {
-    const luxurySource = fs.readFileSync(path.join(projectRoot, 'components', 'game', 'luxury-character-card-animated.tsx'), 'utf8');
+  it('يربط القالب الموحد ميداليات الخير والشر والمحايد وتفوض له القوالب القديمة', () => {
+    const unifiedSource = fs.readFileSync(path.join(projectRoot, 'components', 'cards', 'UnifiedCard.tsx'), 'utf8');
+    const legacySource = fs.readFileSync(path.join(projectRoot, 'components', 'game', 'luxury-character-card-animated.tsx'), 'utf8');
     const itemSource = fs.readFileSync(path.join(projectRoot, 'components', 'game', 'card-item.tsx'), 'utf8');
+
     for (const filename of alignmentAssets) {
-      expect(luxurySource).toContain(filename);
-      expect(itemSource).toContain(filename);
+      expect(unifiedSource).toContain(filename);
     }
+    expect(legacySource).toContain('UnifiedCard');
+    expect(itemSource).toContain('UnifiedCard');
   });
 });
