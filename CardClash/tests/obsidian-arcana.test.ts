@@ -7,7 +7,6 @@ import {
   TOUCH_TARGET,
 } from '../components/ui/design-tokens';
 import { DEFAULT_SETTINGS } from '../lib/game/settings-store';
-import { CONNECTION_STATE_COPY } from '../components/ui/ConnectionBadge';
 
 describe('Obsidian Arcana presentation system', () => {
   it('keeps the requested semantic palette as the source of truth', () => {
@@ -51,11 +50,13 @@ describe('Obsidian Arcana presentation system', () => {
   });
 
   it('maps transport states to explicit human-readable connection states', () => {
-    expect(CONNECTION_STATE_COPY.connecting).toBe('جارٍ الاتصال');
-    expect(CONNECTION_STATE_COPY.waiting).toBe('انتظار الخصم');
-    expect(CONNECTION_STATE_COPY.reconnecting).toBe('إعادة الاتصال');
-    expect(CONNECTION_STATE_COPY.disconnected).toBe('انقطع الاتصال');
-    expect(CONNECTION_STATE_COPY.hosting).toBe('غرفة محلية مفتوحة');
+    // Read the component source instead of importing React Native into the Node-only Vitest runtime.
+    const badge = readFileSync(resolve(process.cwd(), 'components/ui/ConnectionBadge.tsx'), 'utf8');
+    expect(badge).toContain("connecting: 'جارٍ الاتصال'");
+    expect(badge).toContain("waiting: 'انتظار الخصم'");
+    expect(badge).toContain("reconnecting: 'إعادة الاتصال'");
+    expect(badge).toContain("disconnected: 'انقطع الاتصال'");
+    expect(badge).toContain("hosting: 'غرفة محلية مفتوحة'");
   });
 
   it('does not synchronously read a runOnJS drop result', () => {
