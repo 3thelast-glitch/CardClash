@@ -50,6 +50,7 @@ export function CardItem({
   onPress,
   style,
   disabled = false,
+  showStats = true,
   customWidth,
   customHeight,
 }: CardItemProps) {
@@ -85,6 +86,7 @@ export function CardItem({
       entranceDelay={entranceDelay}
       mediaMode={size === 'small' ? 'static' : 'auto'}
       showAbility={false}
+      showStats={showStats}
       presentationState={{ transformed: Boolean(card._rageActive || card.isRagedVersion) }}
     />
   );
