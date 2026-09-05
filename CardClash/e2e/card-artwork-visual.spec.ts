@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-const abilityArtworkSelector = '[data-testid="ability-artwork-image"]';
+// Scope artwork to accessible AbilityCard content instead of the removed
+// renderer-specific testID. Lucide icons render as SVG, so large descendant
+// <img> nodes here are the actual ability artwork surfaces.
+const abilityArtworkSelector = '[aria-label] img';
 
 const viewports = [
   { id: 'phone-small-portrait', name: 'هاتف صغير عمودي', width: 320, height: 568 },
