@@ -1,254 +1,232 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
-import { ThemedText as Text } from '@/components/ui/ThemedText';
-import { useRouter } from 'expo-router';
+import {
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
+import {
+  ArrowLeft,
+  Bot,
+  FlaskConical,
+  Library,
+  Radio,
+  Users,
+  Wifi,
+} from 'lucide-react-native';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
-import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL } from '@/components/ui/design-tokens';
-import { useGame } from '@/lib/game/game-context';
+import { ObsidianPanel } from '@/components/ui/ObsidianPanel';
+import { ThemedText } from '@/components/ui/ThemedText';
+import {
+  FONT,
+  RADIUS,
+  SEMANTIC_COLOR,
+  SPACE,
+  TOUCH_TARGET,
+} from '@/components/ui/design-tokens';
 import { getVisibleMenuItems, isDeveloperBuild } from '@/lib/build-variant';
+import { useGame } from '@/lib/game/game-context';
 
-const MODES = [
+type ModeItem = {
+  key: string;
+  title: string;
+  subtitle: string;
+  route: string;
+  matchMode: 'solo' | 'local' | 'lan';
+  accent: string;
+  icon: React.ComponentType<{ size?: number; color?: string }>;
+  developerOnly?: boolean;
+};
+
+const MODES: ModeItem[] = [
   {
-    icon: '⚔️',
-    title: 'لعب فردي',
-    subtitle: 'العب ضد الذكاء الاصطناعي',
-    route: '/screens/difficulty' as const,
-    accentColor: '#E4A52A',
-    matchMode: 'solo' as const,
+    key: 'solo',
+    title: 'ضد الذكاء الاصطناعي',
+    subtitle: 'اختر الصعوبة وابدأ مباراة فردية.',
+    route: '/screens/difficulty',
+    matchMode: 'solo',
+    accent: SEMANTIC_COLOR.accent.primary,
+    icon: Bot,
   },
   {
-    icon: '🤝',
-    title: 'لعب محلي — جهاز واحد',
-    subtitle: 'رتّبا كروتكما بالتناوب ثم تقاتلان',
-    route: '/screens/rounds-config' as const,
-    accentColor: '#38BDF8',
-    matchMode: 'local' as const,
+    key: 'local',
+    title: 'جهاز واحد',
+    subtitle: 'رتّبا التشكيلتين بالتناوب على الهاتف نفسه.',
+    route: '/screens/rounds-config',
+    matchMode: 'local',
+    accent: SEMANTIC_COLOR.status.success,
+    icon: Users,
   },
   {
-    icon: '🌐',
-    title: 'لعب أونلاين',
-    subtitle: 'واجه لاعبين حقيقيين',
-    route: '/screens/multiplayer-lobby' as const,
-    accentColor: '#60A5FA',
-    matchMode: 'solo' as const,
+    key: 'online',
+    title: 'أونلاين',
+    subtitle: 'مطابقة تنافسية أو غرفة خاصة مع صديق.',
+    route: '/screens/multiplayer-lobby',
+    matchMode: 'solo',
+    accent: SEMANTIC_COLOR.accent.secondary,
+    icon: Wifi,
   },
   {
-    icon: '📚',
+    key: 'lan',
+    title: 'Wi‑Fi محلي',
+    subtitle: 'اتصال مباشر بين جهازين على الشبكة المحلية.',
+    route: '/screens/local-lan',
+    matchMode: 'lan',
+    accent: '#C084FC',
+    icon: Radio,
+  },
+  {
+    key: 'collection',
     title: 'المجموعة',
-    subtitle: 'استعرض كروتك',
-    route: '/screens/collection' as const,
-    accentColor: '#4ADE80',
-    matchMode: 'solo' as const,
+    subtitle: 'استعراض مكتبة الكروت ومحتوى المطوّر.',
+    route: '/screens/collection',
+    matchMode: 'solo',
+    accent: SEMANTIC_COLOR.status.warning,
+    icon: Library,
     developerOnly: true,
-  },
-  {
-    icon: '📡',
-    title: 'لعب محلي Wi‑Fi',
-    subtitle: 'واجه صديقاً على جهاز ثانٍ بلا إنترنت',
-    route: '/screens/local-lan' as const,
-    accentColor: '#A78BFA',
-    matchMode: 'lan' as const,
   },
 ];
 
 export default function GameModeScreen() {
   const router = useRouter();
   const { setMatchMode } = useGame();
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
+  const { width } = useWindowDimensions();
   const isDeveloper = isDeveloperBuild(Constants.expoConfig?.extra);
-  const visibleModes = getVisibleMenuItems(MODES, Constants.expoConfig?.extra);
+  const visibleModes = getVisibleMenuItems(MODES, Constants.expoConfig?.extra) as ModeItem[];
+  const twoColumns = width >= 720;
 
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
-        <View style={[styles.container, isLandscape && { paddingTop: SPACE.md, paddingBottom: SPACE.md }]}>
-          {/* Back button */}
-          <TouchableOpacity
-            style={[styles.backBtn, isLandscape && { marginBottom: SPACE.sm }]}
-            onPress={() => router.push('/screens/splash' as any)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.backBtnText}>← رجوع</Text>
-          </TouchableOpacity>
-
-          {/* Title */}
-          <View style={[styles.header, isLandscape && { marginBottom: SPACE.md }]}>
-            <Text style={[styles.title, isLandscape && { fontSize: FONT.xl }]}>اختر نمط اللعب</Text>
-            <Text style={[styles.subtitle, isLandscape && { fontSize: FONT.sm, marginTop: 0 }]}>كيف تريد أن تلعب؟</Text>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.topBar}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="رجوع"
+              onPress={() => router.back()}
+              style={styles.backButton}
+            >
+              <ArrowLeft size={20} color={SEMANTIC_COLOR.accent.primary} />
+            </TouchableOpacity>
+            <View style={styles.headerCopy}>
+              <ThemedText type="title">اختر نمط اللعب</ThemedText>
+              <ThemedText type="subtitle">كل الأنماط الحالية محفوظة كما هي.</ThemedText>
+            </View>
           </View>
 
-          {/* Mode cards grid */}
-          <View style={[styles.modeGrid, { flexDirection: isLandscape ? 'row' : 'column' }]}>
-            {visibleModes.map((mode) => (
-              <TouchableOpacity
-                key={mode.route}
-                style={[
-                  styles.modeCard,
-                  { flex: 1, width: isLandscape ? undefined : '100%', marginBottom: isLandscape ? 0 : SPACE.sm }
-                ]}
-                onPress={() => { setMatchMode(mode.matchMode); router.push(mode.route as any); }}
-                activeOpacity={0.8}
-              >
-                {/* Accent top bar */}
-                <View style={[styles.cardTopAccent, { backgroundColor: mode.accentColor, marginBottom: isLandscape ? SPACE.md : SPACE.sm }]} />
-
-                <View style={[isLandscape ? {} : { flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: SPACE.md, justifyContent: 'space-between' }]}>
-                  <Text style={[styles.modeIcon, isLandscape ? {} : { fontSize: 32, marginBottom: 0, marginRight: SPACE.md }]}>{mode.icon}</Text>
-
-                  <View style={[isLandscape ? { alignItems: 'center' } : { flex: 1, alignItems: 'flex-start' }]}>
-                    <Text style={[styles.modeTitle, { color: mode.accentColor }, isLandscape && { fontSize: FONT.lg }]}>
-                      {mode.title}
-                    </Text>
-                    <Text style={[styles.modeSubtitle, isLandscape && { fontSize: FONT.xs, marginBottom: SPACE.md }, !isLandscape && { marginBottom: 0, textAlign: 'left' }]}>{mode.subtitle}</Text>
-                  </View>
-
-                  {/* Bottom arrow */}
-                  <View style={[styles.cardArrow, { borderColor: mode.accentColor + '50' }, !isLandscape && { transform: [{ scale: 0.8 }] }]}>
-                    <Text style={[styles.cardArrowText, { color: mode.accentColor }]}>→</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+          <View style={[styles.grid, twoColumns && styles.gridWide]}>
+            {visibleModes.map((mode) => {
+              const Icon = mode.icon;
+              return (
+                <TouchableOpacity
+                  key={mode.key}
+                  accessibilityRole="button"
+                  accessibilityLabel={mode.title}
+                  accessibilityHint={mode.subtitle}
+                  activeOpacity={0.84}
+                  style={[styles.modeTouch, twoColumns && styles.modeTouchWide]}
+                  onPress={() => {
+                    setMatchMode(mode.matchMode);
+                    router.push(mode.route as any);
+                  }}
+                >
+                  <ObsidianPanel
+                    style={styles.modeCard}
+                    accent={mode.key === 'solo'}
+                  >
+                    <View style={[styles.modeIcon, { borderColor: `${mode.accent}66`, backgroundColor: `${mode.accent}12` }]}>
+                      <Icon size={24} color={mode.accent} />
+                    </View>
+                    <View style={styles.modeCopy}>
+                      <ThemedText type="defaultSemiBold" style={styles.modeTitle}>
+                        {mode.title}
+                      </ThemedText>
+                      <ThemedText type="caption" style={styles.modeSubtitle}>
+                        {mode.subtitle}
+                      </ThemedText>
+                    </View>
+                    <View style={[styles.modeRail, { backgroundColor: mode.accent }]} />
+                  </ObsidianPanel>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
-          {/* ── زر البيئة التجريبية ── */}
           {isDeveloper && (
             <TouchableOpacity
-              style={styles.sandboxBtn}
+              accessibilityRole="button"
+              accessibilityLabel="البيئة التجريبية"
               onPress={() => router.push('/screens/sandbox' as any)}
-              activeOpacity={0.85}
+              style={styles.sandboxTouch}
             >
-              <Text style={styles.sandboxIcon}>🧪</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sandboxTitle}>البيئة التجريبية</Text>
-                <Text style={styles.sandboxSub}>حاكي المعارك واختبر القدرات بدون لعب</Text>
-              </View>
-              <Text style={styles.sandboxArrow}>→</Text>
+              <ObsidianPanel style={styles.sandbox}>
+                <FlaskConical size={22} color={SEMANTIC_COLOR.status.success} />
+                <View style={styles.sandboxCopy}>
+                  <ThemedText type="defaultSemiBold">البيئة التجريبية</ThemedText>
+                  <ThemedText type="caption">
+                    اختبر القدرات وسيناريوهات المعركة ضمن نسخة المطوّر فقط.
+                  </ThemedText>
+                </View>
+              </ObsidianPanel>
             </TouchableOpacity>
           )}
-
-        </View>
+        </ScrollView>
       </LuxuryBackground>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: SPACE.lg,
-    paddingTop: SPACE.xl,
-    paddingBottom: SPACE.xxl,
-  },
-
-  backBtn: {
-    alignSelf: 'flex-start',
-    paddingVertical: SPACE.sm,
-    paddingHorizontal: SPACE.md,
-    borderRadius: RADIUS.sm,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1,
-    borderColor: 'rgba(228,165,42,0.3)',
-    marginBottom: SPACE.xl,
-  },
-  backBtnText: {
-    color: COLOR.gold,
-    fontSize: FONT.md,
-  },
-
-  header: {
-    alignItems: 'center',
-    marginBottom: SPACE.xxl,
-  },
-  title: {
-    fontSize: FONT.hero,
-    color: COLOR.gold,
-    letterSpacing: 1,
-    textShadowColor: 'rgba(228,165,42,0.4)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 16,
-  },
-  subtitle: {
-    fontSize: FONT.base,
-    color: COLOR.textMuted,
-    marginTop: SPACE.xs,
-  },
-
-  modeGrid: {
-    flex: 1,
-    gap: SPACE.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  modeCard: {
-    ...GLASS_PANEL,
-    paddingTop: 0,
-    paddingBottom: SPACE.md,
-    justifyContent: 'flex-start',
-    overflow: 'hidden',
-    maxWidth: 400,
-  },
-
-  cardTopAccent: {
+  scroll: {
     width: '100%',
-    height: 4,
-    marginBottom: SPACE.xl,
+    maxWidth: 1000,
+    alignSelf: 'center',
+    padding: SPACE.lg,
+    paddingBottom: SPACE.xxxl,
+    gap: SPACE.xl,
   },
-
-  modeIcon: {
-    fontSize: 44,
-    marginBottom: SPACE.md,
-  },
-
-  modeTitle: {
-    fontSize: FONT.xl,
-    textAlign: 'center',
-    marginBottom: SPACE.xs,
-  },
-
-  modeSubtitle: {
-    fontSize: FONT.sm,
-    color: COLOR.textMuted,
-    textAlign: 'center',
-    marginBottom: SPACE.xl,
-  },
-
-  cardArrow: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.full,
-    borderWidth: 1.5,
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  backButton: {
+    width: TOUCH_TARGET.default,
+    height: TOUCH_TARGET.default,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    backgroundColor: 'rgba(19,30,47,0.82)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  cardArrowText: {
-    fontSize: FONT.lg,
-  },
-
-  // ── sandbox button ──
-  sandboxBtn: {
+  headerCopy: { flex: 1, alignItems: 'flex-end' },
+  grid: { gap: SPACE.md },
+  gridWide: { flexDirection: 'row', flexWrap: 'wrap' },
+  modeTouch: { width: '100%' },
+  modeTouchWide: { width: '48%', flexGrow: 1 },
+  modeCard: {
+    minHeight: 118,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACE.sm,
-    marginTop: SPACE.md,
-    paddingVertical: SPACE.md,
-    paddingHorizontal: SPACE.lg,
-    borderRadius: RADIUS.md,
-    borderWidth: 1.5,
-    borderColor: 'rgba(134,239,172,0.35)',
-    backgroundColor: 'rgba(134,239,172,0.07)',
-    shadowColor: '#4ade80',
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 4,
+    gap: SPACE.md,
   },
-  sandboxIcon:  { fontSize: 28 },
-  sandboxTitle: { fontSize: FONT.md, fontWeight: '800', color: '#4ade80' },
-  sandboxSub:   { fontSize: FONT.xs, color: COLOR.textMuted, marginTop: 2 },
-  sandboxArrow: { fontSize: FONT.lg, color: '#4ade80' },
+  modeIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeCopy: { flex: 1, alignItems: 'flex-end', gap: SPACE.xs },
+  modeTitle: { fontSize: FONT.base, textAlign: 'right' },
+  modeSubtitle: { textAlign: 'right' },
+  modeRail: { width: 4, alignSelf: 'stretch', borderRadius: RADIUS.full },
+  sandboxTouch: { width: '100%' },
+  sandbox: { minHeight: 82, flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  sandboxCopy: { flex: 1, alignItems: 'flex-end', gap: SPACE.xs },
 });

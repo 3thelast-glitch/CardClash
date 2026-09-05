@@ -1,142 +1,121 @@
-/**
- * RoundsConfigScreen — Multiplayer-aware
- *
- * صاحب الجلسة (isHost):
- *   - يضبط الإعدادات ثم يضغط "التالي" → يرسل MATCH_SETTINGS → ينتقل
- *
- * الضيف (guest):
- *   - يرى شاشة انتظار حتى يستقبل MATCH_SETTINGS_RECEIVED
- *   - بعدها تُحدَّث الإعدادات تلقائياً وينتقل للصفحة التالية
- *
- * اللعب الفردي: يعمل بنفس الطريقة القديمة بدون تغيير.
- */
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, TouchableOpacity, StyleSheet, ScrollView,
-  useWindowDimensions, Text as RNText, ActivityIndicator,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
 } from 'react-native';
-import { ThemedText as Text } from '@/components/ui/ThemedText';
+import { ArrowLeft, Check, Crown, Minus, Plus, RotateCcw, Sparkles, Target } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { ScreenContainer } from '@/components/screen-container';
-import { LuxuryBackground } from '@/components/game/luxury-background';
-import { useGame } from '@/lib/game/game-context';
-import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
-import { useLanMultiplayer } from '@/lib/lan/lan-context';
-import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
-import type { RarityWeights, RarityKey } from '@/lib/game/game-context';
 
-// Multiplayer — آمن حتى لو الـ Provider غير موجود في سياق الاختبار.
+import { LuxuryBackground } from '@/components/game/luxury-background';
+import { ScreenContainer } from '@/components/screen-container';
+import { ObsidianPanel } from '@/components/ui/ObsidianPanel';
+import { ProButton } from '@/components/ui/ProButton';
+import { ThemedText as Text } from '@/components/ui/ThemedText';
+import { RARITY_COLOR, RADIUS, SEMANTIC_COLOR, SPACE, TOUCH_TARGET } from '@/components/ui/design-tokens';
+import { useGame, type RarityKey, type RarityWeights } from '@/lib/game/game-context';
+import { useLanMultiplayer } from '@/lib/lan/lan-context';
+import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
+
 function useSafeMultiplayer() {
   try { return useMultiplayer(); } catch { return null; }
 }
 
-const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20];
-
-const RARITY_CONFIG: { key: RarityKey; labelAr: string; color: string; emoji: string }[] = [
-  { key: 'common',    labelAr: 'عادي',    color: '#6366f1', emoji: '⚪' },
-  { key: 'rare',      labelAr: 'نادر',    color: '#f59e0b', emoji: '🔵' },
-  { key: 'epic',      labelAr: 'ملحمي',   color: '#a855f7', emoji: '🟣' },
-  { key: 'legendary', labelAr: 'أسطوري', color: '#FFD700', emoji: '🟡' },
-  { key: 'special',   labelAr: 'خاص',    color: '#ff4da6', emoji: '💎' },
-];
-
-// نسب ظهور محدَّثة: مجموعها = 100%
-// عادي 45 | نادر 28 | ملحمي 17 | أسطوري 8 | خاص 2
+const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20] as const;
 const DEFAULT_WEIGHTS: RarityWeights = { common: 45, rare: 28, epic: 17, legendary: 8, special: 2 };
 
-// ── Rarity Slider ─────────────────────────────────────────────────────────────
-function RaritySliderRow({ cfg, value, onChange }: { cfg: typeof RARITY_CONFIG[0]; value: number; onChange: (v: number) => void }) {
+const RARITIES: Array<{ key: RarityKey; label: string; color: string }> = [
+  { key: 'common', label: 'عادي', color: RARITY_COLOR.common },
+  { key: 'rare', label: 'نادر', color: RARITY_COLOR.rare },
+  { key: 'epic', label: 'ملحمي', color: RARITY_COLOR.epic },
+  { key: 'legendary', label: 'أسطوري', color: RARITY_COLOR.legendary },
+  { key: 'special', label: 'خاص', color: RARITY_COLOR.special },
+];
+
+function rebalanceWeight(weights: RarityWeights, key: RarityKey, value: number): RarityWeights {
+  const nextValue = Math.max(0, Math.min(100, value));
+  const difference = nextValue - weights[key];
+  const next = { ...weights, [key]: nextValue };
+  let remaining = difference;
+  const others = RARITIES.filter(item => item.key !== key);
+
+  for (let index = others.length - 1; index >= 0 && remaining !== 0; index -= 1) {
+    const other = others[index].key;
+    const candidate = next[other] - remaining;
+    const clamped = Math.max(0, Math.min(100, candidate));
+    remaining -= next[other] - clamped;
+    next[other] = clamped;
+  }
+  return next;
+}
+
+function RarityRow({
+  item,
+  value,
+  onChange,
+}: {
+  item: (typeof RARITIES)[number];
+  value: number;
+  onChange: (value: number) => void;
+}) {
   return (
-    <View style={rs.row}>
-      <RNText style={rs.emoji}>{cfg.emoji}</RNText>
-      <RNText style={[rs.label, { color: cfg.color }]}>{cfg.labelAr}</RNText>
-      <View style={rs.track}>
-        <View style={[rs.fill, { width: `${value}%` as any, backgroundColor: cfg.color }]} />
+    <View style={styles.rarityRow}>
+      <View style={styles.rarityHeading}>
+        <View style={[styles.rarityDot, { backgroundColor: item.color }]} />
+        <Text type="label" style={[styles.rarityLabel, { color: item.color }]}>{item.label}</Text>
       </View>
-      <RNText style={[rs.pct, { color: cfg.color }]}>{value}%</RNText>
-      <View style={rs.btns}>
-        <TouchableOpacity style={[rs.stepBtn, { borderColor: cfg.color + '66' }]} onPress={() => onChange(Math.max(0, value - 5))} activeOpacity={0.7}>
-          <RNText style={{ color: cfg.color, fontSize: 13, fontWeight: '800' }}>-</RNText>
+      <View style={styles.rarityTrack} accessibilityLabel={`${item.label} ${value} بالمئة`}>
+        <View style={[styles.rarityFill, { width: `${value}%` as any, backgroundColor: item.color }]} />
+      </View>
+      <Text forceLtr type="numeric" style={[styles.rarityValue, { color: item.color }]}>{value}%</Text>
+      <View style={styles.stepper}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`تقليل نسبة ${item.label}`} style={styles.stepButton} onPress={() => onChange(value - 5)}>
+          <Minus size={16} color={SEMANTIC_COLOR.text.primary} />
         </TouchableOpacity>
-        <TouchableOpacity style={[rs.stepBtn, { borderColor: cfg.color + '66' }]} onPress={() => onChange(Math.min(100, value + 5))} activeOpacity={0.7}>
-          <RNText style={{ color: cfg.color, fontSize: 13, fontWeight: '800' }}>+</RNText>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`زيادة نسبة ${item.label}`} style={styles.stepButton} onPress={() => onChange(value + 5)}>
+          <Plus size={16} color={SEMANTIC_COLOR.text.primary} />
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-function RarityWeightsPanel({ weights, onChange }: { weights: RarityWeights; onChange: (w: RarityWeights) => void }) {
-  const total = Object.values(weights).reduce((a, b) => a + b, 0);
-  const balanced = total === 100;
-  const handleChange = useCallback((key: RarityKey, newVal: number) => {
-    const diff = newVal - weights[key];
-    const others = RARITY_CONFIG.filter(r => r.key !== key);
-    const newWeights = { ...weights, [key]: newVal };
-    let remaining = diff;
-    for (let i = others.length - 1; i >= 0; i--) {
-      const ok = others[i].key;
-      const candidate = newWeights[ok] - remaining;
-      const clamped = Math.max(0, Math.min(100, candidate));
-      remaining -= newWeights[ok] - clamped;
-      newWeights[ok] = clamped;
-      if (remaining === 0) break;
-    }
-    onChange(newWeights);
-  }, [weights, onChange]);
-  return (
-    <View style={styles.panel}>
-      <View style={styles.panelHeader}>
-        <Text style={styles.panelTitle}>🎴 نسب ظهور الكروت</Text>
-        <TouchableOpacity onPress={() => onChange({ ...DEFAULT_WEIGHTS })} style={rs.resetBtn} activeOpacity={0.75}>
-          <RNText style={rs.resetTxt}>إعادة تعيين</RNText>
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.panelDesc}>حدّد احتمالية ظهور كل ندرة</Text>
-      {RARITY_CONFIG.map(cfg => (
-        <RaritySliderRow key={cfg.key} cfg={cfg} value={weights[cfg.key] ?? 0} onChange={v => handleChange(cfg.key, v)} />
-      ))}
-      <View style={[rs.totalRow, { borderColor: balanced ? '#4ade8066' : '#f8717166' }]}>
-        <RNText style={[rs.totalLabel, { color: balanced ? '#4ade80' : '#f87171' }]}>
-          {balanced ? '✔ المجموع = 100%' : `⚠ المجموع = ${total}%`}
-        </RNText>
-        {!balanced && (
-          <TouchableOpacity onPress={() => onChange({ ...DEFAULT_WEIGHTS })} activeOpacity={0.8}>
-            <RNText style={rs.autoFix}>تصحيح تلقائي</RNText>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-}
-
-// ── Main Screen ───────────────────────────────────────────────────────────────
 export default function RoundsConfigScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
-  const { state: gameState, setTotalRounds, setAbilitiesEnabled, rarityWeights, setRarityWeights } = useGame();
+  const game = useGame();
+  const {
+    state: gameState,
+    setTotalRounds,
+    setAbilitiesEnabled,
+    rarityWeights,
+    setRarityWeights,
+  } = game;
+  const mp = useSafeMultiplayer();
+  const lan = useLanMultiplayer();
+
   const isLocalTwoPlayer = gameState.matchMode === 'local';
   const isLanMatch = gameState.matchMode === 'lan';
-
-  const mp = useSafeMultiplayer();
-  const isMultiplayer = !!mp?.state?.roomId;
-  const lan = useLanMultiplayer();
+  const isOnlineMultiplayer = !!mp?.state?.roomId;
   const isLanHost = isLanMatch && lan.match.role === 'host';
   const isLanGuest = isLanMatch && lan.match.role === 'guest';
   const isHost = isLanMatch ? isLanHost : (mp?.state?.isHost ?? true);
   const pendingMatchSettings = mp?.state?.pendingMatchSettings ?? null;
 
-  const [rounds, setRounds] = React.useState(5);
-  const [withAbility, setWithAbility] = React.useState(true); // ✅ مفعّلة افتراضياً
+  const [rounds, setRounds] = useState(5);
+  const [withAbilities, setWithAbilities] = useState(true);
 
   useEffect(() => {
-    if (!isMultiplayer || isHost || !pendingMatchSettings) return;
+    if (!isOnlineMultiplayer || isHost || !pendingMatchSettings) return;
     setTotalRounds(pendingMatchSettings.rounds);
     setAbilitiesEnabled(pendingMatchSettings.withAbilities);
     setRarityWeights(pendingMatchSettings.rarityWeights as RarityWeights);
     router.push('/screens/leaderboard' as any);
-  }, [pendingMatchSettings, isMultiplayer, isHost, router, setAbilitiesEnabled, setRarityWeights, setTotalRounds]);
+  }, [isHost, isOnlineMultiplayer, pendingMatchSettings, router, setAbilitiesEnabled, setRarityWeights, setTotalRounds]);
 
   useEffect(() => {
     if (!isLanGuest || lan.match.phase !== 'arranging' || !lan.match.totalRounds) return;
@@ -146,116 +125,147 @@ export default function RoundsConfigScreen() {
     router.replace('/screens/leaderboard' as any);
   }, [isLanGuest, lan.match.abilitiesEnabled, lan.match.phase, lan.match.rarityWeights, lan.match.totalRounds, router, setAbilitiesEnabled, setRarityWeights, setTotalRounds]);
 
+  const totalWeight = useMemo(() => Object.values(rarityWeights).reduce((sum, value) => sum + value, 0), [rarityWeights]);
+  const weightsValid = totalWeight === 100;
+
+  const updateWeight = useCallback((key: RarityKey, value: number) => {
+    setRarityWeights(rebalanceWeight(rarityWeights, key, value));
+  }, [rarityWeights, setRarityWeights]);
+
   const handleContinue = () => {
+    if (!weightsValid) return;
     setTotalRounds(rounds);
-    setAbilitiesEnabled(withAbility);
-    if (isMultiplayer && isHost && mp?.sendMatchSettings) {
-      mp.sendMatchSettings({ rounds, withAbilities: withAbility, rarityWeights });
+    setAbilitiesEnabled(withAbilities);
+    if (isOnlineMultiplayer && isHost && mp?.sendMatchSettings) {
+      mp.sendMatchSettings({ rounds, withAbilities, rarityWeights });
     }
-    if (isLanHost) lan.configureMatch(rounds, withAbility, rarityWeights);
+    if (isLanHost) lan.configureMatch(rounds, withAbilities, rarityWeights);
     router.push('/screens/leaderboard' as any);
   };
 
-  if ((isMultiplayer || isLanMatch) && !isHost) {
+  if ((isOnlineMultiplayer || isLanMatch) && !isHost) {
     return (
       <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
         <LuxuryBackground>
-          <View style={styles.waitingContainer}>
-            <ActivityIndicator size="large" color={COLOR.gold} />
-            <Text style={styles.waitingTitle}>⏳ انتظار صاحب الجلسة</Text>
-            <Text style={styles.waitingDesc}>سيتم الانتقال تلقائياً بعد ضبط الإعدادات</Text>
-            <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-              <Text style={styles.backBtnText}>← رجوع</Text>
-            </TouchableOpacity>
+          <View style={styles.waitingRoot}>
+            <ObsidianPanel raised accent style={styles.waitingPanel}>
+              <ActivityIndicator size="large" color={SEMANTIC_COLOR.accent.primary} />
+              <Text type="title" style={styles.waitingTitle}>انتظار إعدادات المضيف</Text>
+              <Text style={styles.waitingText}>ستنتقل تلقائياً فور وصول عدد الجولات والقدرات ونسب الندرة المعتمدة.</Text>
+              <ProButton label="مغادرة هذه الخطوة" variant="ghost" onPress={() => router.back()} fullWidth />
+            </ObsidianPanel>
           </View>
         </LuxuryBackground>
       </ScreenContainer>
     );
   }
 
-  const roundsPanel = (
-    <View style={styles.panel}>
-      <View style={styles.panelHeader}>
-        <Text style={styles.panelTitle}>🎯 عدد الجولات</Text>
-        <View style={styles.selectedPill}>
-          <Text style={styles.selectedPillText}>{rounds}</Text>
-        </View>
-      </View>
-      <View style={styles.pillsGrid}>
-        {ROUND_OPTIONS.map(opt => {
-          const active = rounds === opt;
-          return (
-            <TouchableOpacity key={opt} style={[styles.roundPill, active && styles.roundPillActive]} onPress={() => setRounds(opt)} activeOpacity={0.7}>
-              <Text style={[styles.roundPillText, active && styles.roundPillTextActive]}>{opt}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
-  );
-
-  const abilitiesPanel = (
-    <View style={styles.panel}>
-      <Text style={styles.panelTitle}>⚡ القدرات الخاصة</Text>
-      <Text style={styles.panelDesc}>قدرات فريدة تغير مجريات المعركة</Text>
-      <View style={styles.toggleRow}>
-        <TouchableOpacity style={[styles.toggleBtn, withAbility && styles.toggleBtnActive]} onPress={() => setWithAbility(true)} activeOpacity={0.75}>
-          <Text style={styles.toggleBtnIcon}>❆</Text>
-          <Text style={[styles.toggleBtnText, withAbility && styles.toggleBtnTextActive]}>مفعّلة</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.toggleBtn, !withAbility && styles.toggleBtnInactive]} onPress={() => setWithAbility(false)} activeOpacity={0.75}>
-          <Text style={styles.toggleBtnIcon}>✕</Text>
-          <Text style={[styles.toggleBtnText, !withAbility && styles.toggleBtnTextInactive]}>معطّلة</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const ctaBtn = (
-    <TouchableOpacity style={styles.continueBtn} onPress={handleContinue} activeOpacity={0.85}>
-      <Text style={styles.continueBtnText}>
-        {(isMultiplayer || isLanHost) ? '✓ تأكيد وإرسال للضيف →' : isLocalTwoPlayer ? 'التالي: اختيار أرقام الجولات →' : 'التالي →'}
-      </Text>
-    </TouchableOpacity>
-  );
-
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.push('/screens/game-mode' as any)} activeOpacity={0.7}>
-            <Text style={styles.backBtnText}>← رجوع</Text>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="رجوع" style={styles.back} onPress={() => router.push('/screens/game-mode' as any)}>
+            <ArrowLeft size={20} color={SEMANTIC_COLOR.accent.primary} />
+            <Text type="label" style={styles.backText}>رجوع</Text>
           </TouchableOpacity>
 
           <View style={styles.header}>
-            <Text style={styles.title}>{isLocalTwoPlayer ? 'إعداد مباراة محلية' : isLanMatch ? 'إعداد مباراة Wi‑Fi' : 'إعداد المباراة'}</Text>
-            {(isMultiplayer || isLanMatch) && isHost && (
-              <View style={styles.hostBadge}>
-                <Text style={styles.hostBadgeText}>👑 صاحب الجلسة</Text>
-              </View>
-            )}
-            <Text style={styles.subtitle}>{isLocalTwoPlayer ? 'طرفان على جهاز واحد — ثبّت القواعد ثم يبدأ المضيف' : isLanMatch ? 'المضيف يحدد القواعد ثم يتسلمها الضيف على الجهاز الثاني' : 'خصّص تجربتك قبل المعركة'}</Text>
+            <View style={styles.titleRow}>
+              {(isOnlineMultiplayer || isLanMatch) && isHost && (
+                <View style={styles.hostBadge}>
+                  <Crown size={15} color={SEMANTIC_COLOR.rarity.legendary} />
+                  <Text type="caption" style={styles.hostBadgeText}>صاحب الجلسة</Text>
+                </View>
+              )}
+              <Text type="title" style={styles.title}>
+                {isLocalTwoPlayer ? 'إعداد مباراة محلية' : isLanMatch ? 'إعداد مباراة Wi‑Fi' : 'إعداد المواجهة'}
+              </Text>
+            </View>
+            <Text style={styles.subtitle}>ثبّت القواعد قبل ترتيب البطاقات. لا تتغير ميكانيكيات المباراة بعد البدء.</Text>
           </View>
 
-          {isLandscape ? (
-            <View style={styles.twoCol}>
-              <View style={{ flex: 1, gap: SPACE.lg }}>
-                {roundsPanel}
-                <RarityWeightsPanel weights={rarityWeights} onChange={setRarityWeights} />
-              </View>
-              <View style={{ flex: 1, gap: SPACE.lg }}>
-                {abilitiesPanel}
-                {ctaBtn}
-              </View>
+          <View style={[styles.columns, isLandscape && styles.columnsLandscape]}>
+            <View style={styles.column}>
+              <ObsidianPanel raised style={styles.panel}>
+                <View style={styles.panelHeading}>
+                  <Target size={20} color={SEMANTIC_COLOR.accent.primary} />
+                  <View style={styles.headingCopy}>
+                    <Text type="defaultSemiBold" style={styles.panelTitle}>عدد الجولات</Text>
+                    <Text type="caption" style={styles.panelDescription}>نفس الخيارات الموجودة في اللعبة الحالية.</Text>
+                  </View>
+                  <View style={styles.valuePill}><Text forceLtr type="numeric" style={styles.valuePillText}>{rounds}</Text></View>
+                </View>
+                <View style={styles.roundGrid}>
+                  {ROUND_OPTIONS.map(option => {
+                    const selected = rounds === option;
+                    return (
+                      <TouchableOpacity
+                        key={option}
+                        accessibilityRole="radio"
+                        accessibilityLabel={`${option} جولات`}
+                        accessibilityState={{ checked: selected }}
+                        style={[styles.roundChip, selected && styles.roundChipSelected]}
+                        onPress={() => setRounds(option)}
+                      >
+                        <Text forceLtr type="numeric" style={[styles.roundChipText, selected && styles.roundChipTextSelected]}>{option}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ObsidianPanel>
+
+              <ObsidianPanel raised style={styles.panel}>
+                <View style={styles.panelHeading}>
+                  <Sparkles size={20} color={SEMANTIC_COLOR.accent.secondary} />
+                  <View style={styles.headingCopy}>
+                    <Text type="defaultSemiBold" style={styles.panelTitle}>القدرات الخاصة</Text>
+                    <Text type="caption" style={styles.panelDescription}>تحكم في نفس خيار القدرات الموجود مسبقاً.</Text>
+                  </View>
+                </View>
+                <View style={styles.segmented}>
+                  <TouchableOpacity accessibilityRole="radio" accessibilityState={{ checked: withAbilities }} style={[styles.segment, withAbilities && styles.segmentActive]} onPress={() => setWithAbilities(true)}>
+                    <Check size={17} color={withAbilities ? SEMANTIC_COLOR.text.inverse : SEMANTIC_COLOR.text.secondary} />
+                    <Text type="label" style={[styles.segmentText, withAbilities && styles.segmentTextActive]}>مفعّلة</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity accessibilityRole="radio" accessibilityState={{ checked: !withAbilities }} style={[styles.segment, !withAbilities && styles.segmentActiveSecondary]} onPress={() => setWithAbilities(false)}>
+                    <Text type="label" style={styles.segmentText}>معطّلة</Text>
+                  </TouchableOpacity>
+                </View>
+              </ObsidianPanel>
             </View>
-          ) : (
-            <>
-              {roundsPanel}
-              {abilitiesPanel}
-              <RarityWeightsPanel weights={rarityWeights} onChange={setRarityWeights} />
-              {ctaBtn}
-            </>
-          )}
+
+            <ObsidianPanel raised style={[styles.panel, styles.rarityPanel]}>
+              <View style={styles.panelHeading}>
+                <View style={styles.headingCopy}>
+                  <Text type="defaultSemiBold" style={styles.panelTitle}>نسب ظهور الندرة</Text>
+                  <Text type="caption" style={styles.panelDescription}>التوزيع المعتمد يجب أن يبقى 100%.</Text>
+                </View>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="إعادة نسب الندرة الافتراضية" style={styles.resetButton} onPress={() => setRarityWeights({ ...DEFAULT_WEIGHTS })}>
+                  <RotateCcw size={16} color={SEMANTIC_COLOR.text.secondary} />
+                  <Text type="caption" style={styles.resetText}>افتراضي</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.rarityList}>
+                {RARITIES.map(item => <RarityRow key={item.key} item={item} value={rarityWeights[item.key] ?? 0} onChange={value => updateWeight(item.key, value)} />)}
+              </View>
+
+              <View style={[styles.totalRow, !weightsValid && styles.totalRowInvalid]}>
+                <Text type="label" style={{ color: weightsValid ? SEMANTIC_COLOR.status.success : SEMANTIC_COLOR.status.danger }}>
+                  {weightsValid ? 'التوزيع جاهز' : `المجموع الحالي ${totalWeight}%`}
+                </Text>
+                <Text forceLtr type="numeric" style={{ color: weightsValid ? SEMANTIC_COLOR.status.success : SEMANTIC_COLOR.status.danger }}>{totalWeight}%</Text>
+              </View>
+            </ObsidianPanel>
+          </View>
+
+          <ProButton
+            fullWidth
+            label={(isOnlineMultiplayer || isLanHost) ? 'تأكيد وإرسال الإعدادات' : isLocalTwoPlayer ? 'متابعة إلى ترتيب الطرفين' : 'متابعة إلى اختيار البطاقات'}
+            onPress={handleContinue}
+            disabled={!weightsValid}
+            accessibilityHint="يحفظ إعدادات المباراة ثم ينتقل إلى الخطوة التالية"
+          />
         </ScrollView>
       </LuxuryBackground>
     </ScreenContainer>
@@ -263,53 +273,53 @@ export default function RoundsConfigScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.xl, paddingBottom: SPACE.xxl + SPACE.xl, gap: SPACE.lg },
-  backBtn: { alignSelf: 'flex-start', paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md, borderRadius: RADIUS.sm, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(228,165,42,0.3)' },
-  backBtnText: { color: COLOR.gold, fontSize: FONT.md },
-  header: { alignItems: 'center', gap: SPACE.xs },
-  title: { fontSize: FONT.hero, color: COLOR.gold, letterSpacing: 1, textAlign: 'center' },
-  subtitle: { color: COLOR.textMuted, fontSize: FONT.sm, textAlign: 'center' },
-  hostBadge: { backgroundColor: 'rgba(212,175,55,0.15)', borderRadius: RADIUS.full, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
-  hostBadgeText: { color: COLOR.gold, fontSize: FONT.sm, fontWeight: '700' },
-  twoCol: { flexDirection: 'row', gap: SPACE.lg },
-  panel: { ...GLASS_PANEL, padding: SPACE.xl, gap: SPACE.md },
-  panelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  panelTitle: { color: COLOR.gold, fontSize: FONT.base },
-  panelDesc: { color: COLOR.textMuted, fontSize: FONT.sm },
-  selectedPill: { backgroundColor: COLOR.goldFill, borderRadius: RADIUS.full, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.xs, borderWidth: 1, borderColor: COLOR.gold },
-  selectedPillText: { color: COLOR.gold, fontSize: FONT.xl },
-  pillsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, justifyContent: 'center' },
-  roundPill: { width: 48, height: 48, borderRadius: RADIUS.full, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1.5, borderColor: 'rgba(228,165,42,0.25)', alignItems: 'center', justifyContent: 'center' },
-  roundPillActive: { backgroundColor: COLOR.gold, borderColor: COLOR.gold, ...SHADOW.gold },
-  roundPillText: { color: COLOR.textMuted, fontSize: FONT.lg },
-  roundPillTextActive: { color: '#1A0D1A' },
-  toggleRow: { flexDirection: 'row', gap: SPACE.md },
-  toggleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, paddingVertical: SPACE.md, borderRadius: RADIUS.md, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1.5, borderColor: 'rgba(228,165,42,0.2)' },
-  toggleBtnActive: { backgroundColor: 'rgba(74,222,128,0.12)', borderColor: '#4ade80' },
-  toggleBtnInactive: { backgroundColor: 'rgba(248,113,113,0.1)', borderColor: '#f87171' },
-  toggleBtnIcon: { fontSize: 16, color: COLOR.textMuted },
-  toggleBtnText: { fontSize: FONT.base, color: COLOR.textMuted },
-  toggleBtnTextActive: { color: '#4ade80' },
-  toggleBtnTextInactive: { color: '#f87171' },
-  continueBtn: { backgroundColor: COLOR.gold, paddingVertical: SPACE.lg, borderRadius: RADIUS.pill, alignItems: 'center', ...SHADOW.gold },
-  continueBtnText: { fontSize: FONT.xl, color: '#1A0D1A' },
-  waitingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: SPACE.lg, padding: SPACE.xl },
-  waitingTitle: { fontSize: FONT.xl, color: COLOR.gold, fontWeight: '800', textAlign: 'center' },
-  waitingDesc: { fontSize: FONT.base, color: COLOR.textMuted, textAlign: 'center' },
-});
-
-const rs = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 4 },
-  emoji: { fontSize: 16, width: 22, textAlign: 'center' },
-  label: { fontSize: 12, fontWeight: '700', width: 44, textAlign: 'right' },
-  track: { flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', position: 'relative', overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 4, position: 'absolute', left: 0, top: 0 },
-  pct: { fontSize: 12, fontWeight: '800', width: 36, textAlign: 'center' },
-  btns: { flexDirection: 'row', gap: 4 },
-  stepBtn: { width: 26, height: 26, borderRadius: 7, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
-  resetBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(228,165,42,0.35)', backgroundColor: 'rgba(228,165,42,0.08)' },
-  resetTxt: { color: COLOR.gold, fontSize: 11, fontWeight: '700' },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
-  totalLabel: { fontSize: 12, fontWeight: '700' },
-  autoFix: { fontSize: 11, color: '#f87171', textDecorationLine: 'underline' },
+  container: { flexGrow: 1, padding: SPACE.xl, gap: SPACE.xl, backgroundColor: 'rgba(8,13,22,0.34)' },
+  back: { minHeight: TOUCH_TARGET.default, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, paddingHorizontal: SPACE.md, borderRadius: RADIUS.md, borderWidth: 1, borderColor: SEMANTIC_COLOR.border.subtle, backgroundColor: 'rgba(19,30,47,0.72)' },
+  backText: { color: SEMANTIC_COLOR.accent.primary },
+  header: { width: '100%', maxWidth: 1000, alignSelf: 'center', alignItems: 'flex-end', gap: SPACE.sm },
+  titleRow: { width: '100%', flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', gap: SPACE.md, flexWrap: 'wrap' },
+  title: { color: SEMANTIC_COLOR.text.primary, textAlign: 'right' },
+  subtitle: { color: SEMANTIC_COLOR.text.secondary, textAlign: 'right' },
+  hostBadge: { minHeight: 34, flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, paddingHorizontal: SPACE.md, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: 'rgba(244,201,106,0.46)', backgroundColor: 'rgba(244,201,106,0.08)' },
+  hostBadgeText: { color: SEMANTIC_COLOR.rarity.legendary },
+  columns: { width: '100%', maxWidth: 1000, alignSelf: 'center', gap: SPACE.lg },
+  columnsLandscape: { flexDirection: 'row-reverse', alignItems: 'stretch' },
+  column: { flex: 1, gap: SPACE.lg },
+  panel: { gap: SPACE.lg },
+  rarityPanel: { flex: 1 },
+  panelHeading: { flexDirection: 'row-reverse', alignItems: 'center', gap: SPACE.md },
+  headingCopy: { flex: 1, alignItems: 'flex-end', gap: 2 },
+  panelTitle: { color: SEMANTIC_COLOR.text.primary, textAlign: 'right' },
+  panelDescription: { color: SEMANTIC_COLOR.text.secondary, textAlign: 'right' },
+  valuePill: { minWidth: 44, minHeight: 40, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(57,230,208,0.48)', backgroundColor: 'rgba(57,230,208,0.10)', alignItems: 'center', justifyContent: 'center' },
+  valuePillText: { color: SEMANTIC_COLOR.accent.primary },
+  roundGrid: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: SPACE.sm },
+  roundChip: { minWidth: TOUCH_TARGET.default, minHeight: TOUCH_TARGET.default, borderRadius: RADIUS.md, borderWidth: 1, borderColor: SEMANTIC_COLOR.border.subtle, backgroundColor: 'rgba(8,13,22,0.44)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.sm },
+  roundChipSelected: { borderColor: SEMANTIC_COLOR.accent.primary, backgroundColor: 'rgba(57,230,208,0.14)' },
+  roundChipText: { color: SEMANTIC_COLOR.text.secondary },
+  roundChipTextSelected: { color: SEMANTIC_COLOR.accent.primary },
+  segmented: { flexDirection: 'row-reverse', gap: SPACE.sm },
+  segment: { flex: 1, minHeight: TOUCH_TARGET.default, borderRadius: RADIUS.md, borderWidth: 1, borderColor: SEMANTIC_COLOR.border.subtle, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: SPACE.sm, backgroundColor: 'rgba(8,13,22,0.42)' },
+  segmentActive: { borderColor: SEMANTIC_COLOR.accent.primary, backgroundColor: SEMANTIC_COLOR.accent.primary },
+  segmentActiveSecondary: { borderColor: SEMANTIC_COLOR.accent.secondary, backgroundColor: 'rgba(141,164,255,0.14)' },
+  segmentText: { color: SEMANTIC_COLOR.text.secondary },
+  segmentTextActive: { color: SEMANTIC_COLOR.text.inverse },
+  resetButton: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, paddingHorizontal: SPACE.sm, borderRadius: RADIUS.md, borderWidth: 1, borderColor: SEMANTIC_COLOR.border.subtle },
+  resetText: { color: SEMANTIC_COLOR.text.secondary },
+  rarityList: { gap: SPACE.md },
+  rarityRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: SPACE.sm },
+  rarityHeading: { width: 74, flexDirection: 'row-reverse', alignItems: 'center', gap: SPACE.xs },
+  rarityDot: { width: 8, height: 8, borderRadius: 4 },
+  rarityLabel: { textAlign: 'right' },
+  rarityTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(168,180,199,0.10)', overflow: 'hidden' },
+  rarityFill: { height: '100%', borderRadius: 4 },
+  rarityValue: { width: 46, textAlign: 'center', fontSize: 13 },
+  stepper: { flexDirection: 'row', gap: 4 },
+  stepButton: { width: 38, height: 38, borderRadius: RADIUS.md, borderWidth: 1, borderColor: SEMANTIC_COLOR.border.subtle, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(8,13,22,0.44)' },
+  totalRow: { minHeight: TOUCH_TARGET.default, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(74,222,128,0.38)', backgroundColor: 'rgba(74,222,128,0.07)', flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACE.md },
+  totalRowInvalid: { borderColor: 'rgba(251,113,133,0.40)', backgroundColor: 'rgba(251,113,133,0.07)' },
+  waitingRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xl },
+  waitingPanel: { width: '100%', maxWidth: 520, alignItems: 'center', gap: SPACE.lg },
+  waitingTitle: { color: SEMANTIC_COLOR.text.primary, textAlign: 'center' },
+  waitingText: { color: SEMANTIC_COLOR.text.secondary, textAlign: 'center' },
 });

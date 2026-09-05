@@ -1,228 +1,189 @@
 import React, { useEffect, useMemo } from 'react';
-import {
-  View, StyleSheet,
-  ScrollView, useWindowDimensions,
-} from 'react-native';
-import { ThemedText as Text } from '@/components/ui/ThemedText';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Award, BarChart3, Flame, Home, RotateCcw, ShieldCheck, Swords, Trophy, Zap } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { ScreenContainer } from '@/components/screen-container';
+
 import { LuxuryBackground } from '@/components/game/luxury-background';
-import { useGame } from '@/lib/game/game-context';
-import { updateStatsAfterMatch } from '@/lib/stats/storage';
+import { ScreenContainer } from '@/components/screen-container';
+import { ObsidianPanel } from '@/components/ui/ObsidianPanel';
 import { ProButton } from '@/components/ui/ProButton';
-import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL } from '@/components/ui/design-tokens';
+import { ThemedText as Text } from '@/components/ui/ThemedText';
+import { FONT, RADIUS, SEMANTIC_COLOR, SPACE } from '@/components/ui/design-tokens';
 import { getAbilityNameAr } from '@/lib/game/ability-names';
-import { RACE_EMOJI, RACE_LABELS, type AbilityType } from '@/lib/game/types';
+import { useGame } from '@/lib/game/game-context';
+import { RACE_LABELS, type AbilityType } from '@/lib/game/types';
+import { updateStatsAfterMatch } from '@/lib/stats/storage';
 
-const DIFF_LABELS: Record<number, string> = {
-  1: 'سهل', 2: 'متوسط', 3: 'صعب', 4: 'خيالي', 5: 'أسطوري',
-};
+const DIFFICULTY_LABELS: Record<number, string> = { 1: 'سهل', 2: 'متوسط', 3: 'صعب', 4: 'أسطوري', 5: 'أسطوري' };
 
-// ─── HP Bar ───
-function HpBar({ current, max, color, label }: { current: number; max: number; color: string; label: string }) {
-  const pct = max > 0 ? Math.max(0, current / max) : 0;
+function ScoreBar({ current, max, label, color }: { current: number; max: number; label: string; color: string }) {
+  const ratio = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
   return (
-    <View style={hp.wrap}>
-      <View style={hp.header}>
-        <Text style={[hp.lbl, { color }]}>{label}</Text>
-        <Text style={[hp.val, { color }]}>{current} / {max}</Text>
+    <View style={styles.scoreBar} accessibilityLabel={`${label}: ${current} من ${max}`}>
+      <View style={styles.scoreBarHeader}>
+        <Text type="label" style={{ color }}>{label}</Text>
+        <Text forceLtr type="numeric" style={{ color }}>{current}/{max}</Text>
       </View>
-      <View style={hp.track}>
-        <View style={[hp.fill, { width: `${pct * 100}%` as any, backgroundColor: color }]} />
-      </View>
+      <View style={styles.scoreTrack}><View style={[styles.scoreFill, { width: `${ratio * 100}%` as any, backgroundColor: color }]} /></View>
     </View>
   );
 }
-const hp = StyleSheet.create({
-  wrap:   { flex: 1, gap: 4 },
-  header: { flexDirection: 'row', justifyContent: 'space-between' },
-  lbl:    { fontSize: FONT.xs, fontWeight: '700' },
-  val:    { fontSize: FONT.xs, fontWeight: '900' },
-  track:  { height: 10, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
-  fill:   { height: '100%', borderRadius: 6 },
-});
 
-// ─── Stat chip ───
-function StatChip({ icon, label, value, color = COLOR.textMuted }: { icon: string; label: string; value: string; color?: string }) {
+function Metric({ label, value, Icon, color = SEMANTIC_COLOR.text.primary }: { label: string; value: string; Icon: typeof Award; color?: string }) {
   return (
-    <View style={sc.chip}>
-      <Text style={sc.icon}>{icon}</Text>
-      <View>
-        <Text style={sc.label}>{label}</Text>
-        <Text style={[sc.value, { color }]}>{value}</Text>
+    <ObsidianPanel style={styles.metric}>
+      <Icon size={21} color={color} />
+      <View style={styles.metricCopy}>
+        <Text type="caption" style={styles.metricLabel}>{label}</Text>
+        <Text type="defaultSemiBold" style={[styles.metricValue, { color }]} numberOfLines={2}>{value}</Text>
       </View>
-    </View>
+    </ObsidianPanel>
   );
 }
-const sc = StyleSheet.create({
-  chip:  { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: RADIUS.md, padding: SPACE.md, flex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
-  icon:  { fontSize: 20 },
-  label: { color: COLOR.textMuted, fontSize: FONT.xs - 1 },
-  value: { fontSize: FONT.base, marginTop: 1 },
-});
 
-// ─── Main screen ───
 export default function BattleResultsScreen() {
   const router = useRouter();
   const { state, resetGame } = useGame();
   const { height } = useWindowDimensions();
-  const isSmallHeight = height < 400;
+  const compact = height < 430;
 
-  const playerHp    = state.playerScore;
-  const botHp       = state.botScore;
-  const isLocalTwoPlayer = state.matchMode === 'local';
-  const playerLabel = isLocalTwoPlayer ? 'المضيف' : 'أنت';
-  const opponentLabel = isLocalTwoPlayer ? 'الضيف' : 'البوت';
-  const totalRounds = state.totalRounds;
-  const displayedMaxHp = Math.max(totalRounds, state.playerMaxHealth, state.botMaxHealth);
+  const playerScore = state.playerScore;
+  const opponentScore = state.botScore;
+  const local = state.matchMode === 'local';
+  const playerLabel = local ? 'المضيف' : 'أنت';
+  const opponentLabel = local ? 'الضيف' : 'البوت';
+  const maxScore = Math.max(state.totalRounds, state.playerMaxHealth, state.botMaxHealth);
 
-  const playerLostByHp = playerHp <= 0 && botHp > 0;
-  const botLostByHp   = botHp   <= 0 && playerHp > 0;
-  const isPlayerWinner = botLostByHp  || (!playerLostByHp && playerHp > botHp);
-  const isDraw         = !playerLostByHp && !botLostByHp && playerHp === botHp;
+  const playerLost = playerScore <= 0 && opponentScore > 0;
+  const opponentLost = opponentScore <= 0 && playerScore > 0;
+  const playerWon = opponentLost || (!playerLost && playerScore > opponentScore);
+  const draw = !playerLost && !opponentLost && playerScore === opponentScore;
 
   useEffect(() => {
-    const saveStats = async () => {
-      if (state.playerDeck.length > 0) {
-        const factionsUsed = state.playerDeck.map(card => card.race);
-        await updateStatsAfterMatch(
-          state.playerScore, state.botScore,
-          state.totalRounds, factionsUsed, state.difficulty,
-        );
-      }
-    };
-    saveStats();
-  }, []);
+    if (!state.playerDeck.length) return;
+    const factions = state.playerDeck.map(card => card.race);
+    void updateStatsAfterMatch(state.playerScore, state.botScore, state.totalRounds, factions, state.difficulty);
+  }, []); // Match is terminal here; record once on screen entry, matching the existing behavior.
 
-  const stats = useMemo(() => {
+  const summary = useMemo(() => {
     const results = state.roundResults ?? [];
-    const bestPlayerCard = results.reduce((best: any, r: any) =>
-      (r.playerCard.attack + r.playerCard.defense) > ((best?.attack ?? 0) + (best?.defense ?? 0))
-        ? r.playerCard : best, null);
-    const factionCount: Record<string, number> = {};
-    for (const r of results) { const faction = r.playerCard.race; factionCount[faction] = (factionCount[faction] ?? 0) + 1; }
-    const topFaction = Object.entries(factionCount).sort((a, b) => b[1] - a[1])[0]?.[0];
-    const closeRounds = results.filter((r: any) => r.winner !== 'draw' && Math.abs(r.playerDamage - r.botDamage) <= 5).length;
-    let maxStreak = 0, curStreak = 0;
-    for (const r of results) {
-      if (r.winner === 'player') { curStreak++; maxStreak = Math.max(maxStreak, curStreak); }
-      else curStreak = 0;
-    }
-    const playerUsed: AbilityType[] = state.usedAbilities ?? [];
-    const botUsed: AbilityType[] = (state.botAbilities ?? []).filter((a: any) => a.used).map((a: any) => a.type);
-    return { bestPlayerCard, topFaction, closeRounds, maxStreak, playerUsed, botUsed };
-  }, [state.roundResults, state.usedAbilities, state.botAbilities]);
+    const bestCard = results.reduce<any>((best, result: any) => {
+      const power = (result.playerCard?.attack ?? 0) + (result.playerCard?.defense ?? 0);
+      const bestPower = (best?.attack ?? 0) + (best?.defense ?? 0);
+      return power > bestPower ? result.playerCard : best;
+    }, null);
 
-  const resultConfig = isDraw
-    ? { emoji: '🤝', label: 'تعادل!',         color: COLOR.amber, bg: 'rgba(251,191,36,0.08)',  border: COLOR.amber }
-    : isPlayerWinner
-      ? { emoji: '🏆', label: isLocalTwoPlayer ? 'فاز المضيف!' : 'فزت!', color: COLOR.green, bg: 'rgba(74,222,128,0.08)',  border: COLOR.green }
-      : { emoji: isLocalTwoPlayer ? '🏆' : '💀', label: isLocalTwoPlayer ? 'فاز الضيف!' : 'انتهت اللعبة!', color: COLOR.red, bg: 'rgba(248,113,113,0.08)', border: COLOR.red };
+    const factionCount: Record<string, number> = {};
+    results.forEach((result: any) => {
+      if (result.playerCard?.race) factionCount[result.playerCard.race] = (factionCount[result.playerCard.race] ?? 0) + 1;
+    });
+    const topFaction = Object.entries(factionCount).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const closeRounds = results.filter((result: any) => result.winner !== 'draw' && Math.abs((result.playerDamage ?? 0) - (result.botDamage ?? 0)) <= 5).length;
+    let streak = 0;
+    let bestStreak = 0;
+    results.forEach((result: any) => {
+      if (result.winner === 'player') { streak += 1; bestStreak = Math.max(bestStreak, streak); } else streak = 0;
+    });
+    const playerAbilities: AbilityType[] = state.usedAbilities ?? [];
+    const opponentAbilities: AbilityType[] = (state.botAbilities ?? []).filter((ability: any) => ability.used).map((ability: any) => ability.type);
+    return { bestCard, topFaction, closeRounds, bestStreak, playerAbilities, opponentAbilities };
+  }, [state.botAbilities, state.roundResults, state.usedAbilities]);
+
+  const outcome = draw
+    ? { label: 'تعادل', color: SEMANTIC_COLOR.status.warning, Icon: ShieldCheck }
+    : playerWon
+      ? { label: local ? 'فاز المضيف' : 'انتصار', color: SEMANTIC_COLOR.status.success, Icon: Trophy }
+      : { label: local ? 'فاز الضيف' : 'خسارة', color: SEMANTIC_COLOR.status.danger, Icon: Swords };
+
+  const OutcomeIcon = outcome.Icon;
 
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
-        <ScrollView
-          contentContainerStyle={[
-            styles.container,
-            isSmallHeight && { paddingTop: SPACE.xl, paddingBottom: SPACE.xl, gap: SPACE.md },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-
-          {/* Hero */}
-          <View style={[styles.heroBanner, { backgroundColor: resultConfig.bg, borderColor: resultConfig.border + '40' }]}>
-            <View style={[styles.winnerBadge, { borderColor: resultConfig.border + '80', backgroundColor: resultConfig.border + '18' }]}>
-              <Text style={styles.heroEmoji}>{resultConfig.emoji}</Text>
-              <Text style={[styles.heroLabel, { color: resultConfig.color }]}>{resultConfig.label}</Text>
-              {isPlayerWinner && (
-                <View style={styles.diffBadge}>
-                  <Text style={styles.diffBadgeText}>🏅 {DIFF_LABELS[state.difficulty] ?? 'عادي'}</Text>
-                </View>
-              )}
+        <ScrollView contentContainerStyle={[styles.container, compact && styles.containerCompact]} showsVerticalScrollIndicator={false}>
+          <ObsidianPanel raised accent style={[styles.hero, { borderColor: `${outcome.color}88` }]}>
+            <View style={[styles.outcomeIcon, { borderColor: `${outcome.color}88`, backgroundColor: `${outcome.color}12` }]}>
+              <OutcomeIcon size={38} color={outcome.color} />
             </View>
-
-            {/* ── شريطي صحة ── */}
-            <View style={styles.hpSection}>
-              <HpBar current={playerHp} max={displayedMaxHp} color={COLOR.green} label={`${playerLabel} ♥`} />
-              <HpBar current={botHp}    max={displayedMaxHp} color={COLOR.red}   label={`${opponentLabel} ♥`} />
+            <Text type="display" style={[styles.outcomeTitle, { color: outcome.color }]}>{outcome.label}</Text>
+            <Text forceLtr type="numeric" style={styles.finalScore}>{playerScore} — {opponentScore}</Text>
+            {!local && playerWon && (
+              <View style={styles.difficultyBadge}>
+                <Award size={15} color={SEMANTIC_COLOR.rarity.legendary} />
+                <Text type="caption" style={styles.difficultyText}>{DIFFICULTY_LABELS[state.difficulty] ?? 'عادي'}</Text>
+              </View>
+            )}
+            <View style={styles.bars}>
+              <ScoreBar current={playerScore} max={maxScore} label={playerLabel} color={SEMANTIC_COLOR.status.success} />
+              <ScoreBar current={opponentScore} max={maxScore} label={opponentLabel} color={SEMANTIC_COLOR.status.danger} />
             </View>
+          </ObsidianPanel>
+
+          <View style={styles.metricsGrid}>
+            <Metric label="أقوى كرت" value={summary.bestCard ? (summary.bestCard.nameAr ?? summary.bestCard.name) : '—'} Icon={Zap} color={SEMANTIC_COLOR.accent.primary} />
+            <Metric label="الفصيلة الأكثر استخداماً" value={summary.topFaction ? (RACE_LABELS[summary.topFaction as keyof typeof RACE_LABELS] ?? summary.topFaction) : '—'} Icon={BarChart3} />
+            <Metric label="أفضل سلسلة فوز" value={summary.bestStreak ? `${summary.bestStreak} جولات` : '—'} Icon={Flame} color={summary.bestStreak >= 3 ? SEMANTIC_COLOR.status.success : SEMANTIC_COLOR.text.primary} />
+            <Metric label="جولات متقاربة" value={String(summary.closeRounds)} Icon={Swords} />
           </View>
 
-          {/* Stats */}
-          <View style={styles.statsRow}>
-            <StatChip icon="⚡" label="أقوى كرت" value={stats.bestPlayerCard ? (stats.bestPlayerCard.nameAr ?? stats.bestPlayerCard.name) : '—'} color={COLOR.gold} />
-            <StatChip icon={stats.topFaction ? (RACE_EMOJI[stats.topFaction as keyof typeof RACE_EMOJI] ?? '👥') : '👥'} label="فصيلتك الأكثر استخداماً" value={stats.topFaction ? (RACE_LABELS[stats.topFaction as keyof typeof RACE_LABELS] ?? stats.topFaction) : '—'} />
-          </View>
-          <View style={styles.statsRow}>
-            <StatChip icon="🔥" label="سلسلة فوز" value={stats.maxStreak > 0 ? `${stats.maxStreak} جولات` : '—'} color={stats.maxStreak >= 3 ? COLOR.green : COLOR.textMuted} />
-            <StatChip icon="⚔️" label="جولات حرجة" value={String(stats.closeRounds)} />
-          </View>
-
-          {/* قدرات */}
-          {(stats.playerUsed.length > 0 || stats.botUsed.length > 0) && (
-            <View style={[styles.panel, { gap: SPACE.md }]}>
-              <Text style={styles.panelTitle}>⚡ القدرات المستخدمة</Text>
-              {stats.playerUsed.length > 0 && (
-                <View style={styles.abilitiesBlock}>
-                  <Text style={[styles.abilitiesWho, { color: COLOR.green }]}>👤 {playerLabel}</Text>
-                  <View style={styles.abilitiesRow}>
-                    {stats.playerUsed.map((ab, i) => (
-                      <View key={i} style={[styles.abilityChip, { borderColor: COLOR.green + '55', backgroundColor: COLOR.green + '10' }]}>
-                        <Text style={[styles.abilityChipText, { color: COLOR.green }]}>{getAbilityNameAr(ab).split('(')[0].trim()}</Text>
+          {(summary.playerAbilities.length > 0 || summary.opponentAbilities.length > 0) && (
+            <ObsidianPanel raised style={styles.section}>
+              <Text type="defaultSemiBold" style={styles.sectionTitle}>القدرات المستخدمة</Text>
+              {!!summary.playerAbilities.length && (
+                <View style={styles.abilityGroup}>
+                  <Text type="label" style={{ color: SEMANTIC_COLOR.status.success }}>{playerLabel}</Text>
+                  <View style={styles.chips}>
+                    {summary.playerAbilities.map((ability, index) => (
+                      <View key={`${ability}-${index}`} style={[styles.chip, { borderColor: 'rgba(74,222,128,0.38)' }]}>
+                        <Text type="caption" style={{ color: SEMANTIC_COLOR.status.success }}>{getAbilityNameAr(ability).split('(')[0].trim()}</Text>
                       </View>
                     ))}
                   </View>
                 </View>
               )}
-              {stats.botUsed.length > 0 && (
-                <View style={styles.abilitiesBlock}>
-                  <Text style={[styles.abilitiesWho, { color: COLOR.red }]}>{isLocalTwoPlayer ? '🤝' : '🤖'} {opponentLabel}</Text>
-                  <View style={styles.abilitiesRow}>
-                    {stats.botUsed.map((ab, i) => (
-                      <View key={i} style={[styles.abilityChip, { borderColor: COLOR.red + '55', backgroundColor: COLOR.red + '10' }]}>
-                        <Text style={[styles.abilityChipText, { color: COLOR.red }]}>{getAbilityNameAr(ab).split('(')[0].trim()}</Text>
+              {!!summary.opponentAbilities.length && (
+                <View style={styles.abilityGroup}>
+                  <Text type="label" style={{ color: SEMANTIC_COLOR.status.danger }}>{opponentLabel}</Text>
+                  <View style={styles.chips}>
+                    {summary.opponentAbilities.map((ability, index) => (
+                      <View key={`${ability}-${index}`} style={[styles.chip, { borderColor: 'rgba(251,113,133,0.38)' }]}>
+                        <Text type="caption" style={{ color: SEMANTIC_COLOR.status.danger }}>{getAbilityNameAr(ability).split('(')[0].trim()}</Text>
                       </View>
                     ))}
                   </View>
                 </View>
               )}
-            </View>
+            </ObsidianPanel>
           )}
 
-          {/* سجل الجولات */}
-          {state.roundResults && state.roundResults.length > 0 && (
-            <View style={styles.panel}>
-              <Text style={styles.panelTitle}>📜 سجل الجولات</Text>
-              {state.roundResults.map((round: any, index: number) => {
-                const roundColor  = round.winner === 'player' ? COLOR.green : round.winner === 'bot' ? COLOR.red : COLOR.amber;
-                const roundLabel  = round.winner === 'player' ? `✓ ${playerLabel}` : round.winner === 'bot' ? `✓ ${opponentLabel}` : '= تعادل';
-                return (
-                  <View key={index} style={[styles.roundRow, { borderLeftColor: roundColor }]}>
-                    <View style={styles.roundLeft}>
-                      <Text style={styles.roundNum}>جولة {index + 1}</Text>
-                      <Text style={[styles.roundWinner, { color: roundColor }]}>{roundLabel}</Text>
+          {!!state.roundResults?.length && (
+            <ObsidianPanel raised style={styles.section}>
+              <Text type="defaultSemiBold" style={styles.sectionTitle}>سجل الجولات</Text>
+              <View style={styles.roundList}>
+                {state.roundResults.map((round: any, index: number) => {
+                  const tone = round.winner === 'player' ? SEMANTIC_COLOR.status.success : round.winner === 'bot' ? SEMANTIC_COLOR.status.danger : SEMANTIC_COLOR.status.warning;
+                  const winnerLabel = round.winner === 'player' ? playerLabel : round.winner === 'bot' ? opponentLabel : 'تعادل';
+                  return (
+                    <View key={`${index}-${round.playerCard?.id ?? 'player'}-${round.botCard?.id ?? 'opponent'}`} style={styles.roundRow} accessibilityLabel={`الجولة ${index + 1}. ${winnerLabel}`}>
+                      <View style={[styles.roundIndex, { borderColor: `${tone}72` }]}><Text forceLtr type="numeric" style={{ color: tone }}>{index + 1}</Text></View>
+                      <View style={styles.roundCopy}>
+                        <Text type="label" style={{ color: tone }}>{winnerLabel}</Text>
+                        <Text type="caption" style={styles.roundCards} numberOfLines={2}>
+                          {round.playerCard?.nameAr ?? '—'}  ·  {round.botCard?.nameAr ?? '—'}
+                        </Text>
+                      </View>
+                      <Text forceLtr type="numeric" style={styles.roundDamage}>{round.playerDamage ?? 0}</Text>
                     </View>
-                    <View style={styles.roundCards}>
-                      <Text style={styles.roundCard} numberOfLines={1}>{round.playerCard?.nameAr}</Text>
-                      <Text style={styles.roundVs}>vs</Text>
-                      <Text style={styles.roundCard} numberOfLines={1}>{round.botCard?.nameAr}</Text>
-                    </View>
-                    <View style={styles.roundRight}>
-                      <Text style={styles.roundDmg}>{round.playerDamage}{round.playerFactionAdvantage !== 'neutral' ? ` (${round.playerFactionAdvantage === 'strong' ? '+25%' : '-25%'})` : ''}</Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
+                  );
+                })}
+              </View>
+            </ObsidianPanel>
           )}
 
-          {/* Actions */}
           <View style={styles.actions}>
-            <ProButton label="🎮 العب مجددا" onPress={() => { resetGame(); router.push('/screens/rounds-config' as any); }} variant="primary" style={styles.actionBtn} />
-            <ProButton label="🏠 الرئيسية" onPress={() => router.push('/screens/splash' as any)} variant="secondary" style={styles.actionBtn} />
+            <ProButton fullWidth label="مباراة جديدة" icon={<RotateCcw size={19} color={SEMANTIC_COLOR.text.inverse} />} onPress={() => { resetGame(); router.push('/screens/rounds-config' as any); }} />
+            <ProButton fullWidth label="الرئيسية" variant="secondary" icon={<Home size={19} color="#DCE4FF" />} onPress={() => router.push('/screens/splash' as any)} />
           </View>
-
         </ScrollView>
       </LuxuryBackground>
     </ScreenContainer>
@@ -230,31 +191,34 @@ export default function BattleResultsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:       { paddingHorizontal: SPACE.lg, paddingTop: SPACE.xxl, paddingBottom: SPACE.xxl + SPACE.xl, gap: SPACE.xl },
-  heroBanner:      { ...GLASS_PANEL, alignItems: 'center', paddingVertical: SPACE.xxl, gap: SPACE.lg },
-  winnerBadge:     { alignItems: 'center', gap: SPACE.sm, paddingHorizontal: SPACE.xxl, paddingVertical: SPACE.lg, borderRadius: RADIUS.lg, borderWidth: 1.5, width: '100%' },
-  heroEmoji:       { fontSize: 56 },
-  heroLabel:       { fontSize: FONT.hero + 4, letterSpacing: 1, textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6, textAlign: 'center' },
-  diffBadge:       { marginTop: SPACE.xs, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.xs, borderRadius: RADIUS.full, backgroundColor: 'rgba(74,222,128,0.12)', borderWidth: 1, borderColor: 'rgba(74,222,128,0.3)' },
-  diffBadgeText:   { color: COLOR.green, fontSize: FONT.xs },
-  hpSection:       { width: '100%', gap: SPACE.md, paddingHorizontal: SPACE.sm },
-  statsRow:        { flexDirection: 'row', gap: SPACE.md },
-  panel:           { ...GLASS_PANEL, padding: SPACE.xl },
-  panelTitle:      { color: COLOR.gold, fontSize: FONT.lg, marginBottom: SPACE.md },
-  abilitiesBlock:  { gap: SPACE.sm },
-  abilitiesWho:    { fontSize: FONT.sm, marginBottom: 2 },
-  abilitiesRow:    { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },
-  abilityChip:     { paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderRadius: RADIUS.full, borderWidth: 1 },
-  abilityChipText: { fontSize: FONT.xs },
-  roundRow:        { flexDirection: 'row', alignItems: 'center', borderLeftWidth: 3, paddingLeft: SPACE.md, paddingVertical: SPACE.sm, marginBottom: SPACE.sm, gap: SPACE.md, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: RADIUS.sm },
-  roundLeft:       { minWidth: 72 },
-  roundNum:        { color: COLOR.textMuted, fontSize: FONT.xs },
-  roundWinner:     { fontSize: FONT.sm, marginTop: 2 },
-  roundCards:      { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-  roundCard:       { flex: 1, color: COLOR.textPrimary, fontSize: FONT.xs, textAlign: 'center' },
-  roundVs:         { color: COLOR.textMuted, fontSize: FONT.xs },
-  roundRight:      { minWidth: 60, alignItems: 'flex-end' },
-  roundDmg:        { color: COLOR.textMuted, fontSize: FONT.xs },
-  actions:         { flexDirection: 'row', gap: SPACE.md },
-  actionBtn:       { flex: 1 },
+  container: { flexGrow: 1, padding: SPACE.xl, gap: SPACE.xl, backgroundColor: 'rgba(8,13,22,0.34)' },
+  containerCompact: { paddingVertical: SPACE.md, gap: SPACE.md },
+  hero: { width: '100%', maxWidth: 980, alignSelf: 'center', alignItems: 'center', gap: SPACE.md },
+  outcomeIcon: { width: 70, height: 70, borderRadius: 35, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  outcomeTitle: { textAlign: 'center' },
+  finalScore: { color: SEMANTIC_COLOR.text.primary, fontSize: FONT.xxl, letterSpacing: 4 },
+  difficultyBadge: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: 'rgba(244,201,106,0.38)', backgroundColor: 'rgba(244,201,106,0.08)' },
+  difficultyText: { color: SEMANTIC_COLOR.rarity.legendary },
+  bars: { width: '100%', gap: SPACE.md },
+  scoreBar: { gap: SPACE.xs },
+  scoreBarHeader: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' },
+  scoreTrack: { height: 10, borderRadius: 5, overflow: 'hidden', backgroundColor: 'rgba(168,180,199,0.10)' },
+  scoreFill: { height: '100%', borderRadius: 5 },
+  metricsGrid: { width: '100%', maxWidth: 980, alignSelf: 'center', flexDirection: 'row-reverse', flexWrap: 'wrap', gap: SPACE.md },
+  metric: { minWidth: 220, flex: 1, flexDirection: 'row-reverse', alignItems: 'center', gap: SPACE.md },
+  metricCopy: { flex: 1, alignItems: 'flex-end', gap: 2 },
+  metricLabel: { color: SEMANTIC_COLOR.text.secondary, textAlign: 'right' },
+  metricValue: { textAlign: 'right' },
+  section: { width: '100%', maxWidth: 980, alignSelf: 'center', gap: SPACE.md },
+  sectionTitle: { color: SEMANTIC_COLOR.accent.primary, textAlign: 'right' },
+  abilityGroup: { gap: SPACE.sm },
+  chips: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: SPACE.sm },
+  chip: { minHeight: 36, justifyContent: 'center', paddingHorizontal: SPACE.md, borderRadius: RADIUS.pill, borderWidth: 1, backgroundColor: 'rgba(8,13,22,0.42)' },
+  roundList: { gap: SPACE.sm },
+  roundRow: { minHeight: 62, flexDirection: 'row-reverse', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm, borderTopWidth: 1, borderTopColor: 'rgba(43,61,85,0.62)' },
+  roundIndex: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  roundCopy: { flex: 1, alignItems: 'flex-end', gap: 2 },
+  roundCards: { color: SEMANTIC_COLOR.text.secondary, textAlign: 'right' },
+  roundDamage: { color: SEMANTIC_COLOR.text.primary, minWidth: 34, textAlign: 'center' },
+  actions: { width: '100%', maxWidth: 680, alignSelf: 'center', gap: SPACE.md },
 });

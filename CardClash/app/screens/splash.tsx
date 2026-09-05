@@ -1,390 +1,319 @@
-/**
- * SplashScreen — Redesigned: Professional, clean, fully responsive.
- */
 import React, { useEffect, useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
-import { ThemedText as Text } from '@/components/ui/ThemedText';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
+import {
+  BarChart3,
+  BookOpen,
+  Library,
+  Settings,
+  Wifi,
+} from 'lucide-react-native';
 import Animated, {
-  useSharedValue, useAnimatedStyle,
-  withTiming, withDelay, withSpring,
-  withRepeat, withSequence, Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
 } from 'react-native-reanimated';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
-import { useSettings } from '@/lib/game/hooks/useSettings';
+import { ObsidianPanel } from '@/components/ui/ObsidianPanel';
+import { ProButton } from '@/components/ui/ProButton';
+import { ThemedText } from '@/components/ui/ThemedText';
+import {
+  FONT,
+  RADIUS,
+  SEMANTIC_COLOR,
+  SPACE,
+} from '@/components/ui/design-tokens';
 import { isDeveloperBuild } from '@/lib/build-variant';
-import { useOrientationTransition } from '@/utils/orientation-transition';
+import { useMotionPreferences } from '@/hooks/useMotionPreferences';
 import { loadStats } from '@/lib/stats/storage';
-import { PlayerStats } from '@/lib/stats/types';
-import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
-import Constants from 'expo-constants';
+import type { PlayerStats } from '@/lib/stats/types';
 
-// ─── Animated entrance wrapper ────────────────────────────────────────────────
-function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  const op = useSharedValue(0);
-  const y = useSharedValue(20);
-  useEffect(() => {
-    op.value = withDelay(delay, withTiming(1, { duration: 400 }));
-    y.value = withDelay(delay, withSpring(0, { damping: 16 }));
-  }, [delay, op, y]);
-  const s = useAnimatedStyle(() => ({ opacity: op.value, transform: [{ translateY: y.value }] }));
-  return <Animated.View style={s}>{children}</Animated.View>;
-}
+function Entrance({
+  children,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+}) {
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(12);
+  const { reduceMotion } = useMotionPreferences();
 
-// ─── Pulsing CTA ─────────────────────────────────────────────────────────────
-function PulsingPlay({ onPress, label, enabled }: { onPress: () => void; label: string; enabled: boolean }) {
-  const scale = useSharedValue(1);
   useEffect(() => {
-    if (!enabled) {
-      scale.value = 1;
+    if (reduceMotion) {
+      opacity.value = 1;
+      translateY.value = 0;
       return;
     }
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.03, { duration: 850, easing: Easing.inOut(Easing.sin) }),
-        withTiming(1.00, { duration: 850, easing: Easing.inOut(Easing.sin) })
-      ), -1, false
-    );
-  }, [enabled, scale]);
-  const s = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  return (
-    <Animated.View style={[s, { width: '100%' }]}>
-      <TouchableOpacity style={styles.primaryBtn} onPress={onPress} activeOpacity={0.85}>
-        <Text style={styles.primaryBtnIcon}>⚔️</Text>
-        <Text style={styles.primaryBtnText}>{label}</Text>
-      </TouchableOpacity>
-    </Animated.View>
-  );
+    opacity.value = withDelay(delay, withTiming(1, { duration: 300 }));
+    translateY.value = withDelay(delay, withTiming(0, { duration: 300 }));
+  }, [delay, opacity, reduceMotion, translateY]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  return <Animated.View style={style}>{children}</Animated.View>;
 }
 
-// ─── Stat Pill ────────────────────────────────────────────────────────────────
-function StatPill({ num, label, color }: { num: string | number; label: string; color: string }) {
-  return (
-    <View style={styles.statPill}>
-      <Text style={[styles.statNum, { color }]}>{num}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
-// ─── Nav button ───────────────────────────────────────────────────────────────
-function NavBtn({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
-  return (
-    <TouchableOpacity
-      style={styles.navBtn}
-      onPress={onPress}
-      activeOpacity={0.75}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      <Text style={styles.navIcon}>{icon}</Text>
-      <Text style={styles.navLabel}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function SplashScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const isDeveloper = isDeveloperBuild(Constants.expoConfig?.extra);
-  const { settings } = useSettings();
-  const { animatedStyle: orientationStyle, layoutTransition } = useOrientationTransition(
-    isLandscape,
-    settings.animationsEnabled,
-  );
-
   const [stats, setStats] = useState<PlayerStats | null>(null);
-  useEffect(() => { loadStats().then(setStats); }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadStats().then((value) => { if (active) setStats(value); });
+    return () => { active = false; };
+  }, []);
 
   const totalMatches = stats?.totalMatches ?? 0;
   const totalWins = stats?.totalWins ?? 0;
-  const winRate = totalMatches > 0 ? Math.round((totalWins / totalMatches) * 100) : 0;
-  const streak = stats?.currentWinStreak ?? 0;
-
-  // ─ Left panel (portrait: top)
-  const heroPanel = (
-    <FadeIn delay={0}>
-      <View style={styles.heroPanel}>
-        <Text style={styles.logoIcon}>🃏</Text>
-        <Text style={styles.logoTitle}>Card Clash</Text>
-        <Text style={styles.logoTagline}>المواجهة الأسطورية للكروت</Text>
-        {streak > 0 && (
-          <View style={styles.streakBadge}>
-            <Text style={styles.streakText}>🔥 سلسلة {streak} انتصارات!</Text>
-          </View>
-        )}
-      </View>
-    </FadeIn>
-  );
-
-  // ─ Right / bottom content
-  const content = (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={[styles.scrollContent, isLandscape && { paddingTop: SPACE.lg }]}
-    >
-      {/* Stats strip */}
-      <FadeIn delay={120}>
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>📊 إحصائياتك</Text>
-          <View style={styles.statsRow}>
-            <StatPill num={totalWins} label="انتصارات" color={COLOR.green} />
-            <View style={styles.divider} />
-            <StatPill num={`${winRate}%`} label="معدل الفوز" color={COLOR.amber} />
-            <View style={styles.divider} />
-            <StatPill num={totalMatches} label="مباريات" color={COLOR.gold} />
-            <View style={styles.divider} />
-            <StatPill num={stats?.bestWinStreak ?? 0} label="أفضل سلسلة" color="#fb923c" />
-          </View>
-        </View>
-      </FadeIn>
-
-      {/* Solo CTA */}
-      <FadeIn delay={240}>
-        <PulsingPlay
-          onPress={() => router.push('/screens/game-mode' as any)}
-          label="ابدأ المواجهة"
-          enabled={settings.animationsEnabled}
-        />
-      </FadeIn>
-
-      {/* ─── Multiplayer Button ─────────────────────────────────────────── */}
-      <FadeIn delay={320}>
-        <TouchableOpacity
-          style={styles.multiplayerBtn}
-          onPress={() => router.push('/screens/multiplayer-lobby' as any)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.multiplayerBtnIcon}>🌐</Text>
-          <View style={styles.multiplayerBtnTextWrap}>
-            <Text style={styles.multiplayerBtnTitle}>العب أونلاين</Text>
-            <Text style={styles.multiplayerBtnSub}>تحدَّ صديقك في الوقت الحقيقي</Text>
-          </View>
-          <Text style={styles.multiplayerArrow}>›</Text>
-        </TouchableOpacity>
-      </FadeIn>
-      {/* ──────────────────────────────────────────────────────────────────── */}
-
-      {/* Nav grid */}
-      <FadeIn delay={400}>
-        <View style={styles.navRow}>
-          <NavBtn icon="📊" label="الإحصائيات" onPress={() => router.push('/screens/stats' as any)} />
-          {isDeveloper && <NavBtn icon="🃏" label="المجموعة" onPress={() => router.push('/screens/cards-gallery' as any)} />}
-          <NavBtn icon="⚙️" label="الإعدادات" onPress={() => router.push('/screens/settings' as any)} />
-        </View>
-      </FadeIn>
-
-      <FadeIn delay={460}>
-        <TouchableOpacity
-          testID="how-to-play-link"
-          style={styles.guideBtn}
-          onPress={() => router.push('/screens/how-to-play' as any)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.guideBtnIcon}>📖</Text>
-          <View style={styles.guideBtnTextWrap}>
-            <Text style={styles.guideBtnTitle}>كيف تلعب؟</Text>
-            <Text style={styles.guideBtnSub}>دليل مبسط للقواعد والفصائل والقدرات</Text>
-          </View>
-          <Text style={styles.guideBtnArrow}>←</Text>
-        </TouchableOpacity>
-      </FadeIn>
-
-      <Text style={styles.version}>Card Clash v2.0</Text>
-    </ScrollView>
-  );
+  const winRate = totalMatches ? Math.round((totalWins / totalMatches) * 100) : 0;
+  const version = Constants.nativeAppVersion ?? Constants.expoConfig?.version ?? '—';
 
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
-        <Animated.View
-          layout={layoutTransition}
-          style={[
-            styles.orientationRoot,
-            isLandscape ? styles.landscapeRoot : styles.portraitRoot,
-            orientationStyle,
-          ]}
-        >
-          <Animated.View
-            layout={layoutTransition}
-            style={isLandscape ? styles.heroSlotLandscape : styles.heroSlotPortrait}
+        <View style={[styles.root, isLandscape && styles.rootLandscape]}>
+          <Entrance>
+            <View style={[styles.hero, isLandscape && styles.heroLandscape]}>
+              <View style={styles.artShell}>
+                <View pointerEvents="none" style={styles.heroHalo} />
+                <Image
+                  source={require('../../assets/images/splash-icon.png')}
+                  resizeMode="contain"
+                  style={styles.heroArt}
+                  accessibilityLabel="شعار Card Clash"
+                />
+              </View>
+              <ThemedText type="display" style={styles.logo} forceLtr>
+                CARD CLASH
+              </ThemedText>
+              <ThemedText type="subtitle" style={styles.tagline}>
+                مبارزات بطاقات 1 ضد 1 — قرار واضح، تأثير محسوب
+              </ThemedText>
+            </View>
+          </Entrance>
+
+          <ScrollView
+            style={styles.content}
+            contentContainerStyle={styles.contentInner}
+            showsVerticalScrollIndicator={false}
           >
-            {heroPanel}
-          </Animated.View>
-          <Animated.View
-            layout={layoutTransition}
-            style={isLandscape ? styles.contentSlotLandscape : styles.contentSlotPortrait}
-          >
-            {content}
-          </Animated.View>
-        </Animated.View>
+            <Entrance delay={80}>
+              <ObsidianPanel accent style={styles.playPanel}>
+                <ThemedText type="title" style={styles.playTitle}>ابدأ المواجهة</ThemedText>
+                <ThemedText type="subtitle" style={styles.playCopy}>
+                  اختر النمط المناسب ثم جهّز جولاتك.
+                </ThemedText>
+                <ProButton
+                  testID="primary-play-action"
+                  label="العب الآن"
+                  fullWidth
+                  onPress={() => router.push('/screens/game-mode' as any)}
+                  accessibilityHint="يفتح أنماط اللعب المتاحة"
+                />
+              </ObsidianPanel>
+            </Entrance>
+
+            <Entrance delay={140}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="اللعب أونلاين"
+                onPress={() => router.push('/screens/multiplayer-lobby' as any)}
+                style={styles.onlineCard}
+              >
+                <View style={styles.onlineIcon}>
+                  <Wifi size={22} color={SEMANTIC_COLOR.accent.secondary} />
+                </View>
+                <View style={styles.onlineCopy}>
+                  <ThemedText type="defaultSemiBold">اللعب أونلاين</ThemedText>
+                  <ThemedText type="caption">مطابقة تنافسية أو غرفة خاصة برمز</ThemedText>
+                </View>
+              </TouchableOpacity>
+            </Entrance>
+
+            <Entrance delay={200}>
+              <View style={styles.quickRow}>
+                <QuickAction
+                  icon={<BarChart3 size={20} color={SEMANTIC_COLOR.status.success} />}
+                  label="الإحصائيات"
+                  onPress={() => router.push('/screens/stats' as any)}
+                />
+                {isDeveloper && (
+                  <QuickAction
+                    icon={<Library size={20} color="#C084FC" />}
+                    label="المجموعة"
+                    onPress={() => router.push('/screens/cards-gallery' as any)}
+                  />
+                )}
+                <QuickAction
+                  icon={<Settings size={20} color={SEMANTIC_COLOR.accent.primary} />}
+                  label="الإعدادات"
+                  onPress={() => router.push('/screens/settings' as any)}
+                />
+                <QuickAction
+                  icon={<BookOpen size={20} color={SEMANTIC_COLOR.status.warning} />}
+                  label="كيف تلعب؟"
+                  testID="how-to-play-link"
+                  onPress={() => router.push('/screens/how-to-play' as any)}
+                />
+              </View>
+            </Entrance>
+
+            <Entrance delay={250}>
+              <ObsidianPanel style={styles.statsPanel}>
+                <Metric value={totalWins} label="انتصارات" />
+                <Metric value={`${winRate}%`} label="معدل الفوز" />
+                <Metric value={totalMatches} label="مباريات" />
+                <Metric value={stats?.bestWinStreak ?? 0} label="أفضل سلسلة" />
+              </ObsidianPanel>
+            </Entrance>
+
+            <ThemedText type="caption" style={styles.version} forceLtr>
+              Card Clash v{version}
+            </ThemedText>
+          </ScrollView>
+        </View>
       </LuxuryBackground>
     </ScreenContainer>
   );
 }
 
+function QuickAction({
+  icon,
+  label,
+  onPress,
+  testID,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onPress: () => void;
+  testID?: string;
+}) {
+  return (
+    <TouchableOpacity
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={styles.quickAction}
+    >
+      {icon}
+      <ThemedText type="caption" style={styles.quickLabel}>{label}</ThemedText>
+    </TouchableOpacity>
+  );
+}
+
+function Metric({ value, label }: { value: string | number; label: string }) {
+  return (
+    <View style={styles.metric}>
+      <ThemedText type="numeric" style={styles.metricValue}>{value}</ThemedText>
+      <ThemedText type="caption">{label}</ThemedText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  // ─ Layout
-  orientationRoot: { flex: 1 },
-  landscapeRoot: { flexDirection: 'row' },
-  portraitRoot: { flexDirection: 'column', paddingHorizontal: SPACE.lg },
-  heroSlotLandscape: {
-    width: '36%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(228,165,42,0.12)',
-    paddingHorizontal: SPACE.xl,
-  },
-  heroSlotPortrait: { paddingTop: SPACE.md },
-  contentSlotLandscape: { flex: 1, paddingHorizontal: SPACE.xl },
-  contentSlotPortrait: { flex: 1 },
-  scrollContent: {
-    gap: SPACE.lg,
-    paddingBottom: SPACE.xxl + SPACE.xl,
-    paddingTop: SPACE.md,
-  },
-
-  // ─ Hero
-  heroPanel: { alignItems: 'center', gap: SPACE.sm },
-  logoIcon: { fontSize: 56, textShadowColor: 'rgba(57,230,208,0.38)', textShadowRadius: 16 },
-  logoTitle: {
-    fontSize: FONT.hero,
-    color: COLOR.goldAccent,
-    letterSpacing: 2,
-    textAlign: 'center',
-    textShadowColor: 'rgba(57,230,208,0.42)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 16,
-  },
-  logoTagline: {
-    color: COLOR.textMuted,
-    fontSize: FONT.sm,
-    letterSpacing: 0.6,
-    textAlign: 'center',
-  },
-  streakBadge: {
-    marginTop: SPACE.xs,
-    paddingHorizontal: SPACE.lg,
-    paddingVertical: SPACE.xs,
-    backgroundColor: 'rgba(244,201,106,0.12)',
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    borderColor: 'rgba(244,201,106,0.44)',
-  },
-  streakText: { color: COLOR.amber, fontSize: FONT.sm },
-
-  // ─ Panel
-  panel: {
-    ...GLASS_PANEL,
+  root: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 1180,
+    alignSelf: 'center',
     padding: SPACE.lg,
   },
-  panelTitle: {
-    color: COLOR.gold,
-    fontSize: FONT.sm,
-    letterSpacing: 0.4,
-    marginBottom: SPACE.md,
-  },
-
-  // ─ Stats
-  statsRow: {
-    flexDirection: 'row',
+  rootLandscape: { flexDirection: 'row', alignItems: 'stretch', gap: SPACE.xl },
+  hero: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  divider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(228,165,42,0.15)',
-  },
-  statPill: { alignItems: 'center', flex: 1 },
-  statNum: { fontSize: FONT.xl },
-  statLabel: { color: COLOR.textMuted, fontSize: FONT.xs - 2, marginTop: 2 },
-
-  // ─ Primary CTA
-  primaryBtn: {
-    backgroundColor: COLOR.gold,
-    paddingVertical: SPACE.lg,
-    borderRadius: RADIUS.pill,
-    alignItems: 'center',
-    flexDirection: 'row',
     justifyContent: 'center',
     gap: SPACE.sm,
-    ...SHADOW.gold,
-  },
-  primaryBtnIcon: { fontSize: 22 },
-  primaryBtnText: {
-    color: '#062126',
-    fontSize: FONT.xl,
-    letterSpacing: 0.5,
-  },
-
-  // ─ Multiplayer Button
-  multiplayerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.md,
-    backgroundColor: 'rgba(14,116,144,0.14)',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1.5,
-    borderColor: 'rgba(56,189,248,0.36)',
     paddingVertical: SPACE.lg,
-    paddingHorizontal: SPACE.xl,
   },
-  multiplayerBtnIcon: { fontSize: 26 },
-  multiplayerBtnTextWrap: { flex: 1, gap: 2 },
-  multiplayerBtnTitle: {
-    color: '#A5F3FC',
-    fontSize: FONT.base,
-    letterSpacing: 0.3,
-  },
-  multiplayerBtnSub: {
-    color: 'rgba(203,221,221,0.58)',
-    fontSize: FONT.xs,
-  },
-  multiplayerArrow: {
-    color: '#67E8F9',
-    fontSize: 28,
-    lineHeight: 32,
-  },
-
-  // ─ Nav grid
-  navRow: {
-    flexDirection: 'row',
-    gap: SPACE.md,
-  },
-  navBtn: {
-    flex: 1,
+  heroLandscape: { width: '38%', paddingHorizontal: SPACE.xl },
+  artShell: {
+    width: 176,
+    height: 176,
     alignItems: 'center',
-    paddingVertical: SPACE.md,
-    backgroundColor: 'rgba(57,230,208,0.08)',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  heroHalo: {
+    position: 'absolute',
+    width: 154,
+    height: 154,
+    borderRadius: 77,
+    backgroundColor: 'rgba(57,230,208,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(57,230,208,0.18)',
+  },
+  heroArt: { width: 144, height: 144 },
+  logo: {
+    color: SEMANTIC_COLOR.text.primary,
+    fontSize: FONT.hero,
+    letterSpacing: 2.5,
+    textAlign: 'center',
+  },
+  tagline: { textAlign: 'center', maxWidth: 420 },
+  content: { flex: 1 },
+  contentInner: {
+    gap: SPACE.md,
+    paddingVertical: SPACE.lg,
+    paddingBottom: SPACE.xxxl,
+  },
+  playPanel: { gap: SPACE.sm },
+  playTitle: { textAlign: 'right' },
+  playCopy: { textAlign: 'right', marginBottom: SPACE.sm },
+  onlineCard: {
+    minHeight: 74,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.md,
+    padding: SPACE.md,
+    borderRadius: RADIUS.lg,
+    backgroundColor: 'rgba(141,164,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(141,164,255,0.38)',
+  },
+  onlineIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(141,164,255,0.10)',
+  },
+  onlineCopy: { flex: 1, alignItems: 'flex-end' },
+  quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },
+  quickAction: {
+    minWidth: 108,
+    minHeight: 66,
+    flex: 1,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: 'rgba(57,230,208,0.24)',
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    backgroundColor: 'rgba(19,30,47,0.78)',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: SPACE.xs,
+    padding: SPACE.sm,
   },
-  navIcon: { fontSize: 22 },
-  navLabel: { color: '#BFFAF2', fontSize: FONT.xs },
-  guideBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
-    paddingHorizontal: SPACE.lg, paddingVertical: SPACE.md,
-    backgroundColor: 'rgba(20,184,166,0.08)', borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: 'rgba(45,212,191,0.28)',
-  },
-  guideBtnIcon: { fontSize: 24 },
-  guideBtnTextWrap: { flex: 1, gap: 2 },
-  guideBtnTitle: { color: '#99F6E4', fontSize: FONT.base, letterSpacing: 0.3 },
-  guideBtnSub: { color: 'rgba(203,221,221,0.58)', fontSize: FONT.xs },
-  guideBtnArrow: { color: '#5EEAD4', fontSize: 20 },
-
-  version: {
-    color: 'rgba(255,255,255,0.12)',
-    fontSize: FONT.xs - 2,
-    textAlign: 'center',
-    letterSpacing: 0.4,
-    paddingBottom: SPACE.md,
-  },
+  quickLabel: { textAlign: 'center' },
+  statsPanel: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },
+  metric: { minWidth: 94, flex: 1, alignItems: 'center', gap: 2 },
+  metricValue: { color: SEMANTIC_COLOR.accent.primary, fontSize: FONT.lg },
+  version: { textAlign: 'center', marginTop: SPACE.sm },
 });

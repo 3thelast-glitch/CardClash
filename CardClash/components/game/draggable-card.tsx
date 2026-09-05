@@ -1,150 +1,147 @@
 /**
- * DraggableCard — Card with Gesture Handler v2 + Reanimated v4 Pan Gesture.
+ * DraggableCard — authoritative-state-safe drag presentation.
  *
- * Drag behaviour:
- *  - Smooth follow-finger via GestureDetector + Gesture.Pan()
- *  - Shadow increases during drag (radius 16 → 30)
- *  - Spring snap-back on release if no valid drop
- *  - Green highlight overlay when over a drop zone
+ * Drop acceptance is intentionally not read synchronously from runOnJS.
+ * The intended drop is dispatched once and the authoritative React state decides
+ * whether the card remains, moves, or re-renders.
  */
-
 import React from 'react';
-import { StyleSheet, ViewStyle } from 'react-native';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-    useSharedValue,
-    useAnimatedStyle,
-    withSpring,
-    withTiming,
-    runOnJS,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
-import { Card } from '@/lib/game/types';
+import type { Card } from '@/lib/game/types';
 import { CardItem } from './card-item';
-import { ANIMATION_VALUES } from '@/constants/game-config';
-
-// ─── Props ────────────────────────────────────────────────────────────────────
+import { ANIM_DURATION, SPRING } from '@/constants/animationConfig';
+import { haptics } from '@/lib/feedback/haptics';
+import { useMotionPreferences } from '@/hooks/useMotionPreferences';
+import { SEMANTIC_COLOR } from '@/components/ui/design-tokens';
 
 interface DraggableCardProps {
-    card: Card;
-    /** Called when finger lifts — return true to accept drop, false to snap back */
-    onDrop?: (x: number, y: number) => boolean;
-    onDragStart?: () => void;
-    /** Whether this card is hovering over a valid drop zone */
-    isOverDropZone?: boolean;
-    size?: 'small' | 'medium' | 'large';
-    style?: ViewStyle;
-    disabled?: boolean;
+  card: Card;
+  /**
+   * Legacy boolean return is preserved for call-site compatibility but ignored.
+   * Consumers should update authoritative state from this callback.
+   */
+  onDrop?: (x: number, y: number) => boolean | void;
+  onDragStart?: () => void;
+  isOverDropZone?: boolean;
+  size?: 'small' | 'medium' | 'large';
+  style?: StyleProp<ViewStyle>;
+  disabled?: boolean;
+  accessibilityLabel?: string;
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export function DraggableCard({
-    card,
-    onDrop,
-    onDragStart,
-    isOverDropZone = false,
-    size = 'medium',
-    style,
-    disabled = false,
+  card,
+  onDrop,
+  onDragStart,
+  isOverDropZone = false,
+  size = 'medium',
+  style,
+  disabled = false,
+  accessibilityLabel,
 }: DraggableCardProps) {
-    const translateX = useSharedValue(0);
-    const translateY = useSharedValue(0);
-    const offsetX = useSharedValue(0);
-    const offsetY = useSharedValue(0);
-    const isDragging = useSharedValue(false);
-    const shadowRadius = useSharedValue(16);
-    const shadowOpacity = useSharedValue(0.44);
-    const zIndex = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const dragging = useSharedValue(false);
+  const lift = useSharedValue(0);
+  const { reduceMotion } = useMotionPreferences();
 
-    // ── Pan Gesture (Reanimated v4 + GH v2) ──
-    const pan = Gesture.Pan()
-        .enabled(!disabled)
-        .minDistance(5)
-        .onStart(() => {
-            offsetX.value = translateX.value;
-            offsetY.value = translateY.value;
-            isDragging.value = true;
-            shadowRadius.value = withTiming(ANIMATION_VALUES.dragShadowRadius, { duration: 80 });
-            shadowOpacity.value = withTiming(0.65, { duration: 80 });
-            zIndex.value = 999;
-            if (onDragStart) runOnJS(onDragStart)();
-        })
-        .onUpdate((event) => {
-            translateX.value = offsetX.value + event.translationX;
-            translateY.value = offsetY.value + event.translationY;
-        })
-        .onEnd((event) => {
-            isDragging.value = false;
-            shadowRadius.value = withTiming(16, { duration: 200 });
-            shadowOpacity.value = withTiming(0.44, { duration: 200 });
-            zIndex.value = 1;
+  const notifyStart = () => {
+    haptics.trigger('cardPickup');
+    onDragStart?.();
+  };
 
-            const dropX = event.absoluteX;
-            const dropY = event.absoluteY;
+  const requestDrop = (x: number, y: number) => {
+    onDrop?.(x, y);
+  };
 
-            let accepted = false;
-            if (onDrop) {
-                accepted = runOnJS(tryDrop)(dropX, dropY) as unknown as boolean;
-            }
+  const pan = Gesture.Pan()
+    .enabled(!disabled)
+    .minDistance(5)
+    .onStart(() => {
+      dragging.value = true;
+      lift.value = withTiming(reduceMotion ? 0 : 1, { duration: ANIM_DURATION.DRAG_IN });
+      runOnJS(notifyStart)();
+    })
+    .onUpdate((event) => {
+      translateX.value = event.translationX;
+      translateY.value = event.translationY;
+    })
+    .onEnd((event) => {
+      dragging.value = false;
+      lift.value = withTiming(0, { duration: ANIM_DURATION.DRAG_OUT });
 
-            if (!accepted) {
-                translateX.value = withSpring(0, { damping: 15, stiffness: 220 });
-                translateY.value = withSpring(0, { damping: 15, stiffness: 220 });
-            }
-        });
+      if (onDrop) runOnJS(requestDrop)(event.absoluteX, event.absoluteY);
 
-    function tryDrop(x: number, y: number): boolean {
-        return onDrop ? onDrop(x, y) : false;
-    }
+      // We do not guess acceptance on the UI thread. If authoritative state
+      // removes/repositions the card, this instance disappears naturally.
+      translateX.value = withSpring(0, SPRING.SNAP_BACK);
+      translateY.value = withSpring(0, SPRING.SNAP_BACK);
+    })
+    .onFinalize(() => {
+      if (dragging.value) dragging.value = false;
+      lift.value = withTiming(0, { duration: ANIM_DURATION.DRAG_OUT });
+    });
 
-    // ── Animated styles ──
-    const containerStyle = useAnimatedStyle(() => ({
-        transform: [
-            { translateX: translateX.value },
-            { translateY: translateY.value },
-        ],
-        shadowRadius: shadowRadius.value,
-        shadowOpacity: shadowOpacity.value,
-        zIndex: zIndex.value,
-    }));
+  const containerStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: 1 + lift.value * 0.015 },
+    ],
+    zIndex: lift.value > 0 ? 999 : 1,
+  }));
 
-    const dropHighlightStyle = useAnimatedStyle(() => ({
-        opacity: isOverDropZone
-            ? withTiming(0.3, { duration: 150 })
-            : withTiming(0, { duration: 150 }),
-    }));
+  const shadowStyle = useAnimatedStyle(() => ({
+    opacity: lift.value * 0.28,
+    transform: [{ scale: 1 + lift.value * 0.03 }],
+  }));
 
-    return (
-        <GestureDetector gesture={pan}>
-            <Animated.View
-                style={[
-                    styles.wrapper,
-                    containerStyle,
-                    style,
-                ]}
-            >
-                <CardItem card={card} size={size} disabled={disabled} showStats />
+  const dropHighlightStyle = useAnimatedStyle(() => ({
+    opacity: isOverDropZone ? (reduceMotion ? 0.22 : 0.32) : 0,
+  }));
 
-                {/* Drop zone highlight overlay */}
-                <Animated.View
-                    style={[StyleSheet.absoluteFillObject, styles.dropHighlight, dropHighlightStyle]}
-                    pointerEvents="none"
-                />
-            </Animated.View>
-        </GestureDetector>
-    );
+  return (
+    <GestureDetector gesture={pan}>
+      <Animated.View
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? `بطاقة ${card.nameAr}`}
+        accessibilityState={{ disabled }}
+        style={[styles.wrapper, containerStyle, style]}
+      >
+        <Animated.View pointerEvents="none" style={[styles.shadowLayer, shadowStyle]} />
+        <CardItem card={card} size={size} disabled={disabled} showStats />
+        <Animated.View
+          pointerEvents="none"
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+          style={[StyleSheet.absoluteFillObject, styles.dropHighlight, dropHighlightStyle]}
+        />
+      </Animated.View>
+    </GestureDetector>
+  );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-    wrapper: {
-        position: 'relative',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-    },
-    dropHighlight: {
-        backgroundColor: '#22c55e',
-        borderRadius: 14,
-    },
+  wrapper: {
+    position: 'relative',
+  },
+  shadowLayer: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 16,
+    backgroundColor: SEMANTIC_COLOR.accent.primary,
+  },
+  dropHighlight: {
+    backgroundColor: SEMANTIC_COLOR.status.success,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: SEMANTIC_COLOR.status.success,
+  },
 });

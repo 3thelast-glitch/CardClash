@@ -1,26 +1,47 @@
-/**
- * SettingsScreen — إعدادات اللعبة — Pro Redesign
- */
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Switch, Modal, useWindowDimensions, Animated as RNAnimated,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import {
+  ArrowLeft,
+  BookOpen,
+  Languages,
+  Music2,
+  RotateCcw,
+  Smartphone,
+  Sparkles,
+  Trash2,
+  Volume2,
+  Zap,
+} from 'lucide-react-native';
 import { ScreenContainer } from '@/components/screen-container';
 import { LuxuryBackground } from '@/components/game/luxury-background';
-import { ArrowLeft, Volume2, Music, Smartphone, Sparkles, Zap, Lightbulb, Globe, RotateCcw, Trash2 } from 'lucide-react-native';
+import { ObsidianPanel } from '@/components/ui/ObsidianPanel';
+import { ProButton } from '@/components/ui/ProButton';
+import { ThemedText } from '@/components/ui/ThemedText';
+import {
+  RADIUS,
+  SEMANTIC_COLOR,
+  SPACE,
+  TOUCH_TARGET,
+} from '@/components/ui/design-tokens';
 import { CARD_EDITS_KEY } from '@/app/screens/cards-gallery';
-import { useOrientationTransition } from '@/utils/orientation-transition';
 import {
   DEFAULT_SETTINGS,
   loadSettings,
   saveSettings,
   type GameSettings,
+  type MotionPreference,
 } from '@/lib/game/settings-store';
+import { haptics } from '@/lib/feedback/haptics';
 
 export {
   GAME_SETTINGS_KEY,
@@ -29,84 +50,289 @@ export {
   type GameSettings,
 } from '@/lib/game/settings-store';
 
-// ───────────────────────────────────────────────────────────────────
-type IconBadgeProps = { colors: [string, string]; icon: React.ReactNode };
-function IconBadge({ colors, icon }: IconBadgeProps) {
-  return (
-    <LinearGradient colors={colors} style={ib.badge} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-      {icon}
-    </LinearGradient>
-  );
-}
+type ConfirmKind = 'settings' | 'cards' | 'stats';
 
-// ── Toggle Row ────────────────────────────────────────────────────────────
-function ToggleRow({
-  badgeColors, icon, title, subtitle, value, thumbColor, trackColor, onChange, isLast = false,
-}: {
-  badgeColors: [string, string]; icon: React.ReactNode;
-  title: string; subtitle?: string;
-  value: boolean; thumbColor: string; trackColor: string;
-  onChange: (v: boolean) => void; isLast?: boolean;
-}) {
-  const scale = useRef(new RNAnimated.Value(1)).current;
-  const handlePress = (v: boolean) => {
-    RNAnimated.sequence([
-      RNAnimated.timing(scale, { toValue: 0.97, duration: 80, useNativeDriver: true }),
-      RNAnimated.timing(scale, { toValue: 1,    duration: 80, useNativeDriver: true }),
-    ]).start();
-    onChange(v);
+export default function SettingsScreen() {
+  const router = useRouter();
+  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
+  const [loaded, setLoaded] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmKind | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    loadSettings().then((value) => {
+      if (!active) return;
+      setSettings(value);
+      setLoaded(true);
+    });
+    return () => { active = false; };
+  }, []);
+
+  const patch = (next: Partial<GameSettings>) => {
+    const value = { ...settings, ...next };
+    setSettings(value);
+    void saveSettings(value);
+    haptics.trigger('selection');
   };
+
+  const reset = async (kind: ConfirmKind) => {
+    setConfirm(null);
+    if (kind === 'settings') {
+      setSettings({ ...DEFAULT_SETTINGS });
+      await saveSettings(DEFAULT_SETTINGS);
+      return;
+    }
+    if (kind === 'cards') {
+      await AsyncStorage.removeItem(CARD_EDITS_KEY);
+      if (Platform.OS === 'web' && typeof indexedDB !== 'undefined') {
+        try { indexedDB.deleteDatabase('card_images_db'); } catch {}
+      }
+      return;
+    }
+    await AsyncStorage.removeItem('player_stats');
+  };
+
+  if (!loaded) {
+    return (
+      <ScreenContainer>
+        <LuxuryBackground>
+          <View style={styles.center}>
+            <ThemedText type="subtitle">جارٍ تحميل الإعدادات…</ThemedText>
+          </View>
+        </LuxuryBackground>
+      </ScreenContainer>
+    );
+  }
+
   return (
-    <>
-      <RNAnimated.View style={[tr.wrap, { transform: [{ scale }] }]}>
-        <IconBadge colors={badgeColors} icon={icon} />
-        <View style={tr.texts}>
-          <Text style={tr.title}>{title}</Text>
-          {subtitle ? <Text style={tr.sub}>{subtitle}</Text> : null}
-        </View>
-        <Switch
-          value={value} onValueChange={handlePress}
-          trackColor={{ false: '#1e2030', true: trackColor }}
-          thumbColor={value ? thumbColor : '#4a4a5a'}
-          style={{ transform: [{ scale: 0.9 }] }}
-        />
-      </RNAnimated.View>
-      {!isLast && <View style={tr.sep} />}
-    </>
+    <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
+      <LuxuryBackground>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="رجوع"
+              style={styles.iconButton}
+              onPress={() => router.back()}
+            >
+              <ArrowLeft size={20} color={SEMANTIC_COLOR.accent.primary} />
+            </TouchableOpacity>
+            <View style={styles.headerCopy}>
+              <ThemedText type="title">الإعدادات</ThemedText>
+              <ThemedText type="subtitle">
+                الصوت، الحركة، الوصول، ولغة الواجهة
+              </ThemedText>
+            </View>
+          </View>
+
+          <SettingsSection title="الصوت واللمس">
+            <ObsidianPanel>
+              <ToggleRow
+                icon={<Volume2 size={18} color={SEMANTIC_COLOR.status.warning} />}
+                title="مؤثرات الصوت"
+                subtitle="أصوات الضربات والنتائج"
+                value={settings.soundEnabled}
+                onChange={(value) => patch({ soundEnabled: value })}
+              />
+              <Separator />
+              <ToggleRow
+                icon={<Music2 size={18} color={SEMANTIC_COLOR.accent.secondary} />}
+                title="الموسيقى"
+                subtitle="موسيقى الخلفية أثناء اللعب"
+                value={settings.musicEnabled}
+                onChange={(value) => patch({ musicEnabled: value })}
+              />
+              <Separator />
+              <ToggleRow
+                icon={<Smartphone size={18} color={SEMANTIC_COLOR.accent.primary} />}
+                title="الاهتزاز"
+                subtitle="ملاحظات لمسية للأحداث المهمة"
+                value={settings.vibration}
+                onChange={(value) => patch({ vibration: value })}
+              />
+            </ObsidianPanel>
+          </SettingsSection>
+
+          <SettingsSection title="المرئيات والوصول">
+            <ObsidianPanel>
+              <ToggleRow
+                icon={<Sparkles size={18} color="#C084FC" />}
+                title="الحركات والتأثيرات"
+                subtitle="المفتاح الرئيسي لكل الحركة التقديمية"
+                value={settings.animationsEnabled}
+                onChange={(value) => patch({ animationsEnabled: value })}
+              />
+              <Separator />
+              <ChoiceRow
+                icon={<Zap size={18} color={SEMANTIC_COLOR.accent.primary} />}
+                title="تقليل الحركة"
+                subtitle="يتبع إعداد النظام افتراضياً"
+                value={settings.motionPreference}
+                options={[
+                  { value: 'system', label: 'النظام' },
+                  { value: 'full', label: 'كامل' },
+                  { value: 'reduced', label: 'مخفّض' },
+                ]}
+                onChange={(value) => patch({ motionPreference: value })}
+              />
+              <Separator />
+              <ToggleRow
+                icon={<Zap size={18} color={SEMANTIC_COLOR.status.danger} />}
+                title="أرقام الضرر"
+                subtitle="إظهار التغيّر العددي فوق البطاقة"
+                value={settings.showDamageNumbers}
+                onChange={(value) => patch({ showDamageNumbers: value })}
+              />
+              <Separator />
+              <ToggleRow
+                icon={<BookOpen size={18} color={SEMANTIC_COLOR.accent.secondary} />}
+                title="تلميحات القدرات"
+                subtitle="شرح تأثير القدرة أثناء المعركة"
+                value={settings.showAbilityHints}
+                onChange={(value) => patch({ showAbilityHints: value })}
+              />
+            </ObsidianPanel>
+          </SettingsSection>
+
+          <SettingsSection title="اللغة">
+            <ObsidianPanel>
+              <ChoiceRow
+                icon={<Languages size={18} color={SEMANTIC_COLOR.status.success} />}
+                title="لغة الواجهة"
+                value={settings.language}
+                options={[
+                  { value: 'ar', label: 'العربية' },
+                  { value: 'en', label: 'English' },
+                ]}
+                onChange={(value) => patch({ language: value })}
+              />
+            </ObsidianPanel>
+          </SettingsSection>
+
+          <SettingsSection title="البيانات">
+            <ObsidianPanel>
+              <DangerRow
+                icon={<RotateCcw size={18} color={SEMANTIC_COLOR.status.warning} />}
+                title="إعادة تعيين الإعدادات"
+                subtitle="إرجاع الخيارات إلى القيم الافتراضية"
+                onPress={() => setConfirm('settings')}
+              />
+              <Separator />
+              <DangerRow
+                icon={<Trash2 size={18} color={SEMANTIC_COLOR.status.danger} />}
+                title="حذف تعديلات الكروت"
+                subtitle="يمسح الصور والتخصيصات المحلية"
+                onPress={() => setConfirm('cards')}
+              />
+              <Separator />
+              <DangerRow
+                icon={<Trash2 size={18} color={SEMANTIC_COLOR.status.danger} />}
+                title="مسح الإحصائيات"
+                subtitle="يمسح سجل النتائج المحلي"
+                onPress={() => setConfirm('stats')}
+              />
+            </ObsidianPanel>
+          </SettingsSection>
+        </ScrollView>
+      </LuxuryBackground>
+
+      <ConfirmModal
+        kind={confirm}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => confirm && void reset(confirm)}
+      />
+    </ScreenContainer>
   );
 }
 
-// ── Segmented Choice ─────────────────────────────────────────────────────
-function SegmentedChoice<T extends string>({
-  badgeColors, icon, title, options, value, activeColors, onChange,
+function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <ThemedText type="label" style={styles.sectionTitle}>{title}</ThemedText>
+      {children}
+    </View>
+  );
+}
+
+function ToggleRow({
+  icon,
+  title,
+  subtitle,
+  value,
+  onChange,
 }: {
-  badgeColors: [string, string]; icon: React.ReactNode;
-  title: string; options: { value: T; label: string; icon: string }[];
-  value: T; activeColors: [string, string]; onChange: (v: T) => void;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
 }) {
   return (
-    <View style={sc.wrap}>
-      <View style={sc.top}>
-        <IconBadge colors={badgeColors} icon={icon} />
-        <Text style={sc.title}>{title}</Text>
+    <View style={styles.row}>
+      <View style={styles.rowIcon}>{icon}</View>
+      <View style={styles.rowCopy}>
+        <ThemedText type="defaultSemiBold">{title}</ThemedText>
+        <ThemedText type="caption">{subtitle}</ThemedText>
       </View>
-      <View style={sc.row}>
-        {options.map((opt, i) => {
-          const active = opt.value === value;
+      <Switch
+        accessibilityLabel={title}
+        value={value}
+        onValueChange={onChange}
+        trackColor={{
+          false: SEMANTIC_COLOR.surface.raised,
+          true: 'rgba(57,230,208,0.48)',
+        }}
+        thumbColor={value ? SEMANTIC_COLOR.accent.primary : SEMANTIC_COLOR.text.secondary}
+      />
+    </View>
+  );
+}
+
+function ChoiceRow<T extends string>({
+  icon,
+  title,
+  subtitle,
+  value,
+  options,
+  onChange,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <View style={styles.choiceWrap}>
+      <View style={styles.row}>
+        <View style={styles.rowIcon}>{icon}</View>
+        <View style={styles.rowCopy}>
+          <ThemedText type="defaultSemiBold">{title}</ThemedText>
+          {subtitle ? <ThemedText type="caption">{subtitle}</ThemedText> : null}
+        </View>
+      </View>
+      <View style={styles.choiceRow}>
+        {options.map((option) => {
+          const selected = option.value === value;
           return (
-            <TouchableOpacity key={opt.value} onPress={() => onChange(opt.value)} activeOpacity={0.8}
-              style={[sc.seg, i === 0 && sc.first, i === options.length - 1 && sc.last]}>
-              {active ? (
-                <LinearGradient colors={activeColors} style={sc.segInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                  <Text style={sc.segIcon}>{opt.icon}</Text>
-                  <Text style={[sc.segLabel, { color: '#fff', fontWeight: '800' }]}>{opt.label}</Text>
-                </LinearGradient>
-              ) : (
-                <View style={[sc.segInner, { backgroundColor: 'rgba(255,255,255,0.04)' }]}>
-                  <Text style={sc.segIcon}>{opt.icon}</Text>
-                  <Text style={[sc.segLabel, { color: '#4a5568' }]}>{opt.label}</Text>
-                </View>
-              )}
+            <TouchableOpacity
+              key={option.value}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              accessibilityLabel={option.label}
+              onPress={() => onChange(option.value)}
+              style={[styles.choice, selected && styles.choiceSelected]}
+            >
+              <ThemedText
+                type="label"
+                style={selected ? styles.choiceTextSelected : styles.choiceText}
+              >
+                {option.label}
+              </ThemedText>
             </TouchableOpacity>
           );
         })}
@@ -115,413 +341,164 @@ function SegmentedChoice<T extends string>({
   );
 }
 
-// ── Section Label ─────────────────────────────────────────────────────────────
-function SectionLabel({ label, color = '#d4af37' }: { label: string; color?: string }) {
-  return (
-    <View style={sl.wrap}>
-      <Text style={[sl.txt, { color }]}>{label}</Text>
-      <View style={[sl.line, { backgroundColor: color + '33' }]} />
-    </View>
-  );
-}
-
-// ── Card ──────────────────────────────────────────────────────────────────────────
-function Card({ children, accent }: { children: React.ReactNode; accent?: string }) {
-  return (
-    <View style={[cd.wrap, accent ? { borderColor: accent + '44' } : {}]}>
-      {children}
-    </View>
-  );
-}
-
-// ── Danger Row ──────────────────────────────────────────────────────────────────
-function DangerRow({ icon, title, subtitle, onPress, isLast = false }: {
-  icon: React.ReactNode; title: string; subtitle: string; onPress: () => void; isLast?: boolean;
-}) {
-  return (
-    <>
-      <TouchableOpacity style={dr.wrap} onPress={onPress} activeOpacity={0.75}>
-        <View style={dr.iconWrap}>{icon}</View>
-        <View style={dr.texts}>
-          <Text style={dr.title}>{title}</Text>
-          <Text style={dr.sub}>{subtitle}</Text>
-        </View>
-        <View style={dr.arrow}><Text style={dr.arrowTxt}>›</Text></View>
-      </TouchableOpacity>
-      {!isLast && <View style={dr.sep} />}
-    </>
-  );
-}
-
-// ── Confirm Modal ────────────────────────────────────────────────────────────
-function ConfirmModal({
-  visible, emoji, title, body, confirmLabel, confirmColors, onConfirm, onCancel,
+function DangerRow({
+  icon,
+  title,
+  subtitle,
+  onPress,
 }: {
-  visible: boolean; emoji: string; title: string; body: string;
-  confirmLabel: string; confirmColors: [string, string];
-  onConfirm: () => void; onCancel: () => void;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
 }) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={cm.overlay}>
-        <View style={cm.box}>
-          <Text style={cm.emoji}>{emoji}</Text>
-          <Text style={cm.title}>{title}</Text>
-          <Text style={cm.body}>{body}</Text>
-          <View style={cm.row}>
-            <TouchableOpacity style={cm.cancelBtn} onPress={onCancel} activeOpacity={0.8}>
-              <Text style={cm.cancelTxt}>إلغاء</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onConfirm} activeOpacity={0.85} style={{ flex: 1 }}>
-              <LinearGradient colors={confirmColors} style={cm.confirmBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                <Text style={cm.confirmTxt}>{confirmLabel}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={styles.row}
+    >
+      <View style={styles.rowIcon}>{icon}</View>
+      <View style={styles.rowCopy}>
+        <ThemedText type="defaultSemiBold">{title}</ThemedText>
+        <ThemedText type="caption">{subtitle}</ThemedText>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function Separator() {
+  return <View style={styles.separator} />;
+}
+
+function ConfirmModal({
+  kind,
+  onCancel,
+  onConfirm,
+}: {
+  kind: ConfirmKind | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const copy: Record<ConfirmKind, { title: string; body: string; action: string }> = {
+    settings: {
+      title: 'إعادة تعيين الإعدادات؟',
+      body: 'سيتم إرجاع إعدادات العرض والصوت واللغة إلى القيم الافتراضية.',
+      action: 'إعادة تعيين',
+    },
+    cards: {
+      title: 'حذف تعديلات الكروت؟',
+      body: 'سيتم حذف الصور والتخصيصات المحلية. لا يمكن التراجع عن هذا الإجراء.',
+      action: 'حذف',
+    },
+    stats: {
+      title: 'مسح الإحصائيات؟',
+      body: 'سيتم حذف سجل النتائج المحلي. لا يمكن التراجع عن هذا الإجراء.',
+      action: 'مسح',
+    },
+  };
+  if (!kind) return null;
+  const item = copy[kind];
+
+  return (
+    <Modal visible transparent animationType="none" onRequestClose={onCancel}>
+      <View style={styles.modalOverlay}>
+        <ObsidianPanel raised style={styles.modalPanel}>
+          <ThemedText type="title" style={styles.modalTitle}>{item.title}</ThemedText>
+          <ThemedText type="subtitle" style={styles.modalBody}>{item.body}</ThemedText>
+          <View style={styles.modalActions}>
+            <ProButton label="إلغاء" variant="ghost" onPress={onCancel} fullWidth style={styles.modalButton} />
+            <ProButton label={item.action} variant="danger" onPress={onConfirm} fullWidth style={styles.modalButton} hapticEvent="invalid" />
           </View>
-        </View>
+        </ObsidianPanel>
       </View>
     </Modal>
   );
 }
 
-// ───────────────────────────────────────────────────────────────────
-const CONFIRM_DATA = {
-  settings: {
-    emoji: '🔄', title: 'إعادة تعيين الإعدادات',
-    body: 'سيتم إرجاع جميع الإعدادات إلى الوضع الافتراضي.',
-    confirmLabel: 'إعادة تعيين',
-    confirmColors: ['#f59e0b', '#d97706'] as [string, string],
+const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  scroll: {
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
+    padding: SPACE.lg,
+    paddingBottom: SPACE.xxxl,
+    gap: SPACE.xl,
   },
-  cards: {
-    emoji: '🃏', title: 'حذف تعديلات الكروت',
-    body: 'سيتم حذف جميع الصور والتعديلات المخصصة لكروتك. لا يمكن التراجع.',
-    confirmLabel: 'حذف',
-    confirmColors: ['#ef4444', '#dc2626'] as [string, string],
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.md,
+    marginBottom: SPACE.sm,
   },
-  stats: {
-    emoji: '📊', title: 'مسح الإحصائيات',
-    body: 'سيتم مسح سجل انتصاراتك وإحصائياتك كاملاً. لا يمكن التراجع.',
-    confirmLabel: 'مسح',
-    confirmColors: ['#ef4444', '#dc2626'] as [string, string],
+  headerCopy: { flex: 1, alignItems: 'flex-end' },
+  iconButton: {
+    width: TOUCH_TARGET.default,
+    height: TOUCH_TARGET.default,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    backgroundColor: 'rgba(19,30,47,0.82)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-};
-
-// ── Main Screen ────────────────────────────────────────────────────────────────
-export default function SettingsScreen() {
-  const router = useRouter();
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
-
-  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
-  const [loaded, setLoaded] = useState(false);
-  const [confirmReset, setConfirmReset] = useState<null | 'settings' | 'cards' | 'stats'>(null);
-  const [savedAnim] = useState(new RNAnimated.Value(0));
-  const headerAnim = useRef(new RNAnimated.Value(0)).current;
-
-  useEffect(() => {
-    loadSettings().then(s => {
-      setSettings(s);
-      setLoaded(true);
-      RNAnimated.timing(headerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-    });
-  }, []);
-
-  const showSaved = () => {
-    RNAnimated.sequence([
-      RNAnimated.timing(savedAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-      RNAnimated.delay(1200),
-      RNAnimated.timing(savedAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-    ]).start();
-  };
-
-  const patch = useCallback((p: Partial<GameSettings>) => {
-    setSettings(prev => {
-      const next = { ...prev, ...p };
-      saveSettings(next);
-      showSaved();
-      return next;
-    });
-  }, []);
-
-  const handleReset = async (type: 'settings' | 'cards' | 'stats') => {
-    setConfirmReset(null);
-    if (type === 'settings') {
-      await saveSettings(DEFAULT_SETTINGS);
-      setSettings({ ...DEFAULT_SETTINGS });
-    } else if (type === 'cards') {
-      await AsyncStorage.removeItem(CARD_EDITS_KEY);
-      try { indexedDB.deleteDatabase('card_images_db'); } catch {}
-    } else if (type === 'stats') {
-      await AsyncStorage.removeItem('player_stats');
-    }
-    showSaved();
-  };
-
-  const { animatedStyle: orientationStyle, layoutTransition } = useOrientationTransition(
-    isLandscape,
-    settings.animationsEnabled,
-  );
-
-  if (!loaded) return null;
-
-  const soundSection = (
-    <>
-      <SectionLabel label="🔊 الصوت" />
-      <Card accent="#f59e0b">
-        <ToggleRow
-          badgeColors={['#f59e0b', '#d97706']} icon={<Volume2 size={14} color="#fff" />}
-          title="مؤثرات الصوت" subtitle="أصوات الضربات والنتائج"
-          value={settings.soundEnabled} thumbColor="#f59e0b" trackColor="#f59e0b55"
-          onChange={v => patch({ soundEnabled: v })}
-        />
-        <ToggleRow
-          badgeColors={['#8b5cf6', '#7c3aed']} icon={<Music size={14} color="#fff" />}
-          title="الموسيقى" subtitle="موسيقى الخلفية أثناء اللعب"
-          value={settings.musicEnabled} thumbColor="#8b5cf6" trackColor="#8b5cf655"
-          onChange={v => patch({ musicEnabled: v })}
-        />
-        <ToggleRow
-          badgeColors={['#06b6d4', '#0891b2']} icon={<Smartphone size={14} color="#fff" />}
-          title="الاهتزاز" subtitle="اهتزاز الجهاز عند الأحداث"
-          value={settings.vibration} thumbColor="#06b6d4" trackColor="#06b6d455"
-          onChange={v => patch({ vibration: v })} isLast
-        />
-      </Card>
-    </>
-  );
-
-  const visualSection = (
-    <>
-      <SectionLabel label="🎨 المرئيات" color="#a78bfa" />
-      <Card accent="#a78bfa">
-        <ToggleRow
-          badgeColors={['#a78bfa', '#7c3aed']} icon={<Sparkles size={14} color="#fff" />}
-          title="الحركات والتأثيرات" subtitle="تعطيل لأداء أفضل على الأجهزة القديمة"
-          value={settings.animationsEnabled} thumbColor="#a78bfa" trackColor="#a78bfa55"
-          onChange={v => patch({ animationsEnabled: v })}
-        />
-        <ToggleRow
-          badgeColors={['#f87171', '#ef4444']} icon={<Zap size={14} color="#fff" />}
-          title="أرقام الضرر" subtitle="عرض قيمة الضرر فوق الكرت"
-          value={settings.showDamageNumbers} thumbColor="#f87171" trackColor="#f8717155"
-          onChange={v => patch({ showDamageNumbers: v })}
-        />
-        <ToggleRow
-          badgeColors={['#60a5fa', '#3b82f6']} icon={<Lightbulb size={14} color="#fff" />}
-          title="تلميحات القدرات" subtitle="شرح القدرات الخاصة خلال المعركة"
-          value={settings.showAbilityHints} thumbColor="#60a5fa" trackColor="#60a5fa55"
-          onChange={v => patch({ showAbilityHints: v })} isLast
-        />
-      </Card>
-    </>
-  );
-
-  const langSection = (
-    <>
-      <SectionLabel label="🌍 اللغة" color="#34d399" />
-      <Card accent="#34d399">
-        <SegmentedChoice
-          badgeColors={['#34d399', '#059669']} icon={<Globe size={14} color="#fff" />}
-          title="لغة الواجهة"
-          options={[
-            { value: 'ar', label: 'العربية', icon: '🇸🇦' },
-            { value: 'en', label: 'English',    icon: '🇺🇸' },
-          ]}
-          value={settings.language}
-          activeColors={['#34d399', '#059669']}
-          onChange={v => patch({ language: v })}
-        />
-      </Card>
-    </>
-  );
-
-  const dangerSection = (
-    <>
-      <SectionLabel label="⚠️ بيانات اللعبة" color="#f87171" />
-      <Card accent="#ef4444">
-        <DangerRow
-          icon={<RotateCcw size={16} color="#f59e0b" />}
-          title="إعادة تعيين الإعدادات"
-          subtitle="إرجاع كل شيء للافتراضي"
-          onPress={() => setConfirmReset('settings')}
-        />
-        <DangerRow
-          icon={<Trash2 size={16} color="#f87171" />}
-          title="حذف تعديلات الكروت"
-          subtitle="الصور والتعديلات المخصصة"
-          onPress={() => setConfirmReset('cards')}
-        />
-        <DangerRow
-          icon={<Trash2 size={16} color="#f87171" />}
-          title="مسح الإحصائيات"
-          subtitle="حذف سجل الانتصارات والمباريات"
-          onPress={() => setConfirmReset('stats')}
-          isLast
-        />
-      </Card>
-    </>
-  );
-
-  const headerOpacity = headerAnim;
-  const headerTranslate = headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] });
-
-  return (
-    <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
-      <View style={s.bg}><LuxuryBackground /></View>
-
-      <RNAnimated.View style={[s.toast, { opacity: savedAnim, transform: [{ translateY: savedAnim.interpolate({ inputRange: [0,1], outputRange: [10,0] }) }] }]} pointerEvents="none">
-        <Text style={s.toastTxt}>✔️ تم الحفظ</Text>
-      </RNAnimated.View>
-
-      <Animated.View layout={layoutTransition} style={[s.contentRoot, orientationStyle]}>
-      <RNAnimated.View style={[s.headerWrap, isLandscape && s.headerWrapLandscape, { opacity: headerOpacity, transform: [{ translateY: headerTranslate }] }]}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.7}>
-          <ArrowLeft size={16} color="#fff" />
-          <Text style={s.backTxt}>رجوع</Text>
-        </TouchableOpacity>
-        <View style={s.headerCenter}>
-          <LinearGradient colors={['#39E6D0', '#0E7490']} style={s.headerIconWrap} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-            <Text style={s.headerIcon}>⚙️</Text>
-          </LinearGradient>
-          <View>
-            <Text style={s.title}>الإعدادات</Text>
-            <Text style={s.subtitle}>تُحفظ تلقائياً</Text>
-          </View>
-        </View>
-      </RNAnimated.View>
-
-      <Animated.View layout={layoutTransition} style={s.body}>
-      {isLandscape ? (
-        <View style={s.landscapeRoot}>
-          <ScrollView style={s.col} contentContainerStyle={s.colContent} showsVerticalScrollIndicator={false}>
-            {soundSection}
-            {langSection}
-          </ScrollView>
-          <View style={s.colDivider} />
-          <ScrollView style={s.col} contentContainerStyle={s.colContent} showsVerticalScrollIndicator={false}>
-            {visualSection}
-            {dangerSection}
-            <Text style={s.version}>Card Clash v2.0</Text>
-          </ScrollView>
-        </View>
-      ) : (
-        <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
-          {soundSection}
-          {visualSection}
-          {langSection}
-          {dangerSection}
-          <Text style={s.version}>Card Clash v2.0</Text>
-        </ScrollView>
-      )}
-      </Animated.View>
-      </Animated.View>
-
-      {confirmReset && (
-        <ConfirmModal
-          visible
-          {...CONFIRM_DATA[confirmReset]}
-          onConfirm={() => handleReset(confirmReset)}
-          onCancel={() => setConfirmReset(null)}
-        />
-      )}
-    </ScreenContainer>
-  );
-}
-
-// ───────────────────────────────── Styles
-const GOLD = '#39E6D0';
-
-const s = StyleSheet.create({
-  bg: { position: 'absolute', inset: 0, zIndex: 0 } as any,
-  toast: {
-    position: 'absolute', bottom: 32, alignSelf: 'center', zIndex: 100,
-    backgroundColor: 'rgba(57,230,208,0.16)', borderWidth: 1, borderColor: '#39E6D066',
-    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 30,
+  section: { gap: SPACE.sm },
+  sectionTitle: {
+    color: SEMANTIC_COLOR.accent.primary,
+    textAlign: 'right',
+    paddingHorizontal: SPACE.xs,
   },
-  toastTxt: { color: '#9CFFF2', fontWeight: '800', fontSize: 13 },
-  contentRoot: { flex: 1 },
-  body: { flex: 1 },
-  headerWrap: {
-    zIndex: 10, paddingTop: 14, paddingHorizontal: 16, paddingBottom: 12,
-    flexDirection: 'row', alignItems: 'center', gap: 16,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(57,230,208,0.16)',
+  row: {
+    minHeight: 62,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.md,
+    paddingVertical: SPACE.sm,
   },
-  headerWrapLandscape: { paddingTop: 8, paddingBottom: 8 },
-  backBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 12, paddingVertical: 7,
-    backgroundColor: 'rgba(57,230,208,0.07)', borderRadius: 10,
-    borderWidth: 1, borderColor: 'rgba(57,230,208,0.18)',
+  rowIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.md,
+    backgroundColor: 'rgba(8,13,22,0.56)',
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  backTxt:        { color: '#EAFBF7', fontSize: 12, fontWeight: '700' },
-  headerCenter:   { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerIconWrap: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  headerIcon:     { fontSize: 22 },
-  title:          { color: GOLD, fontSize: 20, fontWeight: '800', letterSpacing: 0.4 },
-  subtitle:       { color: 'rgba(203,221,221,0.58)', fontSize: 11, marginTop: 1 },
-  scroll:         { flex: 1, zIndex: 1 },
-  scrollContent:  { paddingHorizontal: 14, paddingBottom: 60, paddingTop: 14, gap: 8 },
-  landscapeRoot:  { flex: 1, flexDirection: 'row', zIndex: 1, paddingHorizontal: 6 },
-  col:            { flex: 1 },
-  colContent:     { paddingHorizontal: 14, paddingBottom: 40, paddingTop: 14, gap: 8 },
-  colDivider:     { width: 1, backgroundColor: 'rgba(57,230,208,0.12)', marginVertical: 14 },
-  version:        { color: 'rgba(255,255,255,0.12)', fontSize: 10, textAlign: 'center', paddingVertical: 6 },
-});
-
-const ib = StyleSheet.create({
-  badge: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-});
-const tr = StyleSheet.create({
-  wrap:  { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, gap: 12 },
-  texts: { flex: 1 },
-  title: { color: '#EAFBF7', fontSize: 14, fontWeight: '700' },
-  sub:   { color: 'rgba(203,221,221,0.52)', fontSize: 11, marginTop: 2 },
-  sep:   { height: 1, backgroundColor: 'rgba(57,230,208,0.10)', marginHorizontal: 14 },
-});
-const sc = StyleSheet.create({
-  wrap:     { paddingHorizontal: 14, paddingVertical: 14, gap: 12 },
-  top:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title:    { color: '#EAFBF7', fontSize: 14, fontWeight: '700' },
-  row:      { flexDirection: 'row', borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(57,230,208,0.14)' },
-  seg:      { flex: 1 },
-  first:    { borderRightWidth: 0 },
-  last:     { borderLeftWidth: 0 },
-  segInner: { paddingVertical: 11, alignItems: 'center', gap: 4 },
-  segIcon:  { fontSize: 16 },
-  segLabel: { fontSize: 11, fontWeight: '700' },
-});
-const sl = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 2, marginTop: 4 },
-  txt:  { color: GOLD, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 },
-  line: { flex: 1, height: 1 },
-});
-const cd = StyleSheet.create({
-  wrap: {
-    backgroundColor: 'rgba(7,20,27,0.94)',
-    borderRadius: 18, borderWidth: 1,
-    borderColor: 'rgba(57,230,208,0.20)',
-    overflow: 'hidden',
+  rowCopy: { flex: 1, alignItems: 'flex-end', gap: 2 },
+  separator: { height: 1, backgroundColor: SEMANTIC_COLOR.border.subtle },
+  choiceWrap: { gap: SPACE.sm },
+  choiceRow: { flexDirection: 'row', gap: SPACE.sm, flexWrap: 'wrap' },
+  choice: {
+    minHeight: TOUCH_TARGET.compact,
+    minWidth: 88,
+    flex: 1,
+    paddingHorizontal: SPACE.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    backgroundColor: 'rgba(8,13,22,0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-});
-const dr = StyleSheet.create({
-  wrap:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14, gap: 12 },
-  iconWrap: { width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(203,221,221,0.07)', alignItems: 'center', justifyContent: 'center' },
-  texts:    { flex: 1 },
-  title:    { color: '#fca5a5', fontSize: 13, fontWeight: '700' },
-  sub:      { color: 'rgba(203,221,221,0.52)', fontSize: 11, marginTop: 2 },
-  arrow:    { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  arrowTxt: { color: 'rgba(203,221,221,0.52)', fontSize: 20, lineHeight: 24 },
-  sep:      { height: 1, backgroundColor: 'rgba(239,68,68,0.12)', marginHorizontal: 14 },
-});
-const cm = StyleSheet.create({
-  overlay:    { flex: 1, backgroundColor: 'rgba(2,8,12,0.9)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  box:        { backgroundColor: '#07141B', borderRadius: 18, borderWidth: 1, borderColor: 'rgba(251,113,133,0.38)', padding: 28, width: '100%', maxWidth: 380, alignItems: 'center', gap: 10 },
-  emoji:      { fontSize: 40 },
-  title:      { color: '#EAFBF7', fontSize: 17, fontWeight: '800', textAlign: 'center' },
-  body:       { color: 'rgba(203,221,221,0.64)', fontSize: 13, textAlign: 'center', lineHeight: 20 },
-  row:        { flexDirection: 'row', gap: 10, width: '100%', marginTop: 6 },
-  cancelBtn:  { flex: 1, paddingVertical: 13, borderRadius: 14, borderWidth: 1, borderColor: '#334155', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
-  cancelTxt:  { color: '#94a3b8', fontWeight: '700', fontSize: 13 },
-  confirmBtn: { paddingVertical: 13, borderRadius: 14, alignItems: 'center' },
-  confirmTxt: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  choiceSelected: {
+    borderColor: SEMANTIC_COLOR.accent.primary,
+    backgroundColor: 'rgba(57,230,208,0.12)',
+  },
+  choiceText: { color: SEMANTIC_COLOR.text.secondary },
+  choiceTextSelected: { color: SEMANTIC_COLOR.accent.primary },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(2,6,12,0.82)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACE.xl,
+  },
+  modalPanel: { width: '100%', maxWidth: 500, gap: SPACE.lg },
+  modalTitle: { textAlign: 'right' },
+  modalBody: { textAlign: 'right' },
+  modalActions: { flexDirection: 'row', gap: SPACE.sm },
+  modalButton: { flex: 1 },
 });

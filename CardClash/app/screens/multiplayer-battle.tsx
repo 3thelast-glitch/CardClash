@@ -1,35 +1,54 @@
-/**
- * MultiplayerBattleScreen
- * معركة أونلاين — لاعب ضد لاعب عبر WebSocket
- */
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, TouchableOpacity, StyleSheet, Alert,
+  Alert,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { ThemedText as Text } from '@/components/ui/ThemedText';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import {
+  Handshake,
+  Home,
+  RotateCcw,
+  ShieldAlert,
+  Skull,
+  Trophy,
+} from 'lucide-react-native';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, withDelay,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
 } from 'react-native-reanimated';
 import { LuxuryCharacterCardAnimated } from '@/components/game/luxury-character-card-animated';
 import { LuxuryBackground } from '@/components/game/luxury-background';
+import { BattleHUD } from '@/components/game/BattleHUD';
+import { RoundTimelinePanel } from '@/components/game/RoundInsightPanel';
+import { ObsidianPanel } from '@/components/ui/ObsidianPanel';
+import { ProButton } from '@/components/ui/ProButton';
+import { ThemedText } from '@/components/ui/ThemedText';
+import {
+  RADIUS,
+  SEMANTIC_COLOR,
+  SPACE,
+} from '@/components/ui/design-tokens';
 import { useBattleLayout } from '@/utils/layout';
 import { useOrientationTransition } from '@/utils/orientation-transition';
-import { mpClient, MPMessage } from '@/lib/multiplayer/websocket-client';
+import { mpClient, type MPMessage } from '@/lib/multiplayer/websocket-client';
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
 import { useSettings } from '@/lib/game/hooks/useSettings';
-import { COLOR, SPACE, RADIUS, FONT } from '@/components/ui/design-tokens';
-import { RoundTimelinePanel } from '@/components/game/RoundInsightPanel';
+import { useMotionPreferences } from '@/hooks/useMotionPreferences';
+import { PresentationEventGate } from '@/lib/presentation/presentation-events';
+import { haptics } from '@/lib/feedback/haptics';
 import type { RoundTimelineStep } from '@/lib/game/round-insights';
 
 type MPBattlePhase =
-  | 'waiting_start'     // ننتظر BATTLE_START
-  | 'selection'         // اختيار الكرت
-  | 'waiting_opponent'  // أرسلنا كرتنا، ننتظر الخصم
-  | 'result'            // نتيجة الجولة
-  | 'game_over';        // نهاية
+  | 'waiting_start'
+  | 'selection'
+  | 'waiting_opponent'
+  | 'result'
+  | 'game_over';
 
 export default function MultiplayerBattleScreen() {
   const router = useRouter();
@@ -42,15 +61,15 @@ export default function MultiplayerBattleScreen() {
     arenaGap,
     centerWidth,
     actionButtonWidth,
-    actionButtonHeight,
     hudPadding,
     isCompact,
     isLandscape,
   } = useBattleLayout();
   const { settings } = useSettings();
+  const { reduceMotion } = useMotionPreferences();
   const { animatedStyle: orientationStyle, layoutTransition } = useOrientationTransition(
     isLandscape,
-    settings.animationsEnabled,
+    settings.animationsEnabled && !reduceMotion,
   );
   const params = useLocalSearchParams<{
     roomId: string;
@@ -59,8 +78,6 @@ export default function MultiplayerBattleScreen() {
     opponentName: string;
   }>();
 
-
-  // ─── State ──────────────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<MPBattlePhase>('waiting_start');
   const [myCards, setMyCards] = useState<any[]>([]);
   const [currentRound, setCurrentRound] = useState(0);
@@ -74,22 +91,32 @@ export default function MultiplayerBattleScreen() {
   const [isPlayer1, setIsPlayer1] = useState(true);
   const [endBattleClicked, setEndBattleClicked] = useState(false);
   const [turnPlayerId, setTurnPlayerId] = useState<string | null>(null);
+
   const isAdvancingRound = useRef(false);
+  const revealedRounds = useRef(new Set<number>());
+  const presentationGate = useRef(new PresentationEventGate());
   const playerId = multiplayer.state.playerId || params.playerId;
 
-  // ─── Animations ─────────────────────────────────────────────────────────────
-  const myCardAnim = useSharedValue(0);
-  const oppCardAnim = useSharedValue(0);
-  const resultOp = useSharedValue(0);
+  const myCardAnim = useSharedValue(1);
+  const oppCardAnim = useSharedValue(1);
+  const resultOpacity = useSharedValue(0);
   const myStyle = useAnimatedStyle(() => ({ transform: [{ scale: myCardAnim.value }] }));
   const oppStyle = useAnimatedStyle(() => ({ transform: [{ scale: oppCardAnim.value }] }));
-  const resultStyle = useAnimatedStyle(() => ({ opacity: resultOp.value }));
+  const resultStyle = useAnimatedStyle(() => ({ opacity: resultOpacity.value }));
 
   const enterCards = useCallback(() => {
-    myCardAnim.value = 0; oppCardAnim.value = 0; resultOp.value = 0;
-    myCardAnim.value = withDelay(80, withTiming(1, { duration: 280 }));
-    oppCardAnim.value = withDelay(240, withTiming(1, { duration: 280 }));
-  }, []);
+    if (reduceMotion) {
+      myCardAnim.value = 1;
+      oppCardAnim.value = 1;
+      resultOpacity.value = 0;
+      return;
+    }
+    myCardAnim.value = 0.94;
+    oppCardAnim.value = 0.94;
+    resultOpacity.value = 0;
+    myCardAnim.value = withDelay(60, withTiming(1, { duration: 260 }));
+    oppCardAnim.value = withDelay(160, withTiming(1, { duration: 260 }));
+  }, [myCardAnim, oppCardAnim, reduceMotion, resultOpacity]);
 
   const hydrateBattle = useCallback((payload: {
     position: 'player1' | 'player2';
@@ -102,6 +129,8 @@ export default function MultiplayerBattleScreen() {
   }) => {
     const iAmP1 = payload.position === 'player1';
     isAdvancingRound.current = false;
+    presentationGate.current.reset(multiplayer.state.roomId ?? params.roomId ?? 'multiplayer');
+    revealedRounds.current.clear();
     setIsPlayer1(iAmP1);
     setMyCards(payload.you.cards ?? []);
     setTotalRounds(payload.totalRounds);
@@ -110,133 +139,180 @@ export default function MultiplayerBattleScreen() {
     setTurnPlayerId(payload.turnPlayerId ?? (iAmP1 ? payload.you.id : payload.opponent.id));
     setCurrentRound(0);
     setEndBattleClicked(false);
+    setDisconnected(false);
     setPhase('selection');
     enterCards();
-  }, [enterCards]);
+  }, [enterCards, multiplayer.state.roomId, params.roomId]);
 
-  // إذا وصل BATTLE_START قبل تثبيت شاشة الساحة، تُستعاد الحالة من MultiplayerProvider بدلاً من ضياع الرسالة.
   useEffect(() => {
-    if (multiplayer.state.status !== 'playing' || !multiplayer.state.totalRounds || !multiplayer.state.playerCards.length) return;
-    const p1IsMe = multiplayer.state.isHost;
+    if (
+      multiplayer.state.status !== 'playing' ||
+      !multiplayer.state.totalRounds ||
+      !multiplayer.state.playerCards.length
+    ) return;
+
+    const iAmP1 = multiplayer.state.isHost;
     hydrateBattle({
-      position: p1IsMe ? 'player1' : 'player2',
-      you: { id: multiplayer.state.playerId, cards: multiplayer.state.playerCards },
+      position: iAmP1 ? 'player1' : 'player2',
+      you: {
+        id: multiplayer.state.playerId,
+        cards: multiplayer.state.playerCards,
+      },
       opponent: { id: multiplayer.state.opponentId ?? 'opponent' },
       totalRounds: multiplayer.state.totalRounds,
-      p1Score: p1IsMe ? multiplayer.state.playerScore : multiplayer.state.opponentScore,
-      p2Score: p1IsMe ? multiplayer.state.opponentScore : multiplayer.state.playerScore,
-      turnPlayerId: multiplayer.state.isHost ? multiplayer.state.playerId : multiplayer.state.opponentId,
+      p1Score: iAmP1 ? multiplayer.state.playerScore : multiplayer.state.opponentScore,
+      p2Score: iAmP1 ? multiplayer.state.opponentScore : multiplayer.state.playerScore,
+      turnPlayerId: iAmP1 ? multiplayer.state.playerId : multiplayer.state.opponentId,
     });
-  }, [hydrateBattle, multiplayer.state.isHost, multiplayer.state.opponentId, multiplayer.state.opponentScore, multiplayer.state.playerCards, multiplayer.state.playerId, multiplayer.state.playerScore, multiplayer.state.status, multiplayer.state.totalRounds]);
+  }, [
+    hydrateBattle,
+    multiplayer.state.isHost,
+    multiplayer.state.opponentId,
+    multiplayer.state.opponentScore,
+    multiplayer.state.playerCards,
+    multiplayer.state.playerId,
+    multiplayer.state.playerScore,
+    multiplayer.state.status,
+    multiplayer.state.totalRounds,
+  ]);
 
-  // ─── WebSocket listeners ─────────────────────────────────────────────────────
   useEffect(() => {
     const unsubs: (() => void)[] = [];
 
-    unsubs.push(mpClient.on('BATTLE_START', (msg: MPMessage) => {
-      hydrateBattle(msg.payload);
+    unsubs.push(mpClient.on('BATTLE_START', (message: MPMessage) => {
+      hydrateBattle(message.payload);
     }));
 
-    unsubs.push(mpClient.on('TURN_CHANGED', (msg: MPMessage) => {
-      setTurnPlayerId(msg.payload?.turnPlayerId ?? null);
+    unsubs.push(mpClient.on('TURN_CHANGED', (message: MPMessage) => {
+      setTurnPlayerId(message.payload?.turnPlayerId ?? null);
     }));
 
     unsubs.push(mpClient.on('OPPONENT_CARD_REVEALED', () => {
       setOppCardRevealed(true);
     }));
 
-    unsubs.push(mpClient.on('ROUND_RESULT', (msg: MPMessage) => {
-      const r = msg.payload;
+    unsubs.push(mpClient.on('ROUND_RESULT', (message: MPMessage) => {
+      const result = message.payload;
       isAdvancingRound.current = false;
-      const myWin = (isPlayer1 && r.winner === 'player1') || (!isPlayer1 && r.winner === 'player2');
-      
-      const p1WinState = r.winner === 'player1' ? 'win' : r.winner === 'player2' ? 'lose' : 'draw';
-      const p2WinState = r.winner === 'player2' ? 'win' : r.winner === 'player1' ? 'lose' : 'draw';
 
-      const p1Card = r.p1Card ? { ...r.p1Card, winState: p1WinState } : undefined;
-      const p2Card = r.p2Card ? { ...r.p2Card, winState: p2WinState } : undefined;
+      const myWin =
+        (isPlayer1 && result.winner === 'player1') ||
+        (!isPlayer1 && result.winner === 'player2');
+      const p1WinState =
+        result.winner === 'player1' ? 'win' : result.winner === 'player2' ? 'lose' : 'draw';
+      const p2WinState =
+        result.winner === 'player2' ? 'win' : result.winner === 'player1' ? 'lose' : 'draw';
 
-      if (r.nextOwnCard && Number.isInteger(r.roundIndex)) {
+      const p1Card = result.p1Card ? { ...result.p1Card, winState: p1WinState } : undefined;
+      const p2Card = result.p2Card ? { ...result.p2Card, winState: p2WinState } : undefined;
+
+      if (result.nextOwnCard && Number.isInteger(result.roundIndex)) {
         setMyCards((cards) => {
           const next = [...cards];
-          next[r.roundIndex + 1] = r.nextOwnCard;
+          next[result.roundIndex + 1] = result.nextOwnCard;
           return next;
         });
       }
 
-      setLastResult({
-        ...r,
-        p1Card,
-        p2Card,
-        myWin,
-      });
-      setMyScore(isPlayer1 ? r.p1Score : r.p2Score);
-      setOppScore(isPlayer1 ? r.p2Score : r.p1Score);
-      resultOp.value = withTiming(1, { duration: 300 });
+      setLastResult({ ...result, p1Card, p2Card, myWin });
+      setMyScore(isPlayer1 ? result.p1Score : result.p2Score);
+      setOppScore(isPlayer1 ? result.p2Score : result.p1Score);
       setPhase('result');
       setOppCardRevealed(false);
+
+      const sessionId = multiplayer.state.roomId ?? params.roomId ?? 'multiplayer';
+      const firstPresentation = presentationGate.current.accept({
+        id: `round-${result.roundIndex}-result`,
+        sessionId,
+        kind: 'round-result',
+      });
+      resultOpacity.value = firstPresentation && !reduceMotion
+        ? withTiming(1, { duration: 280 })
+        : 1;
+
+      if (firstPresentation) {
+        haptics.trigger(myWin ? 'acceptedPlacement' : result.winner === 'draw' ? 'selection' : 'attackImpact');
+      }
     }));
 
-    unsubs.push(mpClient.on('GAME_OVER', (msg: MPMessage) => {
-      setGameOver(msg.payload);
-      setPhase(curr => {
-        if (curr === 'result') {
-          return curr;
-        }
-        return 'game_over';
-      });
+    unsubs.push(mpClient.on('GAME_OVER', (message: MPMessage) => {
+      setGameOver(message.payload);
+      setPhase((current) => current === 'result' ? current : 'game_over');
     }));
 
     unsubs.push(mpClient.on('OPPONENT_DISCONNECTED', () => {
       setDisconnected(true);
-      Alert.alert('⚠️ الخصم انقطع', 'الخصم فقد الاتصال — 30 ثانية للعودة');
+    }));
+
+    unsubs.push(mpClient.on('OPPONENT_RECONNECTED', () => {
+      setDisconnected(false);
     }));
 
     unsubs.push(mpClient.on('OPPONENT_LEFT_PERMANENTLY', () => {
-      Alert.alert('🏳️ الخصم انسحب', 'فزت بالمباراة!', [
-        { text: 'حسناً', onPress: () => router.replace('/screens/splash' as any) },
+      Alert.alert('الخصم غادر', 'غادر خصمك المباراة.', [
+        { text: 'الرئيسية', onPress: () => router.replace('/screens/splash' as any) },
       ]);
     }));
 
-    return () => unsubs.forEach(u => u());
-  }, [hydrateBattle, isPlayer1, router]);
+    return () => unsubs.forEach((unsubscribe) => unsubscribe());
+  }, [
+    hydrateBattle,
+    isPlayer1,
+    multiplayer.state.roomId,
+    params.roomId,
+    reduceMotion,
+    resultOpacity,
+    router,
+  ]);
 
   useEffect(() => {
-    if (gameOver && endBattleClicked) {
-      setPhase('game_over');
-    }
-  }, [gameOver, endBattleClicked]);
+    if (gameOver && endBattleClicked) setPhase('game_over');
+  }, [endBattleClicked, gameOver]);
 
-  const handleEndMPBattle = useCallback(() => {
-    setEndBattleClicked(true);
-    if (gameOver) {
-      setPhase('game_over');
-    } else {
-      Alert.alert('⌛ في انتظار نتيجة المعركة', 'ننتظر استلام النتيجة النهائية من السيرفر...');
-    }
-  }, [gameOver]);
-
-  // ─── الكرت الحالي ────────────────────────────────────────────────────────────
   const myCurrentCard = myCards[currentRound];
 
-  // ─── كشف كرتي ────────────────────────────────────────────────────────────────
   const handleReveal = useCallback(() => {
-    if (!myCurrentCard || turnPlayerId !== playerId) return;
-    mpClient.revealCard(currentRound, myCurrentCard.id);
-    setPhase('waiting_opponent');
-  }, [myCurrentCard, playerId, currentRound, turnPlayerId]);
+    if (
+      !myCurrentCard ||
+      turnPlayerId !== playerId ||
+      phase !== 'selection' ||
+      revealedRounds.current.has(currentRound)
+    ) return;
 
-  // ─── التالي ──────────────────────────────────────────────────────────────────
+    const sent = mpClient.revealCard(currentRound, myCurrentCard.id);
+    if (!sent) return;
+
+    revealedRounds.current.add(currentRound);
+    setPhase('waiting_opponent');
+  }, [currentRound, myCurrentCard, phase, playerId, turnPlayerId]);
+
   const handleNext = useCallback(() => {
-    if (isAdvancingRound.current || phase !== 'result' || currentRound >= totalRounds - 1) return;
+    if (
+      isAdvancingRound.current ||
+      phase !== 'result' ||
+      currentRound >= totalRounds - 1
+    ) return;
+
     isAdvancingRound.current = true;
-    setCurrentRound(r => r + 1);
+    setCurrentRound((round) => round + 1);
     setLastResult(null);
     setPhase('selection');
     enterCards();
   }, [currentRound, enterCards, phase, totalRounds]);
 
-  const webTimelineSteps = useMemo<RoundTimelineStep[]>(() => {
+  const handleEndBattle = useCallback(() => {
+    setEndBattleClicked(true);
+    if (gameOver) {
+      setPhase('game_over');
+      return;
+    }
+    Alert.alert(
+      'في انتظار النتيجة',
+      'تم حسم الجولة محلياً في العرض، وننتظر النتيجة النهائية الموثوقة من الخادم.',
+    );
+  }, [gameOver]);
+
+  const timelineSteps = useMemo<RoundTimelineStep[]>(() => {
     if (!lastResult?.timeline) return [];
     const before = isPlayer1
       ? { player: lastResult.timeline.before.p1, bot: lastResult.timeline.before.p2 }
@@ -244,88 +320,150 @@ export default function MultiplayerBattleScreen() {
     const after = isPlayer1
       ? { player: lastResult.timeline.after.p1, bot: lastResult.timeline.after.p2 }
       : { player: lastResult.timeline.after.p2, bot: lastResult.timeline.after.p1 };
-    const iWon = lastResult.myWin;
-    const reason = lastResult.winner === 'draw'
-      ? 'تعادل الكرتان بعد مقارنة الهجوم والدفاع.'
-      : lastResult.advantage === 'faction'
-        ? 'أفضلية الفصيلة دعمت الكرت الفائز قبل المقارنة النهائية.'
-        : iWon ? 'تفوق كرتك بعد تطبيق التأثيرات هو سبب حسم الجولة.' : 'تفوق كرت الخصم بعد تطبيق التأثيرات هو سبب حسم الجولة.';
+    const won = lastResult.myWin;
+    const reason =
+      lastResult.winner === 'draw'
+        ? 'تعادل الكرتان بعد مقارنة الهجوم والدفاع.'
+        : lastResult.advantage === 'faction'
+          ? 'أفضلية الفصيلة دعمت الكرت الفائز قبل المقارنة النهائية.'
+          : won
+            ? 'تفوق كرتك بعد تطبيق التأثيرات حسم الجولة.'
+            : 'تفوق كرت الخصم بعد تطبيق التأثيرات حسم الجولة.';
+
     return [
-      { id: 'web-before', label: 'قبل الاستخدام', tone: 'neutral', text: `أنت: ${before.player.attack}/${before.player.defense} — الخصم: ${before.bot.attack}/${before.bot.defense}` },
-      { id: 'web-after', label: 'بعد الاستخدام', tone: 'accent', text: `بعد التأثيرات: أنت ${after.player.attack}/${after.player.defense} — الخصم ${after.bot.attack}/${after.bot.defense}` },
-      { id: 'web-reason', label: 'سبب الفوز', tone: iWon ? 'positive' : lastResult.winner === 'draw' ? 'neutral' : 'negative', text: reason },
+      {
+        id: 'web-before',
+        label: 'قبل التأثير',
+        tone: 'neutral',
+        text: `أنت: ${before.player.attack}/${before.player.defense} — الخصم: ${before.bot.attack}/${before.bot.defense}`,
+      },
+      {
+        id: 'web-after',
+        label: 'بعد التأثير',
+        tone: 'accent',
+        text: `أنت: ${after.player.attack}/${after.player.defense} — الخصم: ${after.bot.attack}/${after.bot.defense}`,
+      },
+      {
+        id: 'web-reason',
+        label: 'سبب النتيجة',
+        tone: won ? 'positive' : lastResult.winner === 'draw' ? 'neutral' : 'negative',
+        text: reason,
+      },
     ];
   }, [isPlayer1, lastResult]);
 
-  // ─── Game Over ───────────────────────────────────────────────────────────────
   if (phase === 'game_over' && gameOver) {
-    const iWon = (isPlayer1 && gameOver.winner === 'player1') ||
-                 (!isPlayer1 && gameOver.winner === 'player2');
-    const isDraw = gameOver.winner === 'draw';
+    const iWon =
+      (isPlayer1 && gameOver.winner === 'player1') ||
+      (!isPlayer1 && gameOver.winner === 'player2');
+    const draw = gameOver.winner === 'draw';
+    const Icon = draw ? Handshake : iWon ? Trophy : Skull;
+
     return (
-      <View style={S.root}>
-        <LuxuryBackground />
-        <View style={S.gameOverBox}>
-          <Text style={S.gameOverIcon}>{isDraw ? '🤝' : iWon ? '🏆' : '💀'}</Text>
-          <Text style={[S.gameOverTitle, { color: isDraw ? '#fbbf24' : iWon ? '#4ade80' : '#f87171' }]}>
-            {isDraw ? 'تعادل!' : iWon ? 'فزت!' : 'خسرت!'}
-          </Text>
-          <Text style={S.gameOverScore}>
-            {myScore} — {oppScore}
-          </Text>
-          <TouchableOpacity style={[S.btn, S.btnHome]} onPress={() => router.replace('/screens/splash' as any)}>
-            <Text style={S.btnText}>🏠 الرئيسية</Text>
-          </TouchableOpacity>
+      <View style={styles.root}>
+        <View style={StyleSheet.absoluteFill}><LuxuryBackground /></View>
+        <View style={styles.resultScreen}>
+          <ObsidianPanel accent style={styles.resultPanel}>
+            <Icon
+              size={54}
+              color={
+                draw
+                  ? SEMANTIC_COLOR.status.warning
+                  : iWon
+                    ? SEMANTIC_COLOR.status.success
+                    : SEMANTIC_COLOR.status.danger
+              }
+            />
+            <ThemedText
+              type="display"
+              style={{
+                color: draw
+                  ? SEMANTIC_COLOR.status.warning
+                  : iWon
+                    ? SEMANTIC_COLOR.status.success
+                    : SEMANTIC_COLOR.status.danger,
+              }}
+            >
+              {draw ? 'تعادل' : iWon ? 'انتصار' : 'هزيمة'}
+            </ThemedText>
+            <ThemedText type="numeric" style={styles.finalScore}>
+              {myScore} : {oppScore}
+            </ThemedText>
+            <ProButton
+              label="الرئيسية"
+              fullWidth
+              onPress={() => router.replace('/screens/splash' as any)}
+              icon={<Home size={18} color={SEMANTIC_COLOR.text.inverse} />}
+              hapticEvent={iWon ? 'victory' : 'defeat'}
+            />
+          </ObsidianPanel>
         </View>
       </View>
     );
   }
 
-  const myCard = phase === 'result' && lastResult ? (isPlayer1 ? lastResult.p1Card : lastResult.p2Card) : myCurrentCard;
-  const oppCard = phase === 'result' && lastResult ? (isPlayer1 ? lastResult.p2Card : lastResult.p1Card) : null;
+  const myCard =
+    phase === 'result' && lastResult
+      ? (isPlayer1 ? lastResult.p1Card : lastResult.p2Card)
+      : myCurrentCard;
+  const opponentCard =
+    phase === 'result' && lastResult
+      ? (isPlayer1 ? lastResult.p2Card : lastResult.p1Card)
+      : null;
+
+  const myTurn = phase === 'selection' && turnPlayerId === playerId;
 
   return (
-    <View style={S.root}>
+    <View style={styles.root}>
       <StatusBar hidden />
-      <View style={S.bg}><LuxuryBackground /></View>
+      <View style={StyleSheet.absoluteFill}><LuxuryBackground /></View>
 
-      {/* HUD */}
-      <View style={[S.hud, { paddingLeft: Math.max(insets.left, hudPadding), paddingRight: Math.max(insets.right, hudPadding), height: isCompact ? 52 : 60 }]}>
-        <View style={S.hudSide}>
-          <Text style={[S.hudName, { color: '#4ade80' }]}>{params.playerName}</Text>
-          <Text style={[S.hudScore, { color: '#4ade80' }]}>{myScore}</Text>
-        </View>
-        <View style={[S.hudCenter, isLandscape ? { width: centerWidth } : S.hudCenterPortrait]}>
-          <Text style={S.hudRound}>جولة {currentRound + 1} / {totalRounds}</Text>
-          {phase === 'waiting_start' && <Text style={S.waitText}>⌛ انتظار...</Text>}
-        </View>
-        <View style={[S.hudSide, { alignItems: 'flex-end' }]}>
-          <Text style={[S.hudScore, { color: '#f87171' }]}>{oppScore}</Text>
-          <Text style={[S.hudName, { color: '#f87171', textAlign: 'right' }]}>{params.opponentName}</Text>
-        </View>
+      <View
+        style={[
+          styles.hudWrap,
+          {
+            paddingLeft: Math.max(insets.left, hudPadding),
+            paddingRight: Math.max(insets.right, hudPadding),
+          },
+        ]}
+      >
+        <BattleHUD
+          playerScore={myScore}
+          botScore={oppScore}
+          maxScore={Math.max(totalRounds, myScore, oppScore, 1)}
+          currentRound={currentRound}
+          totalRounds={Math.max(totalRounds, 1)}
+          turn={
+            phase === 'selection'
+              ? turnPlayerId === playerId ? 'player' : 'bot'
+              : 'none'
+          }
+          playerLabel={params.playerName || 'أنت'}
+          opponentLabel={params.opponentName || 'الخصم'}
+        />
       </View>
 
-      {/* Arena */}
       <Animated.View
         testID="multiplayer-battle-arena"
         layout={layoutTransition}
         style={[
-          S.arena,
+          styles.arena,
           orientationStyle,
           {
             paddingLeft: Math.max(insets.left, arenaPadding),
             paddingRight: Math.max(insets.right, arenaPadding),
-            paddingTop: isCompact ? 8 : SPACE.md,
-            paddingBottom: isLandscape ? 0 : Math.max(4, arenaGap / 2),
+            paddingTop: isCompact ? SPACE.sm : SPACE.md,
+            paddingBottom: isLandscape ? 0 : Math.max(SPACE.xs, arenaGap / 2),
             gap: arenaGap,
             flexDirection: isLandscape ? 'row' : 'column',
           },
         ]}
       >
-
-        {/* My Card */}
-        <View testID="multiplayer-player-panel" style={[S.panel, !isLandscape && S.panelPortrait]}>
-          <Text style={S.panelLabel}>{params.playerName}</Text>
+        <View
+          testID="multiplayer-player-panel"
+          style={[styles.cardZone, !isLandscape && styles.cardZonePortrait]}
+        >
+          <ThemedText type="caption">{params.playerName || 'أنت'}</ThemedText>
           {myCard ? (
             <Animated.View style={myStyle}>
               <LuxuryCharacterCardAnimated
@@ -336,133 +474,274 @@ export default function MultiplayerBattleScreen() {
               />
             </Animated.View>
           ) : (
-            <View style={[S.emptyCard, { width: cardWidth, height: cardHeight }]}>
-              <Text style={S.emptyCardText}>?</Text>
-            </View>
+            <HiddenCard width={cardWidth} height={cardHeight} label="بطاقتك غير متاحة" />
           )}
         </View>
 
-        {/* Center */}
-        <View testID="multiplayer-command-panel" style={[
-          S.center,
-          !isLandscape && S.centerPortrait,
-          { width: centerWidth, gap: Math.max(6, arenaGap) },
-        ]}>
-          <Text style={[S.vsIcon, { fontSize: isCompact ? 20 : 28 }]}>⚔️</Text>
+        <View
+          testID="multiplayer-command-panel"
+          style={[
+            styles.command,
+            !isLandscape && styles.commandPortrait,
+            { width: centerWidth, gap: Math.max(SPACE.sm, arenaGap) },
+          ]}
+        >
+          <ThemedText type="numeric" style={styles.vs}>VS</ThemedText>
 
-          {/* Result badge */}
           {phase === 'result' && lastResult && (
             <>
-              <Animated.View style={[S.resultBadge, resultStyle, {
-                borderColor: lastResult.myWin ? '#4ade80' : lastResult.winner === 'draw' ? '#fbbf24' : '#f87171',
-                backgroundColor: lastResult.myWin ? 'rgba(74,222,128,0.12)' : lastResult.winner === 'draw' ? 'rgba(251,191,36,0.08)' : 'rgba(248,113,113,0.12)',
-              }]}>
-                <Text style={[S.resultText, {
-                  color: lastResult.myWin ? '#4ade80' : lastResult.winner === 'draw' ? '#fbbf24' : '#f87171',
-                }]}>
-                  {lastResult.myWin ? '🏆 فزت!' : lastResult.winner === 'draw' ? '🤝 تعادل' : '💀 خسرت'}
-                </Text>
+              <Animated.View
+                style={[
+                  styles.resultBadge,
+                  {
+                    borderColor: lastResult.myWin
+                      ? SEMANTIC_COLOR.status.success
+                      : lastResult.winner === 'draw'
+                        ? SEMANTIC_COLOR.status.warning
+                        : SEMANTIC_COLOR.status.danger,
+                  },
+                  resultStyle,
+                ]}
+              >
+                <ThemedText
+                  type="defaultSemiBold"
+                  style={{
+                    color: lastResult.myWin
+                      ? SEMANTIC_COLOR.status.success
+                      : lastResult.winner === 'draw'
+                        ? SEMANTIC_COLOR.status.warning
+                        : SEMANTIC_COLOR.status.danger,
+                  }}
+                >
+                  {lastResult.myWin ? 'فزت بالجولة' : lastResult.winner === 'draw' ? 'تعادل' : 'خسرت الجولة'}
+                </ThemedText>
               </Animated.View>
-              <RoundTimelinePanel testID="web-round-result-timeline" steps={webTimelineSteps} compact={!isLandscape} />
-              {lastResult.personalInsight && <Text style={S.personalInsight}>{lastResult.personalInsight}</Text>}
+              <RoundTimelinePanel
+                testID="web-round-result-timeline"
+                steps={timelineSteps}
+                compact={!isLandscape}
+              />
+              {lastResult.personalInsight ? (
+                <ThemedText type="caption" style={styles.insight}>
+                  {lastResult.personalInsight}
+                </ThemedText>
+              ) : null}
             </>
           )}
 
-          {/* CTA */}
-          {phase === 'selection' && turnPlayerId === playerId && (
-            <TouchableOpacity style={[S.btn, S.btnAttack, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]} onPress={handleReveal} activeOpacity={0.85}>
-              <Text style={S.btnIcon}>⚔️</Text>
-              <Text style={S.btnText}>اكشف كرتك</Text>
-            </TouchableOpacity>
+          {phase === 'selection' && myTurn && (
+            <ProButton
+              label="اكشف كرتك"
+              onPress={handleReveal}
+              style={{ width: actionButtonWidth, minHeight: actionButtonHeight }}
+              fullWidth
+              hapticEvent="cardPickup"
+            />
           )}
-          {phase === 'selection' && turnPlayerId !== playerId && (
-            <View style={[S.btn, S.btnWait, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]}> 
-              <Text style={S.btnText}>⌛ دور الخصم أولاً...</Text>
-            </View>
+
+          {phase === 'selection' && !myTurn && (
+            <StatePill label="دور الخصم أولاً" />
           )}
+
           {phase === 'waiting_opponent' && (
-            <View style={[S.btn, S.btnWait, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]}>
-              <Text style={S.btnText}>⌛ ننتظر الخصم...</Text>
-            </View>
+            <StatePill label={oppCardRevealed ? 'تم كشف كرت الخصم — ننتظر النتيجة' : 'تم إرسال كرتك — ننتظر الخصم'} />
           )}
+
           {phase === 'result' && currentRound < totalRounds - 1 && (
-            <TouchableOpacity style={[S.btn, S.btnNext, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]} onPress={handleNext} activeOpacity={0.85}>
-              <Text style={S.btnText}>▶️ التالي</Text>
-            </TouchableOpacity>
+            <ProButton
+              label="الجولة التالية"
+              variant="secondary"
+              onPress={handleNext}
+              style={{ width: actionButtonWidth, minHeight: actionButtonHeight }}
+              fullWidth
+              icon={<RotateCcw size={17} color="#DCE4FF" />}
+            />
           )}
+
           {phase === 'result' && currentRound === totalRounds - 1 && (
-            <TouchableOpacity style={[S.btn, S.btnEndBattle, { width: actionButtonWidth, minHeight: actionButtonHeight, paddingHorizontal: isCompact ? 4 : SPACE.sm }]} onPress={handleEndMPBattle} activeOpacity={0.85}>
-              <Text style={S.btnText}>🏁 إنهاء المعركة</Text>
-            </TouchableOpacity>
+            <ProButton
+              label="إنهاء المعركة"
+              variant="ghost"
+              onPress={handleEndBattle}
+              style={{ width: actionButtonWidth, minHeight: actionButtonHeight }}
+              fullWidth
+            />
           )}
         </View>
 
-        {/* Opponent Card */}
-        <View testID="multiplayer-bot-panel" style={[S.panel, !isLandscape && S.panelPortrait]}>
-          <Text style={[S.panelLabel, { color: '#f87171' }]}>{params.opponentName}</Text>
-          {oppCard ? (
+        <View
+          testID="multiplayer-bot-panel"
+          style={[styles.cardZone, !isLandscape && styles.cardZonePortrait]}
+        >
+          <ThemedText type="caption">{params.opponentName || 'الخصم'}</ThemedText>
+          {opponentCard ? (
             <Animated.View style={oppStyle}>
               <LuxuryCharacterCardAnimated
-                card={oppCard}
+                card={opponentCard}
                 style={{ width: cardWidth, height: cardHeight }}
-                winnerState={phase === 'result' && oppCard?.winState === 'win' ? 'winner' : null}
+                winnerState={phase === 'result' && opponentCard?.winState === 'win' ? 'winner' : null}
               />
             </Animated.View>
           ) : (
-            <View style={[S.emptyCard, { width: cardWidth, height: cardHeight }]}>
-              <Text style={[S.emptyCardText, { color: oppCardRevealed ? '#fbbf24' : '#475569' }]}>
-                {oppCardRevealed ? '✓' : '?'}
-              </Text>
-            </View>
+            <HiddenCard
+              width={cardWidth}
+              height={cardHeight}
+              label={oppCardRevealed ? 'كشف الخصم بطاقته' : 'بطاقة الخصم مخفية'}
+              acknowledged={oppCardRevealed}
+            />
           )}
         </View>
       </Animated.View>
 
-      {/* Disconnect warning */}
       {disconnected && (
-        <View style={S.disconnectBar}>
-          <Text style={S.disconnectText}>⚠️ الخصم انقطع — ينتظر عودته...</Text>
+        <View style={styles.reconnectOverlay} accessibilityLiveRegion="assertive">
+          <ObsidianPanel raised style={styles.reconnectPanel}>
+            <ShieldAlert size={28} color={SEMANTIC_COLOR.status.warning} />
+            <ThemedText type="defaultSemiBold">انقطع اتصال الخصم</ThemedText>
+            <ThemedText type="subtitle" style={styles.centerText}>
+              تم إيقاف مدخلات جديدة في العرض حتى يعود الخصم أو تنتهي مهلة الخادم.
+              حالة المباراة الموثوقة محفوظة على الخادم.
+            </ThemedText>
+          </ObsidianPanel>
         </View>
       )}
     </View>
   );
 }
 
-const S = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#080612' },
-  bg: { position: 'absolute', inset: 0 },
-  hud: { height: 60, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(8,6,18,0.85)', borderBottomWidth: 1, borderBottomColor: 'rgba(228,165,42,0.18)', paddingHorizontal: SPACE.lg, gap: SPACE.sm },
-  hudSide: { flex: 1, gap: 2 },
-  hudCenter: { alignItems: 'center' },
-  hudCenterPortrait: { flex: 0.75 },
-  hudName: { fontSize: FONT.xs, letterSpacing: 0.4 },
-  hudScore: { fontSize: FONT.xxl, fontVariant: ['tabular-nums'] } as any,
-  hudRound: { color: '#e2e8f0', fontSize: FONT.sm },
-  waitText: { color: '#fbbf24', fontSize: FONT.xs },
-  arena: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACE.lg, paddingTop: SPACE.md, gap: SPACE.sm },
-  panel: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,26,10,0.4)', borderWidth: 1, borderColor: 'rgba(74,222,128,0.2)', borderRadius: RADIUS.lg, paddingVertical: SPACE.lg, height: '100%', gap: SPACE.sm },
-  panelPortrait: { height: undefined, minHeight: 0, paddingVertical: SPACE.sm },
-  panelLabel: { color: '#4ade80', fontSize: FONT.xs - 2, letterSpacing: 1 },
-  emptyCard: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: RADIUS.lg, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  emptyCardText: { fontSize: 48, color: '#475569' },
-  center: { alignItems: 'center', zIndex: 20 },
-  centerPortrait: { minHeight: 76 },
-  vsIcon: { fontSize: 28 },
-  resultBadge: { paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderRadius: RADIUS.pill, borderWidth: 1.5, alignItems: 'center' },
-  resultText: { fontSize: FONT.base, letterSpacing: 0.5 },
-  personalInsight: { maxWidth: 250, color: '#c4b5fd', fontSize: FONT.xs, textAlign: 'center', lineHeight: 18 },
-  btn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs, borderRadius: RADIUS.pill, paddingVertical: 7, paddingHorizontal: SPACE.sm, borderWidth: 1.5 },
-  btnAttack: { backgroundColor: 'rgba(74,222,128,0.12)', borderColor: '#4ade80' },
-  btnNext: { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: '#60a5fa' },
-  btnEndBattle: { backgroundColor: 'rgba(228,165,42,0.12)', borderColor: COLOR.gold },
-  btnWait: { backgroundColor: 'rgba(71,85,105,0.2)', borderColor: '#475569' },
-  btnHome: { backgroundColor: 'rgba(228,165,42,0.12)', borderColor: COLOR.gold, marginTop: SPACE.lg },
-  btnIcon: { fontSize: 16 },
-  btnText: { color: '#f1f5f9', fontSize: FONT.sm, textAlign: 'center', flexShrink: 1 },
-  disconnectBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(248,113,113,0.15)', padding: SPACE.md, alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(248,113,113,0.3)' },
-  disconnectText: { color: '#f87171', fontSize: FONT.sm },
-  gameOverBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.lg },
-  gameOverIcon: { fontSize: 72 },
-  gameOverTitle: { fontSize: FONT.xxl + 8, letterSpacing: 1 },
-  gameOverScore: { fontSize: FONT.xxl, color: '#e2e8f0', letterSpacing: 4 },
+function HiddenCard({
+  width,
+  height,
+  label,
+  acknowledged = false,
+}: {
+  width: number;
+  height: number;
+  label: string;
+  acknowledged?: boolean;
+}) {
+  return (
+    <View
+      accessibilityLabel={label}
+      style={[
+        styles.hiddenCard,
+        { width, height },
+        acknowledged && styles.hiddenCardAcknowledged,
+      ]}
+    >
+      <ThemedText type="display" style={styles.hiddenMark}>
+        {acknowledged ? '✓' : '?'}
+      </ThemedText>
+      <ThemedText type="caption" style={styles.centerText}>{label}</ThemedText>
+    </View>
+  );
+}
+
+function StatePill({ label }: { label: string }) {
+  return (
+    <View style={styles.statePill} accessibilityLiveRegion="polite">
+      <ThemedText type="label" style={styles.centerText}>{label}</ThemedText>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: SEMANTIC_COLOR.background.arena },
+  hudWrap: { paddingTop: SPACE.xs, paddingHorizontal: SPACE.sm },
+  arena: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  cardZone: {
+    flex: 1,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.sm,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    backgroundColor: 'rgba(11,20,34,0.70)',
+  },
+  cardZonePortrait: {
+    height: undefined,
+    minHeight: 0,
+    paddingVertical: SPACE.sm,
+  },
+  command: { alignItems: 'center', zIndex: 20 },
+  commandPortrait: { minHeight: 82 },
+  vs: { color: SEMANTIC_COLOR.accent.primary, fontSize: 24 },
+  resultBadge: {
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    backgroundColor: 'rgba(8,13,22,0.78)',
+  },
+  insight: {
+    maxWidth: 260,
+    color: '#D8CCFF',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  hiddenCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.sm,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    backgroundColor: 'rgba(19,30,47,0.64)',
+  },
+  hiddenCardAcknowledged: {
+    borderColor: 'rgba(251,191,36,0.50)',
+  },
+  hiddenMark: {
+    color: SEMANTIC_COLOR.text.secondary,
+    fontSize: 42,
+  },
+  statePill: {
+    width: '100%',
+    minHeight: 48,
+    padding: SPACE.sm,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    backgroundColor: 'rgba(19,30,47,0.82)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reconnectOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(8,13,22,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACE.xl,
+    zIndex: 100,
+  },
+  reconnectPanel: {
+    width: '100%',
+    maxWidth: 480,
+    alignItems: 'center',
+    gap: SPACE.md,
+    borderColor: 'rgba(251,191,36,0.54)',
+  },
+  centerText: { textAlign: 'center' },
+  resultScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACE.xl,
+  },
+  resultPanel: {
+    width: '100%',
+    maxWidth: 480,
+    alignItems: 'center',
+    gap: SPACE.lg,
+  },
+  finalScore: {
+    color: SEMANTIC_COLOR.text.primary,
+    fontSize: 34,
+  },
 });

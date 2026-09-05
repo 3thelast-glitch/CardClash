@@ -1,55 +1,90 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Share,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
+  Share,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
+import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
-
+import {
+  ArrowLeft,
+  Copy,
+  Crown,
+  DoorOpen,
+  RefreshCw,
+  Search,
+  Share2,
+  ShieldCheck,
+  Swords,
+  UserRound,
+  Users,
+} from 'lucide-react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { LuxuryBackground } from '@/components/game/luxury-background';
-import { COLOR, FONT, RADIUS, SHADOW, SPACE } from '@/components/ui/design-tokens';
-import { ThemedText as Text } from '@/components/ui/ThemedText';
+import { ConnectionBadge } from '@/components/ui/ConnectionBadge';
+import { ObsidianPanel } from '@/components/ui/ObsidianPanel';
+import { ProButton } from '@/components/ui/ProButton';
+import { ThemedText } from '@/components/ui/ThemedText';
+import {
+  FONT,
+  RADIUS,
+  SEMANTIC_COLOR,
+  SPACE,
+  TOUCH_TARGET,
+} from '@/components/ui/design-tokens';
+import { useMotionPreferences } from '@/hooks/useMotionPreferences';
 import { useMultiplayer } from '@/lib/multiplayer/multiplayer-context';
 import { isValidInviteCode, normalizeInviteCode } from '@/lib/multiplayer/invites';
 import { fetchJoinableRooms, type PublicRoom } from '@/lib/multiplayer/room-directory';
 
 type LobbyPhase = 'menu' | 'matchmaking' | 'waiting_opponent' | 'ready';
 
-const MATCHMAKING_TIPS = [
-  { title: 'استغل الفصائل', text: 'كل فصيلة تتفوق على فصيلة واحدة وتتأثر بفصيلة واحدة ضمن دورة الفصائل. خطط لبطاقاتك قبل التأكيد.' },
-  { title: 'وازن تشكيلتك', text: 'لا تعتمد على الهجوم فقط؛ بطاقة دفاعية في الجولة المناسبة قد تقلب نتيجة المواجهة.' },
-  { title: 'راقب ترتيب الجولات', text: 'رتّب بطاقاتك حسب الأرقام المختارة. تبدأ الجولة الأولى بأول بطاقة في صفك.' },
-  { title: 'القدرات الخاصة', text: 'فعّل بطاقة خاصة في التوقيت الحاسم لتقليل هجوم الخصم أو زيادة دفاع بطاقتك.' },
-];
-
 function MatchmakingRadar() {
   const rotation = useSharedValue(0);
-  const pulse = useSharedValue(0.94);
+  const { reduceMotion } = useMotionPreferences();
 
   useEffect(() => {
-    rotation.value = withRepeat(withTiming(1, { duration: 2400, easing: Easing.linear }), -1, false);
-    pulse.value = withRepeat(withTiming(1.08, { duration: 1050 }), -1, true);
-  }, [pulse, rotation]);
+    cancelAnimation(rotation);
+    if (reduceMotion) {
+      rotation.value = 0;
+      return;
+    }
+    rotation.value = withRepeat(
+      withTiming(1, { duration: 2400, easing: Easing.linear }),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(rotation);
+  }, [reduceMotion, rotation]);
 
-  const sweepStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value * 360}deg` }] }));
-  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }], opacity: 1.8 - pulse.value }));
+  const sweepStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value * 360}deg` }],
+  }));
 
   return (
-    <View style={styles.radarShell} accessibilityLabel="يتم البحث عن لاعب مناسب">
-      <Animated.View style={[styles.radarPulse, pulseStyle]} />
-      <View style={styles.radarRingOuter} />
-      <View style={styles.radarRingMid} />
-      <View style={styles.radarRingInner} />
-      <Animated.View style={[styles.radarSweep, sweepStyle]}><View style={styles.radarBeacon} /></Animated.View>
-      <View style={styles.radarCore}><Text style={styles.radarCoreIcon}>♜</Text></View>
+    <View style={styles.radar} accessibilityLabel="يتم البحث عن لاعب مناسب">
+      <View style={styles.radarOuter} />
+      <View style={styles.radarInner} />
+      {!reduceMotion && (
+        <Animated.View pointerEvents="none" style={[styles.radarSweep, sweepStyle]}>
+          <View style={styles.radarDot} />
+        </Animated.View>
+      )}
+      <Search size={24} color={SEMANTIC_COLOR.accent.primary} />
     </View>
   );
 }
@@ -57,7 +92,6 @@ function MatchmakingRadar() {
 export default function MultiplayerLobbyScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ invite?: string | string[] }>();
-  const insets = useSafeAreaInsets();
   const {
     state,
     connect,
@@ -73,8 +107,6 @@ export default function MultiplayerLobbyScreen() {
   const [customInviteCode, setCustomInviteCode] = useState('');
   const [error, setError] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
-  const [waitSeconds, setWaitSeconds] = useState(0);
-  const [tipIndex, setTipIndex] = useState(0);
   const [availableRooms, setAvailableRooms] = useState<PublicRoom[]>([]);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [roomsError, setRoomsError] = useState('');
@@ -84,41 +116,36 @@ export default function MultiplayerLobbyScreen() {
     return value ? normalizeInviteCode(value) : '';
   }, [params.invite]);
 
-  const phase: LobbyPhase = (() => {
-    if (state.matchmaking.status === 'searching') return 'matchmaking';
-    if (!state.roomId) return 'menu';
-    if (!state.opponentId) return 'waiting_opponent';
-    return 'ready';
-  })();
-
-  const displayedSearchRange = Math.min(400, (state.matchmaking.searchRange ?? 100) + Math.floor(waitSeconds / 10) * 50);
-  const waitTime = `${String(Math.floor(waitSeconds / 60)).padStart(2, '0')}:${String(waitSeconds % 60).padStart(2, '0')}`;
-  const activeTip = MATCHMAKING_TIPS[tipIndex];
+  const phase: LobbyPhase =
+    state.matchmaking.status === 'searching'
+      ? 'matchmaking'
+      : !state.roomId
+        ? 'menu'
+        : !state.opponentId
+          ? 'waiting_opponent'
+          : 'ready';
 
   useEffect(() => {
     if (phase === 'ready' || phase === 'menu') setIsConnecting(false);
   }, [phase]);
 
   useEffect(() => {
-    if (phase !== 'matchmaking') {
-      setWaitSeconds(0);
-      setTipIndex(0);
-      return;
-    }
-    const timer = setInterval(() => setWaitSeconds((seconds) => seconds + 1), 1000);
-    const tipTimer = setInterval(() => setTipIndex((index) => (index + 1) % MATCHMAKING_TIPS.length), 6000);
-    return () => {
-      clearInterval(timer);
-      clearInterval(tipTimer);
-    };
-  }, [phase]);
+    if (!inviteFromLink || !isValidInviteCode(inviteFromLink)) return;
+    setJoinInput(inviteFromLink);
+    setError('تم فتح دعوة خاصة. أدخل اسمك ثم اختر «انضم».');
+  }, [inviteFromLink]);
 
   useEffect(() => {
-    if (inviteFromLink && isValidInviteCode(inviteFromLink)) {
-      setJoinInput(inviteFromLink);
-      setError('تم فتح دعوة خاصة. أدخل اسمك ثم اضغط «انضم».');
-    }
-  }, [inviteFromLink]);
+    if (!state.lastError) return;
+    setError(
+      state.lastError === 'Invite code is invalid or already in use'
+        ? 'رمز الدعوة غير صالح أو مستخدم بالفعل.'
+        : state.lastError === 'رابط خادم اللعب الجماعي غير مضبوط في هذه النسخة.'
+          ? state.lastError
+          : 'تعذر إتمام الطلب. تحقق من الاتصال وحاول مجدداً.',
+    );
+    setIsConnecting(false);
+  }, [state.lastError]);
 
   const refreshAvailableRooms = useCallback(async () => {
     setIsLoadingRooms(true);
@@ -127,7 +154,7 @@ export default function MultiplayerLobbyScreen() {
       setAvailableRooms(await fetchJoinableRooms());
     } catch {
       setAvailableRooms([]);
-      setRoomsError('تعذر تحميل الغرف الآن. يمكنك استخدام رمز الغرفة مباشرة.');
+      setRoomsError('تعذر تحميل الغرف الآن. استخدم رمز الغرفة مباشرة.');
     } finally {
       setIsLoadingRooms(false);
     }
@@ -137,20 +164,9 @@ export default function MultiplayerLobbyScreen() {
     if (phase === 'menu') void refreshAvailableRooms();
   }, [phase, refreshAvailableRooms]);
 
-  useEffect(() => {
-    if (state.lastError) {
-      setError(state.lastError === 'Invite code is invalid or already in use'
-        ? 'رمز الدعوة غير صالح أو مستخدم بالفعل.'
-        : state.lastError === 'رابط خادم اللعب الجماعي غير مضبوط في هذه النسخة.'
-          ? state.lastError
-        : 'تعذر إتمام الطلب. تأكد من الرمز وحاول مجدداً.');
-      setIsConnecting(false);
-    }
-  }, [state.lastError]);
-
   const withConnection = async (action: () => void) => {
     if (!playerName.trim()) {
-      setError('أدخل اسمك أولاً');
+      setError('أدخل اسمك أولاً.');
       return;
     }
     setError('');
@@ -159,9 +175,11 @@ export default function MultiplayerLobbyScreen() {
       await connect();
       action();
     } catch (cause) {
-      setError(cause instanceof Error && cause.name === 'MultiplayerConfigurationError'
-        ? 'رابط خادم اللعب الجماعي غير مضبوط في هذه النسخة.'
-        : 'تعذر الاتصال بخادم اللعب الجماعي');
+      setError(
+        cause instanceof Error && cause.name === 'MultiplayerConfigurationError'
+          ? 'رابط خادم اللعب الجماعي غير مضبوط في هذه النسخة.'
+          : 'تعذر الاتصال بخادم اللعب الجماعي.',
+      );
       setIsConnecting(false);
     }
   };
@@ -172,48 +190,40 @@ export default function MultiplayerLobbyScreen() {
       setError('استخدم رمزاً من 4 إلى 8 أحرف أو أرقام.');
       return;
     }
-    withConnection(() => createRoom(playerName.trim(), inviteCode));
+    void withConnection(() => createRoom(playerName.trim(), inviteCode));
   };
 
   const handleJoin = () => {
     if (!joinInput.trim()) {
-      setError('أدخل كود الغرفة');
+      setError('أدخل رمز الغرفة.');
       return;
     }
-    withConnection(() => joinRoom(joinInput.trim().toUpperCase(), playerName.trim()));
+    void withConnection(() => joinRoom(normalizeInviteCode(joinInput), playerName.trim()));
   };
 
-  const handleJoinListedRoom = (roomId: string) => {
-    if (!playerName.trim()) {
-      setError('أدخل اسمك أولاً');
-      return;
-    }
-    setJoinInput(roomId);
-    withConnection(() => joinRoom(roomId, playerName.trim()));
+  const handleQuickMatch = () => {
+    void withConnection(() => queueRankedMatch(playerName.trim()));
   };
-
-  const handleQuickMatch = () => withConnection(() => queueRankedMatch(playerName.trim()));
 
   const inviteLink = state.roomId
     ? Linking.createURL('/screens/multiplayer-lobby', { queryParams: { invite: state.roomId } })
     : '';
 
-  const handleShareInvite = useCallback(async () => {
+  const shareInvite = useCallback(async () => {
     if (!state.roomId) return;
     try {
       await Share.share({
-        title: 'دعوة مباراة خاصة في Card Clash',
-        message: `انضم لمباراتي الخاصة في Card Clash!\nرمز الدعوة: ${state.roomId}\nافتح الرابط أو أدخل الرمز يدوياً:\n${inviteLink}`,
+        title: 'دعوة Card Clash',
+        message: `انضم لمباراتي في Card Clash\nرمز الغرفة: ${state.roomId}\n${inviteLink}`,
       });
     } catch {
-      setError('تعذرت مشاركة الدعوة. يمكنك إرسال الرمز يدوياً.');
+      setError('تعذرت مشاركة الدعوة. أرسل الرمز يدوياً.');
     }
   }, [inviteLink, state.roomId]);
 
   const handleBack = () => {
     if (phase === 'matchmaking') {
       cancelMatchmaking();
-      setIsConnecting(false);
       return;
     }
     if (phase !== 'menu') {
@@ -226,293 +236,413 @@ export default function MultiplayerLobbyScreen() {
   return (
     <View style={styles.root}>
       <StatusBar hidden />
-      <View style={styles.bg}><LuxuryBackground /></View>
-
-      <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          { paddingTop: insets.top + SPACE.xl, paddingBottom: insets.bottom + SPACE.xl },
-        ]}
-        keyboardShouldPersistTaps="handled"
+      <View style={StyleSheet.absoluteFill}><LuxuryBackground /></View>
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>⚔️ الساحة الجماعية</Text>
-          <Text style={styles.subtitle}>منافسة سريعة، غرف أصدقاء، وترتيب تنافسي</Text>
-        </View>
-
-        {phase === 'menu' && (
-          <>
-            <View style={styles.nameCard}>
-              <Text style={styles.label}>اسمك في اللعبة</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="اكتب اسمك..."
-                placeholderTextColor="#64748b"
-                value={playerName}
-                onChangeText={setPlayerName}
-                maxLength={20}
-                textAlign="right"
-              />
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="رجوع"
+              onPress={handleBack}
+              style={styles.back}
+            >
+              <ArrowLeft size={20} color={SEMANTIC_COLOR.accent.primary} />
+            </TouchableOpacity>
+            <View style={styles.headerCopy}>
+              <ThemedText type="title">الساحة الجماعية</ThemedText>
+              <ThemedText type="subtitle">
+                مطابقة تنافسية أو غرفة خاصة — دون تغيير بروتوكول WebSocket الحالي
+              </ThemedText>
             </View>
+          </View>
 
-            {!!error && <View style={styles.errorBox}><Text style={styles.errorText}>⚠️ {error}</Text></View>}
+          {!!error && (
+            <ObsidianPanel style={styles.errorPanel}>
+              <ThemedText type="label" style={styles.errorText}>{error}</ThemedText>
+            </ObsidianPanel>
+          )}
 
-            <View style={styles.actions}>
-              <TouchableOpacity style={[styles.rankedCard, isConnecting && styles.disabled]} onPress={handleQuickMatch} disabled={isConnecting} activeOpacity={0.85}>
-                <View style={styles.rankedCardTop}>
-                  <View style={styles.rankEmblem}><Text style={styles.rankEmblemText}>♜</Text></View>
-                  <View style={styles.rankedCopy}>
-                    <Text style={styles.rankedTitle}>مطابقة تنافسية</Text>
-                    <Text style={styles.rankedDesc}>خصم مناسب لترتيبك الحالي</Text>
-                  </View>
-                  <Text style={styles.rankedArrow}>←</Text>
-                </View>
-                <View style={styles.rankedStatsRow}>
-                  <Text style={styles.rankedStatsText}>{state.rankedProfile.tier}</Text>
-                  <Text style={styles.rankedStatsText}>ELO {state.rankedProfile.rating}</Text>
-                  <Text style={styles.rankedStatsText}>{state.rankedProfile.wins} فوز</Text>
-                </View>
-              </TouchableOpacity>
-
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>أو العب مع صديق</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <View style={styles.customCodeCard}>
-                <Text style={styles.customCodeTitle}>دعوة صديق برمز خاص</Text>
-                <Text style={styles.customCodeHint}>اختياري — من 4 إلى 8 أحرف أو أرقام، مثل CLASH24</Text>
+          {phase === 'menu' && (
+            <View style={styles.stack}>
+              <ObsidianPanel>
+                <ThemedText type="label" style={styles.fieldLabel}>اسم اللاعب</ThemedText>
                 <TextInput
-                  style={[styles.input, styles.customCodeInput]}
-                  placeholder="رمز الدعوة الخاص"
-                  placeholderTextColor="#64748b"
+                  accessibilityLabel="اسم اللاعب"
+                  value={playerName}
+                  onChangeText={setPlayerName}
+                  maxLength={20}
+                  placeholder="اكتب اسمك"
+                  placeholderTextColor={SEMANTIC_COLOR.text.secondary}
+                  style={styles.input}
+                  textAlign="right"
+                />
+              </ObsidianPanel>
+
+              <ObsidianPanel accent style={styles.matchCard}>
+                <View style={styles.matchHeader}>
+                  <View style={styles.iconBox}>
+                    <Swords size={24} color={SEMANTIC_COLOR.accent.primary} />
+                  </View>
+                  <View style={styles.cardCopy}>
+                    <ThemedText type="defaultSemiBold">مطابقة تنافسية</ThemedText>
+                    <ThemedText type="caption">
+                      يستخدم الخادم ترتيبك الحالي لاختيار خصم.
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={styles.rankRow}>
+                  <RankMetric label="التصنيف" value={state.rankedProfile.tier} />
+                  <RankMetric label="ELO" value={state.rankedProfile.rating} />
+                  <RankMetric label="الفوز" value={state.rankedProfile.wins} />
+                </View>
+                <ProButton
+                  label="ابدأ البحث"
+                  onPress={handleQuickMatch}
+                  loading={isConnecting}
+                  fullWidth
+                />
+              </ObsidianPanel>
+
+              <ObsidianPanel style={styles.stack}>
+                <View style={styles.sectionTitleRow}>
+                  <Users size={20} color={SEMANTIC_COLOR.accent.secondary} />
+                  <ThemedText type="defaultSemiBold">غرفة خاصة</ThemedText>
+                </View>
+
+                <ThemedText type="caption" style={styles.fieldLabel}>
+                  رمز مخصص اختياري — 4 إلى 8 أحرف أو أرقام
+                </ThemedText>
+                <TextInput
+                  accessibilityLabel="رمز مخصص للغرفة"
                   value={customInviteCode}
                   onChangeText={(text) => setCustomInviteCode(normalizeInviteCode(text))}
                   maxLength={8}
                   autoCapitalize="characters"
+                  placeholder="CLASH24"
+                  placeholderTextColor={SEMANTIC_COLOR.text.secondary}
+                  style={[styles.input, styles.codeInput]}
                   textAlign="center"
                 />
-              </View>
+                <ProButton
+                  label="إنشاء غرفة"
+                  variant="secondary"
+                  onPress={handleCreate}
+                  disabled={isConnecting}
+                  fullWidth
+                  icon={<DoorOpen size={18} color="#DCE4FF" />}
+                />
 
-              <TouchableOpacity style={[styles.btn, styles.btnCreate, isConnecting && styles.disabled]} onPress={handleCreate} disabled={isConnecting} activeOpacity={0.85}>
-                {isConnecting ? <ActivityIndicator color="#fff" /> : <><Text style={styles.btnIcon}>🏠</Text><Text style={styles.btnText}>إنشاء غرفة خاصة</Text></>}
-              </TouchableOpacity>
+                <View style={styles.divider} />
 
-              <View style={styles.joinRow}>
                 <TextInput
-                  style={[styles.input, styles.joinInput]}
-                  placeholder="كود الغرفة"
-                  placeholderTextColor="#64748b"
+                  accessibilityLabel="رمز الغرفة"
                   value={joinInput}
-                  onChangeText={(text) => setJoinInput(text.toUpperCase())}
+                  onChangeText={(text) => setJoinInput(normalizeInviteCode(text))}
                   maxLength={8}
                   autoCapitalize="characters"
+                  placeholder="رمز الغرفة"
+                  placeholderTextColor={SEMANTIC_COLOR.text.secondary}
+                  style={[styles.input, styles.codeInput]}
                   textAlign="center"
                 />
-                <TouchableOpacity style={[styles.btn, styles.btnJoin, isConnecting && styles.disabled]} onPress={handleJoin} disabled={isConnecting} activeOpacity={0.85}>
-                  <Text style={styles.btnText}>انضم</Text>
-                </TouchableOpacity>
-              </View>
+                <ProButton
+                  label="انضم"
+                  variant="ghost"
+                  onPress={handleJoin}
+                  disabled={isConnecting}
+                  fullWidth
+                />
+              </ObsidianPanel>
 
-              <View style={styles.directoryCard}>
+              <ObsidianPanel>
                 <View style={styles.directoryHeader}>
-                  <View style={styles.directoryTitleBlock}>
-                    <Text style={styles.directoryTitle}>الغرف المتاحة الآن</Text>
-                    <Text style={styles.directoryHint}>اختر غرفة للانضمام مباشرة</Text>
+                  <View style={styles.cardCopy}>
+                    <ThemedText type="defaultSemiBold">الغرف المتاحة</ThemedText>
+                    <ThemedText type="caption">الغرف العامة في حالة انتظار فقط.</ThemedText>
                   </View>
-                  <TouchableOpacity style={[styles.refreshRoomsBtn, isLoadingRooms && styles.disabled]} onPress={() => void refreshAvailableRooms()} disabled={isLoadingRooms} activeOpacity={0.75}>
-                    {isLoadingRooms ? <ActivityIndicator size="small" color="#c4b5fd" /> : <Text style={styles.refreshRoomsText}>تحديث</Text>}
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="تحديث قائمة الغرف"
+                    onPress={() => void refreshAvailableRooms()}
+                    disabled={isLoadingRooms}
+                    style={styles.refreshButton}
+                  >
+                    {isLoadingRooms
+                      ? <ActivityIndicator size="small" color={SEMANTIC_COLOR.accent.primary} />
+                      : <RefreshCw size={18} color={SEMANTIC_COLOR.accent.primary} />}
                   </TouchableOpacity>
                 </View>
-                {!!roomsError && <Text style={styles.directoryError}>{roomsError}</Text>}
-                {!isLoadingRooms && !roomsError && availableRooms.length === 0 && <Text style={styles.directoryEmpty}>لا توجد غرف عامة في الانتظار حالياً. أنشئ غرفة أو اطلب من صديقك إنشاءها.</Text>}
+                {roomsError ? <ThemedText type="caption" style={styles.errorText}>{roomsError}</ThemedText> : null}
+                {!isLoadingRooms && !roomsError && availableRooms.length === 0 ? (
+                  <ThemedText type="caption" style={styles.emptyText}>لا توجد غرف عامة في الانتظار الآن.</ThemedText>
+                ) : null}
                 {availableRooms.slice(0, 8).map((room) => (
-                  <View key={room.id} style={styles.directoryRoom}>
-                    <View style={styles.directoryRoomCopy}>
-                      <Text style={styles.directoryRoomHost}>غرفة {room.hostName}</Text>
-                      <Text style={styles.directoryRoomCode}>{room.id}</Text>
+                  <View key={room.id} style={styles.roomRow}>
+                    <View style={styles.roomCopy}>
+                      <ThemedText type="label">غرفة {room.hostName}</ThemedText>
+                      <ThemedText type="numeric" forceLtr style={styles.roomCodeSmall}>{room.id}</ThemedText>
                     </View>
-                    <TouchableOpacity style={[styles.directoryJoinBtn, isConnecting && styles.disabled]} onPress={() => handleJoinListedRoom(room.id)} disabled={isConnecting} activeOpacity={0.8}>
-                      <Text style={styles.directoryJoinText}>انضم</Text>
-                    </TouchableOpacity>
+                    <ProButton
+                      label="انضم"
+                      variant="ghost"
+                      disabled={isConnecting}
+                      onPress={() => {
+                        setJoinInput(room.id);
+                        void withConnection(() => joinRoom(room.id, playerName.trim()));
+                      }}
+                    />
                   </View>
                 ))}
+              </ObsidianPanel>
+            </View>
+          )}
+
+          {phase === 'matchmaking' && (
+            <ObsidianPanel accent style={styles.stateCard}>
+              <ConnectionBadge state="connecting" label="البحث نشط" />
+              <MatchmakingRadar />
+              <ThemedText type="title" style={styles.centerText}>نبحث عن منافس مناسب</ThemedText>
+              <ThemedText type="subtitle" style={styles.centerText}>
+                ستنتقل تلقائياً عند تأكيد الخادم للمباراة.
+              </ThemedText>
+              <View style={styles.rankRow}>
+                <RankMetric label="التصنيف" value={state.rankedProfile.tier} />
+                <RankMetric
+                  label="نطاق البحث"
+                  value={state.matchmaking.searchRange == null ? '—' : `±${state.matchmaking.searchRange}`}
+                />
+                <RankMetric
+                  label="الموقع"
+                  value={state.matchmaking.position == null ? '—' : `#${state.matchmaking.position}`}
+                />
               </View>
-            </View>
-          </>
-        )}
+              <ProButton label="إلغاء البحث" variant="danger" onPress={cancelMatchmaking} fullWidth hapticEvent="invalid" />
+            </ObsidianPanel>
+          )}
 
-        {phase === 'matchmaking' && (
-          <View style={styles.matchmakingBox}>
-            <MatchmakingRadar />
-            <Text style={styles.matchmakingTitle}>نبحث عن منافس مناسب</Text>
-            <Text style={styles.matchmakingDesc}>نقارن ترتيبك مع لاعبين متصلين الآن، ثم نوسع النطاق تدريجياً للحفاظ على مباراة متوازنة.</Text>
-            <View style={styles.matchMetaRow}>
-              <Metric label="رتبتك" value={state.rankedProfile.tier} />
-              <Metric label="نطاق البحث" value={`±${displayedSearchRange}`} />
-              <Metric label="دورك" value={`#${state.matchmaking.position ?? 1}`} />
-            </View>
-            <View style={styles.liveStatusRow}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveStatusText}>بحث نشط منذ {waitTime}</Text>
-            </View>
-            <View style={styles.tipCard}>
-              <Text style={styles.tipEyebrow}>تلميح استراتيجي</Text>
-              <Text style={styles.tipTitle}>{activeTip.title}</Text>
-              <Text style={styles.tipText}>{activeTip.text}</Text>
-              <View style={styles.tipDots}>
-                {MATCHMAKING_TIPS.map((tip, index) => (
-                  <TouchableOpacity
-                    key={tip.title}
-                    accessibilityLabel={`عرض تلميح: ${tip.title}`}
-                    onPress={() => setTipIndex(index)}
-                    style={[styles.tipDot, index === tipIndex && styles.tipDotActive]}
-                    activeOpacity={0.75}
-                  />
-                ))}
+          {phase === 'waiting_opponent' && (
+            <ObsidianPanel accent style={styles.stateCard}>
+              <ConnectionBadge state="waiting" />
+              <UserRound size={30} color={SEMANTIC_COLOR.accent.primary} />
+              <ThemedText type="subtitle">شارك هذا الرمز مع صديقك</ThemedText>
+              <ThemedText type="numeric" forceLtr style={styles.roomCode}>{state.roomId}</ThemedText>
+              {state.isHost && (
+                <ProButton
+                  label="مشاركة الدعوة"
+                  variant="secondary"
+                  onPress={() => void shareInvite()}
+                  icon={<Share2 size={18} color="#DCE4FF" />}
+                  fullWidth
+                />
+              )}
+              <ActivityIndicator color={SEMANTIC_COLOR.accent.primary} />
+            </ObsidianPanel>
+          )}
+
+          {phase === 'ready' && (
+            <ObsidianPanel accent style={styles.stateCard}>
+              <ConnectionBadge state="ready" />
+              <ShieldCheck size={34} color={SEMANTIC_COLOR.status.success} />
+              <ThemedText type="title" style={styles.centerText}>الخصم حاضر</ThemedText>
+              <View style={styles.playersRow}>
+                <PlayerSlot
+                  name={state.playerName || 'أنت'}
+                  role={state.isHost ? 'المضيف' : 'الضيف'}
+                  host={state.isHost}
+                />
+                <ThemedText type="numeric" style={{ color: SEMANTIC_COLOR.accent.primary }}>VS</ThemedText>
+                <PlayerSlot
+                  name={state.opponentName || 'الخصم'}
+                  role={state.isHost ? 'الضيف' : 'المضيف'}
+                  host={!state.isHost}
+                />
               </View>
-            </View>
-            <TouchableOpacity style={styles.cancelQueueBtn} onPress={cancelMatchmaking} activeOpacity={0.8}>
-              <Text style={styles.cancelQueueText}>إلغاء البحث</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {phase === 'waiting_opponent' && (
-          <View style={styles.waitingBox}>
-            <Text style={styles.waitingLabel}>كود الغرفة</Text>
-            <Text style={styles.roomCode}>{state.roomId}</Text>
-            <Text style={styles.waitingHint}>شارك الدعوة بالرابط أو الكود. ستظهر حالة صديقك فور انضمامه.</Text>
-            {state.isHost && <TouchableOpacity style={styles.shareInviteBtn} onPress={handleShareInvite} activeOpacity={0.8}>
-              <Text style={styles.shareInviteText}>↗ مشاركة رابط الدعوة</Text>
-            </TouchableOpacity>}
-            <ActivityIndicator color={COLOR.gold} />
-          </View>
-        )}
-
-        {phase === 'ready' && (
-          <View style={styles.readyBox}>
-            <Text style={styles.readyIcon}>✅</Text>
-            <Text style={styles.readyTitle}>الخصم حاضر!</Text>
-            <Text style={styles.readyPlayers}>{state.playerName} <Text style={{ color: COLOR.gold }}>VS</Text> {state.opponentName}</Text>
-            {state.isRankedMatch ? (
-              <View style={styles.rankedMatchBadge}><Text style={styles.rankedMatchBadgeText}>⚔️ مباراة تنافسية متوازنة</Text></View>
-            ) : (
-              <View style={styles.roleBadge}><Text style={styles.roleBadgeText}>{state.isHost ? '👑 أنت صاحب الجلسة' : '👤 أنت ضيف الجلسة'}</Text></View>
-            )}
-            <TouchableOpacity style={[styles.btn, styles.btnStart]} onPress={() => router.push('/screens/rounds-config' as any)} activeOpacity={0.85}>
-              <Text style={styles.btnIcon}>🎴</Text><Text style={styles.btnText}>التالي: إعداد البطاقات</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {phase !== 'menu' && <TouchableOpacity style={styles.backBtn} onPress={handleBack}><Text style={styles.backText}>{phase === 'matchmaking' ? 'إلغاء والعودة' : '← مغادرة الغرفة'}</Text></TouchableOpacity>}
-      </ScrollView>
+              <ProButton
+                label="التالي: إعداد البطاقات"
+                onPress={() => router.push('/screens/rounds-config' as any)}
+                fullWidth
+              />
+            </ObsidianPanel>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return <View style={styles.matchMeta}><Text style={styles.matchMetaLabel}>{label}</Text><Text style={styles.matchMetaValue}>{value}</Text></View>;
+function RankMetric({ label, value }: { label: string; value: string | number }) {
+  return (
+    <View style={styles.rankMetric}>
+      <ThemedText type="caption">{label}</ThemedText>
+      <ThemedText type="numeric" style={styles.rankValue}>{value}</ThemedText>
+    </View>
+  );
+}
+
+function PlayerSlot({ name, role, host }: { name: string; role: string; host: boolean }) {
+  return (
+    <View style={styles.playerSlot} accessibilityLabel={`${name}، ${role}`}>
+      {host
+        ? <Crown size={18} color={SEMANTIC_COLOR.status.warning} />
+        : <UserRound size={18} color={SEMANTIC_COLOR.accent.secondary} />}
+      <ThemedText type="label" numberOfLines={1}>{name}</ThemedText>
+      <ThemedText type="caption">{role}</ThemedText>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#080612' },
-  bg: { position: 'absolute', inset: 0 },
-  container: { flexGrow: 1, alignItems: 'center', paddingHorizontal: SPACE.xl, gap: SPACE.xl },
-  header: { alignItems: 'center', gap: SPACE.sm },
-  title: { fontSize: FONT.xxl + 4, color: COLOR.gold, letterSpacing: 1 },
-  subtitle: { fontSize: FONT.sm, color: '#94a3b8', textAlign: 'center' },
-  nameCard: { width: '100%', maxWidth: 440, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(228,165,42,0.22)', padding: SPACE.lg, gap: SPACE.sm },
-  label: { color: '#94a3b8', fontSize: FONT.xs },
-  input: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', color: '#f1f5f9', fontSize: FONT.base, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.md },
-  errorBox: { backgroundColor: 'rgba(248,113,113,0.10)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(248,113,113,0.3)', padding: SPACE.md },
-  errorText: { color: '#f87171', fontSize: FONT.sm, textAlign: 'center' },
-  actions: { width: '100%', maxWidth: 440, gap: SPACE.lg },
-  disabled: { opacity: 0.55 },
-  rankedCard: { width: '100%', backgroundColor: 'rgba(228,165,42,0.10)', borderColor: 'rgba(228,165,42,0.58)', borderWidth: 1.5, borderRadius: RADIUS.lg, padding: SPACE.lg, gap: SPACE.md, ...SHADOW },
-  rankedCardTop: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
-  rankEmblem: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(228,165,42,0.20)', borderWidth: 1, borderColor: COLOR.gold, alignItems: 'center', justifyContent: 'center' },
-  rankEmblemText: { color: COLOR.gold, fontSize: 25 },
-  rankedCopy: { flex: 1, alignItems: 'flex-start', gap: 2 },
-  rankedTitle: { color: COLOR.gold, fontSize: FONT.base },
-  rankedDesc: { color: '#94a3b8', fontSize: FONT.xs },
-  rankedArrow: { color: COLOR.gold, fontSize: 24 },
-  rankedStatsRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: 'rgba(228,165,42,0.18)', paddingTop: SPACE.sm },
-  rankedStatsText: { color: '#d9e0eb', fontSize: FONT.xs },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
-  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
-  dividerText: { color: '#64748b', fontSize: FONT.xs },
-  customCodeCard: { gap: SPACE.xs, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(96,165,250,0.35)', backgroundColor: 'rgba(96,165,250,0.06)', padding: SPACE.md },
-  customCodeTitle: { color: '#bfdbfe', fontSize: FONT.sm, textAlign: 'right' },
-  customCodeHint: { color: '#94a3b8', fontSize: 11, textAlign: 'right', lineHeight: 16 },
-  customCodeInput: { letterSpacing: 3, color: '#dbeafe' },
-  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.sm, borderRadius: RADIUS.pill, paddingVertical: SPACE.lg, paddingHorizontal: SPACE.xl, borderWidth: 1.5 },
-  btnCreate: { backgroundColor: 'rgba(74,222,128,0.12)', borderColor: '#4ade80', ...SHADOW },
-  btnJoin: { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: '#60a5fa', paddingHorizontal: SPACE.xl },
-  btnStart: { backgroundColor: 'rgba(228,165,42,0.15)', borderColor: COLOR.gold, marginTop: SPACE.md, ...SHADOW },
-  btnIcon: { fontSize: 18 },
-  btnText: { color: '#f1f5f9', fontSize: FONT.base, letterSpacing: 0.3 },
-  joinRow: { flexDirection: 'row', gap: SPACE.sm, alignItems: 'center' },
-  joinInput: { flex: 1, letterSpacing: 4 },
-  directoryCard: { gap: SPACE.sm, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)', backgroundColor: 'rgba(76,29,149,0.12)', padding: SPACE.md },
-  directoryHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.md },
-  directoryTitleBlock: { flex: 1, gap: 2 },
-  directoryTitle: { color: '#ddd6fe', fontSize: FONT.base, textAlign: 'right' },
-  directoryHint: { color: '#94a3b8', fontSize: 11, textAlign: 'right' },
-  refreshRoomsBtn: { minWidth: 70, minHeight: 34, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 1, borderColor: 'rgba(196,181,253,0.55)', backgroundColor: 'rgba(167,139,250,0.12)', paddingHorizontal: SPACE.sm },
-  refreshRoomsText: { color: '#ddd6fe', fontSize: FONT.xs },
-  directoryError: { color: '#fca5a5', fontSize: FONT.xs, lineHeight: 18, textAlign: 'right' },
-  directoryEmpty: { color: '#94a3b8', fontSize: FONT.xs, lineHeight: 19, textAlign: 'right', paddingVertical: SPACE.sm },
-  directoryRoom: { minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.md, borderTopWidth: 1, borderTopColor: 'rgba(196,181,253,0.15)', paddingTop: SPACE.sm },
-  directoryRoomCopy: { flex: 1, gap: 2 },
-  directoryRoomHost: { color: '#e2e8f0', fontSize: FONT.sm, textAlign: 'right' },
-  directoryRoomCode: { color: '#c4b5fd', fontSize: FONT.xs, letterSpacing: 2, textAlign: 'right' },
-  directoryJoinBtn: { minWidth: 72, minHeight: 36, borderRadius: RADIUS.pill, backgroundColor: 'rgba(74,222,128,0.14)', borderWidth: 1, borderColor: '#4ade80', alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.sm },
-  directoryJoinText: { color: '#bbf7d0', fontSize: FONT.xs },
-  waitingBox: { alignItems: 'center', gap: SPACE.md, backgroundColor: 'rgba(228,165,42,0.06)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(228,165,42,0.25)', padding: SPACE.xxl, width: '100%', maxWidth: 440 },
-  waitingLabel: { color: '#94a3b8', fontSize: FONT.sm },
-  roomCode: { fontSize: 40, color: COLOR.gold, letterSpacing: 8, fontVariant: ['tabular-nums'] } as any,
-  waitingHint: { color: '#94a3b8', fontSize: FONT.sm, textAlign: 'center' },
-  shareInviteBtn: { borderRadius: RADIUS.pill, borderWidth: 1, borderColor: 'rgba(96,165,250,0.75)', backgroundColor: 'rgba(96,165,250,0.12)', paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm },
-  shareInviteText: { color: '#bfdbfe', fontSize: FONT.sm },
-  matchmakingBox: { alignItems: 'center', gap: SPACE.lg, backgroundColor: 'rgba(228,165,42,0.07)', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(228,165,42,0.32)', padding: SPACE.xxl, width: '100%', maxWidth: 460 },
-  radarShell: { width: 112, height: 112, alignItems: 'center', justifyContent: 'center' },
-  radarPulse: { position: 'absolute', width: 106, height: 106, borderRadius: 53, backgroundColor: 'rgba(228,165,42,0.12)', borderWidth: 1, borderColor: 'rgba(228,165,42,0.45)' },
-  radarRingOuter: { position: 'absolute', width: 98, height: 98, borderRadius: 49, borderWidth: 1, borderColor: 'rgba(228,165,42,0.42)' },
-  radarRingMid: { position: 'absolute', width: 66, height: 66, borderRadius: 33, borderWidth: 1, borderColor: 'rgba(228,165,42,0.28)' },
-  radarRingInner: { position: 'absolute', width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(228,165,42,0.22)' },
-  radarSweep: { position: 'absolute', width: 98, height: 98, borderRadius: 49 },
-  radarBeacon: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fef08a', shadowColor: '#fef08a', shadowOpacity: 1, shadowRadius: 7, elevation: 4, alignSelf: 'center', marginTop: -4 },
-  radarCore: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: COLOR.gold, backgroundColor: 'rgba(228,165,42,0.20)', alignItems: 'center', justifyContent: 'center' },
-  radarCoreIcon: { color: COLOR.gold, fontSize: 22 },
-  matchmakingTitle: { color: COLOR.gold, fontSize: FONT.xl, textAlign: 'center' },
-  matchmakingDesc: { color: '#94a3b8', fontSize: FONT.sm, textAlign: 'center', lineHeight: 20 },
-  matchMetaRow: { flexDirection: 'row', width: '100%', gap: SPACE.sm },
-  matchMeta: { flex: 1, borderRadius: RADIUS.md, backgroundColor: 'rgba(255,255,255,0.05)', paddingVertical: SPACE.sm, paddingHorizontal: 4, alignItems: 'center', gap: 4 },
-  matchMetaLabel: { color: '#64748b', fontSize: 10 },
-  matchMetaValue: { color: '#f1f5f9', fontSize: FONT.xs, textAlign: 'center' },
-  liveStatusRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, alignSelf: 'center' },
-  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4ade80', shadowColor: '#4ade80', shadowOpacity: 0.9, shadowRadius: 6, elevation: 3 },
-  liveStatusText: { color: '#bbf7d0', fontSize: FONT.xs },
-  tipCard: { width: '100%', gap: 4, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(96,165,250,0.30)', backgroundColor: 'rgba(15,23,42,0.55)', padding: SPACE.md },
-  tipEyebrow: { color: '#93c5fd', fontSize: 10, textAlign: 'right' },
-  tipTitle: { color: '#dbeafe', fontSize: FONT.sm, textAlign: 'right' },
-  tipText: { color: '#94a3b8', fontSize: FONT.xs, lineHeight: 18, textAlign: 'right' },
-  tipDots: { flexDirection: 'row', gap: 6, justifyContent: 'center', paddingTop: SPACE.xs },
-  tipDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(148,163,184,0.45)' },
-  tipDotActive: { width: 18, backgroundColor: COLOR.gold },
-  cancelQueueBtn: { borderRadius: RADIUS.pill, borderWidth: 1, borderColor: 'rgba(248,113,113,0.6)', paddingHorizontal: SPACE.xl, paddingVertical: SPACE.sm, backgroundColor: 'rgba(248,113,113,0.08)' },
-  cancelQueueText: { color: '#f87171', fontSize: FONT.sm },
-  readyBox: { alignItems: 'center', gap: SPACE.md, padding: SPACE.xxl, width: '100%', maxWidth: 440 },
-  readyIcon: { fontSize: 48 },
-  readyTitle: { fontSize: FONT.xl, color: '#4ade80' },
-  readyPlayers: { fontSize: FONT.base, color: '#e2e8f0', textAlign: 'center' },
-  roleBadge: { borderRadius: RADIUS.pill, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.xs, borderWidth: 1, backgroundColor: 'rgba(148,163,184,0.08)', borderColor: 'rgba(148,163,184,0.25)' },
-  roleBadgeText: { color: '#e2e8f0', fontSize: FONT.sm, textAlign: 'center' },
-  rankedMatchBadge: { backgroundColor: 'rgba(228,165,42,0.12)', borderWidth: 1, borderColor: 'rgba(228,165,42,0.4)', borderRadius: RADIUS.pill, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs },
-  rankedMatchBadgeText: { color: COLOR.gold, fontSize: FONT.xs, textAlign: 'center' },
-  backBtn: { marginTop: SPACE.xl, padding: SPACE.md },
-  backText: { color: '#94a3b8', fontSize: FONT.sm },
+  root: { flex: 1, backgroundColor: SEMANTIC_COLOR.background.base },
+  scroll: {
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+    padding: SPACE.lg,
+    paddingTop: SPACE.xl,
+    paddingBottom: SPACE.xxxl,
+    gap: SPACE.lg,
+  },
+  header: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  headerCopy: { flex: 1, alignItems: 'flex-end' },
+  back: {
+    width: TOUCH_TARGET.default,
+    height: TOUCH_TARGET.default,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    backgroundColor: 'rgba(19,30,47,0.82)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stack: { gap: SPACE.md },
+  errorPanel: { borderColor: 'rgba(251,113,133,0.48)' },
+  errorText: { color: '#FFD0D8', textAlign: 'right' },
+  fieldLabel: { textAlign: 'right', marginBottom: SPACE.xs },
+  input: {
+    minHeight: TOUCH_TARGET.default,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    backgroundColor: 'rgba(8,13,22,0.56)',
+    color: SEMANTIC_COLOR.text.primary,
+    fontFamily: 'NotoKufiArabic_400Regular',
+    fontSize: FONT.md,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
+  },
+  codeInput: {
+    fontFamily: 'RobotoCondensed_700Bold',
+    writingDirection: 'ltr',
+    letterSpacing: 2.5,
+  },
+  matchCard: { gap: SPACE.md },
+  matchHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  iconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(57,230,208,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(57,230,208,0.32)',
+  },
+  cardCopy: { flex: 1, alignItems: 'flex-end', gap: 2 },
+  rankRow: { flexDirection: 'row', gap: SPACE.sm, width: '100%' },
+  rankMetric: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: RADIUS.md,
+    backgroundColor: 'rgba(8,13,22,0.44)',
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  rankValue: { color: SEMANTIC_COLOR.accent.primary, fontSize: FONT.md },
+  divider: { height: 1, backgroundColor: SEMANTIC_COLOR.border.subtle },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: SPACE.sm },
+  directoryHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginBottom: SPACE.sm },
+  refreshButton: {
+    width: TOUCH_TARGET.default,
+    height: TOUCH_TARGET.default,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: { textAlign: 'right', paddingVertical: SPACE.md },
+  roomRow: {
+    minHeight: 68,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.md,
+    borderTopWidth: 1,
+    borderTopColor: SEMANTIC_COLOR.border.subtle,
+    paddingVertical: SPACE.sm,
+  },
+  roomCopy: { flex: 1, alignItems: 'flex-end' },
+  roomCodeSmall: { color: SEMANTIC_COLOR.accent.secondary, fontSize: FONT.sm },
+  stateCard: { width: '100%', alignItems: 'center', gap: SPACE.lg },
+  centerText: { textAlign: 'center' },
+  radar: {
+    width: 116,
+    height: 116,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  radarOuter: {
+    position: 'absolute',
+    width: 108,
+    height: 108,
+    borderRadius: 54,
+    borderWidth: 1,
+    borderColor: 'rgba(57,230,208,0.30)',
+  },
+  radarInner: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 1,
+    borderColor: 'rgba(57,230,208,0.20)',
+  },
+  radarSweep: { position: 'absolute', width: 108, height: 108 },
+  radarDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: SEMANTIC_COLOR.accent.primary,
+    alignSelf: 'center',
+    marginTop: -4,
+  },
+  roomCode: {
+    color: SEMANTIC_COLOR.accent.primary,
+    fontSize: 40,
+    letterSpacing: 6,
+  },
+  playersRow: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  playerSlot: {
+    flex: 1,
+    minHeight: 92,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: SEMANTIC_COLOR.border.subtle,
+    backgroundColor: 'rgba(8,13,22,0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.xs,
+    padding: SPACE.sm,
+  },
 });

@@ -1,29 +1,30 @@
-/**
- * DifficultyScreen — 4 levels only.
- */
 import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
-import { ThemedText as Text } from '@/components/ui/ThemedText';
+import { ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { ArrowLeft, Crown, Flame, Gauge, Leaf } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { ScreenContainer } from '@/components/screen-container';
+
 import { LuxuryBackground } from '@/components/game/luxury-background';
+import { ScreenContainer } from '@/components/screen-container';
+import { ObsidianPanel } from '@/components/ui/ObsidianPanel';
+import { ProButton } from '@/components/ui/ProButton';
+import { ThemedText as Text } from '@/components/ui/ThemedText';
+import { FONT, RADIUS, SEMANTIC_COLOR, SPACE, TOUCH_TARGET } from '@/components/ui/design-tokens';
 import { useGame } from '@/lib/game/game-context';
-import { COLOR, SPACE, RADIUS, FONT, GLASS_PANEL, SHADOW } from '@/components/ui/design-tokens';
 import type { DifficultyLevel } from '@/lib/game/difficulty-types';
 
 export type { DifficultyLevel };
 
-const LEVELS: {
+const LEVELS: Array<{
   level: DifficultyLevel;
   label: string;
-  emoji: string;
-  desc: string;
-  color: string;
-}[] = [
-  { level: 1, label: 'سهل',    emoji: '🌱', desc: 'للمبتدئين',           color: '#4ade80' },
-  { level: 2, label: 'متوسط',  emoji: '⚡', desc: 'تحدٍّ معقول',         color: '#60a5fa' },
-  { level: 3, label: 'صعب',    emoji: '🔥', desc: 'يتطلب استراتيجية',    color: '#fb923c' },
-  { level: 4, label: 'أسطوري', emoji: '👑', desc: 'أعلى مستوى ممكن',     color: COLOR.gold },
+  description: string;
+  accent: string;
+  Icon: typeof Leaf;
+}> = [
+  { level: 1, label: 'سهل', description: 'اختيارات هادئة للتعرف على القواعد.', accent: SEMANTIC_COLOR.status.success, Icon: Leaf },
+  { level: 2, label: 'متوسط', description: 'قرارات متوازنة وتحدٍ مناسب.', accent: SEMANTIC_COLOR.accent.secondary, Icon: Gauge },
+  { level: 3, label: 'صعب', description: 'خصم يستغل الترتيب والقدرات بجدية.', accent: SEMANTIC_COLOR.status.warning, Icon: Flame },
+  { level: 4, label: 'أسطوري', description: 'أعلى مستوى متاح في هذا النمط.', accent: SEMANTIC_COLOR.rarity.legendary, Icon: Crown },
 ];
 
 export default function DifficultyScreen() {
@@ -33,86 +34,71 @@ export default function DifficultyScreen() {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  const handleContinue = () => {
+  const continueToRules = () => {
     if (!selected) return;
     setDifficulty(selected);
     router.push('/screens/rounds-config' as any);
   };
 
-  const levelsContent = (
-    <View style={[styles.levelsGrid, isLandscape && styles.levelsGridLandscape]}>
-      {LEVELS.map((lvl) => {
-        const active = selected === lvl.level;
-        return (
-          <TouchableOpacity
-            key={lvl.level}
-            style={[
-              styles.levelCard,
-              active && { borderColor: lvl.color, backgroundColor: lvl.color + '18', ...SHADOW.card },
-              isLandscape && styles.levelCardLandscape,
-            ]}
-            onPress={() => setSelected(lvl.level)}
-            activeOpacity={0.75}
-          >
-            {active && <View style={[styles.activeBar, { backgroundColor: lvl.color }]} />}
-
-            <Text style={styles.levelEmoji}>{lvl.emoji}</Text>
-            <Text style={[styles.levelLabel, active && { color: lvl.color }]}>{lvl.label}</Text>
-            <Text style={styles.levelDesc}>{lvl.desc}</Text>
-
-            {/* Stars — max 4 */}
-            <View style={styles.starsRow}>
-              {[1, 2, 3, 4].map((i) => (
-                <Text key={i} style={{ fontSize: 12, color: i <= lvl.level ? lvl.color : 'rgba(255,255,255,0.12)' }}>
-                  ★
-                </Text>
-              ))}
-            </View>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-
   return (
     <ScreenContainer edges={['top', 'bottom', 'left', 'right']}>
       <LuxuryBackground>
-        <ScrollView
-          contentContainerStyle={styles.container}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Back */}
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-            <Text style={styles.backBtnText}>← رجوع</Text>
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="رجوع"
+            style={styles.back}
+            onPress={() => router.back()}
+          >
+            <ArrowLeft size={20} color={SEMANTIC_COLOR.accent.primary} />
+            <Text type="label" style={styles.backLabel}>رجوع</Text>
           </TouchableOpacity>
 
-          {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>اختر المستوى</Text>
-            <Text style={styles.subtitle}>كلما زاد المستوى كلما صعبت المواجهة</Text>
+            <Text type="title" style={styles.title}>اختر مستوى المواجهة</Text>
+            <Text style={styles.subtitle}>الصعوبة تغيّر قرارات البوت فقط؛ قواعد الكروت والقدرات تبقى كما هي.</Text>
           </View>
 
-          {levelsContent}
+          <View style={[styles.grid, isLandscape && styles.gridLandscape]}>
+            {LEVELS.map(({ level, label, description, accent, Icon }) => {
+              const active = selected === level;
+              return (
+                <TouchableOpacity
+                  key={level}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${label}. ${description}`}
+                  accessibilityState={{ checked: active }}
+                  activeOpacity={0.84}
+                  onPress={() => setSelected(level)}
+                  style={[styles.levelHitArea, isLandscape && styles.levelHitAreaLandscape]}
+                >
+                  <ObsidianPanel raised={active} accent={active} style={[styles.levelCard, active && { borderColor: accent }]}>
+                    <View style={[styles.iconShell, { borderColor: `${accent}88`, backgroundColor: `${accent}16` }]}>
+                      <Icon size={26} color={accent} />
+                    </View>
+                    <View style={styles.levelCopy}>
+                      <View style={styles.levelTitleRow}>
+                        <Text type="defaultSemiBold" style={[styles.levelTitle, active && { color: accent }]}>{label}</Text>
+                        <Text forceLtr type="numeric" style={[styles.levelNumber, { color: accent }]}>{level}/4</Text>
+                      </View>
+                      <Text style={styles.levelDescription}>{description}</Text>
+                    </View>
+                    <View style={[styles.selectionMark, active && { borderColor: accent, backgroundColor: accent }]}>
+                      {active && <View style={styles.selectionDot} />}
+                    </View>
+                  </ObsidianPanel>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
-          {selected && (
-            <View style={styles.selectedHint}>
-              <Text style={styles.selectedHintText}>
-                {LEVELS.find(l => l.level === selected)?.emoji}{' '}
-                اخترت: {LEVELS.find(l => l.level === selected)?.label}
-              </Text>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={[styles.continueBtn, !selected && styles.continueBtnDisabled]}
-            onPress={handleContinue}
+          <ProButton
+            fullWidth
+            label={selected ? `متابعة — ${LEVELS.find(item => item.level === selected)?.label}` : 'اختر مستوى للمتابعة'}
+            onPress={continueToRules}
             disabled={!selected}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.continueBtnText, !selected && styles.continueBtnTextDisabled]}>
-              التالي →
-            </Text>
-          </TouchableOpacity>
+            accessibilityHint="ينقلك إلى إعداد عدد الجولات والقدرات"
+          />
         </ScrollView>
       </LuxuryBackground>
     </ScreenContainer>
@@ -120,72 +106,23 @@ export default function DifficultyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: SPACE.lg,
-    paddingTop: SPACE.xl,
-    paddingBottom: SPACE.xxl + SPACE.xl,
-    gap: SPACE.lg,
-  },
-  backBtn: {
-    alignSelf: 'flex-start',
-    paddingVertical: SPACE.sm,
-    paddingHorizontal: SPACE.md,
-    borderRadius: RADIUS.sm,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1,
-    borderColor: 'rgba(228,165,42,0.3)',
-  },
-  backBtnText: { color: COLOR.gold, fontSize: FONT.md },
-  header: { alignItems: 'center', gap: SPACE.xs },
-  title: { fontSize: FONT.hero, color: COLOR.gold, letterSpacing: 1, textAlign: 'center' },
-  subtitle: { color: COLOR.textMuted, fontSize: FONT.sm, textAlign: 'center' },
-  levelsGrid: { gap: SPACE.md },
-  levelsGridLandscape: { flexDirection: 'row', flexWrap: 'nowrap' },
-  levelCard: {
-    flex: 1,
-    ...GLASS_PANEL,
-    padding: SPACE.lg,
-    alignItems: 'center',
-    gap: SPACE.xs,
-    position: 'relative',
-    overflow: 'hidden',
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-  },
-  levelCardLandscape: {
-    flexDirection: 'column',
-    justifyContent: 'center',
-    paddingVertical: SPACE.xl,
-    minWidth: 0,
-  },
-  activeBar: {
-    position: 'absolute',
-    left: 0, top: 0, bottom: 0,
-    width: 4,
-    borderTopLeftRadius: RADIUS.md,
-    borderBottomLeftRadius: RADIUS.md,
-  },
-  levelEmoji: { fontSize: 28, marginRight: SPACE.md },
-  levelLabel: { fontSize: FONT.lg, color: COLOR.textPrimary, flex: 1 },
-  levelDesc: { fontSize: FONT.xs, color: COLOR.textMuted, flex: 1 },
-  starsRow: { flexDirection: 'row', gap: 2 },
-  selectedHint: {
-    alignItems: 'center',
-    paddingVertical: SPACE.sm,
-    backgroundColor: 'rgba(228,165,42,0.08)',
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: 'rgba(228,165,42,0.25)',
-  },
-  selectedHintText: { color: COLOR.gold, fontSize: FONT.md },
-  continueBtn: {
-    backgroundColor: COLOR.gold,
-    paddingVertical: SPACE.lg,
-    borderRadius: RADIUS.pill,
-    alignItems: 'center',
-    ...SHADOW.gold,
-  },
-  continueBtnDisabled: { backgroundColor: 'rgba(228,165,42,0.2)', shadowOpacity: 0, elevation: 0 },
-  continueBtnText: { fontSize: FONT.xl, color: '#1A0D1A' },
-  continueBtnTextDisabled: { color: 'rgba(255,255,255,0.25)' },
+  container: { flexGrow: 1, padding: SPACE.xl, gap: SPACE.xl, backgroundColor: 'rgba(8,13,22,0.38)' },
+  back: { minHeight: TOUCH_TARGET.default, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, paddingHorizontal: SPACE.md, borderRadius: RADIUS.md, borderWidth: 1, borderColor: SEMANTIC_COLOR.border.subtle, backgroundColor: 'rgba(19,30,47,0.72)' },
+  backLabel: { color: SEMANTIC_COLOR.accent.primary },
+  header: { alignItems: 'flex-end', gap: SPACE.sm, maxWidth: 720, width: '100%', alignSelf: 'center' },
+  title: { color: SEMANTIC_COLOR.text.primary, textAlign: 'right' },
+  subtitle: { color: SEMANTIC_COLOR.text.secondary, textAlign: 'right', maxWidth: 620 },
+  grid: { width: '100%', alignSelf: 'center', maxWidth: 980, gap: SPACE.md },
+  gridLandscape: { flexDirection: 'row', alignItems: 'stretch' },
+  levelHitArea: { width: '100%' },
+  levelHitAreaLandscape: { flex: 1, minWidth: 0 },
+  levelCard: { minHeight: 134, flexDirection: 'row-reverse', alignItems: 'center', gap: SPACE.md },
+  iconShell: { width: 52, height: 52, borderRadius: RADIUS.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  levelCopy: { flex: 1, gap: SPACE.xs },
+  levelTitleRow: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.sm },
+  levelTitle: { color: SEMANTIC_COLOR.text.primary, fontSize: FONT.lg, textAlign: 'right' },
+  levelNumber: { fontSize: FONT.sm },
+  levelDescription: { color: SEMANTIC_COLOR.text.secondary, fontSize: FONT.sm, textAlign: 'right' },
+  selectionMark: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: SEMANTIC_COLOR.border.subtle, alignItems: 'center', justifyContent: 'center' },
+  selectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: SEMANTIC_COLOR.text.inverse },
 });
