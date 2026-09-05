@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import {
   cancelAnimation,
   Easing,
+  interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -9,11 +11,155 @@ import {
   withSequence,
   withSpring,
   withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
 import { ANIM_DURATION, ANIM_VALUES, SPRING } from '@/constants/animationConfig';
 import { useMotionPreferences } from '@/hooks/useMotionPreferences';
 import { haptics } from '@/lib/feedback/haptics';
+
+export interface CardDrawOrigin {
+  x: number;
+  y: number;
+}
+
+export interface CardPresentationMotionOptions {
+  instanceKey: string;
+  selected?: boolean;
+  revealed?: boolean;
+  playEntrance?: boolean;
+  entranceDelay?: number;
+  drawOrigin?: CardDrawOrigin;
+}
+
+/**
+ * One owner for press, selection, draw and reveal transforms.
+ * This prevents multiple animated style objects from overwriting `transform`
+ * on the same native view and resets transient state when a recycled cell gets
+ * a new card instance.
+ */
+export function useCardPresentationMotion({
+  instanceKey,
+  selected = false,
+  revealed = false,
+  playEntrance = false,
+  entranceDelay = 0,
+  drawOrigin,
+}: CardPresentationMotionOptions) {
+  const pressed = useSharedValue(0);
+  const selectedProgress = useSharedValue(selected ? 1 : 0);
+  const entranceProgress = useSharedValue(playEntrance ? 0 : 1);
+  const revealProgress = useSharedValue(revealed ? 0 : 1);
+  const originX = useSharedValue(drawOrigin?.x ?? 0);
+  const originY = useSharedValue(drawOrigin?.y ?? 18);
+  const { reduceMotion } = useMotionPreferences();
+
+  useEffect(() => {
+    cancelAnimation(pressed);
+    cancelAnimation(selectedProgress);
+    cancelAnimation(entranceProgress);
+    cancelAnimation(revealProgress);
+
+    pressed.value = 0;
+    selectedProgress.value = selected ? 1 : 0;
+    originX.value = drawOrigin?.x ?? 0;
+    originY.value = drawOrigin?.y ?? 18;
+
+    if (reduceMotion) {
+      entranceProgress.value = 1;
+      revealProgress.value = 1;
+      return;
+    }
+
+    entranceProgress.value = playEntrance ? 0 : 1;
+    if (playEntrance) {
+      entranceProgress.value = withDelay(
+        entranceDelay,
+        withTiming(1, {
+          duration: ANIM_DURATION.DEAL,
+          easing: Easing.out(Easing.cubic),
+        }),
+      );
+    }
+
+    revealProgress.value = revealed ? 0 : 1;
+    if (revealed) {
+      revealProgress.value = withDelay(
+        entranceDelay,
+        withTiming(1, {
+          duration: ANIM_DURATION.FLIP,
+          easing: Easing.inOut(Easing.cubic),
+        }),
+      );
+    }
+  }, [
+    drawOrigin?.x,
+    drawOrigin?.y,
+    entranceDelay,
+    entranceProgress,
+    instanceKey,
+    originX,
+    originY,
+    playEntrance,
+    pressed,
+    reduceMotion,
+    revealProgress,
+    revealed,
+    selected,
+    selectedProgress,
+  ]);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      selectedProgress.value = selected ? 1 : 0;
+      return;
+    }
+    selectedProgress.value = withSpring(selected ? 1 : 0, SPRING.HOVER);
+  }, [reduceMotion, selected, selectedProgress]);
+
+  const onPressIn = () => {
+    haptics.trigger('selection');
+    pressed.value = reduceMotion
+      ? 0
+      : withTiming(1, { duration: ANIM_DURATION.PRESS_IN });
+  };
+
+  const onPressOut = () => {
+    pressed.value = reduceMotion
+      ? 0
+      : withTiming(0, { duration: ANIM_DURATION.PRESS_OUT });
+  };
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const entrance = entranceProgress.value;
+    const selectedT = selectedProgress.value;
+    const pressedScale = interpolate(
+      pressed.value,
+      [0, 1],
+      [1, ANIM_VALUES.TAP_SCALE],
+    );
+    const selectedScale = interpolate(
+      selectedT,
+      [0, 1],
+      [1, ANIM_VALUES.SELECT_SCALE],
+    );
+    const translateX = (1 - entrance) * originX.value;
+    const translateY =
+      (1 - entrance) * originY.value + selectedT * ANIM_VALUES.SELECT_LIFT;
+    const rotateY = `${(1 - revealProgress.value) * 88}deg`;
+
+    return {
+      opacity: reduceMotion ? 1 : entrance,
+      transform: [
+        { perspective: ANIM_VALUES.REVEAL_PERSPECTIVE },
+        { translateX },
+        { translateY },
+        { rotateY },
+        { scale: pressedScale * selectedScale },
+      ],
+    };
+  });
+
+  return { animatedStyle, onPressIn, onPressOut };
+}
 
 export function useCardTapAnimation() {
   const scale = useSharedValue(1);
@@ -25,11 +171,17 @@ export function useCardTapAnimation() {
 
   const onPressIn = () => {
     haptics.trigger('selection');
-    if (!reduceMotion) scale.value = withTiming(ANIM_VALUES.TAP_SCALE, { duration: ANIM_DURATION.PRESS_IN });
+    if (!reduceMotion) {
+      scale.value = withTiming(ANIM_VALUES.TAP_SCALE, {
+        duration: ANIM_DURATION.PRESS_IN,
+      });
+    }
   };
 
   const onPressOut = () => {
-    scale.value = reduceMotion ? 1 : withTiming(1, { duration: ANIM_DURATION.PRESS_OUT });
+    scale.value = reduceMotion
+      ? 1
+      : withTiming(1, { duration: ANIM_DURATION.PRESS_OUT });
   };
 
   return { animatedStyle, onPressIn, onPressOut };
@@ -58,7 +210,9 @@ export function useCardSummonAnimation(delayMs = 0) {
     scale.value = withDelay(
       delayMs,
       withSequence(
-        withTiming(ANIM_VALUES.SUMMON_PEAK, { duration: ANIM_DURATION.SUMMON * 0.4 }),
+        withTiming(ANIM_VALUES.SUMMON_PEAK, {
+          duration: ANIM_DURATION.SUMMON * 0.4,
+        }),
         withSpring(1, SPRING.SUMMON),
       ),
     );
@@ -100,7 +254,6 @@ export function useCardAttackAnimation() {
         if (finished && onDone) runOnJS(onDone)();
       }),
     );
-    // Completion is cosmetic only. Gameplay callers must not wait for it.
   };
 
   return { animatedStyle, shake };
@@ -131,8 +284,12 @@ export function useGlowPulse(active = true) {
     );
     scale.value = withRepeat(
       withSequence(
-        withTiming(ANIM_VALUES.GLOW_SCALE_PEAK, { duration: ANIM_DURATION.GLOW_PULSE }),
-        withTiming(ANIM_VALUES.GLOW_SCALE_TROUGH, { duration: ANIM_DURATION.GLOW_PULSE }),
+        withTiming(ANIM_VALUES.GLOW_SCALE_PEAK, {
+          duration: ANIM_DURATION.GLOW_PULSE,
+        }),
+        withTiming(ANIM_VALUES.GLOW_SCALE_TROUGH, {
+          duration: ANIM_DURATION.GLOW_PULSE,
+        }),
       ),
       -1,
       false,
@@ -163,8 +320,14 @@ export function useCardHoverScale(selected: boolean) {
       lift.value = 0;
       return;
     }
-    scale.value = withSpring(selected ? ANIM_VALUES.SELECT_SCALE : 1, SPRING.HOVER);
-    lift.value = withSpring(selected ? ANIM_VALUES.SELECT_LIFT : 0, SPRING.HOVER);
+    scale.value = withSpring(
+      selected ? ANIM_VALUES.SELECT_SCALE : 1,
+      SPRING.HOVER,
+    );
+    lift.value = withSpring(
+      selected ? ANIM_VALUES.SELECT_LIFT : 0,
+      SPRING.HOVER,
+    );
   }, [lift, reduceMotion, scale, selected]);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -189,13 +352,19 @@ export function useDamageNumberAnim(onComplete?: () => void) {
     if (reduceMotion) {
       translateY.value = startY;
       scale.value = 1;
-      opacity.value = withSequence(withTiming(1, { duration: 80 }), withTiming(0, { duration: 180 }));
+      opacity.value = withSequence(
+        withTiming(1, { duration: 80 }),
+        withTiming(0, { duration: 180 }),
+      );
       onComplete?.();
       return;
     }
 
     scale.value = withSequence(
-      withTiming(isCritical ? 1.35 : 1.15, { duration: 120, easing: Easing.out(Easing.back(1.7)) }),
+      withTiming(isCritical ? 1.35 : 1.15, {
+        duration: 120,
+        easing: Easing.out(Easing.back(1.7)),
+      }),
       withTiming(1, { duration: 90 }),
     );
     translateY.value = withTiming(startY - ANIM_VALUES.DAMAGE_RISE, {
@@ -204,9 +373,12 @@ export function useDamageNumberAnim(onComplete?: () => void) {
     });
     opacity.value = withSequence(
       withTiming(1, { duration: 90 }),
-      withDelay(220, withTiming(0, { duration: 260 }, (finished) => {
-        if (finished && onComplete) runOnJS(onComplete)();
-      })),
+      withDelay(
+        220,
+        withTiming(0, { duration: 260 }, (finished) => {
+          if (finished && onComplete) runOnJS(onComplete)();
+        }),
+      ),
     );
   };
 
