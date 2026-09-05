@@ -116,15 +116,10 @@ export function CardArtwork({
   const [appActive, setAppActive] = useState(AppState.currentState === 'active');
   const { reduceMotion } = useMotionPreferences();
   const { settings } = useSettings();
-  const media = useMemo(() => getCardMedia(card), [
-    card.id,
-    card.rarity,
-    card.imageUrl,
-    card.finalImage,
-    card.videoUrl,
-    card.isRagedVersion,
-    (card as Card & { customImage?: string }).customImage,
-  ]);
+  // Resolution is intentionally cheap and pure. Recompute from the current
+  // card value instead of maintaining a dependency list that can drift when
+  // new media fields are added to Card.
+  const media = getCardMedia(card);
   const resolvedImage = imageSource === undefined ? media.imageSource : imageSource;
   const contentFit = media.isCustomImage ? 'contain' : (CARD_IMAGE_FIT_OVERRIDES[card.id] ?? 'cover');
   const videoActive =
