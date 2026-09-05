@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-const abilityArtworkSelector = '[data-testid="ability-artwork-image"]';
+// AbilityCard exposes the visible rules surface with accessibilityLabel. Scope
+// large images to that semantic card subtree instead of relying on a legacy
+// renderer-specific testID that disappeared when the card system was unified.
+const abilityArtworkSelector = '[aria-label] img';
 
 const viewports = [
   { name: 'هاتف صغير عمودي', width: 320, height: 568 },
